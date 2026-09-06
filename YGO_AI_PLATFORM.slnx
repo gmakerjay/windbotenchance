@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/windbot-fork/">
+    <Project Path="windbot-fork/ExecutorBase/ExecutorBase.csproj" />
+    <Project Path="windbot-fork/WindBot.csproj" />
+  </Folder>
+  <Project Path="Client_Headless_Fortest/Client_Headless_Fortest.csproj" />
+  <Project Path="core/core.csproj" />
+  <Project Path="dashbot/dashbot.csproj" />
+  <Project Path="windbot_launcher/windbot_launcher.csproj" />
+</Solution>

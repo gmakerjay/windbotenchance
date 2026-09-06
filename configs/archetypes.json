@@ -1,0 +1,118 @@
+{
+  "_comment": "Opponent Profiler — Archetype detection config",
+  "_updated": "2026-06-19",
+  "_description": "แก้ไฟล์นี้เมื่อ meta เปลี่ยน — เพิ่ม archetype ใหม่, ลบ archetype ที่หายไปจาก meta, ปรับ HandTrapDensity ตามจริง",
+
+  "DefaultHandTrapDensity": 0.15,
+
+  "Archetypes": [
+    {
+      "Name": "Branded",
+      "CardKeywords": ["branded", "despia", "albaz", "aluber", "mirrorjade", "lubellion"],
+      "KnownCardIds": [44362883, 62962630, 68468459, 44146295, 70534340],
+      "PlayStyle": "Midrange",
+      "HandTrapDensity": 0.15,
+      "LikelyComboStarters": ["Branded Fusion", "Aluber"],
+      "LikelyEndBoard": ["Mirrorjade + Branded Retribution"]
+    },
+    {
+      "Name": "SnakeEye",
+      "CardKeywords": ["snake-eye", "sinful spoils", "diabellstar", "flamberge"],
+      "KnownCardIds": [16431364, 79979666, 72270339],
+      "PlayStyle": "Combo",
+      "HandTrapDensity": 0.12,
+      "LikelyComboStarters": ["Snake-Eye Ash", "Original Sinful Spoils"],
+      "LikelyEndBoard": ["Apollousa + I:P + Set backrow"]
+    },
+    {
+      "Name": "Kashtira",
+      "CardKeywords": ["kashtira", "scareclaw"],
+      "KnownCardIds": [37578679, 50810455, 82896609],
+      "PlayStyle": "Combo",
+      "HandTrapDensity": 0.10,
+      "LikelyComboStarters": ["Kashtira Unicorn", "Kashtira Fenrir"],
+      "LikelyEndBoard": ["Arise-Heart + Unicorn"]
+    },
+    {
+      "Name": "Altergeist",
+      "CardKeywords": ["altergeist", "multifaker", "silquitous", "hexstia", "meluseek"],
+      "KnownCardIds": [44728221, 75425043, 1508649, 7034515],
+      "PlayStyle": "Control",
+      "HandTrapDensity": 0.20,
+      "LikelyComboStarters": ["Multifaker", "Meluseek"],
+      "LikelyEndBoard": ["Hexstia + set Protocol + set Manifestation"]
+    },
+    {
+      "Name": "SkyStriker",
+      "CardKeywords": ["sky striker", "raye", "roze", "kagari", "shizuku", "hayate"],
+      "KnownCardIds": [63166095, 24010609, 26077387],
+      "PlayStyle": "Control",
+      "HandTrapDensity": 0.18,
+      "LikelyComboStarters": ["Engage", "Raye", "Roze"],
+      "LikelyEndBoard": ["Shizuku + set Widow Anchor"]
+    },
+    {
+      "Name": "Labrynth",
+      "CardKeywords": ["labrynth", "lovely", "arianna", "chandraglier", "welcome"],
+      "KnownCardIds": [2347656, 72461046],
+      "PlayStyle": "Control",
+      "HandTrapDensity": 0.15,
+      "LikelyComboStarters": ["Arianna", "Welcome Labrynth"],
+      "LikelyEndBoard": ["Lovely Labrynth + set Farewell + set Big Welcome"]
+    },
+    {
+      "Name": "Spright",
+      "CardKeywords": ["spright", "gigantic"],
+      "KnownCardIds": [16204028, 44097011],
+      "PlayStyle": "Combo",
+      "HandTrapDensity": 0.12,
+      "LikelyComboStarters": ["Spright Blue", "Spright Jet"],
+      "LikelyEndBoard": ["Gigantic Spright + Toadally Awesome"]
+    },
+    {
+      "Name": "Mathmech",
+      "CardKeywords": ["mathmech", "primathmech", "superfactorial"],
+      "KnownCardIds": [67627076, 48411748],
+      "PlayStyle": "OTK",
+      "HandTrapDensity": 0.15,
+      "LikelyComboStarters": ["Mathmech Circular", "Mathmech Addition"],
+      "LikelyEndBoard": ["Final Sigma (6000 ATK)"]
+    },
+    {
+      "Name": "FireKing",
+      "CardKeywords": ["fire king", "garunix", "ponix", "island"],
+      "KnownCardIds": [35261759, 36211150],
+      "PlayStyle": "Midrange",
+      "HandTrapDensity": 0.12,
+      "LikelyComboStarters": ["Fire King Island", "Sacred Fire King Garunix"],
+      "LikelyEndBoard": ["Garunix loop + Snake-Eye engine"]
+    },
+    {
+      "Name": "Melodious",
+      "CardKeywords": ["melodious", "ostinato", "bloom diva", "score"],
+      "KnownCardIds": [],
+      "PlayStyle": "Combo",
+      "HandTrapDensity": 0.10,
+      "LikelyComboStarters": ["Ostinato"],
+      "LikelyEndBoard": ["Bloom Diva + Schuberta"]
+    },
+    {
+      "Name": "Tenpai",
+      "CardKeywords": ["tenpai", "sangen"],
+      "KnownCardIds": [],
+      "PlayStyle": "OTK",
+      "HandTrapDensity": 0.15,
+      "LikelyComboStarters": ["Tenpai Dragon Paidra"],
+      "LikelyEndBoard": ["Multiple Synchros during Battle Phase"]
+    },
+    {
+      "Name": "Yubel",
+      "CardKeywords": ["yubel", "nightmare", "spirit of yubel"],
+      "KnownCardIds": [],
+      "PlayStyle": "Midrange",
+      "HandTrapDensity": 0.12,
+      "LikelyComboStarters": ["Spirit of Yubel", "Nightmare Pain"],
+      "LikelyEndBoard": ["Yubel fusion + Nightmare Pain"]
+    }
+  ]
+}

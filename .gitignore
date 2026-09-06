@@ -1,0 +1,57 @@
+## ============================================================================
+## .gitignore for WindBot Enhanced AI Platform (C# .NET 10.0)
+## ============================================================================
+
+# Build & Compilation Artifacts
+[Bb]in/
+[Oo]bj/
+[Pp]ublish/
+publish/
+Release/
+Debug/
+x64/
+x86/
+build/
+
+# Visual Studio / Rider / VS Code
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.pidb
+*.booproj
+*.svclog
+
+# Logs, Dumps, and Diagnostics
+logs/
+*.log
+*.dmp
+*.mdmp
+crashdumps/
+TestResults/
+
+# Package Manager
+**/packages/
+*.nupkg
+project.lock.json
+project.assets.json
+
+# OS Specific
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+*.bak
+*.bak*
+*.yugiohth_bak
+
+# Explicitly Keep Essential Assets
+!*.cdb
+!*.ydk
+!*.json
+!*.ps1
+!*.md

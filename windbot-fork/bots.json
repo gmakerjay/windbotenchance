@@ -1,0 +1,1600 @@
+[
+  {
+    "name": "Altergeist",
+    "deck": "Altergeist",
+    "difficulty": 3,
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
+    "name": "ABC-Dragon Buster",
+    "deck": "ABC",
+    "difficulty": 3,
+    "masterRules": [
+      5
+    ]
+  },
+  {
+    "name": "Blue-Eyes",
+    "deck": "Blue-Eyes",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Blue-Eyes Ritual",
+    "deck": "BlueEyesMaxDragon",
+    "difficulty": 2,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Burn",
+    "deck": "Burn",
+    "difficulty": 0,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Chain Burn",
+    "deck": "ChainBurn",
+    "difficulty": 0,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Cyberse",
+    "deck": "ST1732",
+    "difficulty": 2,
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Dark Magician",
+    "deck": "DarkMagician",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Dragunity",
+    "deck": "Dragunity",
+    "difficulty": 2,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Dogmatika",
+    "deck": "Dogmatika",
+    "difficulty": 3,
+    "masterRules": [
+      5
+    ]
+  },
+  {
+    "name": "Dragun of Red-Eyes",
+    "deck": "Dragun",
+    "difficulty": 3,
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Frog",
+    "deck": "Frog",
+    "difficulty": 1,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Gren Maju Stun",
+    "deck": "GrenMajuThunderBoarder",
+    "difficulty": 0,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Horus",
+    "deck": "Horus",
+    "difficulty": 1,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Lightsworn Shaddoll Dino",
+    "deck": "LightswornShaddoldinosour",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Mathmech",
+    "deck": "MathMech",
+    "difficulty": 2,
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Normal Monster Mash",
+    "deck": "MokeyMokey",
+    "difficulty": 1,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Normal Monster Mash II",
+    "deck": "MokeyMokeyKing",
+    "difficulty": 1,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Orcust",
+    "deck": "Orcust",
+    "difficulty": 3,
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Qliphort",
+    "deck": "Qliphort",
+    "difficulty": 0,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "R5NK",
+    "deck": "Rank V",
+    "difficulty": 2,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Rainbow",
+    "deck": "Rainbow",
+    "difficulty": 2,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Rose Scrap Synchro",
+    "deck": "Level VIII",
+    "difficulty": 2,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Salamangreat",
+    "deck": "Salamangreat",
+    "difficulty": 3,
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Sky Striker",
+    "deck": "SkyStriker",
+    "difficulty": 3,
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Time Thief",
+    "deck": "TimeThief",
+    "difficulty": 2,
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Toadally Awesome",
+    "deck": "Toadally Awesome",
+    "difficulty": 2,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Trickstar",
+    "deck": "Trickstar",
+    "difficulty": 3,
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Windwitch Gusto",
+    "deck": "PureWinds",
+    "difficulty": 1,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Witchcrafter Grass",
+    "deck": "Witchcraft",
+    "difficulty": 3,
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Yosenju",
+    "deck": "Yosenju",
+    "difficulty": 0,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "ZEXAL Weapon",
+    "deck": "Zexal Weapons",
+    "difficulty": 2,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Zoodiac",
+    "deck": "Zoodiac",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Purrely",
+    "deck": "2026_Purrely",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Regenesis",
+    "deck": "2026_Regenesis",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Yummy",
+    "deck": "2026_Yummy",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_DarkTime",
+    "deck": "2026_DarkTime",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_K9",
+    "deck": "2026_K9",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_BrElfnote",
+    "deck": "2026_BrElfnote",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Solfachord",
+    "deck": "2026_Solfachord",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Dreadnought",
+    "deck": "2026_Dreadnought",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Dreadnought",
+    "deck": "2026_Dreadnought",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_K9",
+    "deck": "2026_K9",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_BrElfnote",
+    "deck": "2026_BrElfnote",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Solfachord",
+    "deck": "2026_Solfachord",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_DarkTime",
+    "deck": "2026_DarkTime",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_SkyStriker",
+    "deck": "2026_SkyStriker",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_SkyStriker",
+    "deck": "2026_SkyStriker",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_EvilTwin",
+    "deck": "2026_EvilTwin",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_EvilTwin",
+    "deck": "2026_EvilTwin",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_EyeInside",
+    "deck": "2026_EyeInside",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_EyeInside",
+    "deck": "2026_EyeInside",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Goldlord",
+    "deck": "2026_Goldlord",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Goldlord",
+    "deck": "2026_Goldlord",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Hecahand",
+    "deck": "2026_Hecahand",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Hecahand",
+    "deck": "2026_Hecahand",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Invoke",
+    "deck": "2026_Invoke",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Invoke",
+    "deck": "2026_Invoke",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Kwtune",
+    "deck": "2026_Kwtune",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Kwtune",
+    "deck": "2026_Kwtune",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Labrynth",
+    "deck": "2026_Labrynth",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Labrynth",
+    "deck": "2026_Labrynth",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_CrystronTrains",
+    "deck": "2026_CrystronTrains",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_CrystronTrains",
+    "deck": "2026_CrystronTrains",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Radiant",
+    "deck": "2026_Radiant",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Radiant",
+    "deck": "2026_Radiant",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Branded",
+    "deck": "2026_Branded",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_MagistusFairy",
+    "deck": "2026_MagistusFairy",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Tellarknight",
+    "deck": "2026_Tellarknight",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Clown",
+    "deck": "2026_Clown",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Monarch",
+    "deck": "2026_Monarch",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_FairyTailPure",
+    "deck": "2026_FairyTailPure",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Speedroid",
+    "deck": "2026_Speedroid",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_RaiOh",
+    "deck": "2026_RaiOh",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_RaiOh",
+    "deck": "2026_RaiOh",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_RyuGe",
+    "deck": "2026_RyuGe",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_RyuGe",
+    "deck": "2026_RyuGe",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Magnet",
+    "deck": "2026_Magnet",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Fireking",
+    "deck": "2026_Fireking",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_TrueDraco",
+    "deck": "2026_TrueDraco",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Doomz",
+    "deck": "2026_Doomz",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Doomz",
+    "deck": "2026_Doomz",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Darklord",
+    "deck": "2026_Darklord",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Darklord",
+    "deck": "2026_Darklord",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Maliss",
+    "deck": "2026_Maliss",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Maliss",
+    "deck": "2026_Maliss",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Dracotail",
+    "deck": "2026_Dracotail",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Dracotail",
+    "deck": "2026_Dracotail",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_DarkWorld",
+    "deck": "2026_DarkWorld",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_DarkWorld",
+    "deck": "2026_DarkWorld",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_DDD",
+    "deck": "2026_DDD",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_DDD",
+    "deck": "2026_DDD",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_AncientG",
+    "deck": "2026_AncientG",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_AncientG",
+    "deck": "2026_AncientG",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Luna",
+    "deck": "2026_Luna",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Luna",
+    "deck": "2026_Luna",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_EneaCraft",
+    "deck": "2026_EneaCraft",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Archfiend",
+    "deck": "2026_Archfiend",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_RedDragon",
+    "deck": "2026_RedDragon",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_RedDragon",
+    "deck": "2026_RedDragon",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_TrainCryston",
+    "deck": "2026_TrainCryston",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_TrainCryston",
+    "deck": "2026_TrainCryston",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "GOAT_ItWork",
+    "deck": "GOAT_ItWork",
+    "difficulty": 3,
+    "masterRules": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "GOAT_JizoVempire",
+    "deck": "GOAT_JizoVempire",
+    "difficulty": 3,
+    "masterRules": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "GOAT_Panda",
+    "deck": "GOAT_Panda",
+    "difficulty": 3,
+    "masterRules": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "GOAT_RedEyes",
+    "deck": "GOAT_RedEyes",
+    "difficulty": 3,
+    "masterRules": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "GOAT_SkillDrian",
+    "deck": "GOAT_SkillDrian",
+    "difficulty": 3,
+    "masterRules": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "GOAT_Warrior",
+    "deck": "GOAT_Warrior",
+    "difficulty": 3,
+    "masterRules": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Amazon",
+    "deck": "2026_Amazon",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_BlazeBaz",
+    "deck": "2026_BlazeBaz",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Grave",
+    "deck": "2026_Grave",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Yubel2",
+    "deck": "Yubel2",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Blackwings",
+    "deck": "2026_Blackwings",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Blackwings",
+    "deck": "2026_Blackwings",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_BlueEyes",
+    "deck": "2026_BlueEyes",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_BlueEyes",
+    "deck": "2026_BlueEyes",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Puppet",
+    "deck": "2026_Puppet",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Puppet",
+    "deck": "2026_Puppet",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_RexRaptor",
+    "deck": "2026_RexRaptor",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_RexRaptor",
+    "deck": "2026_RexRaptor",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Amazon",
+    "deck": "2026_Amazon",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Amazon",
+    "deck": "2026_Amazon",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Angelechy",
+    "deck": "2026_Angelechy",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Angelechy",
+    "deck": "2026_Angelechy",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Exosister",
+    "deck": "2026_Exosister",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Exosister",
+    "deck": "2026_Exosister",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Goldlord",
+    "deck": "2026_Goldlord",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Goldlord",
+    "deck": "2026_Goldlord",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Dracotail",
+    "deck": "2026_Dracotail",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Dracotail",
+    "deck": "2026_Dracotail",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_BlueEyes",
+    "deck": "2026_BlueEyes",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_BlueEyes",
+    "deck": "2026_BlueEyes",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Clown",
+    "deck": "2026_Clown",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Clown",
+    "deck": "2026_Clown",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Speedroid",
+    "deck": "2026_Speedroid",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Speedroid",
+    "deck": "2026_Speedroid",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Solfachord",
+    "deck": "2026_Solfachord",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Solfachord",
+    "deck": "2026_Solfachord",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Tellarknight",
+    "deck": "2026_Tellarknight",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Tellarknight",
+    "deck": "2026_Tellarknight",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Plant",
+    "deck": "2026_Plant",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Plant",
+    "deck": "2026_Plant",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Purrely",
+    "deck": "2026_Purrely",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Purrely",
+    "deck": "2026_Purrely",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Angelechy",
+    "deck": "2026_Angelechy",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Angelechy",
+    "deck": "2026_Angelechy",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Demise",
+    "deck": "Demise",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "GOD-01",
+    "deck": "GOD-01",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Spright",
+    "deck": "2026_Spright",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Spright",
+    "deck": "2026_Spright",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_AFS",
+    "deck": "2026_AFS",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_AFS",
+    "deck": "2026_AFS",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_RyuGe",
+    "deck": "2026_RyuGe",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_RyuGe",
+    "deck": "2026_RyuGe",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Runick",
+    "deck": "2026_Runick",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Runick",
+    "deck": "2026_Runick",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Tearla",
+    "deck": "2026_Tearla",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Tearla",
+    "deck": "2026_Tearla",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Stun",
+    "deck": "2026_Stun",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Stun",
+    "deck": "2026_Stun",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  }
+]

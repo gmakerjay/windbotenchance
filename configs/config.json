@@ -1,0 +1,21 @@
+{
+  "project_name": "YGO AI Research Platform",
+  "version": "1.0.0",
+  "paths": {
+    "core": "core",
+    "windbot_fork": "windbot-fork",
+    "arena": "arena",
+    "training": "training",
+    "dashboard": "train_gui",
+    "logs": "logs",
+    "datasets": "datasets",
+    "models": "models",
+    "configs": "configs",
+    "tools": "tools",
+    "changelogs": "changelogs"
+  },
+  "launcher": {
+    "verbose": false,
+    "auto_create_missing_folders": true
+  }
+}

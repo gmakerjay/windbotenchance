@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <StartupObject>WindBot.Program</StartupObject>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="ExecutorBase\**" />
+    <Compile Remove="BotWrapper\**" />
+    <Compile Remove="Properties\AssemblyInfoLib.cs" />
+    <Compile Remove="WindBot.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Mono.Data.Sqlite">
+      <HintPath>Mono.Data.Sqlite.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="ExecutorBase\ExecutorBase.csproj" />
+    <ProjectReference Include="..\core\core.csproj" />
+
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="COPYING" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="sqlite3.dll" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="bots.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Decks\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Dialogs\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
