@@ -125,7 +125,20 @@ namespace WindBot.Game.AI
         /// <returns>BattlePhaseAction including the target, or null (in this situation, GameAI will check the next attacker)</returns>
         public override BattlePhaseAction OnSelectAttackTarget(ClientCard attacker, IList<ClientCard> defenders)
         {
-            foreach (ClientCard defender in defenders)
+            // Prioritize defenders: Threat/Negators first, then highest attackable monsters
+            var sortedDefenders = defenders
+                .Where(d => d != null)
+                .OrderByDescending(d => {
+                    int score = 0;
+                    if (CardIntelligence.IsKnownNegator(d.Id)) score += 10000;
+                    if (CardIntelligence.IsFloodgateMonster(d.Id)) score += 9000;
+                    if (d.IsExtraCard()) score += 5000;
+                    score += d.Attack;
+                    return score;
+                })
+                .ToList();
+
+            foreach (ClientCard defender in sortedDefenders)
             {
                 attacker.RealPower = attacker.Attack;
                 defender.RealPower = defender.GetDefensePower();
@@ -158,6 +171,10 @@ namespace WindBot.Game.AI
         public override bool OnPreBattleBetween(ClientCard attacker, ClientCard defender)
         {
             if (attacker.RealPower <= 0)
+                return false;
+
+            // Universal Safeguard: Never attack dangerous reflection/damage monsters
+            if (CardIntelligence.IsDangerousBattleTarget(defender, attacker))
                 return false;
 
             if (!attacker.IsMonsterHasPreventActivationEffectInBattle())
@@ -582,31 +599,47 @@ namespace WindBot.Game.AI
             return DefaultBreakthroughSkill();
         }
         /// <summary>
-        /// Chain common hand traps
+        /// Chain common hand traps and GY monsters
         /// </summary>
         protected bool DefaultCalledByTheGrave()
         {
-            int[] targetList =
+            if (Duel.LastChainPlayer != 1) return false;
+            ClientCard lastCard = Util.GetLastChainCard();
+            if (lastCard == null) return false;
+
+            int targetCode = lastCard.GetNonAltartCode();
+            bool isHandtrapOrThreat = CardIntelligence.IsHandtrap(lastCard.Id) || CardIntelligence.IsHandtrap(targetCode)
+                || CardIntelligence.IsKnownNegator(lastCard.Id) || CardIntelligence.IsHighThreatChokepoint(lastCard.Id);
+
+            if (isHandtrapOrThreat)
             {
-                _CardId.MaxxC,
-                _CardId.LockBird,
-                _CardId.GhostOgreAndSnowRabbit,
-                _CardId.AshBlossom,
-                _CardId.GhostBelle,
-                _CardId.EffectVeiler,
-                _CardId.ArtifactLancea
-            };
-            if (Duel.LastChainPlayer == 1)
-            {
-                foreach (int id in targetList)
+                if (Enemy.Graveyard.Any(gy => gy != null && (gy.IsCode(targetCode) || gy.IsCode(lastCard.Id))))
                 {
-                    if (Util.GetLastChainCard().IsCode(id))
-                    {
-                        AI.SelectCard(id);
-                        return UniqueFaceupSpell();
-                    }
+                    AI.SelectCard(lastCard.Id);
+                    return UniqueFaceupSpell();
                 }
             }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Default Crossout Designator effect:
+        /// Declares the last chain card if it is in our remaining deck to negate it.
+        /// </summary>
+        protected bool DefaultCrossoutDesignator()
+        {
+            if (Duel.LastChainPlayer != 1) return false;
+            ClientCard lastCard = Util.GetLastChainCard();
+            if (lastCard == null) return false;
+
+            int targetCode = lastCard.GetNonAltartCode();
+            if (GetRemainingCount(targetCode) > 0)
+            {
+                AI.SelectAnnounceID(targetCode);
+                return UniqueFaceupSpell();
+            }
+
             return false;
         }
         /// <summary>
@@ -633,10 +666,14 @@ namespace WindBot.Game.AI
         /// </summary>
         protected bool DefaultDisableMonster()
         {
+            // Do not chain another negator if our chain already contains an active negation responding to this chain
+            if (Duel.CurrentChain != null && Duel.CurrentChain.Any(c => c != null && c.Controller == 0 && (c.IsCode(10045474) || c.IsCode(97268402) || c.IsCode(24224830) || CardIntelligence.IsKnownNegator(c.Id))))
+                return false;
+
             if (Duel.Player == 1)
             {
                 ClientCard target = Enemy.MonsterZone.GetShouldBeDisabledBeforeItUseEffectMonster();
-                if (target != null)
+                if (target != null && !target.IsDisabled())
                 {
                     bool canTarget = true;
                     if (Card != null)

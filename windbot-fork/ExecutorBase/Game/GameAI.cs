@@ -257,10 +257,20 @@ namespace WindBot.Game
 
             if (defenders.Count == 0)
             {
-                // [FIX MAJOR-1] Attack with HIGHEST ATK first when opponent board is empty.
-                // Previously attacked lowest-first (reverse loop), which meant a single
-                // battle trap (Mirror Force) would waste attacks on weak monsters first.
-                // Attacking strongest-first maximizes damage before potential disruption.
+                // [FIX BATTLE-IQ] When opponent controls facedown Spell/Trap and lethal is not assured,
+                // attack with lower ATK monster first to bait Mirror Force / battle traps!
+                bool oppHasFacedownBackrow = Duel.Fields[1].GetSpells().Any(s => s != null && s.IsFacedown());
+                if (oppHasFacedownBackrow && !Executor.ShouldRushAttack && attackers.Count > 1)
+                {
+                    for (int i = attackers.Count - 1; i >= 0; --i)
+                    {
+                        ClientCard attacker = attackers[i];
+                        if (attacker.Attack > 0)
+                            return Attack(attacker, null);
+                    }
+                }
+
+                // Otherwise, attack with highest ATK first to maximize damage before interruption
                 for (int i = 0; i < attackers.Count; ++i)
                 {
                     ClientCard attacker = attackers[i];
@@ -413,6 +423,26 @@ namespace WindBot.Game
         public int OnSelectChain(IList<ClientCard> cards, IList<long> descs, bool forced)
         {
             Executor?.Scorer?.ClearCache();
+
+            // 1. Universal Chain Link 3 Defense (Called by the Grave / Crossout vs Handtraps)
+            if (Executor != null)
+            {
+                int cl3Idx = Executor.CheckChainLink3Defense(cards, descs);
+                if (cl3Idx >= 0)
+                {
+                    _dialogs.SendChaining(cards[cl3Idx]?.Name ?? string.Empty);
+                    return cl3Idx;
+                }
+
+                // 2. Pre-emptive Draw/Standby Phase Floodgates (Skill Drain, D-Barrier, Anti-Spell, etc.)
+                int floodIdx = Executor.CheckDrawStandbyFloodgate(cards, descs);
+                if (floodIdx >= 0)
+                {
+                    _dialogs.SendChaining(cards[floodIdx]?.Name ?? string.Empty);
+                    return floodIdx;
+                }
+            }
+
             foreach (CardExecutor exec in Executor.Executors)
             {
                 for (int i = 0; i < cards.Count; ++i)
@@ -1378,6 +1408,31 @@ namespace WindBot.Game
                 ClientCard lastCard = Duel.CurrentChain?.LastOrDefault();
                 if (lastCard != null && lastCard.Controller == 0)
                     return false;
+            }
+
+            // Universal Central Core Guard for Handtraps & Targeted Negators:
+            // Prevents duplicate activation of the same handtrap/negator in the same chain (e.g. Imperm -> Imperm, Ash -> Ash)
+            // and prevents wasting negations on already disabled targets.
+            if (type == ExecutorType.Activate && Duel.CurrentChain != null && Duel.CurrentChain.Count > 0)
+            {
+                if (card.IsCode(10045474) || card.IsCode(97268402) || CardIntelligence.IsHandtrap(card.Id) || CardIntelligence.IsHandtrap(card.GetNonAltartCode()))
+                {
+                    // 1. Never activate the same handtrap/negator twice in the same chain
+                    if (Duel.CurrentChain.Any(c => c != null && (c.IsCode(card.Id) || c.IsCode(card.GetNonAltartCode()))))
+                        return false;
+
+                    // 2. Never chain targeted monster negators (Imperm/Veiler) to our own card's activation
+                    if ((card.IsCode(10045474) || card.IsCode(97268402)) && Duel.LastChainPlayer == 0)
+                        return false;
+
+                    // 3. Never chain targeted monster negator to an opponent monster that is ALREADY disabled
+                    if (card.IsCode(10045474) || card.IsCode(97268402))
+                    {
+                        ClientCard targetCard = Duel.CurrentChain.LastOrDefault();
+                        if (targetCard != null && targetCard.Controller == 1 && targetCard.Location == CardLocation.MonsterZone && targetCard.IsDisabled())
+                            return false;
+                    }
+                }
             }
 
             bool result = exec.Func == null || exec.Func();

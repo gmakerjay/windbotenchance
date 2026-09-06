@@ -52,7 +52,19 @@ namespace WindBot.Game.AI
     /// </summary>
     public abstract class ModernExecutor : DefaultExecutor
     {
-        protected bool _isGoingSecond = false;
+        protected bool _isGoingSecond
+        {
+            get => IsGoingSecond;
+            set
+            {
+                if (!IsMatchDesignationSet)
+                {
+                    IsGoingSecond = value;
+                    IsGoingFirst = !value;
+                    IsMatchDesignationSet = true;
+                }
+            }
+        }
         protected ClientCard LastChainCard => Util.GetLastChainCard();
 
         private bool _comboStepNegatedThisChain = false;
@@ -394,9 +406,16 @@ namespace WindBot.Game.AI
         protected new bool DefaultEffectVeiler()
         {
             if (Duel.LastChainPlayer != 1) return false;
-            ClientCard veiler = Bot.Hand.FirstOrDefault(c => c.Id == 63845230);
+            if (Duel.CurrentChain != null && Duel.CurrentChain.Any(c => c != null && c.Controller == 0 && (c.IsCode(10045474) || c.IsCode(97268402) || c.IsCode(24224830) || CardIntelligence.IsKnownNegator(c.Id))))
+                return false;
+
+            ClientCard lastChain = Util.GetLastChainCard();
+            if (lastChain == null || lastChain.Controller != 1 || lastChain.Location != CardLocation.MonsterZone) return false;
+            if (lastChain.IsDisabled() || lastChain.IsShouldNotBeTarget() || lastChain.IsShouldNotBeMonsterTarget()) return false;
+
+            ClientCard veiler = Bot.Hand.FirstOrDefault(c => c != null && (c.Id == 97268402 || c.Id == 63845230));
             if (veiler == null) return false;
-            return AIContext != null && AIContext.ShouldActivate(veiler, Util.GetLastChainCard(), "EffectVeiler");
+            return AIContext != null && AIContext.ShouldActivate(veiler, lastChain, "EffectVeiler");
         }
 
         /// <summary>
@@ -633,7 +652,8 @@ namespace WindBot.Game.AI
                     case 14558127:  // Ash Blossom
                     case 23434538:  // Maxx "C"
                     case 94145021:  // Droll & Lock Bird
-                    case 63845230:  // Effect Veiler
+                    case 97268402:  // Effect Veiler
+                    case 63845230:  // Eater of Millions
                     case 59438930:  // Ghost Ogre
                     case 73642296:  // Ghost Belle
                     case 10045474:  // Infinite Impermanence
@@ -1151,7 +1171,8 @@ namespace WindBot.Game.AI
             // ═══ ComboRouter: Execute active combo step ═══
             if (ComboRouter != null && ComboRouter.Enabled && ComboRouter.HasActiveCombo)
             {
-                while (ComboRouter.HasActiveCombo)
+                int maxIterations = 15;
+                while (ComboRouter.HasActiveCombo && --maxIterations > 0)
                 {
                     var step = ComboRouter.GetNextStep();
                     if (step == null) break;
@@ -1223,12 +1244,26 @@ namespace WindBot.Game.AI
                     {
                         if (step.Optional)
                         {
-                            ComboRouter.SkipCurrentStep();
+                            ComboRouter.SkipCurrentStep(Bot);
                         }
                         else
                         {
-                            ComboRouter.AbortCombo($"Step card {step.CardId} ({step.ActionType}) not available/playable");
-                            break;
+                            // Try switching to Plan B (fallback line) before giving up!
+                            bool switched = ComboRouter.TrySwitchToFallback(Bot);
+                            if (switched)
+                            {
+                                try
+                                {
+                                    AI?.Log(LogLevel.Info, $"[COMBO-FALLBACK] Step {step.CardId} failed — switched to fallback combo: {ComboRouter.ActiveComboName}");
+                                }
+                                catch { }
+                                continue;
+                            }
+                            else
+                            {
+                                ComboRouter.AbortCombo($"Step card {step.CardId} ({step.ActionType}) not available/playable and no fallback viable");
+                                break;
+                            }
                         }
                     }
                 }
@@ -1519,10 +1554,6 @@ namespace WindBot.Game.AI
             // ── Activate Core Decision Flags (Easy Lethal, BreakBoard EV, etc.) ──
             PreNewTurn();
 
-            // ── Track going-first/second status ──
-            if (Duel.Turn == 2)
-                _isGoingSecond = (Bot.GetMonsterCount() == 0 && Enemy.GetMonsterCount() > 0);
-
             // Reset per-turn state in enhancement modules
             ComboRouter?.OnNewTurn();
             BaitPlanner?.OnNewTurn();
@@ -1603,11 +1634,15 @@ namespace WindBot.Game.AI
             // 1. Check known negate monsters
             if (_negateMonsters.Contains(card.Id)) return true;
 
-            // 2. Check known hand traps / negates by ID
+            // 2. Check Central CardIntelligence
+            if (CardIntelligence.IsKnownNegator(card.Id) || CardIntelligence.IsHandtrap(card.Id)) return true;
+
+            // 3. Check known hand traps / negates by ID
             int[] negateIds = {
                 14558127, 14558128, // Ash Blossom
                 73642296,          // Ghost Belle
-                63845230,          // Effect Veiler
+                97268402,          // Effect Veiler
+                63845230,          // Eater of Millions
                 10045474,          // Infinite Impermanence
                 24224830,          // Called by the Grave
                 41420027,          // Solemn Judgment
@@ -1813,7 +1848,7 @@ namespace WindBot.Game.AI
             if (c.HasType(CardType.Normal)) return -500;
 
             // Handtraps & Key Starters are extremely valuable
-            if (c.IsCode(14558127, 14558128, 23434538, 10045474, 94145021, 63845230, 42141493, 84192580))
+            if (c.IsCode(14558127, 14558128, 23434538, 10045474, 94145021, 97268402, 63845230, 42141493, 84192580))
                 cost += 8000;
             if (_negateMonsters.Contains(c.Id))
                 cost += 10000;
@@ -1942,7 +1977,7 @@ namespace WindBot.Game.AI
                     int score = 0;
                     if (IsAceCard(c)) score += 8000;
                     // Handtraps
-                    if (c.IsCode(14558127, 14558128, 23434538, 10045474, 94145021, 63845230, 42141493, 84192580)) score += 6000;
+                    if (c.IsCode(14558127, 14558128, 23434538, 10045474, 94145021, 97268402, 63845230, 42141493, 84192580)) score += 6000;
                     if (c.HasType(CardType.Monster)) score += 3000 + c.Attack;
                     if (c.HasType(CardType.Spell)) score += 2000;
                     return score;
@@ -2022,6 +2057,47 @@ namespace WindBot.Game.AI
                 return CardPosition.FaceUpDefence;
 
             return base.OnSelectPosition(cardId, positions);
+        }
+
+        /// <summary>
+        /// Universal Yes/No prompt safety guard:
+        /// Prevents self-destruction when prompted for optional field removals (destroy/banish)
+        /// if the opponent has no valid targets on the field.
+        /// </summary>
+        public override bool OnSelectYesNo(long desc)
+        {
+            // Safeguard 1: Dracotail Pan (95232014) optional destroy 1 monster on field
+            if (desc == Util.GetStringId(95232014, 2))
+            {
+                return Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsShouldNotBeTarget());
+            }
+
+            // Safeguard 2: Dracotail Urgula (95232011) optional destroy 1 spell/trap on field
+            if (desc == Util.GetStringId(95232011, 2))
+            {
+                return Enemy.GetSpells().Any(c => c != null);
+            }
+
+            // Safeguard 3: Epurrely Plump (74701381) optional banish 1 monster on field
+            if (desc == Util.GetStringId(74701381, 2))
+            {
+                return Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsShouldNotBeTarget());
+            }
+
+            // Safeguard 4: Universal empty opponent field trap
+            // If enemy has no cards on field, refuse optional removal prompts to avoid destroying own cards
+            if (Enemy.GetMonsterCount() == 0 && Enemy.GetSpellCount() == 0)
+            {
+                long cardIdFromDesc = (desc >> 20);
+                long cardIdFromDesc4 = (desc >> 4);
+                if (cardIdFromDesc == 95232014 || cardIdFromDesc == 95232011 || cardIdFromDesc == 74701381 ||
+                    cardIdFromDesc4 == 95232014 || cardIdFromDesc4 == 95232011 || cardIdFromDesc4 == 74701381)
+                {
+                    return false;
+                }
+            }
+
+            return base.OnSelectYesNo(desc);
         }
     }
 }

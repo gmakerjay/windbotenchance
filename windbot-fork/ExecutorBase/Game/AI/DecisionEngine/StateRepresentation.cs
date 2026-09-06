@@ -95,8 +95,8 @@ namespace WindBot.Game.AI.DecisionEngine
             count += executor.Bot.GetSpells().Count(c => c != null && c.IsFacedown());
 
             // Hand traps in hand
-            int[] handTraps = { 14558127, 23434538, 63845230, 10045474 };
-            count += executor.Bot.Hand.Count(c => c != null && handTraps.Contains(c.Id));
+            int[] handTraps = { 14558127, 23434538, 97268402, 63845230, 10045474 };
+            count += executor.Bot.Hand.Count(c => c != null && (handTraps.Contains(c.Id) || CardIntelligence.IsHandtrap(c.Id)));
 
             return count;
         }

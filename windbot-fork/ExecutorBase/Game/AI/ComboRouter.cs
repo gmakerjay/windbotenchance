@@ -93,6 +93,7 @@ namespace WindBot.Game.AI
         // ═══════════════════════════════════════
 
         private readonly List<ComboLine> _registeredLines = new List<ComboLine>();
+        private readonly HashSet<string> _failedLinesThisTurn = new HashSet<string>();
         private ComboLine _activeLine = null;
         private int _activeStepIndex = 0;
 
@@ -139,12 +140,13 @@ namespace WindBot.Game.AI
 
         /// <summary>
         /// Reset per-turn state. Call from OnNewTurn().
-        /// Clears active line and step completion status.
+        /// Clears active line, failed lines history, and step completion status.
         /// </summary>
         public void OnNewTurn()
         {
             _activeLine = null;
             _activeStepIndex = 0;
+            _failedLinesThisTurn.Clear();
             foreach (var line in _registeredLines)
             {
                 foreach (var step in line.Steps)
@@ -274,8 +276,9 @@ namespace WindBot.Game.AI
 
         /// <summary>
         /// Skip the current step (optional step or couldn't execute).
+        /// If a mandatory step fails, attempts to switch to fallback before aborting.
         /// </summary>
-        public void SkipCurrentStep()
+        public void SkipCurrentStep(ClientField bot = null)
         {
             if (_activeLine == null) return;
             if (_activeStepIndex < _activeLine.Steps.Count)
@@ -288,11 +291,62 @@ namespace WindBot.Game.AI
                 }
                 else
                 {
-                    // Mandatory step failed → abort combo line
-                    System.Diagnostics.Debug.WriteLine($"[ComboRouter] ✗ Mandatory step failed: {step.Description ?? step.CardId.ToString()} — aborting combo");
-                    _activeLine = null;
+                    // Mandatory step failed → try fallback line before giving up
+                    System.Diagnostics.Debug.WriteLine($"[ComboRouter] ✗ Mandatory step failed: {step.Description ?? step.CardId.ToString()} — checking fallback");
+                    if (!TrySwitchToFallback(bot))
+                    {
+                        AbortCombo($"Mandatory step failed: {step.Description ?? step.CardId.ToString()}");
+                    }
                 }
             }
+        }
+
+        /// <summary>
+        /// Attempts to switch to the registered fallback line (Plan B) or dynamically finds the next best viable line.
+        /// Guaranteed not to cycle into lines that have already failed this turn.
+        /// </summary>
+        public bool TrySwitchToFallback(ClientField bot = null)
+        {
+            if (_activeLine != null)
+            {
+                _failedLinesThisTurn.Add(_activeLine.Name);
+            }
+
+            string fallbackName = _activeLine?.FallbackLineName;
+            string abortedName = _activeLine?.Name;
+            _activeLine = null;
+            _activeStepIndex = 0;
+
+            if (!string.IsNullOrEmpty(fallbackName) && !_failedLinesThisTurn.Contains(fallbackName))
+            {
+                var fallback = _registeredLines.FirstOrDefault(l => l.Name == fallbackName);
+                if (fallback != null && (fallback.Condition == null || SafeInvoke(fallback.Condition)))
+                {
+                    _activeLine = fallback;
+                    _activeStepIndex = 0;
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[ComboRouter] ↩ Fallback switched: {abortedName} → {fallback.Name}");
+                    return true;
+                }
+            }
+
+            // If no specific fallback registered, re-evaluate hand for any alternative viable line not already failed
+            if (bot != null)
+            {
+                var viable = GetViableLines(bot)
+                    .Where(l => l.Name != abortedName && !_failedLinesThisTurn.Contains(l.Name))
+                    .ToList();
+                if (viable.Count > 0)
+                {
+                    _activeLine = viable[0];
+                    _activeStepIndex = 0;
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[ComboRouter] ↩ Auto-switched to next best line: {abortedName} → {viable[0].Name}");
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -337,6 +391,7 @@ namespace WindBot.Game.AI
         {
             if (_activeLine != null)
             {
+                _failedLinesThisTurn.Add(_activeLine.Name);
                 System.Diagnostics.Debug.WriteLine($"[ComboRouter] ✗ Combo aborted: {_activeLine.Name} — {reason}");
                 _activeLine = null;
                 _activeStepIndex = 0;

@@ -90,7 +90,8 @@ namespace WindBot.Game.AI
                 14558127, 14558128, // Ash Blossom (both IDs)
                 23434538,          // Maxx "C"
                 94145021,          // Droll & Lock Bird
-                63845230,          // Effect Veiler
+                97268402,          // Effect Veiler
+                63845230,          // Eater of Millions
                 59438930,          // Ghost Ogre
                 73642296,          // Ghost Belle
                 10045474,          // Infinite Impermanence

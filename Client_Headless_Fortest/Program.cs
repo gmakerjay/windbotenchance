@@ -158,38 +158,33 @@ namespace ClientHeadlessFortest
             Console.WriteLine($"Duel Timeout : {duelTimeoutSeconds}s");
             Console.WriteLine("Press Ctrl+C to cancel the verification.\n");
 
-            // ═══ Pre-cleanup: Kill any zombie ygopro processes from previous runs ═══
-            Console.WriteLine("[Info] Pre-cleanup: Terminating any leftover ygopro processes from previous runs...");
-            try
+            // ═══ Pre-cleanup: Kill any zombie ygopro processes ONLY when --clean is specified ═══
+            bool cleanZombieMode = args.Any(a => a.Equals("--clean", StringComparison.OrdinalIgnoreCase));
+            if (cleanZombieMode)
             {
-                foreach (var proc in System.Diagnostics.Process.GetProcessesByName("ygopro"))
+                Console.WriteLine("[Info] Pre-cleanup: Terminating any leftover ygopro processes (--clean requested)...");
+                try
                 {
-                    try
+                    foreach (var proc in System.Diagnostics.Process.GetProcessesByName("ygopro"))
                     {
-                        Console.WriteLine($"  Killing zombie ygopro.exe (PID: {proc.Id})...");
-                        proc.Kill();
-                        if (!proc.WaitForExit(3000))
-                        {
-                            Console.WriteLine($"  [Warning] ygopro.exe (PID: {proc.Id}) did not exit after Kill.");
-                        }
+                        try { proc.Kill(); proc.WaitForExit(2000); } catch { }
                     }
-                    catch { }
+                    foreach (var proc in System.Diagnostics.Process.GetProcessesByName("ygoprodll"))
+                    {
+                        try { proc.Kill(); proc.WaitForExit(2000); } catch { }
+                    }
+                    foreach (var proc in System.Diagnostics.Process.GetProcessesByName("._cache_ygopro"))
+                    {
+                        try { proc.Kill(); proc.WaitForExit(2000); } catch { }
+                    }
+                    Console.WriteLine("[Info] Pre-cleanup complete.");
                 }
-                foreach (var proc in System.Diagnostics.Process.GetProcessesByName("ygoprodll"))
+                catch (Exception ex)
                 {
-                    try { proc.Kill(); proc.WaitForExit(2000); } catch { }
+                    Console.WriteLine($"[Warning] Pre-cleanup encountered an issue: {ex.Message}");
                 }
-                foreach (var proc in System.Diagnostics.Process.GetProcessesByName("._cache_ygopro"))
-                {
-                    try { proc.Kill(); proc.WaitForExit(2000); } catch { }
-                }
-                Console.WriteLine("[Info] Pre-cleanup complete.");
+                Console.WriteLine();
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[Warning] Pre-cleanup encountered an issue: {ex.Message}");
-            }
-            Console.WriteLine();
 
             // Resolve paths - FORCE use Game_EDOPro as the single source of truth
             string projectRootDir = WindBotResolver.ResolveProjectRoot();

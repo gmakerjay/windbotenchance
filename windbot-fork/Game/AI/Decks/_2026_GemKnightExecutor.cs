@@ -75,7 +75,7 @@ namespace WindBot.Game.AI.Decks
             // Staples
             public const int AshBlossom = 14558127;
             public const int MaxxC = 23434538;
-            public const int EffectVeiler = 63845230;
+            public const int EffectVeiler = 97268402;
             public const int CalledByTheGrave = 24224830;
             public const int SuperPolymerization = 48130397;
             public const int BookOfMoon = 14087893;

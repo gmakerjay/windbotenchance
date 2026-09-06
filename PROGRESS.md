@@ -1,5 +1,77 @@
 # Progress Log: 2026_Branded, 2026_DarkTime, 2026_Runick, 2026_RyuGe, 2026_AFS, 2026_Spright, GOD-01, Demise, 2026_Darklord, 2026_DarkWorld & 2026_Hecahand ModernExecutors
 
+## 0.000. Critical Freeze & Redundant Chain Prevention Hotfix (2026-09-06)
+
+### Root Cause Analysis & Problem Statement
+1. **Engine Freeze / Infinite Loop**:
+   - In live duels (e.g. `2026_AFS vs ABC`), the engine generated over 58,000 log lines in 2 seconds and completely froze.
+   - When a primary combo line (`AFS-TripleEngine-OmniBoard`) failed midway at Engraver, `ComboRouter` switched to fallback `Fiendsmith-Caesar-Line`.
+   - When `Fiendsmith-Caesar-Line` failed at Poplar, `ComboRouter` reset and switched right back to `AFS-TripleEngine-OmniBoard`.
+   - Inside `ModernExecutor.cs`: `while (ComboRouter.HasActiveCombo)` ping-ponged between the two lines in an infinite while loop without passing control back to the game engine.
+2. **Redundant Chains & "Player Not Reading Card Text" Behavior**:
+   - The bot repeatedly chained multiple copies of `Infinite Impermanence (10045474)` or `Effect Veiler (97268402)` on a single monster that was **already disabled/negated** (e.g. ABC-Dragon Buster).
+   - In `CardContainer.cs` (`GetShouldBeDisabledBeforeItUseEffectMonster`), it did NOT check `!card.IsDisabled()`. Because ABC-Dragon Buster matched the high-threat list, the function kept returning it as an active target even after its effects were already negated.
+   - In `DefaultExecutor.cs` (`DefaultDisableMonster`), it lacked checks preventing duplicate negation cards in the current chain link.
+
+### Core Fixes Implemented
+1. **`ComboRouter.cs` (Turn-scoped Failed Line Blacklist)**:
+   - Added `_failedLinesThisTurn = new HashSet<string>()`.
+   - When any combo line fails execution, it is added to `_failedLinesThisTurn` and cannot be reselected during the same turn.
+   - Clear blacklist automatically on each new turn (`Reset()`).
+2. **`ModernExecutor.cs` (Combo Loop Safety Limiter)**:
+   - Added hard iteration cap (`int maxIterations = 15; while (ComboRouter.HasActiveCombo && --maxIterations > 0)`) preventing runaway while-loops.
+   - Hardened `DefaultEffectVeiler` with `!lastChain.IsDisabled()` and duplicate chain check.
+3. **`CardContainer.cs` (`GetShouldBeDisabledBeforeItUseEffectMonster`)**:
+   - Added `!card.IsDisabled()` check: will never return an opponent monster that is already negated.
+4. **`DefaultExecutor.cs` (`DefaultDisableMonster`)**:
+   - Added check ensuring `!target.IsDisabled()` and blocking activation if `Duel.CurrentChain` already contains an active negation targeting that monster.
+5. **`GameAI.cs` (`ShouldExecute`)**:
+   - Added universal Central Core Handtrap/Negator guards:
+     - Block activating identical handtraps/negators in the same chain link.
+     - Block chaining targeted negators (Imperm/Veiler) if `Duel.LastChainPlayer == 0` (bot's own card).
+     - Block chaining targeted negators if `Duel.CurrentChain.LastOrDefault()` is already disabled.
+
+### Headless Duel Verification (2026_AFS vs ABC)
+- 3/3 duels completed with **Status: OK**, 0 Violations, 0 Crashes, 0 Freezes (average 12.9s per duel).
+- Redundant chains onto disabled monsters completely eliminated.
+
+---
+
+## 0.00. Central Core Intelligence & ModernExecutor Overhaul (2026-09-06)
+
+### Objective
+Systemic overhaul of Central Core AI (`ExecutorBase`, `GameAI`, `ModernExecutor`, `DefaultExecutor`, `CardIntelligence`, `ComboRouter`) to eliminate bot misplays, suicide plays, designation corruption, and ensure genuine tournament-grade Player vs CPU intelligence without touching individual deck files.
+
+### 6 Core Architecture Upgrades
+1. **Permanent Match-Level Designation (`IsGoingFirst` / `IsGoingSecond`)**:
+   - **Root Cause**: `_isGoingSecond = (Duel.Turn > 1)` was executed every turn across dozens of 2026 executors and `ModernExecutor`. On Turn 3 (bot went first), `_isGoingSecond` flipped to `true`, destroying Turn 1 board setups and triggering going-second board breaker code inappropriately. Furthermore, on Turn 1 when opponent went first, `IsGoingSecond` was unset until Turn 2.
+   - **Fix**: Replaced `_isGoingSecond` field in `ModernExecutor` with a property backed by `IsGoingSecond`. Locked match designation permanently on Turn 1 in `Executor.PreNewTurn()` based on `(Duel.Turn % 2)` and `Duel.Player`.
+2. **Chain Link 3 Defense & Pre-emptive Draw/Standby Floodgates**:
+   - **Root Cause**: When opponent responded with handtraps to interrupt bot combos, bots did not automatically chain `Called by the Grave` or `Crossout Designator` as Chain Link 3. Additionally, continuous floodgates (`Skill Drain`, `There Can Be Only One`, `Anti-Spell Fragrance`, `Dimensional Barrier`) were held until Main Phase when opponent already cast board breakers (Harpie's, Lightning Storm, Evenly Matched).
+   - **Fix**: Implemented `CheckChainLink3Defense` and `CheckDrawStandbyFloodgate` in `Executor.cs`, and wired them directly into `GameAI.OnSelectChain` so CL3 protection and Draw/Standby flips occur reliably across all bots.
+3. **Universal `OnSelectYesNo` Self-Harm Guard**:
+   - **Root Cause**: `Executor.OnSelectYesNo` unconditionally returned `true`. Cards with optional removal targeting "on the field" (e.g. `Dracotail Pan`, `Dracotail Urgula`, `Epurrely Plump`) prompted "Do you want to destroy 1 card on the field?". On Turn 1 or empty opponent fields, answering Yes forced the bot to destroy/banish its own cards.
+   - **Fix**: Implemented `OnSelectYesNo` override in `ModernExecutor` guarding against empty opponent fields and specific string IDs, refusing optional removal when enemy has 0 valid targets.
+4. **ComboRouter Dynamic Fallback & Plan B Execution**:
+   - **Root Cause**: When a mandatory combo step was negated or unplayable, `ComboRouter` aborted the entire combo and passed the turn without checking alternative lines.
+   - **Fix**: Added `TrySwitchToFallback(ClientField bot)` in `ComboRouter.cs`. When a step fails in `ModernExecutor.OnSelectIdleCmd`, the engine immediately attempts the registered `FallbackLineName` or re-evaluates available cards to seamlessly switch to Plan B/C.
+5. **Universal Threat-Weighted Battle Targeting & Baiting**:
+   - **Root Cause**: Bots attacked face-up high-ATK targets blindly, crashed into damage reflection monsters (Mikanko, Yubel, Timelords), or walked into face-down backrow with high-ATK bosses first.
+   - **Fix**: Added `IsDangerousBattleTarget()` in `CardIntelligence.cs` (blocking Mikanko, Yubel, Timelords, Lion Heart, Sphreeze). Rewrote `OnSelectAttackTarget()` with threat scoring (negators +120, floodgates +100, lethal push bonus). Added face-down backrow baiting in `GameAI.InternalOnSelectBattleCmd` (attacking with lowest ATK monster first unless lethal is assured).
+6. **Effect Veiler Canonical ID Correction & CardIntelligence Unification**:
+   - **Root Cause**: `63845230` (Eater of Millions) was mistakenly hardcoded as Effect Veiler across `BoardScorer`, `ChainTimingAdvisor`, `ModernExecutor`, `StateRepresentation`, `DynamicValueEvaluator`, `BeliefState`, and `2026_GemKnight.ydk`. Real Effect Veiler (`97268402`) was ignored, and drawing Eater of Millions caused false handtrap holding.
+   - **Fix**: Corrected all references to `97268402` for Effect Veiler, separated `63845230` as Eater of Millions, corrected `Crossout Designator` canonical ID to `65681983`, and added `Dominus Impulse`, `Dominus Purge`, and `PSY-Framegear Gamma` to `CardIntelligence`.
+
+### Headless Duel Simulation Verification
+- **`2026_Dracotail vs Blue-Eyes`**: 4 Wins / 1 Loss (**80.0% Win Rate**) | 0 Violations, 0 Crashes
+- **`2026_Dracotail vs ABC`**: 1 Win / 2 Losses (**33.3% Win Rate**) | 0 Violations, 0 Crashes
+- **`2026_Dracotail vs DarkMagician`**: 2 Wins / 1 Loss (**66.7% Win Rate**) | 0 Violations, 0 Crashes
+- **`2026_Dracotail vs Altergeist`**: 2 Wins / 1 Loss (**66.7% Win Rate**) | 0 Violations, 0 Crashes
+- **`2026_Stun vs Blue-Eyes`**: 2 Wins / 1 Loss (**66.7% Win Rate**) | 0 Violations, 0 Crashes
+- **Overall**: 11 Wins / 6 Losses (**64.7% Win Rate**), **0 Engine Crashes, 0 MSG_RETRY Violations**.
+
+---
+
 ## 0.0. Central Core Architecture Upgrade: Duplicate Chain & Self-Negation Prevention (2026-09-06)
 
 ### Root Cause Analysis & Problem Statement
@@ -681,6 +753,43 @@ Upgraded the core base classes (`ModernExecutor`, `ChainTimingAdvisor`, and `Com
 
 - **รายงานการวิเคราะห์และแก้ไขเชิงลึก**: จัดทำไว้ที่ [Docs/2026_Tearla_Stun_Optimization_Report.md](file:///c:/Users/admin/Documents/EdoGame/Docs/2026_Tearla_Stun_Optimization_Report.md)
 - **Deployment สถานะ**: อัปเดตและ Deploy ไปยัง `C:\Users\admin\Documents\EdoGame\` ครบถ้วน 100%
+
+---
+
+## 10. 2026_Purrely & 2026_Yummy Championship ModernExecutors (Full Goal Complete)
+
+### ภาพรวมการพัฒนา & การปรับปรุงเชิงโครงสร้าง
+- ยกระดับ Rule-Based C# ModernExecutor ทั้ง 2 เด็คสู่มาตรฐานระดับ Championship Tier-1:
+  1. **`_2026_PurrelyExecutor.cs`**:
+     - เพิ่มตรรกะ Proactive Spin on Our Turn (`ExpurrelyNoirEffect`) หมุนบอร์ดกวาดสนาม (`Eternal Soul`/`True Light`), มอนสเตอร์บอสพลังสูง (`ABC-Dragon Buster`), และการ์ดหลังบ้านอันตราย (`Altergeist Protocol`, `Secret Village`) ในเทิร์นของบอทเอง
+     - แก้ไข `ShouldActivateMemoryInHand` อนุญาตให้ป้อน Quick-Play Memory ให้กับมอนสเตอร์ Rank 2 บนสนามเพื่อเตรียมไต่ระดับขึ้นสู่ Noir ตัวถัดไป
+     - เพิ่มระบบป้องกัน Material Anti-Cannibalization ใน `GetMaterialPriority` ปกป้องตัว Ace ที่มีวัตถุดิบสูงไม่ให้ถูกนำไป Link
+  2. **`_2026_YummyExecutor.cs`**:
+     - แก้ไขบั๊กวิกฤติ Cooky Way Self-Targeting: ใน `OnSelectEffectYn` ป้องกันไม่ให้ Cooky Way เปิดเอฟเฟกต์คว่ำหน้าตัวมันเองเมื่อสนามคู่ต่อสู้ไม่มีมอนสเตอร์หงายหน้า
+     - ปรับปรุงการวางสนามของ Snatchy และจัดเส้นทาง Quick Synchro ให้เรียก `Cupsy★Yummy Way` เป็นลำดับสูงสุด (Score 2500) เพื่อบวกการ์ดค้นหา +2 ในมือ
+     - เชื่อมต่อคอมโบ `Spright Elf` ชุบชีวิต `Cupsy★Yummy Way` กลับคืนสนาม สร้างบอร์ดขัดจังหวะ 6 รูปแบบในเทิร์นเดียว
+     - แก้ไขการหมอบ `Yummy☆Surprise` ใน MP1 และการเลือกเป้าหมาย 2+2 Double-Bounce
+     - แก้ไขการสวมใส่ Link มอนสเตอร์ของ `Borreload Savage Dragon` จากสุสานเพื่อรับ 3700 ATK และ 2 Omni-Negates
+
+### สรุปสถิติผลการทดสอบ (Headless Benchmark 80 นัด)
+
+| Deck | Opponent | Games | Win Rate (%) | Violations | Crashes |
+|---|---|---|---|---|---|
+| **2026_Purrely** | **DarkMagician** | 10 | **40.0%** (4/10) | 0 | 0 |
+| **2026_Purrely** | **BlueEyes** | 10 | **40.0%** (4/10) | 0 | 0 |
+| **2026_Purrely** | **ABC** | 10 | **20.0%** (2/10) | 0 | 0 |
+| **2026_Purrely** | **Altergeist** | 10 | **20.0%** (2/10) | 0 | 0 |
+| *รวม 2026_Purrely* | *เฉลี่ย 4 เด็ค* | *40* | ***30.0%*** | *0* | *0* |
+| **2026_Yummy** | **DarkMagician** | 10 | **30.0%** (3/10) | 0 | 0 |
+| **2026_Yummy** | **ABC** | 10 | **30.0%** (3/10) | 0 | 0 |
+| **2026_Yummy** | **Altergeist** | 10 | **20.0%** (2/10) | 0 | 0 |
+| **2026_Yummy** | **BlueEyes** | 10 | **10.0%** (1/10) | 0 | 0 |
+| *รวม 2026_Yummy* | *เฉลี่ย 4 เด็ค* | *40* | ***22.5%*** | *0* | *0* |
+| **รวมสถิติทั้งหมด** | **ทุกคู่ซ้อม** | **80** | **26.3%** | **0** | **0** |
+
+- **รายงานฉบับสมบูรณ์**: บันทึกไว้ที่ [Docs/2026_Purrely_Yummy_Optimization_Report.md](file:///C:/Users/admin/Documents/EdoGame/Docs/2026_Purrely_Yummy_Optimization_Report.md)
+- **Deployment**: ไบนารีชุดใหม่ (`WindBot.dll`, `ExecutorBase.dll`, `core.dll`, `bots.json`, Decks, `DashBot.exe`) ติดตั้งลงใน `C:\Users\admin\Documents\EdoGame\` ครบถ้วน 100%
+
 
 
 

@@ -17,7 +17,7 @@ namespace WindBot.Game.AI.DecisionEngine
         // Known hand trap IDs
         public const int AshBlossom = 14558127;
         public const int MaxxC = 23434538;
-        public const int EffectVeiler = 63845230;
+        public const int EffectVeiler = 97268402;
         public const int InfiniteImpermanence = 10045474;
         public const int Nibiru = 27204311;
 

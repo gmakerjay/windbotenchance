@@ -163,9 +163,13 @@ namespace WindBot.Game.AI.Decks
             // If we have our established optimal end board going 1st, stop to conserve resources
             if (Duel.Turn == 1 || (Duel.Player == 0 && Enemy.GetMonsterCount() == 0 && Enemy.GetSpellCount() == 0))
             {
-                if (Bot.HasInMonstersZone(CardId.SprightElf) &&
-                    Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && YummySynchros.Contains(c.Id)) &&
-                    Bot.HasInSpellZone(CardId.YummySurprise))
+                bool hasElf = Bot.HasInMonstersZone(CardId.SprightElf);
+                bool hasSynchro = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && YummySynchros.Contains(c.Id));
+                bool hasHerald = Bot.HasInMonstersZone(CardId.HeraldOfTheArcLight);
+                bool hasBorreload = Bot.HasInMonstersZone(CardId.BorreloadSavageDragon);
+
+                // Full optimal end board: Spright Elf + Synchro-2 + Herald of the Arc Light (Omni-negate)!
+                if ((hasElf && hasSynchro && hasHerald) || (hasElf && hasBorreload))
                 {
                     return true;
                 }
@@ -173,9 +177,7 @@ namespace WindBot.Game.AI.Decks
 
             // OTK check
             if (CanDealLethal())
-            {
                 return true;
-            }
 
             return false;
         }
@@ -191,8 +193,8 @@ namespace WindBot.Game.AI.Decks
                         return 10000;
                     if (YummySynchros.Contains(c.Id))
                     {
-                        // Allow Cupsy Way to be used for Spright Elf only if we already searched and have follow-up
-                        if (!Bot.HasInMonstersZone(CardId.SprightElf) && _cupsyWaySearchUsed)
+                        // Allow Cupsy Way to be used for Spright Elf or Herald of the Arc Light!
+                        if (!Bot.HasInMonstersZone(CardId.HeraldOfTheArcLight) || !Bot.HasInMonstersZone(CardId.SprightElf))
                             return 250;
                         return 8000;
                     }
@@ -209,6 +211,21 @@ namespace WindBot.Game.AI.Decks
 
         public override IList<ClientCard> OnSelectLinkMaterial(IList<ClientCard> cards, int min, int max)
         {
+            // If selecting materials for Spright Elf:
+            // One material MUST be a Level 2, Rank 2, or Link-2 monster!
+            var lv2Monster = cards.FirstOrDefault(c => c != null && (c.Level == 2 || c.Rank == 2 || (c.HasType(CardType.Link) && c.LinkCount == 2)));
+            if (lv2Monster != null && min == 2)
+            {
+                var otherCards = cards.Where(c => c != null && c != lv2Monster)
+                                      .OrderBy(c => GetMaterialPriority(c))
+                                      .Take(1)
+                                      .ToList();
+                if (otherCards.Count > 0)
+                {
+                    return new[] { lv2Monster, otherCards[0] };
+                }
+            }
+
             var protectedCards = cards.Where(c => c != null && !(c.Location == CardLocation.MonsterZone && IsAceCard(c))).ToList();
             if (protectedCards.Count >= min)
             {
@@ -220,12 +237,14 @@ namespace WindBot.Game.AI.Decks
 
         public override IList<ClientCard> OnSelectSynchroMaterial(IList<ClientCard> cards, int sum, int min, int max)
         {
-            var protectedCards = cards.Where(c => c != null && !(c.Location == CardLocation.MonsterZone && IsAceCard(c))).ToList();
-            if (protectedCards.Count >= min)
-            {
-                var sorted = protectedCards.OrderBy(c => GetMaterialPriority(c)).ToList();
-                return sorted.Take(max).ToList();
-            }
+            var sorted = cards.Where(c => c != null)
+                .OrderBy(c => GetMaterialPriority(c))
+                .ToList();
+
+            var safe = sorted.Where(c => !c.IsCode(CardId.BorreloadSavageDragon, CardId.HeraldOfTheArcLight)).ToList();
+            if (safe.Count >= min)
+                return Util.CheckSelectCount(safe, cards, min, max);
+
             return base.OnSelectSynchroMaterial(cards, sum, min, max);
         }
 
@@ -274,9 +293,9 @@ namespace WindBot.Game.AI.Decks
             // ============================================================
             // TIER 4: Setup Spells & Field Spell Ignition
             // ============================================================
+            AddExecutor(ExecutorType.Activate, CardId.PiriReisMap, PiriReisMapEffect);
             AddExecutor(ExecutorType.Activate, CardId.YummyusmentMignon, YummyusmentMignonEffect);
             AddExecutor(ExecutorType.Activate, CardId.IllusionOfChaos, IllusionOfChaosEffect);
-            AddExecutor(ExecutorType.Activate, CardId.PiriReisMap, PiriReisMapEffect);
             AddExecutor(ExecutorType.Activate, CardId.SkyStrikerMechaHornetDrones, HornetDronesEffect);
             AddExecutor(ExecutorType.Activate, CardId.MagiciansSouls, MagiciansSoulsEffect);
 
@@ -339,8 +358,12 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.Activate, CardId.DimensionalBarrier, DimensionalBarrierEffect);
             AddExecutor(ExecutorType.Activate, CardId.EvenlyMatched, EvenlyMatchedEffect);
 
+            AddExecutor(ExecutorType.SpellSet, CardId.DominusPurge);
             AddExecutor(ExecutorType.SpellSet, CardId.YummySurprise, YummySurpriseSetCondition);
             AddExecutor(ExecutorType.SpellSet, CardId.DimensionalBarrier);
+            AddExecutor(ExecutorType.SpellSet, CardId.ForbiddenDroplet);
+            AddExecutor(ExecutorType.SpellSet, CardId.CalledByTheGrave);
+            AddExecutor(ExecutorType.SpellSet, CardId.CrossoutDesignator);
 
             AddExecutor(ExecutorType.Repos, YummyMonsterRepos);
         }
@@ -423,26 +446,30 @@ namespace WindBot.Game.AI.Decks
         {
             if (Util.GetLastChainCard()?.Controller == 0) return false;
             if (_handTrapsUsedThisTurn >= 2) return false;
-            if (DefaultAshBlossomAndJoyousSpring())
-            {
-                _handTrapsUsedThisTurn++;
-                DecisionTracer.TraceActivate("AshBlossom", "Negating search/SS from deck");
-                return true;
-            }
-            return false;
+
+            var lastCard = Util.GetLastChainCard();
+            if (lastCard == null || lastCard.Controller != 1) return false;
+
+            int[] ignoreList = { 70368879, 30241314, 60600126 };
+            if (lastCard.IsCode(ignoreList)) return false;
+            if (lastCard.HasSetcode(0x11e) && lastCard.Location == CardLocation.Hand) return false;
+
+            _handTrapsUsedThisTurn++;
+            DecisionTracer.TraceActivate("AshBlossom", $"Negating search/SS from deck: {lastCard.Name}");
+            return true;
         }
 
         private bool GhostBelleCondition()
         {
             if (Util.GetLastChainCard()?.Controller == 0) return false;
             if (_handTrapsUsedThisTurn >= 2) return false;
-            if (DefaultGhostBelleAndHauntedMansion())
-            {
-                _handTrapsUsedThisTurn++;
-                DecisionTracer.TraceActivate("GhostBelle", "Negating GY interaction");
-                return true;
-            }
-            return false;
+
+            var lastCard = Util.GetLastChainCard();
+            if (lastCard == null || lastCard.Controller != 1) return false;
+
+            _handTrapsUsedThisTurn++;
+            DecisionTracer.TraceActivate("GhostBelle", $"Negating GY interaction: {lastCard.Name}");
+            return true;
         }
 
         private bool EffectVeilerCondition()
@@ -451,6 +478,18 @@ namespace WindBot.Game.AI.Decks
             if (Duel.Phase != DuelPhase.Main1 && Duel.Phase != DuelPhase.Main2) return false;
             if (Util.GetLastChainCard()?.Controller == 0) return false;
             if (_handTrapsUsedThisTurn >= 2) return false;
+
+            if (Duel.LastChainPlayer == 1)
+            {
+                var chainCard = Util.GetLastChainCard();
+                if (chainCard != null && chainCard.Controller == 1 && chainCard.Location == CardLocation.MonsterZone && !chainCard.IsDisabled() && !chainCard.IsShouldNotBeTarget())
+                {
+                    _handTrapsUsedThisTurn++;
+                    AI.SelectCard(chainCard);
+                    DecisionTracer.TraceActivate("EffectVeiler", $"Chaining Effect Veiler negation to {chainCard.Name}");
+                    return true;
+                }
+            }
             if (DefaultEffectVeiler())
             {
                 _handTrapsUsedThisTurn++;
@@ -603,6 +642,10 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location == CardLocation.Hand)
             {
+                // If Piri Reis Map is in hand at the start of Main Phase 1, defer to Piri Reis Map first!
+                if (Bot.HasInHand(CardId.PiriReisMap) && Bot.LifePoints > 4000 && Duel.Phase == DuelPhase.Main1 && Bot.GetMonsterCount() == 0 && Bot.GetSpellCount() == 0)
+                    return false;
+
                 if (Bot.GetRemainingCount(CardId.MagiciansSouls, 1) > 0)
                 {
                     AI.SelectCard(CardId.MagiciansSouls);
@@ -616,16 +659,22 @@ namespace WindBot.Game.AI.Decks
         private bool PiriReisMapEffect()
         {
             if (Duel.Player != 0) return false;
+            if (Duel.Phase != DuelPhase.Main1) return false;
             if (Bot.LifePoints <= 4000) return false;
-            if (Bot.GetRemainingCount(CardId.CupsyYummy, 3) > 0)
+            if (Bot.GetRemainingCount(CardId.CupsyYummy, 2) > 0)
             {
                 AI.SelectCard(CardId.CupsyYummy);
-                DecisionTracer.TraceActivate("PiriReisMap", "Searching Cupsy Yummy");
+                DecisionTracer.TraceActivate("PiriReisMap", "Searching Cupsy Yummy at start of MP1");
                 return true;
             }
             if (Bot.GetRemainingCount(CardId.MagiciansSouls, 1) > 0)
             {
                 AI.SelectCard(CardId.MagiciansSouls);
+                return true;
+            }
+            if (Bot.GetRemainingCount(CardId.JesterConfit, 1) > 0)
+            {
+                AI.SelectCard(CardId.JesterConfit);
                 return true;
             }
             return false;
@@ -953,8 +1002,11 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location != CardLocation.MonsterZone) return false;
 
-            // In our turn or on summon: ALWAYS trigger to place Mignon from Deck!
-            if (!_snatchyPlaceUsed && Duel.Player == 0)
+            // 1. Placing Mignon (Trigger effect on SS):
+            if (Bot.HasInSpellZone(CardId.YummyusmentMignon))
+                _snatchyPlaceUsed = true;
+
+            if (!_snatchyPlaceUsed)
             {
                 _snatchyPlaceUsed = true;
                 AI.SelectCard(CardId.YummyusmentMignon);
@@ -962,7 +1014,20 @@ namespace WindBot.Game.AI.Decks
                 return true;
             }
 
-            // In opponent's turn: Quick Synchro Summon
+            // 2. Quick Synchro Summon on our turn:
+            if (Duel.Player == 0 && Duel.Phase == DuelPhase.Main1)
+            {
+                bool hasLv1Yummy = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.Level == 1 && c.Id != CardId.YummySnatchy);
+                bool alreadyHasSynchro = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && YummySynchros.Contains(c.Id));
+                if (hasLv1Yummy && !alreadyHasSynchro)
+                {
+                    DecisionTracer.TraceActivate("YummySnatchy", "Synchro Summoning Cupsy Way on our turn!");
+                    return true;
+                }
+                return false;
+            }
+
+            // 3. Quick Synchro Summon on opponent's turn:
             if (Duel.Player == 1)
             {
                 bool hasNonTuner = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.Level == 1 && c.Id != CardId.YummySnatchy);
@@ -988,8 +1053,9 @@ namespace WindBot.Game.AI.Decks
                 return true;
             }
 
-            int nonAceCount = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && !IsAceCard(c));
-            return nonAceCount >= 2;
+            bool hasTuner = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.HasType(CardType.Tuner) && c.Level == 1);
+            bool hasNonTuner = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.HasType(CardType.Tuner) && c.Level == 1);
+            return hasTuner && hasNonTuner;
         }
 
         private bool CookyYummyWaySpSummon()
@@ -1023,11 +1089,17 @@ namespace WindBot.Game.AI.Decks
             // Opponent's Turn: Quick Tag-Out (Wait for opponent to commit / chain, or Main Phase with targets)
             if (Duel.Player == 1)
             {
-                bool opponentHasFieldPresence = Enemy.GetMonsterCount() > 0 || Enemy.GetSpellCount() > 0 || Enemy.Graveyard.Count > 0;
-                bool isMainOrBattle = Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Battle || Duel.Phase == DuelPhase.Main2;
-                bool isChaining = Duel.LastChainPlayer == 1;
+                // Must have Yummy monsters in GY to summon!
+                if (!Bot.Graveyard.Any(c => c != null && YummyMonsters.Contains(c.Id) && c.IsCanRevive()))
+                    return false;
 
-                if ((opponentHasFieldPresence && isMainOrBattle) || isChaining)
+                var chainCard = Util.GetLastChainCard();
+                bool isHarmless = chainCard != null && (chainCard.IsCode(70368879) || chainCard.IsCode(49238328));
+                bool opponentHasMonsters = Enemy.GetMonsterCount() > 0;
+                bool isChaining = Duel.LastChainPlayer == 1 && !isHarmless;
+                bool isMainOrBattle = Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Battle || Duel.Phase == DuelPhase.Main2;
+
+                if ((opponentHasMonsters && isMainOrBattle) || isChaining)
                 {
                     AI.SelectCard(new[] {
                         CardId.CookyYummy,     // Destroy 1 monster
@@ -1058,10 +1130,16 @@ namespace WindBot.Game.AI.Decks
 
             if (Duel.Player == 1)
             {
-                bool isMainOrBattle = Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Battle || Duel.Phase == DuelPhase.Main2;
-                bool isChaining = Duel.LastChainPlayer == 1;
+                if (!Bot.Graveyard.Any(c => c != null && YummyMonsters.Contains(c.Id) && c.IsCanRevive()))
+                    return false;
 
-                if (isMainOrBattle || isChaining)
+                var chainCard = Util.GetLastChainCard();
+                bool isHarmless = chainCard != null && (chainCard.IsCode(70368879) || chainCard.IsCode(49238328));
+                bool opponentHasMonsters = Enemy.GetMonsterCount() > 0;
+                bool isChaining = Duel.LastChainPlayer == 1 && !isHarmless;
+                bool isMainOrBattle = Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Battle || Duel.Phase == DuelPhase.Main2;
+
+                if ((opponentHasMonsters && isMainOrBattle) || isChaining)
                 {
                     AI.SelectCard(new[] {
                         CardId.CookyYummy,
@@ -1117,16 +1195,12 @@ namespace WindBot.Game.AI.Decks
             if (ShouldSkipLinkSummon()) return false;
             if (Bot.HasInMonstersZone(CardId.SprightElf)) return false;
 
-            int nonAceBeasts = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && !IsAceCard(c));
-            bool hasSynchro2 = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && YummySynchros.Contains(c.Id));
+            bool hasLv2 = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && (c.Level == 2 || c.Rank == 2 || (c.HasType(CardType.Link) && c.LinkCount == 2)));
+            int otherMonsters = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && !c.IsCode(CardId.SprightElf, CardId.BorreloadSavageDragon, CardId.HeraldOfTheArcLight));
 
-            if (hasSynchro2 && nonAceBeasts >= 1)
+            if (hasLv2 && otherMonsters >= 2)
             {
                 DecisionTracer.TraceActivate("SprightElfSpSummon", "Link Summoning Spright Elf");
-                return true;
-            }
-            if (nonAceBeasts >= 2)
-            {
                 return true;
             }
 
@@ -1183,11 +1257,12 @@ namespace WindBot.Game.AI.Decks
         private bool BorreloadSpSummon()
         {
             if (IsSpecialSummonBlocked()) return false;
+            if (ShouldStopExtending()) return false;
             bool hasLinkInGY = Bot.Graveyard.Any(c => c != null && c.HasType(CardType.Link));
             if (!hasLinkInGY) return false;
 
-            bool hasTuner = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.HasType(CardType.Tuner));
-            bool hasNonTuner = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.HasType(CardType.Tuner));
+            bool hasTuner = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.HasType(CardType.Tuner) && !c.IsCode(CardId.BorreloadSavageDragon, CardId.HeraldOfTheArcLight));
+            bool hasNonTuner = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.HasType(CardType.Tuner) && !c.IsCode(CardId.BorreloadSavageDragon, CardId.HeraldOfTheArcLight));
             return hasTuner && hasNonTuner;
         }
 
@@ -1223,8 +1298,9 @@ namespace WindBot.Game.AI.Decks
         private bool HeraldSpSummon()
         {
             if (IsSpecialSummonBlocked()) return false;
-            bool hasTuner = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.HasType(CardType.Tuner));
-            bool hasNonTuner = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.HasType(CardType.Tuner));
+            if (ShouldStopExtending()) return false;
+            bool hasTuner = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.HasType(CardType.Tuner) && !c.IsCode(CardId.BorreloadSavageDragon, CardId.HeraldOfTheArcLight));
+            bool hasNonTuner = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.HasType(CardType.Tuner) && !c.IsCode(CardId.BorreloadSavageDragon, CardId.HeraldOfTheArcLight));
             return hasTuner && hasNonTuner;
         }
 
@@ -1274,33 +1350,95 @@ namespace WindBot.Game.AI.Decks
             if (_surpriseUsed) return false;
             if (Card.Location != CardLocation.SpellZone) return false;
 
-            if (Duel.Player == 1 && Enemy.GetMonsterCount() + Enemy.GetSpellCount() >= 1)
-            {
-                var ownBeasts = Bot.GetMonsters().Where(c => c != null && c.IsFaceup() && c.HasAttribute(CardAttribute.Light) && c.HasRace(CardRace.Beast)).Take(2).ToList();
-                var oppCards = Enemy.GetMonsters().Concat(Enemy.GetSpells())
-                    .Where(c => c != null && !c.IsShouldNotBeTarget())
-                    .OrderByDescending(c => c.IsMonster() && c.Attack >= 2000 ? 100 : (c.IsSpell() && (c.HasType(CardType.Field) || c.HasType(CardType.Continuous)) ? 80 : 30))
-                    .Take(2)
-                    .ToList();
+            // Do not fire in Draw or Standby Phase unless responding to an opponent chain
+            if ((Duel.Phase == DuelPhase.Draw || Duel.Phase == DuelPhase.Standby) && Duel.LastChainPlayer != 1)
+                return false;
 
-                if (ownBeasts.Count >= 1 && oppCards.Count >= 1)
+            bool eternalSoulActive = Enemy.GetSpells().Any(c => c != null && c.IsFaceup() && c.IsCode(48680970));
+
+            var allBeasts = Bot.GetMonsters()
+                .Where(c => c != null && c.IsFaceup() && c.HasAttribute(CardAttribute.Light) && c.HasRace(CardRace.Beast))
+                .ToList();
+
+            var oppCards = Enemy.GetMonsters().Concat(Enemy.GetSpells())
+                .Where(c => c != null && !c.IsShouldNotBeTarget() && (!eternalSoulActive || !c.IsCode(46986414)))
+                .OrderByDescending(c => {
+                    if (c.IsCode(48680970, 48770333)) return 20000;
+                    int s = 0;
+                    if (c.IsSpell() || c.IsTrap())
+                    {
+                        if (c.IsFaceup() && (c.HasType(CardType.Continuous) || c.HasType(CardType.Field))) s += 15000;
+                        else s += 5000;
+                    }
+                    else if (c.IsMonster())
+                    {
+                        if (c.HasType(CardType.Fusion) || c.HasType(CardType.Synchro) || c.HasType(CardType.Xyz) || c.HasType(CardType.Link)) s += 12000;
+                        if (c.Attack >= 2500) s += 10000;
+                        s += c.Attack;
+                    }
+                    return s;
+                })
+                .ToList();
+
+            var mainDeckBeasts = allBeasts
+                .Where(c => !YummySynchros.Contains(c.Id) && c.Id != CardId.YummySnatchy)
+                .OrderBy(c => c.Attack)
+                .ToList();
+
+            // OPTION 0: Bounce 2 LIGHT Beasts + 2 Opponent cards
+            bool canUseBounce = allBeasts.Count >= 2 && oppCards.Count >= 2;
+            if (canUseBounce && Duel.Player == 1)
+            {
+                // Prefer bouncing if we have 2 Main Deck beasts, or during Battle/End phase, or if high threat on board
+                bool hasSynchroOnField = allBeasts.Any(c => YummySynchros.Contains(c.Id));
+                bool isBattleOrEnd = Duel.Phase == DuelPhase.Battle || Duel.Phase == DuelPhase.End;
+                bool opponentCommitted = oppCards.Any(c => c.IsCode(48680970, 48770333) || (c.IsMonster() && c.Attack >= 2500));
+
+                if (mainDeckBeasts.Count >= 2 || !hasSynchroOnField || isBattleOrEnd || opponentCommitted || Duel.LastChainPlayer == 1)
                 {
-                    _surpriseUsed = true;
-                    AI.SelectOption(0);
-                    AI.SelectCard(ownBeasts.Concat(oppCards).ToList());
-                    DecisionTracer.TraceActivate("YummySurprise", "Bouncing cards on both fields!");
-                    return true;
+                    var selectedOurBeasts = mainDeckBeasts.Take(2).ToList();
+                    if (selectedOurBeasts.Count < 2)
+                    {
+                        selectedOurBeasts = allBeasts.OrderBy(c => YummySynchros.Contains(c.Id) ? 100 : 10).Take(2).ToList();
+                    }
+
+                    var selectedOpp = oppCards.Take(2).ToList();
+                    if (selectedOurBeasts.Count == 2 && selectedOpp.Count == 2)
+                    {
+                        _surpriseUsed = true;
+                        AI.SelectOption(0);
+                        // Prompt 1 selects our 2 LIGHT Beasts, Prompt 2 selects opponent's 2 cards!
+                        AI.SelectCard(selectedOurBeasts.Concat(selectedOpp).ToList());
+                        DecisionTracer.TraceActivate("YummySurprise", "Bouncing 2 beasts and 2 opponent cards!");
+                        return true;
+                    }
                 }
             }
 
-            if (IsSpecialSummonBlocked()) return false;
-            var gyYummy = Bot.Graveyard.FirstOrDefault(c => c != null && YummyMonsters.Contains(c.Id) && c.IsCanRevive());
-            if (gyYummy != null)
+            // OPTION 1: Special Summon 1 Yummy from GY or hand (triggers Cooky pop or Lollipo banish!)
+            if (!IsSpecialSummonBlocked() && Bot.GetMonsterCount() < 5)
             {
-                _surpriseUsed = true;
-                AI.SelectOption(1);
-                AI.SelectCard(gyYummy);
-                return true;
+                var gyYummy = Bot.Graveyard.Where(c => c != null && YummyMonsters.Contains(c.Id) && c.IsCanRevive())
+                    .OrderByDescending(c => {
+                        if (c.Id == CardId.CookyYummy && Enemy.GetMonsterCount() > 0) return 100;
+                        if (c.Id == CardId.LollipoYummy && Enemy.Graveyard.Count > 0) return 90;
+                        if (c.Id == CardId.CupsyYummy) return 80;
+                        if (c.Id == CardId.MarshmaoYummy) return 70;
+                        return 10;
+                    })
+                    .FirstOrDefault();
+
+                if (gyYummy != null)
+                {
+                    if (Duel.Player == 0 || Duel.Phase == DuelPhase.Battle || Duel.Phase == DuelPhase.End || Enemy.GetMonsterCount() > 0)
+                    {
+                        _surpriseUsed = true;
+                        AI.SelectOption(1);
+                        AI.SelectCard(gyYummy);
+                        DecisionTracer.TraceActivate("YummySurprise", $"Special Summoning {gyYummy.Name} from GY!");
+                        return true;
+                    }
+                }
             }
 
             return false;
@@ -1308,8 +1446,10 @@ namespace WindBot.Game.AI.Decks
 
         private bool YummySurpriseSetCondition()
         {
-            if (!Util.IsTurn1OrMain2()) return false;
-            return true;
+            if (Duel.Turn == 1 || Duel.Phase == DuelPhase.Main2) return true;
+            bool canAttack = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.IsAttack() && c.Attack > 0);
+            if (!canAttack) return true;
+            return false;
         }
 
         private bool LinkSpiderSpSummon()
@@ -1339,6 +1479,7 @@ namespace WindBot.Game.AI.Decks
         private bool SynchroSpSummonCheck()
         {
             if (IsSpecialSummonBlocked()) return false;
+            if (Duel.Turn == 1 || ShouldStopExtending()) return false;
             int nonAceCount = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && !IsAceCard(c));
             return nonAceCount >= 2;
         }
@@ -1383,12 +1524,40 @@ namespace WindBot.Game.AI.Decks
             return enemyField >= 3 && enemyField > ourField + 1;
         }
 
+        public override bool? OnSelectEffectYn(ClientCard card, long desc)
+        {
+            if (card != null)
+            {
+                if (card.IsCode(CardId.BorreloadSavageDragon)) return true; // Always equip Link monster!
+                if (card.IsCode(CardId.YummySnatchy)) return true; // Always place Mignon!
+                if (card.IsCode(CardId.CupsyYummyWay, CardId.LollipoYummyWay)) return true;
+                if (card.IsCode(CardId.CookyYummyWay))
+                {
+                    // ONLY activate Book of Moon effect if opponent has face-up monsters to flip!
+                    // Otherwise it flips our own monsters face down!
+                    return Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsShouldNotBeTarget());
+                }
+                if (card.IsCode(CardId.MarshmaoYummy, CardId.CupsyYummy, CardId.CookyYummy, CardId.LollipoYummy)) return true;
+                if (card.IsCode(CardId.MartialMetalMarcher, CardId.CupidPitch, CardId.HeraldOfTheArcLight)) return true;
+            }
+            return base.OnSelectEffectYn(card, desc);
+        }
+
         // ============================================================
         // OnSelectCard Override (Smart Search, Targeting & Discard)
         // ============================================================
 
         public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
         {
+            // HINTMSG_EQUIP = 518 (Borreload Savage Dragon equipping Link from GY)
+            if (hint == 518)
+            {
+                var link = cards.Where(c => c != null && c.HasType(CardType.Link))
+                    .OrderByDescending(c => c.LinkCount)
+                    .FirstOrDefault();
+                if (link != null) return new[] { link };
+            }
+
             // HINTMSG_DISCARD = 501
             if (hint == 501)
             {
@@ -1408,23 +1577,23 @@ namespace WindBot.Game.AI.Decks
                 return bestDiscard;
             }
 
-            // HINTMSG_DESTROY = 502, HINTMSG_TARGET = 551, HINTMSG_FACEUP = 575, HINTMSG_POSCHANGE = 518
-            if (hint == 502 || hint == 551 || hint == 575 || hint == 518)
+            // HINTMSG_TARGET = 551, HINTMSG_FACEUP = 575, HINTMSG_POSCHANGE = 528, HINTMSG_FACEDOWN = 561
+            if (hint == 551 || hint == 575 || hint == 528 || hint == 561)
             {
+                // Never target our own cards to flip face-down or change pos!
+                if (hint == 561 || hint == 528)
+                {
+                    var oppFaceup = cards.Where(c => c != null && c.Controller == 1 && c.IsFaceup()).OrderByDescending(c => c.Attack).ToList();
+                    if (oppFaceup.Count >= min) return oppFaceup.Take(max).ToList();
+                    if (cancelable) return new List<ClientCard>();
+                }
+                bool eternalSoulActive = Enemy.GetSpells().Any(c => c != null && c.IsFaceup() && c.IsCode(48680970));
                 var sorted = cards.OrderByDescending(c => {
                     if (c == null) return -999;
                     int score = (c.Controller == 1) ? 10000 : 0;
-                    if (c.IsMonster())
-                    {
-                        if (c.IsFaceup() && !c.IsDisabled())
-                        {
-                            if (c.Attack >= 2500) score += 5000;
-                            if (c.HasType(CardType.Fusion) || c.HasType(CardType.Synchro) || c.HasType(CardType.Xyz) || c.HasType(CardType.Link)) score += 2000;
-                        }
-                        return score + c.Attack;
-                    }
                     if (c.IsSpell() || c.IsTrap())
                     {
+                        if (c.IsCode(48680970, 48770333)) return score + 25000; // Eternal Soul wipe!
                         if (c.IsFaceup())
                         {
                             if (c.HasType(CardType.Continuous) || c.HasType(CardType.Field)) score += 6000;
@@ -1432,6 +1601,16 @@ namespace WindBot.Game.AI.Decks
                         }
                         else score += 1000;
                         return score;
+                    }
+                    if (c.IsMonster())
+                    {
+                        if (eternalSoulActive && c.IsCode(46986414)) return -50000; // DM is immune under Eternal Soul!
+                        if (c.IsFaceup() && !c.IsDisabled())
+                        {
+                            if (c.Attack >= 2500) score += 5000;
+                            if (c.HasType(CardType.Fusion) || c.HasType(CardType.Synchro) || c.HasType(CardType.Xyz) || c.HasType(CardType.Link)) score += 2000;
+                        }
+                        return score + c.Attack;
                     }
                     return score;
                 }).ToList();
@@ -1446,6 +1625,11 @@ namespace WindBot.Game.AI.Decks
                     int score = (c.Controller == 1) ? 10000 : 0;
                     if (c.Location == CardLocation.Grave)
                     {
+                        // Priority targets in opponent GY:
+                        if (c.IsCode(46986414)) return score + 15000; // Dark Magician (stops Eternal Soul revive!)
+                        if (c.IsCode(89631139)) return score + 15000; // Blue-Eyes White Dragon
+                        // ABC pieces (A-Assault Core, B-Buster Drake, C-Crush Wyvern)
+                        if (c.IsCode(63845230, 77411244, 30012506)) return score + 12000;
                         if (c.IsMonster())
                         {
                             if (c.Attack >= 2000) score += 3000;
@@ -1458,26 +1642,69 @@ namespace WindBot.Game.AI.Decks
                 return sorted.Take(max).ToList();
             }
 
-            // HINTMSG_RTOHAND = 505 / 507 (Bounce target selection, e.g. Yummy Surprise)
-            if (hint == 505 || hint == 507)
+            // HINTMSG_TODECK = 507 (Return/place on deck, e.g. Illusion of Chaos return to deck)
+            if (hint == 507)
             {
-                var oppCards = cards.Where(c => c != null && c.Controller == 1).OrderByDescending(c => {
-                    int score = 0;
-                    if (c.IsMonster())
+                var sorted = cards.OrderByDescending(c => {
+                    if (c == null) return -999;
+                    // Opponent cards first if returning opponent cards to deck
+                    if (c.Controller == 1) return 20000;
+
+                    // For our cards (e.g. Illusion of Chaos hand-to-deck):
+                    // #1: Put Illusion of Chaos itself back on top of deck!
+                    if (c.IsCode(CardId.IllusionOfChaos)) return 10000;
+
+                    // #2: Duplicate cards in hand
+                    if (Bot.Hand.Count(h => h.Id == c.Id) > 1) return 8000;
+
+                    // #3: Dead cards or cards we don't need right now
+                    if (c.IsCode(CardId.JesterConfit)) return 5000;
+                    if (c.IsCode(CardId.TripleTacticsTalent) && Duel.Player == 1) return 4000;
+                    if (c.IsCode(CardId.PiriReisMap) && (Bot.LifePoints <= 4000 || Bot.GetMonsterCount() > 0)) return 3000;
+
+                    // Handtraps if we have to
+                    if (c.IsCode(CardId.EffectVeiler, CardId.GhostBelleAndHauntedMansion)) return 1000;
+
+                    // PROTECT YUMMY MONSTERS AT ALL COSTS:
+                    // If we only have 1 copy of a Yummy monster, NEVER return it to deck!
+                    if (YummyMonsters.Contains(c.Id))
                     {
-                        if (c.Attack >= 2500) score += 5000;
-                        score += c.Attack;
+                        if (Bot.Hand.Count(h => h.Id == c.Id) <= 1) return -5000;
+                        return 2000;
                     }
+
+                    return 500;
+                }).ToList();
+                return sorted.Take(max).ToList();
+            }
+
+            // HINTMSG_RTOHAND = 505 (Bounce target selection, e.g. Yummy Surprise)
+            if (hint == 505)
+            {
+                bool eternalSoulActive = Enemy.GetSpells().Any(c => c != null && c.IsFaceup() && c.IsCode(48680970));
+                var oppCards = cards.Where(c => c != null && c.Controller == 1).OrderByDescending(c => {
+                    if (c.IsCode(48680970, 48770333)) return 200000;
+                    if (eternalSoulActive && c.IsCode(46986414)) return -500000;
+                    int score = 50000;
                     if (c.IsSpell() || c.IsTrap())
                     {
-                        if (c.IsFaceup() && (c.HasType(CardType.Continuous) || c.HasType(CardType.Field))) score += 6000;
-                        else score += 2000;
+                        if (c.IsFaceup() && (c.HasType(CardType.Continuous) || c.HasType(CardType.Field))) score += 30000;
+                        else score += 10000;
+                    }
+                    if (c.IsMonster())
+                    {
+                        if (c.HasType(CardType.Fusion) || c.HasType(CardType.Synchro) || c.HasType(CardType.Xyz) || c.HasType(CardType.Link)) score += 25000;
+                        if (c.Attack >= 2500) score += 20000;
+                        score += c.Attack;
                     }
                     return score;
                 }).ToList();
 
                 var ourCards = cards.Where(c => c != null && c.Controller == 0).OrderBy(c => {
-                    if (IsAceCard(c)) return 10000;
+                    if (c.Id == CardId.SprightElf) return 100000;
+                    if (YummySynchros.Contains(c.Id)) return 50000;
+                    if (c.Id == CardId.YummySnatchy) return 20000;
+                    // Main deck Yummies are safest to bounce:
                     if (c.Id == CardId.CupsyYummy) return 10;
                     if (c.Id == CardId.MarshmaoYummy) return 20;
                     if (c.Id == CardId.CookyYummy) return 30;
@@ -1485,11 +1712,64 @@ namespace WindBot.Game.AI.Decks
                     return 100;
                 }).ToList();
 
+                // If prompt contains only our cards, return ourCards first!
+                if (cards.All(c => c.Controller == 0))
+                    return ourCards.Take(max).ToList();
+                // If prompt contains only opponent cards, return oppCards!
+                if (cards.All(c => c.Controller == 1))
+                    return oppCards.Take(max).ToList();
+
+                // Yummy Surprise requires exactly 2 our beasts + 2 opponent cards!
+                if (max == 4)
+                {
+                    var doubleBounce = ourCards.Take(2).Concat(oppCards.Take(2)).ToList();
+                    if (doubleBounce.Count >= min) return doubleBounce;
+                }
+
                 var combined = new List<ClientCard>();
-                combined.AddRange(ourCards);
-                combined.AddRange(oppCards);
+                combined.AddRange(ourCards.Take(2));
+                combined.AddRange(oppCards.Take(2));
                 if (combined.Count >= min)
                     return combined.Take(max).ToList();
+            }
+
+            // HINTMSG_DESTROY = 502 (Cooky pop monster target)
+            if (hint == 502)
+            {
+                var oppTarget = cards.Where(c => c != null && c.Controller == 1 && c.IsFaceup() && !c.IsShouldNotBeTarget())
+                    .OrderByDescending(c => {
+                        int s = 0;
+                        if (c.IsMonster())
+                        {
+                            if (c.HasType(CardType.Fusion) || c.HasType(CardType.Synchro) || c.HasType(CardType.Xyz) || c.HasType(CardType.Link)) s += 10000;
+                            if (c.Attack >= 2500) s += 8000;
+                            s += c.Attack;
+                        }
+                        return s;
+                    })
+                    .FirstOrDefault();
+
+                if (oppTarget != null) return new[] { oppTarget };
+            }
+
+            // HINTMSG_REMOVE = 503 / 504 (Lollipo banish from opponent GY)
+            if (hint == 503 || hint == 504)
+            {
+                var oppGyTarget = cards.Where(c => c != null && c.Controller == 1)
+                    .OrderByDescending(c => {
+                        if (c.IsCode(48680970, 48770333)) return 100000; // Eternal Soul, True Light
+                        if (c.IsMonster())
+                        {
+                            if (c.IsCode(30012506, 77411244, 23893227)) return 50000; // ABC pieces (A, B, C) in GY!
+                            if (c.IsCode(46986414, 89631139)) return 40000; // Dark Magician, Blue-Eyes
+                            if (c.HasType(CardType.Fusion) || c.HasType(CardType.Synchro) || c.HasType(CardType.Xyz) || c.HasType(CardType.Link)) return 30000;
+                            return c.Attack;
+                        }
+                        return 10;
+                    })
+                    .FirstOrDefault();
+
+                if (oppGyTarget != null) return new[] { oppGyTarget };
             }
 
             // HINTMSG_ATOHAND = 506 (Searching from Deck)
@@ -1542,8 +1822,8 @@ namespace WindBot.Game.AI.Decks
                 return singleSorted.Take(max).ToList();
             }
 
-            // HINTMSG_TOFIELD = 510 (Snatchy placing Field Spell)
-            if (hint == 510)
+            // HINTMSG_TOFIELD = 527 / HINTMSG_SET = 510 (Snatchy placing Field Spell)
+            if (hint == 527 || hint == 510)
             {
                 var mignon = cards.FirstOrDefault(c => c != null && c.Id == CardId.YummyusmentMignon);
                 if (mignon != null) return new[] { mignon };
@@ -1552,51 +1832,60 @@ namespace WindBot.Game.AI.Decks
             // HINTMSG_SPSUMMON = 509 (Tag-out / Revival)
             if (hint == 509)
             {
-                if (Duel.Player == 1) // Opponent turn tag-out revival
+                if (Duel.Player == 1) // Opponent turn tag-out revival / Quick Synchro
                 {
-                    var selected = new List<ClientCard>();
-                    var candidates = cards.Where(c => c != null).ToList();
-
-                    // Cooky destroys 1 monster
-                    var cooky = candidates.FirstOrDefault(c => c.Id == CardId.CookyYummy);
-                    if (cooky != null) { selected.Add(cooky); candidates.Remove(cooky); }
-
-                    // Lollipo banishes 1 GY card
-                    var lollipo = candidates.FirstOrDefault(c => c.Id == CardId.LollipoYummy);
-                    if (lollipo != null && selected.Count < max) { selected.Add(lollipo); candidates.Remove(lollipo); }
-
-                    // Marshmao places S/T from deck
-                    var marshmao = candidates.FirstOrDefault(c => c.Id == CardId.MarshmaoYummy);
-                    if (marshmao != null && selected.Count < max) { selected.Add(marshmao); candidates.Remove(marshmao); }
-
-                    // Synchro bosses (Cooky Way / Cupsy Way) for Spright Elf
-                    var synchro = candidates.FirstOrDefault(c => YummySynchros.Contains(c.Id));
-                    if (synchro != null && selected.Count < max) { selected.Add(synchro); candidates.Remove(synchro); }
-
-                    while (selected.Count < max && candidates.Count > 0)
-                    {
-                        var next = candidates.First();
-                        selected.Add(next);
-                        candidates.Remove(next);
-                    }
-
-                    if (selected.Count >= min) return selected;
+                    var sorted = cards.OrderByDescending(c => {
+                        if (c == null) return -999;
+                        // Synchro Bosses for Snatchy Quick Synchro in opp turn:
+                        if (c.Id == CardId.CookyYummyWay) return 2000; // Book of Moon x2 on summon!
+                        if (c.Id == CardId.CupsyYummyWay) return 1500;
+                        if (c.Id == CardId.LollipoYummyWay) return 1000;
+                        // Main deck Yummies on tag-out:
+                        if (c.Id == CardId.CookyYummy) return 900; // Pop 1 monster
+                        if (c.Id == CardId.LollipoYummy) return 800; // Banish 1 GY card
+                        if (c.Id == CardId.MarshmaoYummy) return 700; // Place S/T
+                        if (c.Id == CardId.CupsyYummy) return 600; // Draw 1
+                        return 50;
+                    }).ToList();
+                    return sorted.Take(max).ToList();
+                }
+                else if (Duel.Player == 0) // Our turn revival / SS (e.g. Snatchy Quick Synchro, Mignon, Spright Elf)
+                {
+                    var sorted = cards.OrderByDescending(c => {
+                        if (c == null) return -999;
+                        // Snatchy Quick Synchro / Spright Elf revival:
+                        // CUPSY WAY IS #1 PRIORITY on our turn for +2 search!
+                        if (c.Id == CardId.CupsyYummyWay) return 2500;
+                        if (c.Id == CardId.CookyYummyWay) return Enemy.GetMonsters().Any(e => e != null && e.IsFaceup()) ? 1800 : 400;
+                        if (c.Id == CardId.LollipoYummyWay) return 1000;
+                        // Mignon reviving Level 1 Yummies:
+                        if (c.Id == CardId.MarshmaoYummy) return 500;
+                        if (c.Id == CardId.CupsyYummy) return 400;
+                        if (c.Id == CardId.CookyYummy) return 300;
+                        if (c.Id == CardId.LollipoYummy) return 200;
+                        return 50;
+                    }).ToList();
+                    return sorted.Take(max).ToList();
                 }
             }
 
             // HINTMSG_ATTACKTARGET = 549 (Battle Target Selection)
             if (hint == 549)
             {
-                int ourBestAtk = Bot.GetMonsters()
-                    .Where(c => c != null && c.IsFaceup() && c.IsAttack())
-                    .Select(c => c.Attack)
-                    .DefaultIfEmpty(0).Max();
+                var attacker = Bot.BattlingMonster;
+                int attackerAtk = attacker?.Attack ?? 0;
 
                 var beatable = cards.Where(c => c != null && c.IsFaceup() && c.Location == CardLocation.MonsterZone
-                    && (c.IsAttack() ? c.Attack < ourBestAtk : c.Defense < ourBestAtk)).ToList();
-                if (beatable.Count >= min) return beatable.OrderByDescending(c => c.Attack).Take(max).ToList();
-                var validTargets = cards.Where(c => c != null && c.IsFaceup() && c.Location == CardLocation.MonsterZone).ToList();
-                if (validTargets.Count >= min) return validTargets.Take(max).ToList();
+                    && (c.IsAttack() ? c.Attack < attackerAtk : c.Defense < attackerAtk)).ToList();
+                if (beatable.Count >= min)
+                    return beatable.OrderByDescending(c => c.Attack).Take(max).ToList();
+
+                if (cancelable) return null; // Cancel attack replay instead of suiciding!
+
+                // If non-cancelable, hit the weakest monster to minimize damage
+                var weakest = cards.Where(c => c != null && c.IsFaceup() && c.Location == CardLocation.MonsterZone)
+                    .OrderBy(c => c.Attack).Take(max).ToList();
+                if (weakest.Count >= min) return weakest;
             }
 
             // Materials selection (Protect Ace cards)
@@ -1631,24 +1920,62 @@ namespace WindBot.Game.AI.Decks
                     int beastCount = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && c.HasAttribute(CardAttribute.Light) && c.HasRace(CardRace.Beast));
                     int effectiveAtk = Card.Attack + (hasFieldSpell && Card.HasAttribute(CardAttribute.Light) && Card.HasRace(CardRace.Beast) ? beastCount * 500 : 0);
 
-                    // If we have >= 1000 ATK or enemy has no monsters (direct attack) or our ATK beats enemy
-                    if (effectiveAtk >= 1000 || Enemy.GetMonsterCount() == 0 || !Util.IsAllEnemyBetter(true))
+                    var strongestEnemy = Enemy.GetMonsters()
+                        .Where(c => c != null && c.IsFaceup())
+                        .OrderByDescending(c => c.Attack)
+                        .FirstOrDefault();
+
+                    // Switch to Attack if:
+                    // 1. Can deal lethal
+                    // 2. Opponent has NO monsters and we have ATK > 0 (deal direct damage!)
+                    // 3. Our effective ATK or base ATK can destroy their strongest monster in battle!
+                    if (CanDealLethal() ||
+                        (Enemy.GetMonsterCount() == 0 && (effectiveAtk > 0 || Card.Attack > 0)) ||
+                        (strongestEnemy != null && (effectiveAtk > strongestEnemy.Attack || Card.Attack > strongestEnemy.Attack)))
                     {
                         return true;
                     }
                 }
             }
 
-            // In MP2: If we have low ATK and opponent has stronger monsters, switch to Defense
+            // In MP2: Only switch to Defense if monster has higher DEF than ATK!
             if (Duel.Player == 0 && Duel.Phase == DuelPhase.Main2)
             {
-                if (Card.IsAttack() && Util.IsAllEnemyBetter(true) && Card.Attack < 1500)
+                if (Card.IsAttack() && Card.Defense > Card.Attack)
                 {
                     return true;
                 }
             }
 
             return DefaultMonsterRepos();
+        }
+
+        public override ClientCard OnSelectAttacker(IList<ClientCard> attackers, IList<ClientCard> defenders)
+        {
+            // CRITICAL: Never attack Mekk-Knight Crusadia Avramax (21887175) with Special Summoned monsters!
+            var hasAvramax = defenders.Any(d => d != null && d.IsCode(21887175));
+            if (hasAvramax)
+            {
+                var nonAvramaxDefenders = defenders.Where(d => d != null && !d.IsCode(21887175)).ToList();
+                if (nonAvramaxDefenders.Count == 0) return null;
+                defenders = nonAvramaxDefenders;
+            }
+
+            if (defenders.Count == 0)
+            {
+                // Direct attack open board with any monster that has ATK > 0!
+                var directAttackers = attackers.Where(c => c != null && c.Attack > 0).ToList();
+                if (directAttackers.Count > 0)
+                    return base.OnSelectAttacker(directAttackers, defenders);
+            }
+
+            // Attacking into defenders: prefer monsters with enough ATK or lethal
+            var safeAttackers = attackers.Where(c => c != null && (c.Attack >= 800 || CanDealLethal())).ToList();
+            if (safeAttackers.Count > 0)
+            {
+                return base.OnSelectAttacker(safeAttackers, defenders);
+            }
+            return base.OnSelectAttacker(attackers, defenders);
         }
 
         public override CardPosition OnSelectPosition(int cardId, IList<CardPosition> positions)
@@ -1666,7 +1993,14 @@ namespace WindBot.Game.AI.Decks
                 return CardPosition.FaceUpDefence;
             }
 
-            // In Turn 1 (First turn of the duel with no battle phase), non-boss Yummies can set up safely in Defense
+            // CRITICAL: On opponent's turn, ANY monster special summoned (via Spright Elf, Synchro tag-out, Trap, etc.)
+            // MUST be summoned in Defense for protection, unless it cannot be in Defense!
+            if (Duel.Player == 1 && positions.Contains(CardPosition.FaceUpDefence))
+            {
+                return CardPosition.FaceUpDefence;
+            }
+
+            // In Turn 1, all non-boss monsters should be in Defense
             if (Duel.Turn == 1 && positions.Contains(CardPosition.FaceUpDefence))
             {
                 if (YummyMonsters.Contains(cardId))
@@ -1675,20 +2009,19 @@ namespace WindBot.Game.AI.Decks
                 }
             }
 
-            // In Turn > 1 or when we can attack / when Field Spell Mignon is active:
-            // If Field Spell Mignon is on field or we are in our turn (Main 1 / Battle), summon in FaceUpAttack!
-            bool hasFieldSpell = Bot.HasInSpellZone(CardId.YummyusmentMignon, true);
-            if (Duel.Player == 0 && (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Battle))
+            // On our turn (Turn > 1, Main 1): Bosses and combat monsters enter in Attack to strike!
+            if (Duel.Player == 0 && Duel.Turn > 1 && (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Battle))
             {
-                if (positions.Contains(CardPosition.FaceUpAttack))
+                if (BossMonsters.Contains(cardId) || YummyMonsters.Contains(cardId) || CanDealLethal())
                 {
-                    return CardPosition.FaceUpAttack;
+                    if (positions.Contains(CardPosition.FaceUpAttack))
+                        return CardPosition.FaceUpAttack;
                 }
             }
 
-            if (hasFieldSpell && positions.Contains(CardPosition.FaceUpAttack))
+            if (positions.Contains(CardPosition.FaceUpDefence))
             {
-                return CardPosition.FaceUpAttack;
+                return CardPosition.FaceUpDefence;
             }
 
             return base.OnSelectPosition(cardId, positions);

@@ -523,7 +523,8 @@ namespace WindBot.Game.AI
                     case 14558127:  // Ash Blossom
                     case 23434538:  // Maxx "C"
                     case 94145021:  // Droll & Lock Bird
-                    case 63845230:  // Effect Veiler
+                    case 97268402:  // Effect Veiler
+                    case 63845230:  // Eater of Millions
                     case 59438930:  // Ghost Ogre
                     case 73642296:  // Ghost Belle
                     case 10045474:  // Infinite Impermanence

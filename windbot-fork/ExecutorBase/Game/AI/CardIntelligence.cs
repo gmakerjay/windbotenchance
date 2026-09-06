@@ -167,7 +167,6 @@ namespace WindBot.Game.AI
             23434538,  // Maxx "C"
             94145021,  // Droll & Lock Bird
             97268402,  // Effect Veiler
-            63845230,  // Effect Veiler (alt)
             10045474,  // Infinite Impermanence
             42141493,  // Mulcharmy Fuwalos
             84192580,  // Mulcharmy Purulia
@@ -178,9 +177,14 @@ namespace WindBot.Game.AI
             34267821,  // Artifact Lancea
             27204311,  // Nibiru, the Primal Being
             24224830,  // Called by the Grave
-            65681982,  // Crossout Designator
+            65681983,  // Crossout Designator (canonical)
+            65681982,  // Crossout Designator (alt)
             24299458,  // Forbidden Droplet
-            41420027,  // Solemn Judgment / Red Reboot
+            41420027,  // Solemn Judgment
+            23002292,  // Red Reboot
+            62015408,  // Dominus Impulse
+            89264428,  // Dominus Purge
+            38814750,  // PSY-Framegear Gamma
         };
 
         // ═══════════════════════════════════════════════════════════════
@@ -193,6 +197,74 @@ namespace WindBot.Game.AI
             37675907,  // Red-Eyes Dark Dragoon
             21887175,  // Mekk-Knight Crusadia Avramax (untargetable by effects)
             88264978,  // Red-Eyes Flare Metal Dragon (destruction immune with mats)
+        };
+
+        // ═══════════════════════════════════════════════════════════════
+        //  7. DANGEROUS BATTLE / DAMAGE REFLECTION MONSTERS
+        //  Attacking these results in self-damage, destroyed attacker, or wasted attacks.
+        // ═══════════════════════════════════════════════════════════════
+        private static readonly HashSet<int> DangerousBattleMonsters = new HashSet<int>
+        {
+            // Mikanko Monsters (Reflects all battle damage to opponent)
+            6327734,   // Hu-Li the Jewel Mikanko
+            6327735,   // Hu-Li the Jewel Mikanko (alt)
+            11161666,  // Sanaki the Mikanko Devotee
+            18377261,  // Ha-Re the Sword Mikanko
+            54862960,  // Ni-Ni the Mirror Mikanko
+            57566760,  // Uzuhime the Manifested Mikanko
+            75771170,  // Arahime the Manifested Mikanko
+            81260679,  // Ohime the Manifested Mikanko
+            81260680,  // Ohime the Manifested Mikanko (alt)
+
+            // Yubel Engine (Reflects battle damage / destroys attacker)
+            78371393,  // Yubel
+            4779091,   // Yubel - Terror Incarnate
+            31764700,  // Yubel - The Ultimate Nightmare
+            47172959,  // Yubel - The Loving Defender Forever
+            80453041,  // Phantom of Yubel
+            90829280,  // Spirit of Yubel
+
+            // Timelords (Cannot be destroyed by battle / takes 0 battle damage)
+            28929131,  // Zaphion the Timelord
+            65314286,  // Sadion the Timelord
+            74530899,  // Metaion the Timelord
+            91712985,  // Kamion the Timelord
+            92435533,  // Lazion the Timelord
+            7733560,   // Michion the Timelord
+            34137269,  // Hailon the Timelord
+            60222213,  // Raphion the Timelord
+            6616912,   // Gabrion the Timelord
+            33015627,  // Sandaion the Timelord
+
+            // Other Damage Reflection / Dangerous Attack Targets
+            54366836,  // Number 54: Lion Heart
+            29552709,  // Daigusto Sphreeze
+            20366274,  // El Shaddoll Construct (destroys special summoned monster)
+            63845230,  // Eater of Millions (banishes battling monster face-down)
+            46239604,  // Dupe Frog
+        };
+
+        // ═══════════════════════════════════════════════════════════════
+        //  8. DRAW / STANDBY PHASE FLOODGATES
+        //  Traps that should be flipped in Draw/Standby Phase to pre-empt opponent plays.
+        // ═══════════════════════════════════════════════════════════════
+        private static readonly HashSet<int> DrawStandbyFloodgates = new HashSet<int>
+        {
+            82732047,  // Skill Drain
+            82732705,  // Skill Drain (alt)
+            83326048,  // Dimensional Barrier
+            58921041,  // Anti-Spell Fragrance
+            2429943,   // There Can Be Only One
+            34487429,  // Gozen Match
+            53334641,  // Gozen Match (alt)
+            22046459,  // Rivalry of Warlords
+            90845713,  // Rivalry of Warlords (alt)
+            47355498,  // Summon Limit
+            92746535,  // Summon Limit (alt)
+            34507039,  // Deck Lockdown
+            68462976,  // Secret Village of the Spellcasters
+            30241314,  // Macro Cosmos
+            81674782,  // Dimensional Fissure
         };
 
         // ═══════════════════════════════════════════════════════════════
@@ -212,6 +284,11 @@ namespace WindBot.Game.AI
         public static bool IsFloodgateSpellTrap(int cardId)
         {
             return FloodgateSpellsTraps.Contains(cardId);
+        }
+
+        public static bool IsDrawStandbyFloodgate(int cardId)
+        {
+            return DrawStandbyFloodgates.Contains(cardId);
         }
 
         public static bool IsKnownNegator(int cardId)
@@ -239,6 +316,30 @@ namespace WindBot.Game.AI
             if (card == null) return false;
             if (TargetImmuneCards.Contains(card.Id)) return true;
             if (card.IsShouldNotBeTarget()) return true;
+            return false;
+        }
+
+        /// <summary>
+        /// Check if attacking this defender is dangerous (damage reflection, battle immunity, instant destruction).
+        /// </summary>
+        public static bool IsDangerousBattleTarget(ClientCard defender, ClientCard attacker)
+        {
+            if (defender == null || defender.IsDisabled()) return false;
+
+            int id = defender.Id;
+
+            // 1. Direct match in dangerous battle monsters (Mikanko, Yubel, Timelords, etc.)
+            if (DangerousBattleMonsters.Contains(id))
+                return true;
+
+            // 2. Mekk-Knight Crusadia Avramax: Gains ATK equal to Special Summoned monster's ATK during damage calc
+            if (id == 21887175 && defender.IsAttack() && attacker != null && attacker.IsSpecialSummoned)
+                return true;
+
+            // 3. Crystal Wing Synchro Dragon: Gains ATK equal to Lv5+ monster's ATK during damage calc
+            if (id == 50954680 && defender.IsAttack() && attacker != null && attacker.Level >= 5)
+                return true;
+
             return false;
         }
 

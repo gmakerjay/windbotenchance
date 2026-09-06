@@ -38,6 +38,11 @@ namespace WindBot.Game.AI
         // ── Optional modern analysis plugin layer ──
         public AiAnalysisSuite Analysis { get; private set; }
 
+        // ── Match-Level Designation Flags (Permanent for the entire duel) ──
+        public bool IsGoingFirst { get; set; }
+        public bool IsGoingSecond { get; set; }
+        public bool IsMatchDesignationSet { get; set; }
+
         // ── Core Decision Flags (computed in OnNewTurn by DefaultExecutor) ──
         // Set true when board state guarantees lethal this turn — skip combo, push for game.
         public bool ShouldRushAttack { get; set; }
@@ -141,6 +146,22 @@ namespace WindBot.Game.AI
             Scorer?.Reset(Bot, Enemy, Duel);
             Analysis?.Refresh();
 
+            // ── Match-Level First/Second Designation (Locked permanently once determined) ──
+            if (!IsMatchDesignationSet)
+            {
+                if (Duel.Player == 0)
+                {
+                    IsGoingFirst = (Duel.Turn % 2 == 1);
+                    IsGoingSecond = !IsGoingFirst;
+                }
+                else
+                {
+                    IsGoingFirst = (Duel.Turn % 2 == 0);
+                    IsGoingSecond = !IsGoingFirst;
+                }
+                IsMatchDesignationSet = true;
+            }
+
             // ── Reset core decision flags ──
             ShouldRushAttack = false;
             SkipComboSearch = false;
@@ -180,16 +201,7 @@ namespace WindBot.Game.AI
                 foreach (ClientCard c in Bot.Hand)
                 {
                     if (c == null) continue;
-                    // Common hand traps (count as breakers for Going-Second assessment)
-                    if (c.Id == 23434538       // Maxx "C"
-                        || c.Id == 94145021   // Droll & Lock Bird
-                        || c.Id == 14558127   // Ash Blossom (original)
-                        || c.Id == 14558128   // Ash Blossom (alt art)
-                        || c.Id == 42141493   // Mulcharmy Fuwalos
-                        || c.Id == 84192580   // Mulcharmy Purulia
-                        || c.Id == 73642296   // Ghost Belle
-                        || c.Id == 63845230   // Effect Veiler
-                        || c.Id == 59438930)  // Ghost Ogre
+                    if (CardIntelligence.IsHandtrap(c.Id) || CardIntelligence.IsHandtrap(c.GetNonAltartCode()))
                         breakers++;
                 }
 
@@ -393,6 +405,102 @@ namespace WindBot.Game.AI
         public virtual void OnSelectChain(IList<ClientCard> cards)
         {
             return;
+        }
+
+        /// <summary>
+        /// Universal Chain Link 3 Guard:
+        /// Automatically protects our combo cards from opponent handtraps/negates
+        /// by activating Called by the Grave or Crossout Designator as Chain Link 3.
+        /// </summary>
+        public virtual int CheckChainLink3Defense(IList<ClientCard> cards, IList<long> descs)
+        {
+            if (cards == null || cards.Count == 0 || Duel == null) return -1;
+
+            // Must be responding to opponent's Chain Link 2+
+            if (Duel.CurrentChain == null || Duel.CurrentChain.Count < 2) return -1;
+            if (Duel.LastChainPlayer != 1) return -1;
+
+            ClientCard oppCard = Util.GetLastChainCard();
+            if (oppCard == null) return -1;
+
+            // Verify our card in the chain needs protection (Controller == 0)
+            ClientCard ourChainedCard = Duel.CurrentChain.ElementAtOrDefault(Duel.CurrentChain.Count - 2);
+            if (ourChainedCard == null || ourChainedCard.Controller != 0) return -1;
+
+            // Is the opponent's card a Handtrap or Negator targeting our play?
+            int oppId = oppCard.Id;
+            int oppCanonical = oppCard.GetNonAltartCode();
+            bool isOpponentDisruption = CardIntelligence.IsHandtrap(oppId) || CardIntelligence.IsHandtrap(oppCanonical)
+                || CardIntelligence.IsKnownNegator(oppId) || CardIntelligence.IsKnownNegator(oppCanonical);
+            if (!isOpponentDisruption) return -1;
+
+            // 1. Check for Crossout Designator (65681983)
+            for (int i = 0; i < cards.Count; ++i)
+            {
+                ClientCard c = cards[i];
+                if (c != null && (c.Id == 65681983 || c.Id == 65681982))
+                {
+                    if (GetRemainingCount(oppCanonical) > 0)
+                    {
+                        AI.SelectAnnounceID(oppCanonical);
+                        try { AI.Log(LogLevel.Info, $"[CL3-GUARD] Crossout Designator countering opponent {oppCard.Name ?? oppId.ToString()}"); } catch {}
+                        return i;
+                    }
+                }
+            }
+
+            // 2. Check for Called by the Grave (24224830)
+            for (int i = 0; i < cards.Count; ++i)
+            {
+                ClientCard c = cards[i];
+                if (c != null && c.Id == 24224830)
+                {
+                    // Opponent monster must be in opponent's Graveyard
+                    if (Enemy.Graveyard.Any(gy => gy != null && (gy.IsCode(oppCanonical) || gy.IsCode(oppId))))
+                    {
+                        AI.SelectCard(oppId);
+                        try { AI.Log(LogLevel.Info, $"[CL3-GUARD] Called by the Grave countering opponent {oppCard.Name ?? oppId.ToString()} in GY"); } catch {}
+                        return i;
+                    }
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>
+        /// Universal Draw / Standby Phase Floodgate Flipping:
+        /// Pre-emptively activates floodgates (Skill Drain, D-Barrier, Anti-Spell, TCBOO, etc.)
+        /// during the opponent's Draw/Standby Phase before they can cast board breakers in Main Phase.
+        /// </summary>
+        public virtual int CheckDrawStandbyFloodgate(IList<ClientCard> cards, IList<long> descs)
+        {
+            if (cards == null || cards.Count == 0 || Duel == null) return -1;
+            if (Duel.Player != 1) return -1; // Opponent's turn only
+            if (Duel.Phase != DuelPhase.Draw && Duel.Phase != DuelPhase.Standby) return -1;
+
+            for (int i = 0; i < cards.Count; ++i)
+            {
+                ClientCard card = cards[i];
+                if (card == null || card.Controller != 0) continue;
+
+                if (CardIntelligence.IsDrawStandbyFloodgate(card.Id))
+                {
+                    // For continuous traps (Skill Drain, TCBOO, Anti-Spell, etc.):
+                    // Don't activate if we already have an active face-up copy on field
+                    if (Bot.GetSpells().Any(s => s != null && s.IsFaceup() && !s.IsDisabled() && s.IsCode(card.Id)))
+                        continue;
+
+                    // For Skill Drain: ensure Bot has at least 1000 LP
+                    if (card.IsCode(82732047, 82732705) && Bot.LifePoints <= 1000)
+                        continue;
+
+                    try { AI.Log(LogLevel.Info, $"[FLOODGATE-FLIP] Pre-emptively flipping {card.Name ?? card.Id.ToString()} in {Duel.Phase}"); } catch {}
+                    return i;
+                }
+            }
+
+            return -1;
         }
 
         public virtual bool OnSelectYesNo(long desc)

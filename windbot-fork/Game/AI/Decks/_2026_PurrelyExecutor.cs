@@ -65,6 +65,7 @@ namespace WindBot.Game.AI.Decks
 
             // Spells - Generic & Board Breakers
             public const int PotOfDesires = 35261759;
+            public const int CalledByTheGrave = 24224830;
             public const int TripleTacticsThrust = 35269904;
             public const int TripleTacticsTalent = 25311006;
             public const int RadiantTyphoonVision = 20508881;
@@ -127,10 +128,11 @@ namespace WindBot.Game.AI.Decks
         private bool _purrelyXyzUsed = false;
         private bool _purrelylySearchUsed = false;
         private bool _purrelylyXyzUsed = false;
-        private bool _plumpAttachUsed = false;
+        private int _plumpAttachCount = 0;
         private bool _noirBounceUsed = false;
         private bool _beautyNegateUsed = false;
         private bool _purrelyeapUsed = false;
+        private bool _xyzBattledThisTurn = false;
         private int _handTrapsUsedThisTurn = 0;
 
         public override bool IsAceCard(ClientCard card)
@@ -253,6 +255,7 @@ namespace WindBot.Game.AI.Decks
             // TIER 1: Hand Traps & Reactive Disruptions
             // ============================================================
             AddExecutor(ExecutorType.Activate, CardId.ArtifactLancea, LanceaCondition);
+            AddExecutor(ExecutorType.Activate, CardId.CalledByTheGrave, DefaultCalledByTheGrave);
             AddExecutor(ExecutorType.Activate, CardId.MaxxC, MaxxCCondition);
             AddExecutor(ExecutorType.Activate, CardId.AshBlossomAndJoyousSpring, AshCondition);
             AddExecutor(ExecutorType.Activate, CardId.GhostBelleAndHauntedMansion, GhostBelleCondition);
@@ -261,8 +264,10 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.Activate, CardId.NibiruThePrimalBeing, NibiruCondition);
 
             // ============================================================
-            // TIER 2: Boss Monster Quick Effects, Triggers & Multi-Spins
+            // TIER 2: Boss Monster Rank-up (5+ Mats) & Quick Effects
             // ============================================================
+            AddExecutor(ExecutorType.SpSummon, CardId.ExpurrelyNoir, ExpurrelyNoirSpSummon);
+            AddExecutor(ExecutorType.Activate, CardId.Purrelyeap, PurrelyeapEffect);
             AddExecutor(ExecutorType.Activate, CardId.ExpurrelyNoir, ExpurrelyNoirEffect);
             AddExecutor(ExecutorType.Activate, CardId.DivineArsenalAAZEUSSkyThunder, ZeusEffect);
             AddExecutor(ExecutorType.Activate, CardId.SuperStarslayerTYPHONSkyCrisis, TyphonEffect);
@@ -287,14 +292,15 @@ namespace WindBot.Game.AI.Decks
             // ============================================================
             AddExecutor(ExecutorType.Activate, CardId.StrayPurrelyStreet, StrayPurrelyStreetEffect);
             AddExecutor(ExecutorType.Activate, CardId.MyFriendPurrely, MyFriendPurrelyEffect);
-            AddExecutor(ExecutorType.Activate, CardId.Purrelyeap, PurrelyeapEffect);
 
             // ============================================================
             // TIER 5: NORMAL SUMMON STARTERS FIRST! (Establish monster to reveal Quick-Play!)
             // ============================================================
+            AddExecutor(ExecutorType.Summon, CardId.EffectVeiler, EffectVeilerNormalSummon);
             AddExecutor(ExecutorType.Summon, CardId.Purrelyly, PurrelylyNormalSummon);
             AddExecutor(ExecutorType.Summon, CardId.Purrely, PurrelyNormalSummon);
 
+            // ============================================================
             // ============================================================
             // TIER 6: Monster Field Effects (Excavate, Search & Reveal Xyz)
             // ============================================================
@@ -302,23 +308,8 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.Activate, CardId.Purrelyly, PurrelylyEffect);
 
             // ============================================================
-            // TIER 7: Rank-up into Expurrely Noir (5+ Materials) / ZEUS Board Wipe / TYPHON
-            // ============================================================
-            AddExecutor(ExecutorType.SpSummon, CardId.ExpurrelyNoir, ExpurrelyNoirSpSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.SuperStarslayerTYPHONSkyCrisis, TyphonSpSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.DownerdMagician, DownerdMagicianSpSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.DivineArsenalAAZEUSSkyThunder, ZeusSpSummon);
-
-            // ============================================================
-            // TIER 8: Quick-Play Memory Spells (Feed Plump / SS Starter if needed)
-            // ============================================================
-            AddExecutor(ExecutorType.Activate, CardId.PurrelyDeliciousMemory, PurrelyDeliciousMemoryEffect);
-            AddExecutor(ExecutorType.Activate, CardId.PurrelySleepyMemory, PurrelySleepyMemoryEffect);
-            AddExecutor(ExecutorType.Activate, CardId.PurrelyPrettyMemory, PurrelyPrettyMemoryEffect);
-            AddExecutor(ExecutorType.Activate, CardId.PurrelyHappyMemory, PurrelyHappyMemoryEffect);
-
-            // ============================================================
-            // TIER 9: Extra Deck Summons
+            // TIER 6.5: Rank 2 Xyz Summons (Overlay 2 Level 1 Purrelys into Plump/Beauty)
+            // Prioritize standard Xyz over Link Summons!
             // ============================================================
             AddExecutor(ExecutorType.SpSummon, CardId.EpurrelyPlump, EpurrelyPlumpSpSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.EpurrelyNoir, EpurrelyNoirSpSummon);
@@ -328,17 +319,41 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.SpSummon, CardId.Purrely, PurrelySpSummonCheck);
 
             // ============================================================
+            // TIER 7: Extra Deck Summons (TYPHON / Downerd / AA-ZEUS / S:P Little Knight / Linkuriboh)
+            // ============================================================
+            AddExecutor(ExecutorType.SpSummon, CardId.SuperStarslayerTYPHONSkyCrisis, TyphonSpSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.DownerdMagician, DownerdMagicianSpSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.DivineArsenalAAZEUSSkyThunder, ZeusSpSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.SPLittleKnight, SPLittleKnightSpSummon);
+            AddExecutor(ExecutorType.Activate, CardId.SPLittleKnight, SPLittleKnightEffect);
+            AddExecutor(ExecutorType.SpSummon, CardId.Linkuriboh, LinkuribohSpSummon);
+            AddExecutor(ExecutorType.Activate, CardId.Linkuriboh, LinkuribohEffect);
+
+            // ============================================================
+            // TIER 7.5: Set Purrelyeap!? & Traps IMMEDIATELY before Quick-Play Spells!
+            // Must be BEFORE Tier 8 so Purrelyeap!? is protected from discard costs!
+            // ============================================================
+            AddExecutor(ExecutorType.SpellSet, CardId.Purrelyeap, PurrelyeapSetCondition);
+            AddExecutor(ExecutorType.SpellSet, CardId.DimensionalBarrier);
+            AddExecutor(ExecutorType.SpellSet, CardId.SolemnJudgment);
+            AddExecutor(ExecutorType.SpellSet, CardId.RivalryOfWarlords);
+
+            // ============================================================
+            // TIER 8: Quick-Play Memory Spells (Feed Plump / SS Starter if needed)
+            // Prioritize Sleepy & Pretty (Non-targeting) so empty fields can SS starter!
+            // ============================================================
+            AddExecutor(ExecutorType.Activate, CardId.PurrelySleepyMemory, PurrelySleepyMemoryEffect);
+            AddExecutor(ExecutorType.Activate, CardId.PurrelyPrettyMemory, PurrelyPrettyMemoryEffect);
+            AddExecutor(ExecutorType.Activate, CardId.PurrelyDeliciousMemory, PurrelyDeliciousMemoryEffect);
+            AddExecutor(ExecutorType.Activate, CardId.PurrelyHappyMemory, PurrelyHappyMemoryEffect);
+
+            // ============================================================
             // TIER 10: Counter Traps & Setting Backrow
             // ============================================================
             AddExecutor(ExecutorType.Activate, CardId.SolemnJudgment, DefaultSolemnJudgment);
             AddExecutor(ExecutorType.Activate, CardId.RivalryOfWarlords, RivalryEffect);
             AddExecutor(ExecutorType.Activate, CardId.RedReboot, RedRebootEffect);
             AddExecutor(ExecutorType.Activate, CardId.DimensionalBarrier, DimensionalBarrierEffect);
-
-            AddExecutor(ExecutorType.SpellSet, CardId.Purrelyeap, PurrelyeapSetCondition);
-            AddExecutor(ExecutorType.SpellSet, CardId.DimensionalBarrier);
-            AddExecutor(ExecutorType.SpellSet, CardId.SolemnJudgment);
-            AddExecutor(ExecutorType.SpellSet, CardId.RivalryOfWarlords);
 
             // Repositioning
             AddExecutor(ExecutorType.Repos, CustomMonsterRepos);
@@ -355,10 +370,11 @@ namespace WindBot.Game.AI.Decks
             _purrelyXyzUsed = false;
             _purrelylySearchUsed = false;
             _purrelylyXyzUsed = false;
-            _plumpAttachUsed = false;
+            _plumpAttachCount = 0;
             _noirBounceUsed = false;
             _beautyNegateUsed = false;
             _purrelyeapUsed = false;
+            _xyzBattledThisTurn = false;
             _handTrapsUsedThisTurn = 0;
         }
 
@@ -447,26 +463,31 @@ namespace WindBot.Game.AI.Decks
         {
             if (Util.GetLastChainCard()?.Controller == 0) return false;
             if (_handTrapsUsedThisTurn >= 2) return false;
-            if (DefaultAshBlossomAndJoyousSpring())
-            {
-                _handTrapsUsedThisTurn++;
-                DecisionTracer.TraceActivate("AshBlossom", "Negating opponent search/SS from deck");
-                return true;
-            }
-            return false;
+
+            var lastCard = Util.GetLastChainCard();
+            if (lastCard == null || lastCard.Controller != 1) return false;
+
+            // Never ash Upstart Goblin, Macro Cosmos, or Danger! hand effects
+            int[] ignoreList = { 70368879, 30241314, 60600126 };
+            if (lastCard.IsCode(ignoreList)) return false;
+            if (lastCard.HasSetcode(0x11e) && lastCard.Location == CardLocation.Hand) return false;
+
+            _handTrapsUsedThisTurn++;
+            DecisionTracer.TraceActivate("AshBlossom", $"Negating opponent effect {lastCard.Name}");
+            return true;
         }
 
         private bool GhostBelleCondition()
         {
             if (Util.GetLastChainCard()?.Controller == 0) return false;
             if (_handTrapsUsedThisTurn >= 2) return false;
-            if (DefaultGhostBelleAndHauntedMansion())
-            {
-                _handTrapsUsedThisTurn++;
-                DecisionTracer.TraceActivate("GhostBelle", "Negating GY interaction");
-                return true;
-            }
-            return false;
+
+            var lastCard = Util.GetLastChainCard();
+            if (lastCard == null || lastCard.Controller != 1) return false;
+
+            _handTrapsUsedThisTurn++;
+            DecisionTracer.TraceActivate("GhostBelle", $"Negating opponent GY interaction {lastCard.Name}");
+            return true;
         }
 
         private bool EffectVeilerCondition()
@@ -631,7 +652,13 @@ namespace WindBot.Game.AI.Decks
 
         private bool PotOfDesiresEffect()
         {
-            // NEVER banish 10 face-down in Purrely! Key 1-ofs are essential for combos.
+            if (Duel.Player != 0) return false;
+            bool hasStarter = Bot.Hand.Any(c => c != null && c.IsCode(CardId.Purrely, CardId.Purrelyly, CardId.MyFriendPurrely));
+            if (!hasStarter || Bot.Hand.Count <= 3)
+            {
+                DecisionTracer.TraceActivate("PotOfDesires", "Drawing 2 cards to unbrick hand");
+                return true;
+            }
             return false;
         }
 
@@ -685,6 +712,7 @@ namespace WindBot.Game.AI.Decks
             {
                 if (_myFriendSearchUsed) return false;
                 if (Bot.LifePoints <= 500) return false;
+                if (Bot.Deck.Count <= 4) return false;
                 _myFriendSearchUsed = true;
 
                 // Priority: Delicious > Sleepy > Pretty
@@ -739,6 +767,22 @@ namespace WindBot.Game.AI.Decks
         // PURRELY MONSTER SUMMONS & EFFECTS
         // ============================================================
 
+        private bool EffectVeilerNormalSummon()
+        {
+            if (_normalSummonUsed) return false;
+            if (Duel.Player != 0) return false;
+            // Out to Secret Village of the Spellcasters! If opponent has Secret Village face-up
+            // and we have no Spellcaster, normal summon Effect Veiler so we control a Spellcaster,
+            // immediately breaking Secret Village's lockdown on all of our Spells!
+            if (Enemy.GetSpells().Any(c => c != null && c.IsFaceup() && c.IsCode(68462976)) && !Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.HasRace(CardRace.SpellCaster)))
+            {
+                _normalSummonUsed = true;
+                DecisionTracer.TraceActivate("EffectVeilerNormalSummon", "Normal Summoning Effect Veiler to shatter Secret Village lock!");
+                return true;
+            }
+            return false;
+        }
+
         private bool PurrelylyNormalSummon()
         {
             if (_normalSummonUsed) return false;
@@ -765,19 +809,19 @@ namespace WindBot.Game.AI.Decks
 
         private bool PurrelylyEffect()
         {
-            // Effect 0: Search non-Quick-Play Purrely card from Deck
-            if (ActivateDescription == Util.GetStringId(CardId.Purrelyly, 0) || (ActivateDescription == -1 && !_purrelylySearchUsed))
+            // Effect 0: Search non-Quick-Play Purrely card from Deck (ON-SUMMON TRIGGER ONLY)
+            if (ActivateDescription == Util.GetStringId(CardId.Purrelyly, 0) || (Duel.CurrentChain.Count > 0 && !_purrelylySearchUsed))
             {
                 if (_purrelylySearchUsed) return false;
                 _purrelylySearchUsed = true;
 
-                // Priority: My Friend > Stray Street > Purrelyeap > Purrely
+                // Priority: My Friend > Purrelyeap > Stray Street > Purrely
                 if (!Bot.HasInSpellZone(CardId.MyFriendPurrely) && !Bot.HasInHand(CardId.MyFriendPurrely) && Bot.GetRemainingCount(CardId.MyFriendPurrely, 3) > 0)
                     AI.SelectCard(CardId.MyFriendPurrely);
-                else if (!Bot.HasInSpellZone(CardId.StrayPurrelyStreet) && !Bot.HasInHand(CardId.StrayPurrelyStreet) && Bot.GetRemainingCount(CardId.StrayPurrelyStreet, 3) > 0)
-                    AI.SelectCard(CardId.StrayPurrelyStreet);
                 else if (!Bot.HasInSpellZone(CardId.Purrelyeap) && !Bot.HasInHand(CardId.Purrelyeap) && Bot.GetRemainingCount(CardId.Purrelyeap, 2) > 0)
                     AI.SelectCard(CardId.Purrelyeap);
+                else if (!Bot.HasInSpellZone(CardId.StrayPurrelyStreet) && !Bot.HasInHand(CardId.StrayPurrelyStreet) && Bot.GetRemainingCount(CardId.StrayPurrelyStreet, 3) > 0)
+                    AI.SelectCard(CardId.StrayPurrelyStreet);
                 else
                     AI.SelectCard(CardId.Purrely);
 
@@ -785,8 +829,8 @@ namespace WindBot.Game.AI.Decks
                 return true;
             }
 
-            // Effect 1: Target GY Quick-Play -> Xyz Summon
-            if (ActivateDescription == Util.GetStringId(CardId.Purrelyly, 1) || ActivateDescription == -1)
+            // Effect 1: Target GY Quick-Play -> Xyz Summon (IGNITION EFFECT IN IDLE)
+            if (ActivateDescription == Util.GetStringId(CardId.Purrelyly, 1) || (Duel.CurrentChain.Count == 0 && ActivateDescription == -1))
             {
                 if (_purrelylyXyzUsed) return false;
                 if (IsSpecialSummonBlocked()) return false;
@@ -816,10 +860,11 @@ namespace WindBot.Game.AI.Decks
 
         private bool PurrelyEffect()
         {
-            // Effect 0: Excavate top 3 cards
-            if (ActivateDescription == Util.GetStringId(CardId.Purrely, 0) || (ActivateDescription == -1 && !_purrelyExcavateUsed))
+            // Effect 0: Excavate top 3 cards (ON-SUMMON TRIGGER ONLY)
+            if (ActivateDescription == Util.GetStringId(CardId.Purrely, 0) || (Duel.CurrentChain.Count > 0 && !_purrelyExcavateUsed))
             {
                 if (_purrelyExcavateUsed) return false;
+                if (Bot.Deck.Count <= 3) return false;
                 _purrelyExcavateUsed = true;
                 AI.SelectCard(new[] {
                     CardId.MyFriendPurrely,
@@ -834,8 +879,8 @@ namespace WindBot.Game.AI.Decks
                 return true;
             }
 
-            // Effect 1: Reveal Quick-Play in Hand -> Xyz Summon
-            if (ActivateDescription == Util.GetStringId(CardId.Purrely, 1) || ActivateDescription == -1)
+            // Effect 1: Reveal Quick-Play in Hand -> Xyz Summon (IGNITION EFFECT IN IDLE)
+            if (ActivateDescription == Util.GetStringId(CardId.Purrely, 1) || (Duel.CurrentChain.Count == 0 && ActivateDescription == -1))
             {
                 if (_purrelyXyzUsed) return false;
                 if (IsSpecialSummonBlocked()) return false;
@@ -873,9 +918,13 @@ namespace WindBot.Game.AI.Decks
             if (Duel.Phase != DuelPhase.Main1 && Duel.Phase != DuelPhase.Main2 && Duel.Phase != DuelPhase.Battle) return false;
             if (Duel.CurrentChain.Count > 0) return false;
             if (IsSpecialSummonBlocked()) return false;
-            if (ShouldStopExtending()) return false;
+            if (Bot.Deck.Count <= 4) return false; // Prevent deck out!
 
-            // RULE 1: If we have a Normal Summonable starter in hand and haven't Normal Summoned yet, DO NOT ACTIVATE MEMORY SPELLS!
+            // STOP EXTENDING: If we ALREADY control Expurrely Noir with 5+ materials, we are done!
+            var noir = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(CardId.ExpurrelyNoir));
+            if (noir != null && GetOverlayCount(noir) >= 5) return false;
+
+            // RULE 1: If we have a Normal Summonable starter in hand and haven't Normal Summoned yet, Normal Summon first!
             if (!_normalSummonUsed && Bot.Hand.Any(h => h.IsCode(CardId.Purrely, CardId.Purrelyly)))
                 return false;
 
@@ -886,15 +935,8 @@ namespace WindBot.Game.AI.Decks
                 return true;
             }
 
-            // RULE 3: If we have Purrelyly on field and haven't Xyz'd yet, and GY has no Memory Spells:
-            var purrelyly = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(CardId.Purrelyly) && !_purrelylyXyzUsed);
-            if (purrelyly != null && !Bot.Graveyard.Any(c => c != null && MemorySpells.Contains(c.Id)))
-            {
-                return true;
-            }
-
-            // RULE 4: If we have NO monsters on field and Normal Summon is used (or no starter in hand):
-            if (Bot.GetMonsterCount() == 0 && (_normalSummonUsed || !Bot.Hand.Any(h => h.IsCode(CardId.Purrely, CardId.Purrelyly))))
+            // RULE 3: If we don't have Noir with 5+ materials, and we have cards to discard, activate to SS Purrely/Purrelyly from Deck!
+            if (Bot.Hand.Count >= 2)
             {
                 return true;
             }
@@ -908,13 +950,13 @@ namespace WindBot.Game.AI.Decks
             {
                 if (!ShouldActivateMemoryInHand()) return false;
 
-                // Target OUR monster first to give it battle immunity!
+                // Target OUR monster first to give it battle immunity, then enemy monsters!
                 var target = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup()) ??
                              Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup());
                 if (target == null) return false;
 
                 AI.SelectCard(target);
-                DecisionTracer.TraceActivate("PurrelyDeliciousMemory", $"Targeting {target.Name} for battle immunity & feeding Plump");
+                DecisionTracer.TraceActivate("PurrelyDeliciousMemory", $"Targeting {target.Name} for battle immunity & feeding Plump / SS Purrely");
                 return true;
             }
             return false;
@@ -980,10 +1022,9 @@ namespace WindBot.Game.AI.Decks
         private bool TyphonSpSummon()
         {
             if (IsSpecialSummonBlocked()) return false;
-            // Only summon Typhon if enemy has a monster with >= 3000 ATK (e.g. Hexstia, Blue-Eyes, Dark Matter)
-            // and we don't have a 5+ material Noir!
-            var noir = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(CardId.ExpurrelyNoir));
-            if (noir != null && GetOverlayCount(noir) >= 5) return false;
+            // NEVER summon Typhon if we control ANY Purrely Xyz monster!
+            if (Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && PurrelyXyz.Contains(c.Id))) return false;
+            if (Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.IsCode(CardId.ExpurrelyNoir))) return false;
 
             return Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && c.Attack >= 3000);
         }
@@ -1008,21 +1049,37 @@ namespace WindBot.Game.AI.Decks
         {
             if (IsSpecialSummonBlocked()) return false;
             if (Duel.Phase != DuelPhase.Main2) return false;
-            // ONLY summon Downerd if ZEUS is in Extra Deck and ready to overlay immediately!
+            // CRITICAL: An Xyz monster MUST have battled this turn to summon Zeus in Main 2!
+            if (!_xyzBattledThisTurn) return false;
+            // CRITICAL: Never summon Downerd if we control Expurrely Noir!
+            if (Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.IsCode(CardId.ExpurrelyNoir))) return false;
+
+            // If opponent controls Secret Village of the Spellcasters, Downerd Magician is a Spellcaster!
+            // Overlaying Downerd Magician over any Rank 2 instantly breaks Secret Village's spell lock!
+            if (Enemy.GetSpells().Any(c => c != null && c.IsFaceup() && c.IsCode(68462976)))
+            {
+                var rank2Village = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.Rank == 2);
+                if (rank2Village != null) return true;
+            }
+
+            var rank2 = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.Rank == 2);
+            if (rank2 == null || GetOverlayCount(rank2) >= 4) return false;
             if (!Bot.ExtraDeck.Any(e => e.IsCode(CardId.DivineArsenalAAZEUSSkyThunder))) return false;
-            var noir = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(CardId.ExpurrelyNoir));
-            if (noir != null && GetOverlayCount(noir) >= 5) return false;
             if (Enemy.GetMonsterCount() + Enemy.GetSpellCount() < 2) return false;
 
-            return Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.Rank == 2);
+            return true;
         }
 
         private bool ZeusSpSummon()
         {
             if (IsSpecialSummonBlocked()) return false;
             if (Duel.Phase != DuelPhase.Main2) return false;
+            if (!_xyzBattledThisTurn) return false;
             var noir = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(CardId.ExpurrelyNoir));
             if (noir != null && GetOverlayCount(noir) >= 5) return false;
+
+            // Always summon Zeus if opponent controls Avramax or 2+ cards!
+            if (Enemy.GetMonsters().Any(m => m != null && m.IsFaceup() && m.IsCode(21887175))) return true;
             return Enemy.GetMonsterCount() + Enemy.GetSpellCount() >= 2;
         }
 
@@ -1030,10 +1087,112 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location != CardLocation.MonsterZone) return false;
             if (GetOverlayCount(Card) < 2) return false;
-            if (Enemy.GetMonsterCount() + Enemy.GetSpellCount() >= 2 || Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && c.Attack >= 2500))
+            if (Enemy.GetMonsterCount() + Enemy.GetSpellCount() >= 2 || Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && (c.Attack >= 2500 || c.IsCode(21887175))))
             {
                 DecisionTracer.TraceActivate("AA-ZEUS", "Wiping entire field with Zeus Quick Effect!");
                 return true;
+            }
+            return false;
+        }
+
+        private bool SPLittleKnightSpSummon()
+        {
+            if (IsSpecialSummonBlocked()) return false;
+            // CRITICAL: NEVER sacrifice ANY Purrely Xyz monster or Expurrely Noir for S:P Little Knight!
+            // Purrely Xyz monsters are our core win condition and stepping stones to Noir!
+            if (Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && (PurrelyXyz.Contains(c.Id) || c.IsCode(CardId.ExpurrelyNoir)))) return false;
+
+            bool oppHasFloodgate = Enemy.GetSpells().Any(c => c != null && c.IsFaceup() && 
+                (c.IsCode(68462976, 27541563, 61740673, 99745551, 82732705) || c.HasType(CardType.Continuous) || c.HasType(CardType.Field)));
+            bool oppHasBoss = Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && (c.IsCode(21887175) || c.Attack >= 2500));
+
+            // Only allow using NON-Xyz monsters (e.g. Linkuriboh, Effect Veiler, or babies AFTER their effects are used)
+            int eligibleMaterials = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && !PurrelyXyz.Contains(c.Id) && !c.IsCode(CardId.ExpurrelyNoir));
+            return eligibleMaterials >= 2 && (oppHasFloodgate || oppHasBoss);
+        }
+
+        private bool SPLittleKnightEffect()
+        {
+            // Effect 0: On Link Summon banish targeting (out Secret Village / Protocol / Avramax!)
+            var target = Enemy.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(68462976)) ??
+                         Enemy.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup() && (c.IsCode(27541563, 61740673, 48680970, 48770333, 66399653))) ??
+                         Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && !c.IsShouldNotBeTarget() && (c.IsCode(21887175) || c.Attack >= 2500 || c.HasType(CardType.Fusion) || c.HasType(CardType.Synchro) || c.HasType(CardType.Xyz) || c.HasType(CardType.Link))) ??
+                         Enemy.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup()) ??
+                         Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && !c.IsShouldNotBeTarget()) ??
+                         Enemy.Graveyard.FirstOrDefault(c => c != null && (c.IsCode(46986414, 89631139) || c.Attack >= 2000));
+
+            if (target != null)
+            {
+                AI.SelectCard(target);
+                DecisionTracer.TraceActivate("SPLittleKnight", $"Banish targeting {target.Name}");
+                return true;
+            }
+
+            // Effect 1: Quick Effect banish self + 1 monster
+            if (Duel.LastChainPlayer == 1)
+            {
+                var enemyMon = Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && !c.IsShouldNotBeTarget());
+                if (enemyMon != null)
+                {
+                    AI.SelectCard(Card);
+                    AI.SelectNextCard(enemyMon);
+                    DecisionTracer.TraceActivate("SPLittleKnight", $"Quick effect banishing self and {enemyMon.Name}");
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private bool LinkuribohSpSummon()
+        {
+            if (IsSpecialSummonBlocked()) return false;
+            // Never summon Linkuriboh if we have Expurrely Noir or an established Purrely Xyz
+            if (Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && (c.IsCode(CardId.ExpurrelyNoir) || (PurrelyXyz.Contains(c.Id) && GetOverlayCount(c) >= 2)))) return false;
+
+            // Preferred: Use EffectVeiler or non-Purrely Level 1 (e.g. from normal summon to clear Secret Village)
+            var nonPurrelyLv1 = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.Level == 1 && !c.IsCode(CardId.Purrely, CardId.Purrelyly));
+            if (nonPurrelyLv1 != null)
+            {
+                AI.SelectCard(nonPurrelyLv1);
+                return true;
+            }
+
+            // DO NOT sacrifice Purrely or Purrelyly if we can overlay or have Purrelyeap!
+            bool hasMemory = Bot.Hand.Any(c => c != null && MemorySpells.Contains(c.Id));
+            bool hasPurrelyeap = Bot.Hand.Any(c => c != null && c.IsCode(CardId.Purrelyeap)) || Bot.GetSpells().Any(c => c != null && c.IsCode(CardId.Purrelyeap));
+            if (hasMemory || hasPurrelyeap) return false;
+
+            // Only allow if Purrely/Purrelyly is already used, we have at least 2 monsters, and we are preparing for S:P Little Knight
+            var purrelyMon = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.Level == 1 && c.IsCode(CardId.Purrely, CardId.Purrelyly));
+            if (purrelyMon != null && Bot.GetMonsterCount() >= 2 && Enemy.GetMonsterCount() > 0)
+            {
+                AI.SelectCard(purrelyMon);
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool LinkuribohEffect()
+        {
+            if (Card.Location == CardLocation.MonsterZone)
+            {
+                if (Duel.Phase == DuelPhase.Battle && Duel.Player == 1)
+                {
+                    DecisionTracer.TraceActivate("Linkuriboh", "Tributing self to reduce attack to 0");
+                    return true;
+                }
+            }
+            if (Card.Location == CardLocation.Grave)
+            {
+                // CRITICAL FIX: NEVER tribute Purrely or Purrelyly! Only tribute non-Purrely Level 1 monsters (e.g. Effect Veiler, tokens)
+                var lv1 = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.Level == 1 && !IsAceCard(c) && !c.IsCode(CardId.Purrely, CardId.Purrelyly));
+                if (lv1 != null && (Duel.Player == 1 || Bot.GetMonsterCount() <= 2))
+                {
+                    AI.SelectCard(lv1);
+                    DecisionTracer.TraceActivate("Linkuriboh", $"Reviving Linkuriboh by tributing {lv1.Name}");
+                    return true;
+                }
             }
             return false;
         }
@@ -1047,61 +1206,152 @@ namespace WindBot.Game.AI.Decks
             // Prevent infinite self-chaining
             if (Duel.LastChainPlayer == 0 && Util.GetLastChainCard()?.Id == CardId.ExpurrelyNoir) return false;
 
-            // CRITICAL IMMUNITY LOCK:
-            // If mats is 5 or 6: detaching 2 will drop us to 3 or 4, LOSING TOWER IMMUNITY!
-            // Since Noir is ALREADY immune to all opponent activated effects while mats >= 5:
-            // DO NOT DETACH IF mats < 7 unless:
-            // 1. We are in Battle Phase and an enemy monster with >= 3000 ATK is about to destroy us by battle!
-            // 2. OR on our turn we need to spin an opponent floodgate/boss to push for lethal.
-            if (mats >= 5 && mats < 7)
+            // Check if opponent has Eternal Soul active -> Dark Magicians are immune!
+            bool eternalSoulActive = Enemy.GetSpells().Any(c => c != null && c.IsFaceup() && c.IsCode(48680970));
+
+            // Helper to get best opponent target on field or GY
+            ClientCard GetBestOpponentTarget()
             {
-                if (Duel.Player == 1)
+                // #1: Eternal Soul / True Light -> spinning to bottom of deck triggers wipe of all opp monsters!
+                var wipeSpell = Enemy.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(48680970, 48770333) && !c.IsShouldNotBeTarget());
+                if (wipeSpell != null) return wipeSpell;
+
+                // #2: Face-up continuous spells / traps / floodgates (Dark Magical Circle, Skill Drain, etc.)
+                var floodgate = Enemy.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup() && (c.HasType(CardType.Continuous) || c.HasType(CardType.Field) || c.IsTrap()) && !c.IsShouldNotBeTarget());
+                if (floodgate != null) return floodgate;
+
+                // #3: Extra Deck Boss Monsters (Fusion, Synchro, Xyz, Link)
+                var extraBoss = Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && !c.IsShouldNotBeTarget() &&
+                            (!eternalSoulActive || !c.IsCode(46986414)) &&
+                            (c.HasType(CardType.Fusion) || c.HasType(CardType.Synchro) || c.HasType(CardType.Xyz) || c.HasType(CardType.Link)));
+                if (extraBoss != null) return extraBoss;
+
+                // #4: High-ATK threat monsters (ATK >= 2500)
+                var bigThreat = Enemy.GetMonsters().Where(c => c != null && c.IsFaceup() && !c.IsShouldNotBeTarget() && (!eternalSoulActive || !c.IsCode(46986414)))
+                            .OrderByDescending(c => c.Attack).FirstOrDefault(c => c.Attack >= 2500);
+                if (bigThreat != null) return bigThreat;
+
+                // #5: Any face-up monster (that is not immune)
+                var anyFaceupMon = Enemy.GetMonsters().Where(c => c != null && c.IsFaceup() && !c.IsShouldNotBeTarget() && (!eternalSoulActive || !c.IsCode(46986414)))
+                            .OrderByDescending(c => c.Attack).FirstOrDefault();
+                if (anyFaceupMon != null) return anyFaceupMon;
+
+                // #6: Opponent GY boss / recurrer (e.g. Dark Magician in GY, ABC piece, or ATK >= 2000)
+                var gyThreat = Enemy.Graveyard.FirstOrDefault(c => c != null && c.IsMonster() && (c.IsCode(46986414) || c.Attack >= 2000));
+                if (gyThreat != null) return gyThreat;
+
+                // #7: Face-down Spells/Traps
+                var setSpell = Enemy.GetSpells().FirstOrDefault(c => c != null && !c.IsShouldNotBeTarget());
+                if (setSpell != null) return setSpell;
+
+                return Enemy.GetMonsters().FirstOrDefault(c => c != null && !c.IsShouldNotBeTarget());
+            }
+
+            // OPPONENT'S TURN (Duel.Player == 1): CHAMPIONSHIP QUICK DISRUPTIONS
+            if (Duel.Player == 1)
+            {
+                // 1. Reactive Chain: Opponent activated a card or effect
+                if (Duel.LastChainPlayer == 1)
                 {
-                    if (Duel.Phase != DuelPhase.Battle) return false; // STAY IMMUNE IN MAIN PHASE!
-                    var battleThreat = Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsAttack() && c.Attack >= Card.Defense && !c.IsShouldNotBeTarget());
-                    if (battleThreat == null) return false; // No monster can beat our DEF, stay immune!
-                    AI.SelectCard(battleThreat);
-                    DecisionTracer.TraceActivate("ExpurrelyNoir", $"Emergency spin on battle threat {battleThreat.Name} before damage calculation");
-                    return true;
+                    var chainCard = Util.GetLastChainCard();
+                    ClientCard target = null;
+                    // Expurrely Noir can ONLY target cards opponent controls on field or in GY (NOT in hand!)
+                    if (chainCard != null && chainCard.Controller == 1 && chainCard.Location != CardLocation.Hand && !chainCard.IsShouldNotBeTarget())
+                    {
+                        if (!eternalSoulActive || !chainCard.IsCode(46986414))
+                            target = chainCard;
+                    }
+                    if (target == null)
+                    {
+                        target = GetBestOpponentTarget();
+                    }
+
+                    if (target != null)
+                    {
+                        bool isBoardWipeTarget = target.IsCode(48680970, 48770333);
+                        bool inBattleDanger = target.IsMonster() && (target.Attack >= Card.Attack && target.Attack >= Card.Defense);
+                        bool isBossThreat = target.IsMonster() && (target.Attack >= 2500 || target.HasType(CardType.Fusion) || target.HasType(CardType.Synchro) || target.HasType(CardType.Xyz) || target.HasType(CardType.Link));
+                        bool isKeyBackrow = target.IsCode(47222536, 66399653, 53936268, 61740673, 68462976, 27541563) || (target.HasType(CardType.Field) || target.HasType(CardType.Continuous) || (target.IsFaceup() && target.IsTrap()));
+
+                        // If mats >= 7: ALWAYS spin! (Keeps 5+ mats for full tower immunity!)
+                        // If mats is 5 or 6: PROTECT TOWER IMMUNITY! NEVER drop below 5 mats unless battle danger or board wipe!
+                        // If mats < 5: we DO NOT have tower immunity anyway -> spin any threat to disrupt opponent!
+                        bool shouldSpin = (mats >= 7 && (isBossThreat || isKeyBackrow || target.IsMonster())) ||
+                                          isBoardWipeTarget || inBattleDanger ||
+                                          (mats < 5 && (isBossThreat || isKeyBackrow || target.IsMonster()));
+
+                        if (shouldSpin)
+                        {
+                            AI.SelectCard(target);
+                            DecisionTracer.TraceActivate("ExpurrelyNoir", $"Chaining Quick spin to {target.Name} (Mats: {mats})");
+                            return true;
+                        }
+                    }
                 }
-                else
+
+                // 2. Battle Phase Protection: Spin any attacker threatening Noir or lethal!
+                if (Duel.Phase == DuelPhase.Battle)
                 {
-                    var threat = Enemy.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup() && (c.HasType(CardType.Continuous) || c.HasType(CardType.Field) || c.IsTrap()) && !c.IsShouldNotBeTarget()) ??
-                                 Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.Attack >= 2500 && !c.IsShouldNotBeTarget());
-                    if (threat == null) return false; // Stay immune!
-                    AI.SelectCard(threat);
-                    DecisionTracer.TraceActivate("ExpurrelyNoir", $"Main Phase spin on threat {threat.Name}");
-                    return true;
+                    var battleThreat = Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsAttack() && !c.IsShouldNotBeTarget() && (!eternalSoulActive || !c.IsCode(46986414)));
+                    if (battleThreat != null && (battleThreat.Attack >= Card.Attack || battleThreat.Attack >= Card.Defense || mats >= 7 || mats < 5))
+                    {
+                        AI.SelectCard(battleThreat);
+                        DecisionTracer.TraceActivate("ExpurrelyNoir", $"Battle Phase spin on {battleThreat.Name}");
+                        return true;
+                    }
+                }
+
+                // 3. Main Phase Proactive Interruption:
+                if (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Main2)
+                {
+                    var target = GetBestOpponentTarget();
+                    if (target != null)
+                    {
+                        bool isBoardWipeTarget = target.IsCode(48680970, 48770333);
+                        bool isBossThreat = (target.IsMonster() && (target.Attack >= 2500 || target.HasType(CardType.Fusion) || target.HasType(CardType.Synchro) || target.HasType(CardType.Xyz) || target.HasType(CardType.Link)));
+                        bool isKeyBackrow = target.IsCode(47222536, 66399653, 53936268, 61740673, 68462976, 27541563) || (target.HasType(CardType.Field) || target.HasType(CardType.Continuous) || (target.IsFaceup() && target.IsTrap()));
+                        bool inBattleDanger = target.IsMonster() && (target.Attack >= Card.Attack && target.Attack >= Card.Defense);
+
+                        // If mats >= 7: Proactively spin boss threats or key backrow!
+                        // If mats is 5 or 6: PROTECT TOWER IMMUNITY! ONLY spin if battle danger or board wipe!
+                        // If mats < 5: Spin any threat to disrupt!
+                        bool shouldSpin = isBoardWipeTarget || inBattleDanger ||
+                            (mats >= 7 && (isBossThreat || isKeyBackrow)) ||
+                            (mats < 5 && (target.IsMonster() || isKeyBackrow));
+
+                        if (shouldSpin)
+                        {
+                            AI.SelectCard(target);
+                            DecisionTracer.TraceActivate("ExpurrelyNoir", $"Main Phase proactive spin on {target.Name} (Mats: {mats})");
+                            return true;
+                        }
+                    }
                 }
             }
 
-            // If mats < 5 (we already lost tower immunity): only spin if we have valid field targets
-            if (mats < 5)
+            // OUR TURN (Duel.Player == 0): Push for lethal & remove roadblocks
+            if (Duel.Player == 0)
             {
-                var target = Enemy.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup() && !c.IsShouldNotBeTarget()) ??
-                             Enemy.GetMonsters().Where(c => c != null && c.IsFaceup() && !c.IsShouldNotBeTarget()).OrderByDescending(c => c.Attack).FirstOrDefault();
+                var target = GetBestOpponentTarget();
                 if (target != null)
                 {
-                    AI.SelectCard(target);
-                    return true;
-                }
-                return false;
-            }
+                    bool isBoardWipeTarget = target.IsCode(48680970, 48770333);
+                    bool inBattleDanger = target.IsMonster() && (target.Attack >= Card.Attack || target.Defense >= Card.Attack);
+                    bool isBossThreat = (target.IsMonster() && (target.Attack >= 2000 || inBattleDanger || target.HasType(CardType.Fusion) || target.HasType(CardType.Synchro) || target.HasType(CardType.Xyz) || target.HasType(CardType.Link)));
+                    bool isKeyBackrow = target.IsCode(47222536, 66399653, 53936268, 61740673, 68462976, 27541563) || (target.HasType(CardType.Field) || target.HasType(CardType.Continuous) || (target.IsFaceup() && target.IsTrap()));
 
-            // If mats >= 7: WE HAVE FREE MATERIALS TO BURN! Spin opponent's best cards freely!
-            if (mats >= 7)
-            {
-                var target = Enemy.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup() && (c.HasType(CardType.Field) || c.HasType(CardType.Continuous) || c.IsTrap()) && !c.IsShouldNotBeTarget()) ??
-                             Enemy.GetMonsters().Where(c => c != null && c.IsFaceup() && !c.IsShouldNotBeTarget()).OrderByDescending(c => (c.IsDisabled() ? 0 : 6000) + (c.HasType(CardType.Fusion) || c.HasType(CardType.Synchro) || c.HasType(CardType.Xyz) || c.HasType(CardType.Link) ? 4000 : 0) + c.Attack).FirstOrDefault() ??
-                             Enemy.GetMonsters().FirstOrDefault(c => c != null && !c.IsShouldNotBeTarget()) ??
-                             Enemy.GetSpells().FirstOrDefault(c => c != null && !c.IsShouldNotBeTarget()) ??
-                             Enemy.Graveyard.FirstOrDefault(c => c != null && c.IsMonster() && c.Attack >= 2000);
+                    // On our turn:
+                    // Always spin board wipes, battle roadblocks (monsters we can't beat), boss threats, and key backrows!
+                    bool shouldSpin = isBoardWipeTarget || CanDealLethal() || isBossThreat || isKeyBackrow || inBattleDanger ||
+                        (mats >= 7 && target.IsMonster()) ||
+                        (mats < 5 && target.IsMonster());
 
-                if (target != null)
-                {
-                    AI.SelectCard(target);
-                    DecisionTracer.TraceActivate("ExpurrelyNoir", $"Surplus spin (Mats: {mats}) targeting {target.Name}");
-                    return true;
+                    if (shouldSpin)
+                    {
+                        AI.SelectCard(target);
+                        DecisionTracer.TraceActivate("ExpurrelyNoir", $"Our Turn spin on {target.Name} (Mats: {mats})");
+                        return true;
+                    }
                 }
             }
 
@@ -1113,16 +1363,19 @@ namespace WindBot.Game.AI.Decks
             if (Card.Location != CardLocation.MonsterZone) return false;
 
             // Trigger 1: When a Purrely Quick-Play Spell is activated -> Attach it from field to Plump!
-            if (ActivateDescription == Util.GetStringId(CardId.EpurrelyPlump, 1) || (Duel.LastChainPlayer == 0 && MemorySpells.Contains(Util.GetLastChainCard()?.Id ?? 0)))
+            // CRITICAL: Only check Trigger 1 during an active chain (Duel.CurrentChain.Count > 0), NEVER in IDLE!
+            if (Duel.CurrentChain.Count > 0 && (ActivateDescription == Util.GetStringId(CardId.EpurrelyPlump, 1) || (Duel.LastChainPlayer == 0 && MemorySpells.Contains(Util.GetLastChainCard()?.Id ?? 0))))
             {
                 DecisionTracer.TraceActivate("EpurrelyPlump", "Attaching activated Quick-Play Spell to Plump!");
                 return true;
             }
 
             // Effect 0: Ignition / Quick Effect to attach up to 2 Spells/Traps from GYs
-            if (ActivateDescription == Util.GetStringId(CardId.EpurrelyPlump, 0) || ActivateDescription == -1)
+            if (ActivateDescription == Util.GetStringId(CardId.EpurrelyPlump, 0) || ActivateDescription == -1 || Duel.CurrentChain.Count == 0)
             {
-                if (_plumpAttachUsed) return false;
+                // If Plump already has 5+ materials, DO NOT activate ignition effect; rank up to Expurrely Noir directly!
+                if (GetOverlayCount(Card) >= 5) return false;
+                if (_plumpAttachCount >= 3) return false;
 
                 var gySpells = Bot.Graveyard.Concat(Enemy.Graveyard)
                     .Where(c => c != null && (c.IsSpell() || c.IsTrap()))
@@ -1137,7 +1390,7 @@ namespace WindBot.Game.AI.Decks
 
                 if (gySpells.Count > 0)
                 {
-                    _plumpAttachUsed = true;
+                    _plumpAttachCount++;
                     AI.SelectCard(gySpells);
                     DecisionTracer.TraceActivate("EpurrelyPlump", $"Attaching {gySpells.Count} Spells/Traps from GY to Plump (Overlays: {GetOverlayCount(Card)})");
                     return true;
@@ -1152,14 +1405,15 @@ namespace WindBot.Game.AI.Decks
             if (Card.Location != CardLocation.MonsterZone) return false;
 
             // Trigger 1: When a Purrely Quick-Play Spell is activated -> Attach it + Set Purrely Trap from Deck!
-            if (ActivateDescription == Util.GetStringId(CardId.EpurrelyNoir, 1) || (Duel.LastChainPlayer == 0 && MemorySpells.Contains(Util.GetLastChainCard()?.Id ?? 0)))
+            // CRITICAL: Only check Trigger 1 during an active chain (Duel.CurrentChain.Count > 0), NEVER in IDLE!
+            if (Duel.CurrentChain.Count > 0 && (ActivateDescription == Util.GetStringId(CardId.EpurrelyNoir, 1) || (Duel.LastChainPlayer == 0 && MemorySpells.Contains(Util.GetLastChainCard()?.Id ?? 0))))
             {
                 DecisionTracer.TraceActivate("EpurrelyNoir", "Attaching activated Quick-Play + Setting Purrelyeap from Deck!");
                 return true;
             }
 
             // Effect 0: Discard 1 to bounce 1-2 opponent cards
-            if (ActivateDescription == Util.GetStringId(CardId.EpurrelyNoir, 0) || ActivateDescription == -1)
+            if (ActivateDescription == Util.GetStringId(CardId.EpurrelyNoir, 0) || ActivateDescription == -1 || Duel.CurrentChain.Count == 0)
             {
                 if (_noirBounceUsed) return false;
                 if (Enemy.GetMonsterCount() == 0 && Enemy.GetSpellCount() == 0) return false;
@@ -1191,7 +1445,8 @@ namespace WindBot.Game.AI.Decks
             if (Card.Location != CardLocation.MonsterZone) return false;
 
             // Trigger 1: Attach activated Quick-Play + change battle position
-            if (ActivateDescription == Util.GetStringId(CardId.EpurrelyBeauty, 1) || (Duel.LastChainPlayer == 0 && MemorySpells.Contains(Util.GetLastChainCard()?.Id ?? 0)))
+            // CRITICAL: Only check Trigger 1 during an active chain (Duel.CurrentChain.Count > 0), NEVER in IDLE!
+            if (Duel.CurrentChain.Count > 0 && (ActivateDescription == Util.GetStringId(CardId.EpurrelyBeauty, 1) || (Duel.LastChainPlayer == 0 && MemorySpells.Contains(Util.GetLastChainCard()?.Id ?? 0))))
             {
                 var oppAtk = Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsAttack());
                 if (oppAtk != null) AI.SelectCard(oppAtk);
@@ -1268,8 +1523,6 @@ namespace WindBot.Game.AI.Decks
             // Trap on field activation (Description 0)
             if (Card.Location == CardLocation.SpellZone)
             {
-                if (Duel.Player == 0 && Duel.Phase != DuelPhase.End) return false;
-
                 var rank2Xyz = Bot.GetMonsters()
                     .Where(c => c != null && c.IsFaceup() && c.Rank == 2 && PurrelyXyz.Contains(c.Id))
                     .OrderByDescending(c => GetOverlayCount(c))
@@ -1279,12 +1532,52 @@ namespace WindBot.Game.AI.Decks
                 {
                     int mats = GetOverlayCount(rank2Xyz);
 
-                    // CRITICAL RANK-UP CONDITIONS:
-                    // 1. rank2 has >= 4 materials (so Noir will have >= 5 materials and FULL TOWER IMMUNITY!)
-                    // 2. OR our rank2 is being targeted by opponent's removal card (chain dodge!)
-                    bool hasTowerMats = (mats >= 4);
-                    bool isTargetedByEnemy = Duel.LastChainPlayer == 1 && Util.GetLastChainCard()?.Controller == 1;
-                    bool shouldRankUp = hasTowerMats || isTargetedByEnemy;
+                    // OUR TURN (Duel.Player == 0):
+                    if (Duel.Player == 0)
+                    {
+                        // In Battle Phase: if our rank 2 has attacked or can't beat enemy, rank up into Noir to attack again!
+                        if (Duel.Phase == DuelPhase.Battle)
+                        {
+                            _purrelyeapUsed = true;
+                            AI.SelectCard(rank2Xyz);
+                            DecisionTracer.TraceActivate("Purrelyeap", $"Battle Phase ranking up {rank2Xyz.Name} into Noir for game!");
+                            return true;
+                        }
+                        if (Duel.Phase == DuelPhase.End)
+                        {
+                            _purrelyeapUsed = true;
+                            AI.SelectCard(rank2Xyz);
+                            DecisionTracer.TraceActivate("Purrelyeap", $"End Phase ranking up {rank2Xyz.Name} into Noir before turn pass");
+                            return true;
+                        }
+                        return false;
+                    }
+
+                    // OPPONENT'S TURN (Duel.Player == 1):
+                    // 1. Chained to backrow removal or targeting danger -> CHAIN IMMEDIATELY!
+                    bool isChainedToDanger = false;
+                    if (Duel.LastChainPlayer == 1)
+                    {
+                        var lastCard = Util.GetLastChainCard();
+                        if (lastCard != null)
+                        {
+                            if (lastCard.IsCode(2314238, 18144507, 53582587, 43898403, 73580471, 98338152, 12580477, 47222536) ||
+                                (Duel.ChainTargets != null && (Duel.ChainTargets.Contains(Card) || Duel.ChainTargets.Contains(rank2Xyz))) ||
+                                (Duel.LastChainTargets != null && (Duel.LastChainTargets.Contains(Card) || Duel.LastChainTargets.Contains(rank2Xyz))))
+                            {
+                                isChainedToDanger = true;
+                            }
+                        }
+                    }
+
+                    // On Opponent's turn: Rank up immediately if chained to danger, or in battle phase, or opponent controls any monster, or opponent activated anything, or end phase!
+                    // Rank 2 monsters on opponent's turn have zero protection. Turning them into a 2800 DEF Expurrely Noir with Quick spin is strictly optimal!
+                    bool shouldRankUp = isChainedToDanger ||
+                                        (Duel.Phase == DuelPhase.Battle) ||
+                                        (Duel.Phase == DuelPhase.End) ||
+                                        (Enemy.GetMonsterCount() > 0) ||
+                                        (Duel.LastChainPlayer == 1) ||
+                                        (Duel.CurrentChain.Count > 0);
 
                     if (shouldRankUp)
                     {
@@ -1313,12 +1606,6 @@ namespace WindBot.Game.AI.Decks
 
         private bool PurrelyeapSetCondition()
         {
-            // If we have Purrely Happy Memory in hand and no cards on field: set trap first so Happy Memory has a target!
-            if (Bot.GetMonsterCount() == 0 && Bot.GetSpellCount() == 0 && Bot.Hand.Any(h => h.IsCode(CardId.PurrelyHappyMemory)))
-            {
-                return true;
-            }
-            if (!Util.IsTurn1OrMain2()) return false;
             return true;
         }
 
@@ -1379,24 +1666,109 @@ namespace WindBot.Game.AI.Decks
 
         private bool CustomMonsterRepos()
         {
-            if (Card.IsCode(CardId.ExpurrelyNoir))
+            // In Main 2: Switch lower-ATK monsters to Defense for safety ONLY if DEF > ATK
+            if (Duel.Phase == DuelPhase.Main2)
             {
-                // If Expurrely Noir has < 3000 ATK and is in Attack position -> switch to Defense (2800+ DEF)
-                if (Card.IsAttack() && Card.Attack < 3000 && !CanDealLethal())
-                    return true;
-                // If in Defense and has >= 3000 ATK and we can attack -> switch to Attack
-                if (Card.IsDefense() && Card.Attack >= 3000 && Duel.Player == 0 && Duel.Phase == DuelPhase.Main1)
-                    return true;
+                if (Card.IsAttack() && Card.Defense > Card.Attack) return true;
                 return false;
             }
 
-            if (Card.IsCode(CardId.EpurrelyPlump, CardId.EpurrelyNoir))
+            // In Main 1 on our turn: We want our beaters in Attack mode!
+            if (Duel.Phase == DuelPhase.Main1 && Duel.Player == 0 && Duel.Turn > 1)
             {
-                if (Card.IsAttack()) return true; // Switch to Defense
+                var strongestEnemy = Enemy.GetMonsters()
+                    .Where(c => c != null && c.IsFaceup())
+                    .OrderByDescending(c => c.Attack)
+                    .FirstOrDefault();
+
+                if (Card.IsDefense())
+                {
+                    // If we can deal lethal, always switch to attack!
+                    if (CanDealLethal()) return true;
+
+                    // Small baby monsters (Purrely / Purrelyly / handtraps) stay in DEF for safety
+                    if (Card.IsCode(CardId.Purrely, CardId.Purrelyly) || Card.Attack < 1000)
+                    {
+                        return false;
+                    }
+
+                    // For Expurrely Noir and all Xyz/Boss beaters:
+                    // If opponent has no face-up monsters, SWITCH TO ATTACK to deal direct damage!
+                    if (strongestEnemy == null && Card.Attack > 0)
+                    {
+                        return true;
+                    }
+
+                    // If our monster can destroy the opponent's strongest monster in battle, SWITCH TO ATTACK!
+                    if (strongestEnemy != null && Card.Attack > strongestEnemy.Attack)
+                    {
+                        return true;
+                    }
+
+                    // Expurrely Noir with 5+ materials is unaffected by effects; if safe, attack!
+                    if (Card.IsCode(CardId.ExpurrelyNoir) && (strongestEnemy == null || Card.Attack >= strongestEnemy.Attack))
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+                else if (Card.IsAttack())
+                {
+                    // Small monsters (Purrely / Purrelyly with 100-300 ATK) should NOT be in Attack mode
+                    if ((Card.IsCode(CardId.Purrely, CardId.Purrelyly) || Card.Attack < 1000) && !CanDealLethal())
+                    {
+                        return true; // Switch small babies to Defense
+                    }
+
+                    // Only switch to DEF if opponent has a stronger monster and our DEF is higher to shield LP
+                    if (strongestEnemy != null && Card.Attack < strongestEnemy.Attack && Card.Defense > Card.Attack)
+                    {
+                        return true;
+                    }
+                }
                 return false;
             }
 
             return DefaultMonsterRepos();
+        }
+
+        public override ClientCard OnSelectAttacker(IList<ClientCard> attackers, IList<ClientCard> defenders)
+        {
+            // CRITICAL: Never attack Mekk-Knight Crusadia Avramax (21887175) with Special Summoned monsters!
+            // Avramax gains ATK equal to the opponent's monster during damage calculation.
+            var hasAvramax = defenders.Any(d => d != null && d.IsCode(21887175));
+            if (hasAvramax)
+            {
+                var nonAvramaxDefenders = defenders.Where(d => d != null && !d.IsCode(21887175)).ToList();
+                if (nonAvramaxDefenders.Count == 0) return null;
+                defenders = nonAvramaxDefenders;
+            }
+
+            // Filter out 0-500 ATK baby monsters (Purrely, Purrelyly) from suiciding into enemy monsters
+            var effectiveAttackers = attackers.Where(c => {
+                if (c == null) return false;
+                if (c.Attack <= 500 && defenders.Count > 0) return false;
+                // Noir shouldn't attack only if ALL defenders are stronger (cannot beat over any)
+                if (c.IsCode(CardId.ExpurrelyNoir) && defenders.Count > 0 && defenders.All(d => d != null && d.IsFaceup() && (d.IsAttack() ? d.Attack >= c.Attack : d.Defense >= c.Attack))) return false;
+                return true;
+            }).ToList();
+
+            ClientCard selected = null;
+            if (effectiveAttackers.Count > 0)
+            {
+                selected = base.OnSelectAttacker(effectiveAttackers, defenders);
+            }
+            else if (defenders.Count == 0)
+            {
+                selected = base.OnSelectAttacker(attackers, defenders);
+            }
+
+            if (selected != null && selected.HasType(CardType.Xyz))
+            {
+                _xyzBattledThisTurn = true;
+            }
+            return selected;
         }
 
         // ============================================================
@@ -1408,7 +1780,11 @@ namespace WindBot.Game.AI.Decks
             if (card != null)
             {
                 // Always activate Purrelyly search on summon
-                if (card.IsCode(CardId.Purrelyly)) return true;
+                if (card.IsCode(CardId.Purrelyly))
+                {
+                    _purrelylySearchUsed = true;
+                    return true;
+                }
                 // Always activate Purrely excavation on summon
                 if (card.IsCode(CardId.Purrely)) return true;
                 // Always activate Plump attach trigger when Quick-Play activated
@@ -1430,9 +1806,10 @@ namespace WindBot.Game.AI.Decks
         public override bool OnSelectYesNo(long desc)
         {
             // Plump optional banish: "Banish 1 monster on the field until the End Phase?"
+            // CRITICAL: NEVER banish! Detaching or risking Plump destroys our 5-mat Noir win con!
             if (desc == Util.GetStringId(CardId.EpurrelyPlump, 2))
             {
-                return Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsShouldNotBeTarget());
+                return false;
             }
 
             return true;
@@ -1445,45 +1822,100 @@ namespace WindBot.Game.AI.Decks
 
         public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
         {
-            // If selecting Rank 2 for Expurrely Noir Xyz rank-up:
-            if (cards.Any(c => c != null && c.Rank == 2 && GetOverlayCount(c) >= 5))
+            // ONLY select a Rank 2 on FIELD if explicitly resolving Purrelyeap OR performing an Xyz overlay!
+            if (min == 1 && (hint == 513 || Util.GetLastChainCard()?.Id == CardId.Purrelyeap) &&
+                cards.Any(c => c != null && c.Location == CardLocation.MonsterZone && c.Controller == 0 && c.Rank == 2))
             {
-                var bestRank2 = cards.Where(c => c != null && c.Rank == 2).OrderByDescending(c => GetOverlayCount(c)).FirstOrDefault();
+                var bestRank2 = cards.Where(c => c != null && c.Location == CardLocation.MonsterZone && c.Controller == 0 && c.Rank == 2)
+                                     .OrderByDescending(c => GetOverlayCount(c))
+                                     .FirstOrDefault();
                 if (bestRank2 != null)
                 {
                     return new[] { bestRank2 };
                 }
             }
 
+            // CRITICAL: NEVER select Purrely Xyz monsters or Expurrely Noir as Link/Fusion material or Tribute!
+            if (hint == 0 || hint == 500 || hint == 504 || hint == 505)
+            {
+                var nonXyz = cards.Where(c => c != null && !PurrelyXyz.Contains(c.Id) && !c.IsCode(CardId.ExpurrelyNoir)).ToList();
+                if (nonXyz.Count >= min)
+                {
+                    cards = nonXyz;
+                }
+            }
+
             // Hint 503: Banish (e.g. Plump optional banish trigger)
             if (hint == 503)
             {
-                var oppMonsters = cards.Where(c => c != null && c.Controller == 1 && c.IsFaceup()).OrderByDescending(c => c.Attack).ToList();
+                var oppMonsters = cards.Where(c => c != null && (c.Controller == 1 || Enemy.GetMonsters().Contains(c)) && c.IsFaceup() && !c.IsShouldNotBeTarget())
+                                       .OrderByDescending(c => c.Attack)
+                                       .ToList();
                 if (oppMonsters.Count > 0)
                 {
-                    return Util.CheckSelectCount(oppMonsters, cards, min, max);
+                    return oppMonsters.Take(max).ToList();
                 }
                 if (cancelable) return null;
-                var safeTargets = cards.Where(c => c != null && !c.IsCode(CardId.EpurrelyPlump, CardId.ExpurrelyNoir)).OrderBy(c => c.Attack).ToList();
-                if (safeTargets.Count > 0) return Util.CheckSelectCount(safeTargets, cards, min, max);
+                // PROTECT PURRELY XYZ: NEVER BANISH OUR OWN XYZ MONSTERS!
+                var safeTargets = cards.Where(c => c != null && !PurrelyXyz.Contains(c.Id) && c.Id != CardId.ExpurrelyNoir)
+                                       .OrderBy(c => c.Attack)
+                                       .ToList();
+                if (safeTargets.Count > 0) return safeTargets.Take(max).ToList();
             }
 
             // Hint 502 / 507: Destruction / Removal Target / Spin to Deck Target
             if (hint == 502 || hint == 507)
             {
+                bool eternalSoulActive = Enemy.GetSpells().Any(c => c != null && c.IsFaceup() && c.IsCode(48680970));
                 var sorted = cards.OrderByDescending(c => {
                     if (c == null) return -999;
-                    int score = (c.Controller == 1) ? 10000 : 0;
-                    if (c.Location == CardLocation.MonsterZone || c.Location == CardLocation.SpellZone) score += 5000;
+                    int score = 0;
+                    // Opponent cards vs our own
+                    if (c.Controller == 1) score += 20000;
+                    else score -= 20000;
+
+                    // FIELD targets have MUCH higher priority than GY targets!
+                    if (c.Location == CardLocation.MonsterZone || c.Location == CardLocation.SpellZone)
+                        score += 30000;
+                    else if (c.Location == CardLocation.Grave)
+                        score += 5000;
+
                     if (c.IsSpell() || c.IsTrap())
                     {
-                        return score + (c.IsFaceup() ? 6000 : 1000);
+                        // Eternal Soul / True Light on FIELD: Board wipe when spun! Absolute #1 priority!
+                        if (c.IsCode(48680970, 48770333))
+                        {
+                            if (c.Location == CardLocation.SpellZone && c.IsFaceup())
+                                return score + 50000;
+                            // If in GY, low priority (do not help opponent recycle it!)
+                            return score - 10000;
+                        }
+                        if (c.Location == CardLocation.SpellZone)
+                        {
+                            if (c.IsFaceup()) score += 10000; // Continuous/Field/Equip spells
+                            else score += 3000; // Set backrow
+                        }
+                        return score;
                     }
                     if (c.IsMonster())
                     {
-                        if (c.IsFaceup() && !c.IsDisabled()) score += 5000;
-                        if (c.HasType(CardType.Fusion) || c.HasType(CardType.Synchro) || c.HasType(CardType.Xyz) || c.HasType(CardType.Link)) score += 3000;
-                        return score + c.Attack;
+                        // Dark Magician on field under Eternal Soul is immune to card effects! NEVER TARGET!
+                        if (eternalSoulActive && c.IsCode(46986414) && c.Location == CardLocation.MonsterZone)
+                            return -50000;
+
+                        if (c.Location == CardLocation.MonsterZone)
+                        {
+                            if (c.IsFaceup() && !c.IsDisabled()) score += 15000;
+                            if (c.HasType(CardType.Fusion) || c.HasType(CardType.Synchro) || c.HasType(CardType.Xyz) || c.HasType(CardType.Link))
+                                score += 8000;
+                            return score + c.Attack;
+                        }
+                        else if (c.Location == CardLocation.Grave)
+                        {
+                            // In GY: prioritize key GY recurrers (ABC pieces, Dark Magician, Blue-Eyes)
+                            if (c.IsCode(46986414, 89631139, 99785935, 65877963, 77411244)) score += 5000;
+                            return score + c.Attack / 2;
+                        }
                     }
                     return score;
                 }).ToList();
@@ -1493,17 +1925,56 @@ namespace WindBot.Game.AI.Decks
             // Hint 506: Search / Add to hand / Reveal selection
             if (hint == 506)
             {
+                // My Friend Purrely 3-card reveal:
+                if (min == 3 && max == 3)
+                {
+                    // 100% guarantee a Quick-Play Memory spell by revealing ONLY Quick-Play Memory spells!
+                    var deliciousCopies = cards.Where(c => c != null && c.Id == CardId.PurrelyDeliciousMemory).ToList();
+                    if (deliciousCopies.Count >= 3)
+                    {
+                        return deliciousCopies.Take(3).ToList();
+                    }
+
+                    var memSpells = cards.Where(c => c != null && MemorySpells.Contains(c.Id))
+                        .OrderByDescending(c => {
+                            if (c.Id == CardId.PurrelyDeliciousMemory) return 100;
+                            if (c.Id == CardId.PurrelySleepyMemory) return 90;
+                            if (c.Id == CardId.PurrelyPrettyMemory) return 80;
+                            if (c.Id == CardId.PurrelyHappyMemory) return 70;
+                            return 10;
+                        }).ToList();
+
+                    if (memSpells.Count >= 3)
+                    {
+                        return memSpells.Take(3).ToList();
+                    }
+                }
+
+                bool hasMonsterStarter = Bot.GetMonsterCount() > 0 || Bot.Hand.Any(h => h.IsCode(CardId.Purrely, CardId.Purrelyly));
                 var sorted = cards.OrderByDescending(c => {
                     if (c == null) return -999;
-                    if (c.Id == CardId.MyFriendPurrely && !Bot.HasInSpellZone(CardId.MyFriendPurrely)) return 100;
-                    if (c.Id == CardId.PurrelyDeliciousMemory && !Bot.HasInHand(CardId.PurrelyDeliciousMemory)) return 90;
-                    if (c.Id == CardId.PurrelySleepyMemory) return 80;
-                    if (c.Id == CardId.StrayPurrelyStreet && !Bot.HasInSpellZone(CardId.StrayPurrelyStreet)) return 70;
-                    if (c.Id == CardId.Purrelyly && !Bot.HasInHand(CardId.Purrelyly)) return 65;
-                    if (c.Id == CardId.Purrelyeap && !Bot.HasInSpellZone(CardId.Purrelyeap) && !Bot.HasInHand(CardId.Purrelyeap)) return 60;
-                    if (c.Id == CardId.Purrely) return 50;
-                    if (c.Id == CardId.PurrelyPrettyMemory) return 40;
-                    if (c.Id == CardId.PurrelyHappyMemory) return 30;
+                    // If we have NO monsters on field or in hand: WE MUST SEARCH A MONSTER STARTER FIRST!
+                    if (!hasMonsterStarter)
+                    {
+                        if (c.Id == CardId.Purrelyly) return 1000;
+                        if (c.Id == CardId.Purrely) return 900;
+                        if (c.Id == CardId.PurrelyDeliciousMemory) return 800;
+                        if (c.Id == CardId.PurrelySleepyMemory) return 700;
+                        if (c.Id == CardId.PurrelyPrettyMemory) return 600;
+                        if (c.Id == CardId.MyFriendPurrely) return 500;
+                        return 10;
+                    }
+
+                    // Standard search priority with starter already secured:
+                    if (c.Id == CardId.MyFriendPurrely && !Bot.HasInSpellZone(CardId.MyFriendPurrely) && !Bot.HasInHand(CardId.MyFriendPurrely)) return 100;
+                    if (c.Id == CardId.PurrelyDeliciousMemory && !Bot.HasInHand(CardId.PurrelyDeliciousMemory)) return 95;
+                    if (c.Id == CardId.Purrelyeap && !Bot.HasInSpellZone(CardId.Purrelyeap) && !Bot.HasInHand(CardId.Purrelyeap)) return 90;
+                    if (c.Id == CardId.PurrelySleepyMemory) return 85;
+                    if (c.Id == CardId.StrayPurrelyStreet && !Bot.HasInSpellZone(CardId.StrayPurrelyStreet) && !Bot.HasInHand(CardId.StrayPurrelyStreet)) return 80;
+                    if (c.Id == CardId.Purrelyly && !Bot.HasInHand(CardId.Purrelyly)) return 75;
+                    if (c.Id == CardId.Purrely) return 70;
+                    if (c.Id == CardId.PurrelyPrettyMemory) return 60;
+                    if (c.Id == CardId.PurrelyHappyMemory) return 50;
                     return 10;
                 }).ToList();
                 return sorted.Take(max).ToList();
@@ -1515,17 +1986,31 @@ namespace WindBot.Game.AI.Decks
                 var sorted = cards.OrderBy(c => {
                     if (c == null) return 999;
                     if (c.IsCode(CardId.RadiantTyphoonVision)) return 5;
+                    // Duplicates of spells
                     if (MemorySpells.Contains(c.Id) && cards.Count(h => h.Id == c.Id) > 1) return 10;
-                    if (c.IsCode(CardId.PurrelyHappyMemory)) return 15;
-                    if (c.IsCode(CardId.PurrelyPrettyMemory)) return 18;
-                    if (c.IsCode(CardId.PurrelySleepyMemory)) return 22;
-                    if (c.IsCode(CardId.PurrelyDeliciousMemory)) return 25;
-                    if (c.IsCode(CardId.StrayPurrelyStreet) && Bot.HasInSpellZone(CardId.StrayPurrelyStreet)) return 30;
-                    if (c.IsCode(CardId.MyFriendPurrely) && Bot.HasInSpellZone(CardId.MyFriendPurrely)) return 32;
+                    if (c.IsCode(CardId.StrayPurrelyStreet) && Bot.HasInSpellZone(CardId.StrayPurrelyStreet)) return 15;
+                    if (c.IsCode(CardId.MyFriendPurrely) && Bot.HasInSpellZone(CardId.MyFriendPurrely)) return 18;
+                    // Extra copies of normal summons if already used
+                    if (c.IsCode(CardId.Purrelyly) && (_normalSummonUsed || _purrelylySearchUsed)) return 20;
+                    if (c.IsCode(CardId.Purrely) && (_normalSummonUsed || _purrelyExcavateUsed)) return 22;
+                    if (c.IsCode(CardId.Purrely, CardId.Purrelyly) && cards.Count(h => c.IsCode(h.Id)) > 1) return 25;
+
+                    // Single memory spells
+                    if (c.IsCode(CardId.PurrelyHappyMemory)) return 30;
+                    if (c.IsCode(CardId.PurrelyPrettyMemory)) return 35;
+                    if (c.IsCode(CardId.PurrelySleepyMemory)) return 40;
+                    if (c.IsCode(CardId.PurrelyDeliciousMemory)) return 45;
+
+                    // Handtraps
+                    if (c.IsCode(CardId.EffectVeiler, CardId.GhostBelleAndHauntedMansion)) return 60;
+                    if (c.IsCode(CardId.AshBlossomAndJoyousSpring, CardId.MaxxC)) return 80;
+
+                    // Purrelyeap duplicates
                     if (c.IsCode(CardId.Purrelyeap) && (Bot.HasInSpellZone(CardId.Purrelyeap) || cards.Count(h => h.Id == CardId.Purrelyeap) > 1)) return 35;
-                    if (c.IsCode(CardId.Purrely, CardId.Purrelyly) && cards.Count(h => c.IsCode(h.Id)) > 1) return 40;
-                    if (c.IsCode(CardId.Purrelyeap)) return 45;
-                    if (c.IsCode(CardId.Purrely, CardId.Purrelyly)) return 50;
+
+                    // PROTECT UNIQUE PURRELYEAP AT ALL COSTS:
+                    if (c.IsCode(CardId.Purrelyeap)) return 800; // NEVER discard our only Purrelyeap!
+
                     if (IsAceCard(c)) return 900;
                     return 50;
                 }).ToList();
@@ -1546,11 +2031,10 @@ namespace WindBot.Game.AI.Decks
                     if (c.Id == CardId.EpurrelyNoir) return 900;
                     if (c.Id == CardId.EpurrelyBeauty) return 800;
                     if (c.Id == CardId.EpurrelyHappiness) return 700;
-                    // Main deck starters
-                    if (c.Id == CardId.Purrelyly && !_purrelylySearchUsed) return 100;
-                    if (c.Id == CardId.Purrely && !_purrelyExcavateUsed) return 90;
-                    if (c.Id == CardId.Purrelyly) return 80;
-                    if (c.Id == CardId.Purrely) return 70;
+                    // Main deck starters: If Purrelyly is already on field or used, ALWAYS summon non-OPT Purrely!
+                    bool purrelylyActive = _purrelylySearchUsed || _normalSummonUsed || Bot.GetMonsters().Any(m => m != null && m.IsCode(CardId.Purrelyly));
+                    if (c.Id == CardId.Purrely) return purrelylyActive ? 150 : 90;
+                    if (c.Id == CardId.Purrelyly) return purrelylyActive ? 20 : 100;
                     return 10;
                 }).ToList();
                 return sorted.Take(max).ToList();
@@ -1601,37 +2085,74 @@ namespace WindBot.Game.AI.Decks
                 return Util.CheckSelectCount(sorted, cards, min, max);
             }
 
+            // HINTMSG_ATTACKTARGET = 549 (Battle Target Selection)
+            if (hint == 549)
+            {
+                var attacker = Bot.BattlingMonster;
+                int attackerAtk = attacker?.Attack ?? 0;
+
+                // Priority #1: Monsters with combat tricks / honest effects (Apprentice Illusion Magician)
+                var combatThreat = cards.FirstOrDefault(c => c != null && c.IsFaceup() && c.Location == CardLocation.MonsterZone && c.IsCode(30603688) && c.Attack < attackerAtk);
+                if (combatThreat != null)
+                {
+                    return new[] { combatThreat };
+                }
+
+                var beatable = cards.Where(c => c != null && c.IsFaceup() && c.Location == CardLocation.MonsterZone
+                    && (c.IsAttack() ? c.Attack < attackerAtk : c.Defense < attackerAtk)).ToList();
+                if (beatable.Count >= min)
+                    return beatable.OrderByDescending(c => c.Attack).Take(max).ToList();
+
+                if (cancelable) return null; // Cancel attack replay instead of suiciding!
+
+                var weakest = cards.Where(c => c != null && c.IsFaceup() && c.Location == CardLocation.MonsterZone)
+                    .OrderBy(c => c.Attack).Take(max).ToList();
+                if (weakest.Count >= min) return weakest;
+            }
+
             return base.OnSelectCard(cards, min, max, hint, cancelable);
         }
 
         public override CardPosition OnSelectPosition(int cardId, IList<CardPosition> positions)
         {
-            // Defense Position Monsters (High DEF / Wall / Non-attacker):
-            // 1. Expurrely Noir (1100 ATK / 2800 DEF - Tower Wall!)
-            // 2. Epurrely Plump (200 ATK / 2100 DEF - Wall while loading materials!)
-            // 3. Epurrely Noir (1000 ATK / 1000 DEF)
-            // 4. Purrely / Purrelyly (100-200 ATK/DEF)
-            // 5. Hand traps
-            int[] defenseMonsters = {
-                CardId.ExpurrelyNoir,
-                CardId.EpurrelyPlump,
-                CardId.EpurrelyNoir,
-                CardId.Purrely,
-                CardId.Purrelyly,
-                CardId.MaxxC,
-                CardId.EffectVeiler,
-                CardId.GhostBelleAndHauntedMansion,
-                CardId.DrollAndLockBird,
-                CardId.ArtifactLancea
-            };
-
-            if (defenseMonsters.Contains(cardId) && positions.Contains(CardPosition.FaceUpDefence))
+            if (positions.Contains(CardPosition.FaceUpAttack))
             {
-                if (cardId == CardId.ExpurrelyNoir && CanDealLethal())
+                // On our turn (Turn > 1, Main 1), offensive extra deck summons enter in Attack:
+                if (Duel.Player == 0 && Duel.Turn > 1 && Duel.Phase == DuelPhase.Main1)
                 {
-                    return CardPosition.FaceUpAttack;
+                    if (cardId == CardId.ExpurrelyNoir ||
+                        cardId == CardId.DivineArsenalAAZEUSSkyThunder ||
+                        cardId == CardId.SuperStarslayerTYPHONSkyCrisis || cardId == CardId.DownerdMagician ||
+                        cardId == CardId.EpurrelyHappiness || cardId == CardId.EpurrelyBeauty)
+                    {
+                        return CardPosition.FaceUpAttack;
+                    }
                 }
-                return CardPosition.FaceUpDefence;
+            }
+
+            // Defense Position for safety:
+            if (positions.Contains(CardPosition.FaceUpDefence))
+            {
+                // Expurrely Noir: On Turn 1 (or outside our Main 1) enter in Defense for 2800+ DEF fortress!
+                if (cardId == CardId.ExpurrelyNoir)
+                {
+                    if (Duel.Turn == 1 || Duel.Phase != DuelPhase.Main1)
+                        return CardPosition.FaceUpDefence;
+                }
+
+                int[] defenseMonsters = {
+                    CardId.EpurrelyPlump,
+                    CardId.EpurrelyNoir,
+                    CardId.Purrely,
+                    CardId.Purrelyly,
+                    CardId.MaxxC,
+                    CardId.EffectVeiler,
+                    CardId.GhostBelleAndHauntedMansion,
+                    CardId.DrollAndLockBird,
+                    CardId.ArtifactLancea
+                };
+                if (defenseMonsters.Contains(cardId))
+                    return CardPosition.FaceUpDefence;
             }
 
             return base.OnSelectPosition(cardId, positions);
