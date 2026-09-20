@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using YGOSharp.OCGWrapper.Enums;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,7 +31,7 @@ namespace WindBot.Game.AI.Decks
             public const int DrollAndLockBird = 94145021;
             public const int EffectVeiler = 97268402;
             public const int FidraulisHarmonia = 70088809;
-            public const int FydraulisHarmonia = 70088809; // Alias for consistency
+            public const int FydraulisHarmonia = 70088809;
             public const int ElfnotesWelcomeHome = 64491754;
             public const int TheFallenAndTheVirtuous = 30271097;
             public const int CalledByTheGrave = 24224830;
@@ -40,7 +40,6 @@ namespace WindBot.Game.AI.Decks
             // Extra Deck
             public const int GoldenCloudBeastMalong = 93125329;
             public const int JunoraThePowerPatronOfTuning = 5914858;
-            public const int InfernalStrikeFighter = 66122213; // Alias for the card ID
             public const int BlackRoseDragon = 73580471;
             public const int ElfnoteSeraphimStrelitzia = 42302563;
             public const int PSYFramelordOmega = 74586817;
@@ -53,6 +52,10 @@ namespace WindBot.Game.AI.Decks
             public const int TheDragonThatDevoursTheDogma = 76666602;
             public const int SprindTheIrondashDragon = 1906812;
             public const int MirrorjadeTheIcebladeDragon = 44146295;
+
+            // Generic / Engine Tech
+            public const int TripleTacticsTalent = 25311006;
+            public const int LightningStorm = 14532163;
 
             // Side Deck
             public const int BystialMagnamhut = 33854624;
@@ -68,7 +71,7 @@ namespace WindBot.Game.AI.Decks
             public const int AzureEyesSilverDragon = 40908371;
             public const int Number38HopeHarbinger = 63767246;
 
-            // Opponent Cards (for lock checks)
+            // Opponent Cards (for lock / threat checks)
             public const int DarkMagicianTheDragonKnight = 41721210;
             public const int EternalSoul = 48680970;
             public const int AlternativeWhiteDragon = 38517737;
@@ -97,7 +100,9 @@ namespace WindBot.Game.AI.Decks
             CardId.RindbrummTheStrikingDragon,
             CardId.ElfnoteSeraphimStrelitzia,
             CardId.EcclesiaAndTheDarkDragon,
-            CardId.JunoraThePowerPatronOfTuning
+            CardId.JunoraThePowerPatronOfTuning,
+            CardId.TheDragonThatDevoursTheDogma,
+            CardId.SprindTheIrondashDragon
         };
 
         // Once-per-turn & state flags
@@ -109,7 +114,7 @@ namespace WindBot.Game.AI.Decks
 
         public override bool OnSelectHand()
         {
-            // Elfnote Synchro control โ€” prefer going first to set up Baronne + disruption
+            // Elfnote Synchro control — prefer going first to set up Baronne + disruption board
             return true;
         }
 
@@ -122,12 +127,6 @@ namespace WindBot.Game.AI.Decks
             _harmoniaUsed = false;
             _fallenVirtuousUsed = false;
             _number38NegateUsed = false;
-
-            // โ”€โ”€ Going-Second BreakBoard: prioritize disruption over combo โ”€โ”€
-            if (ShouldGoBreakBoard)
-            {
-                // Reset board-breaking resources for aggressive turn-2 plays
-            }
         }
 
         public override void OnChaining(int player, ClientCard card)
@@ -139,9 +138,6 @@ namespace WindBot.Game.AI.Decks
             }
         }
 
-        // FieldGuard inherited: IsSpecialSummonBlocked, CanDealLethal, CanOTK,
-        // ShouldSkipCombo, NeedsBoardPresence, IsInGrindGame, EnemyHasKnownNegate โ’ inherited
-
         protected override bool IsBoardStrongEnough()
         {
             int disruptionCount = 0;
@@ -152,19 +148,36 @@ namespace WindBot.Game.AI.Decks
             if (Bot.HasInMonstersZone(CardId.RindbrummTheStrikingDragon)) disruptionCount++;
             if (Bot.HasInMonstersZone(CardId.GoldenCloudBeastMalong)) disruptionCount++;
             if (Bot.HasInMonstersZone(CardId.ElfnoteSeraphimStrelitzia)) disruptionCount++;
+            if (Bot.HasInMonstersZone(CardId.JunoraThePowerPatronOfTuning)) disruptionCount += 2;
             if (Bot.GetSpells().Any(c => c != null && c.IsFacedown() && c.IsCode(CardId.DimensionalBarrier))) disruptionCount += 2;
             if (Bot.GetSpells().Any(c => c != null && c.IsFacedown() && c.IsCode(CardId.SolemnJudgment))) disruptionCount += 2;
             if (Bot.GetSpells().Any(c => c != null && c.IsFacedown() && c.IsCode(CardId.SolemnWarning))) disruptionCount += 2;
             if (Bot.GetSpells().Any(c => c != null && c.IsFacedown() && c.IsCode(CardId.ElfnotesRhapsodiaOfMadness))) disruptionCount++;
             if (Bot.HasInHand(CardId.AshBlossom) || Bot.HasInHand(CardId.EffectVeiler) || Bot.HasInHand(CardId.MaxxC)) disruptionCount++;
+            if (Bot.HasInHand(CardId.FidraulisHarmonia)) disruptionCount++;
             return disruptionCount >= 3;
+        }
+
+        private bool HasLethalOnBoard()
+        {
+            if (Duel.Phase != DuelPhase.Main1 && Duel.Phase != DuelPhase.Main2) return false;
+            if (Enemy.GetMonsterCount() > 0)
+            {
+                int enemyDefAtk = Enemy.GetMonsters().Sum(m => m.IsAttack() ? m.Attack : m.Defense);
+                int botAtk = Bot.GetMonsters().Where(m => m.IsFaceup() && m.IsAttack()).Sum(m => m.Attack);
+                return (botAtk - enemyDefAtk) >= Enemy.LifePoints;
+            }
+            int totalAtk = Bot.GetMonsters().Where(m => m.IsFaceup() && m.IsAttack()).Sum(m => m.Attack);
+            return totalAtk >= Enemy.LifePoints;
         }
 
         protected override bool ShouldStopExtending()
         {
-            if (IsBoardStrongEnough())
-                return base.ShouldStopExtending();
-            return false;
+            if (HasLethalOnBoard())
+                return true;
+            if (IsBoardStrongEnough() && !IsInGrindGame())
+                return true;
+            return base.ShouldStopExtending();
         }
 
         private bool OpponentHasThreateningMonster()
@@ -187,44 +200,54 @@ namespace WindBot.Game.AI.Decks
                 CardId.MirrorjadeTheIcebladeDragon, CardId.DespianLuluwalilith,
                 CardId.AlbionTheBrandedDragon, CardId.RindbrummTheStrikingDragon,
                 CardId.ElfnoteSeraphimStrelitzia, CardId.EcclesiaAndTheDarkDragon,
-                CardId.JunoraThePowerPatronOfTuning
+                CardId.JunoraThePowerPatronOfTuning, CardId.TheDragonThatDevoursTheDogma,
+                CardId.SprindTheIrondashDragon
             );
 
-            // โ”€โ”€ Combo Router: Sequencing โ”€โ”€
+            // ── Combo Router: Sequencing ──
             ComboRouter.RegisterLine(new ComboRouter.ComboLine {
-                Name = "Regina-Baronne-Play",
+                Name = "Regina-PowerPatron-Junora",
                 RequiredCards = new List<int> { CardId.ElfnoteRegina },
                 Steps = new List<ComboRouter.ComboStep> {
                     new() { CardId = CardId.ElfnoteRegina, ActionType = ExecutorType.Activate, Description = "Activate Regina from hand" },
-                    new() { CardId = CardId.ElfnoteRegina, ActionType = ExecutorType.Activate, Description = "Activate Regina center zone effect" },
-                    new() { CardId = CardId.ElfnotePowerPatron, ActionType = ExecutorType.Activate, Description = "Activate Power Patron level mod + synchro" },
-                    new() { CardId = CardId.BaronneDeFleur, ActionType = ExecutorType.SpSummon, Description = "Synchro Summon Baronne" }
+                    new() { CardId = CardId.ElfnoteRegina, ActionType = ExecutorType.Activate, Description = "Regina center effect SS Power Patron from Deck" },
+                    new() { CardId = CardId.ElfnotePowerPatron, ActionType = ExecutorType.Activate, Description = "Power Patron level boost & Synchro" },
+                    new() { CardId = CardId.JunoraThePowerPatronOfTuning, ActionType = ExecutorType.SpSummon, Description = "Synchro Summon Junora" }
+                },
+                EndBoardScore = 90
+            });
+
+            ComboRouter.RegisterLine(new ComboRouter.ComboLine {
+                Name = "Lucina-Search-Regina",
+                RequiredCards = new List<int> { CardId.ElfnoteLucina },
+                Steps = new List<ComboRouter.ComboStep> {
+                    new() { CardId = CardId.ElfnoteLucina, ActionType = ExecutorType.Summon, Description = "Normal Summon Lucina" },
+                    new() { CardId = CardId.ElfnoteLucina, ActionType = ExecutorType.Activate, Description = "Search Regina" },
+                    new() { CardId = CardId.ElfnoteRegina, ActionType = ExecutorType.Activate, Description = "Activate Regina from hand" },
+                    new() { CardId = CardId.ElfnoteRegina, ActionType = ExecutorType.Activate, Description = "Regina center effect SS Power Patron" }
                 },
                 EndBoardScore = 85
             });
 
             ComboRouter.RegisterLine(new ComboRouter.ComboLine {
-                Name = "Lucina-To-Baronne",
-                RequiredCards = new List<int> { CardId.ElfnoteLucina },
+                Name = "Medius-To-Junora",
+                RequiredCards = new List<int> { CardId.MediusThePure },
                 Steps = new List<ComboRouter.ComboStep> {
-                    new() { CardId = CardId.ElfnoteLucina, ActionType = ExecutorType.Summon, Description = "Normal Summon Lucina" },
-                    new() { CardId = CardId.ElfnoteLucina, ActionType = ExecutorType.Activate, Description = "Activate Lucina search" },
-                    new() { CardId = CardId.ElfnoteRegina, ActionType = ExecutorType.Activate, Description = "Activate Regina from hand" },
-                    new() { CardId = CardId.ElfnoteRegina, ActionType = ExecutorType.Activate, Description = "Activate Regina center zone effect" },
-                    new() { CardId = CardId.ElfnotePowerPatron, ActionType = ExecutorType.Activate, Description = "Activate Power Patron level mod + synchro" },
-                    new() { CardId = CardId.BaronneDeFleur, ActionType = ExecutorType.SpSummon, Description = "Synchro Summon Baronne" }
+                    new() { CardId = CardId.MediusThePure, ActionType = ExecutorType.Summon, Description = "Normal Summon Medius" },
+                    new() { CardId = CardId.MediusThePure, ActionType = ExecutorType.Activate, Description = "Medius SS Power Patron from Deck" },
+                    new() { CardId = CardId.ElfnotePowerPatron, ActionType = ExecutorType.Activate, Description = "Power Patron modulate level" }
                 },
                 EndBoardScore = 80
             });
 
-            // โ”€โ”€ Bait Planner โ”€โ”€
+            // ── Bait Planner ──
             BaitPlanner.RegisterComboStarters(CardId.ElfnoteRegina, CardId.ElfnotePowerPatron);
             BaitPlanner.RegisterBaitCards(CardId.ElfnoteLucina, CardId.ElfnoteTinia, CardId.ElfnoteFortuna, CardId.MediusThePure);
 
-            // โ”€โ”€ Chain Advisor โ”€โ”€
+            // ── Chain Advisor ──
             ChainAdvisor.RegisterHighValueTargets(CardId.ElfnoteRegina, CardId.ElfnotePowerPatron);
 
-            // Hand Traps & Reactive Hand Effects
+            // ── 1. Hand Traps & Reactive Interruptions ──
             AddExecutor(ExecutorType.Activate, CardId.MaxxC, () => SmartHandTrapChain() && DefaultMaxxC());
             AddExecutor(ExecutorType.Activate, CardId.MulcharmyFuwalos, MulcharmyEffect);
             AddExecutor(ExecutorType.Activate, CardId.MulcharmyPurulia, MulcharmyEffect);
@@ -234,57 +257,64 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.Activate, CardId.EffectVeiler, () => SmartHandTrapChain() && DefaultEffectVeiler());
             AddExecutor(ExecutorType.Activate, CardId.DrollAndLockBird, DrollAndLockBirdEffect);
             AddExecutor(ExecutorType.Activate, CardId.CalledByTheGrave, CalledByTheGraveEffect);
-
-            // Fydraulis Harmonia (activated from hand during opponent's turn as a disruption)
             AddExecutor(ExecutorType.Activate, CardId.FidraulisHarmonia, FidraulisHarmoniaEffect);
 
-            // Boss Monster Quick Effects
+            // ── 2. Boss Monster Quick Effects & Disruption ──
             AddExecutor(ExecutorType.Activate, CardId.BaronneDeFleur, BaronneDeFleurEffect);
             AddExecutor(ExecutorType.Activate, CardId.MirrorjadeTheIcebladeDragon, MirrorjadeTheIcebladeDragonEffect);
             AddExecutor(ExecutorType.Activate, CardId.RindbrummTheStrikingDragon, RindbrummTheStrikingDragonEffect);
             AddExecutor(ExecutorType.Activate, CardId.PsychicEndPunisher, PsychicEndPunisherEffect);
+            AddExecutor(ExecutorType.Activate, CardId.JunoraThePowerPatronOfTuning, JunoraEffect);
+            AddExecutor(ExecutorType.Activate, CardId.DespianLuluwalilith, DespianLuluwalilithEffect);
+            AddExecutor(ExecutorType.Activate, CardId.GoldenCloudBeastMalong, GoldenCloudBeastMalongEffect);
+            AddExecutor(ExecutorType.Activate, CardId.EcclesiaAndTheDarkDragon, EcclesiaAndTheDarkDragonEffect);
+            AddExecutor(ExecutorType.Activate, CardId.PSYFramelordOmega, PSYFramelordOmegaEffect);
+            AddExecutor(ExecutorType.Activate, CardId.ElfnoteSeraphimStrelitzia, ElfnoteSeraphimStrelitziaEffect);
+            AddExecutor(ExecutorType.Activate, CardId.SprindTheIrondashDragon, SprindEffect);
+            AddExecutor(ExecutorType.Activate, CardId.TheDragonThatDevoursTheDogma, TheDragonThatDevoursTheDogmaEffect);
+            AddExecutor(ExecutorType.Activate, CardId.AlbionTheBrandedDragon, AlbionTheBrandedDragonEffect);
 
-            // Spells (Board Breakers)
+            // ── 3. Spells (Board Breakers) ──
             AddExecutor(ExecutorType.Activate, CardId.HarpiesFeatherDuster, DefaultHarpiesFeatherDusterFirst);
             AddExecutor(ExecutorType.Activate, CardId.HeavyStorm, DefaultHeavyStorm);
             AddExecutor(ExecutorType.Activate, CardId.IllusionGate, IllusionGateEffect);
 
-            // Engine Spells
+            // ── 4. Engine Spells ──
             AddExecutor(ExecutorType.Activate, CardId.ElfnotesWelcomeHome, ElfnotesWelcomeHomeEffect);
             AddExecutor(ExecutorType.Activate, CardId.TheFallenAndTheVirtuous, TheFallenAndTheVirtuousEffect);
 
-            // Special Summons from Hand (Chainless Summon Conditions)
+            // ── 5. Special Summons from Hand (Chainless Summon Conditions) ──
             AddExecutor(ExecutorType.SpSummon, CardId.ElfnoteLucina, ElfnoteLucinaSpSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.ElfnoteTinia, ElfnoteTiniaSpSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.ElfnoteFortuna, ElfnoteFortunaSpSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.IncredibleEcclesiaTheVirtuous, IncredibleEcclesiaTheVirtuousSpSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.FallenOfTheWhiteDragon, FallenOfTheWhiteDragonSpSummon);
 
-            // Monster Effects (Activated from hand/field)
+            // ── 6. Monster Effects (Hand / Field / GY) ──
             AddExecutor(ExecutorType.Activate, CardId.MediusThePure, MediusThePureEffect);
             AddExecutor(ExecutorType.Activate, CardId.IncredibleEcclesiaTheVirtuous, IncredibleEcclesiaTheVirtuousEffect);
             AddExecutor(ExecutorType.Activate, CardId.FallenOfAlbaz, FallenOfAlbazEffect);
             AddExecutor(ExecutorType.Activate, CardId.FallenOfTheWhiteDragon, FallenOfTheWhiteDragonFieldEffect);
-            
             AddExecutor(ExecutorType.Activate, CardId.ElfnoteLucina, ElfnoteLucinaEffect);
             AddExecutor(ExecutorType.Activate, CardId.ElfnoteTinia, ElfnoteTiniaEffect);
             AddExecutor(ExecutorType.Activate, CardId.ElfnoteFortuna, ElfnoteFortunaEffect);
             AddExecutor(ExecutorType.Activate, CardId.ElfnoteRegina, ElfnoteReginaEffect);
             AddExecutor(ExecutorType.Activate, CardId.ElfnotePowerPatron, ElfnotePowerPatronEffect);
             AddExecutor(ExecutorType.Activate, CardId.PowerPatronShadowSpiritJunordo, PowerPatronShadowSpiritJunordoEffect);
+            AddExecutor(ExecutorType.Activate, CardId.FallenOfTheWhiteDragon, FallenOfTheWhiteDragonHandEffect);
 
-            // Normal Summons
+            // ── 7. Normal Summons ──
             AddExecutor(ExecutorType.Summon, CardId.MediusThePure);
+            AddExecutor(ExecutorType.Summon, CardId.ElfnoteRegina);
             AddExecutor(ExecutorType.Summon, CardId.ElfnoteLucina);
             AddExecutor(ExecutorType.Summon, CardId.ElfnoteTinia);
             AddExecutor(ExecutorType.Summon, CardId.ElfnoteFortuna);
             AddExecutor(ExecutorType.Summon, CardId.IncredibleEcclesiaTheVirtuous);
             AddExecutor(ExecutorType.Summon, CardId.FallenOfAlbaz);
             AddExecutor(ExecutorType.Summon, CardId.ElfnotePowerPatron);
-            AddExecutor(ExecutorType.Summon, CardId.ElfnoteRegina);
             AddExecutor(ExecutorType.Summon, CardId.PowerPatronShadowSpiritJunordo);
 
-            // Extra Deck Synchro Summoning Priority
+            // ── 8. Extra Deck Synchro Summoning Priority ──
             AddExecutor(ExecutorType.SpSummon, CardId.BaronneDeFleur, BaronneSpSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.PsychicEndPunisher, PsychicEndPunisherSpSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.JunoraThePowerPatronOfTuning);
@@ -295,96 +325,14 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.SpSummon, CardId.PSYFramelordOmega);
             AddExecutor(ExecutorType.SpSummon, CardId.BlackRoseDragon, BlackRoseDragonSpSummon);
 
-            // Fallen of the White Dragon (summon from hand)
-            AddExecutor(ExecutorType.Activate, CardId.FallenOfTheWhiteDragon, FallenOfTheWhiteDragonHandEffect);
-
-            // Extra Deck Fusion Summoning (Usually initiated by card effects)
-            AddExecutor(ExecutorType.SpSummon, CardId.MirrorjadeTheIcebladeDragon);
-            AddExecutor(ExecutorType.Activate, CardId.CalledByTheGrave, CalledByTheGraveEffect);
-
-            // Fydraulis Harmonia (activated from hand during opponent's turn as a disruption)
-            AddExecutor(ExecutorType.Activate, CardId.FidraulisHarmonia, FidraulisHarmoniaEffect);
-
-            // Boss Monster Quick Effects
-            AddExecutor(ExecutorType.Activate, CardId.BaronneDeFleur, BaronneDeFleurEffect);
-            AddExecutor(ExecutorType.Activate, CardId.MirrorjadeTheIcebladeDragon, MirrorjadeTheIcebladeDragonEffect);
-            AddExecutor(ExecutorType.Activate, CardId.RindbrummTheStrikingDragon, RindbrummTheStrikingDragonEffect);
-            AddExecutor(ExecutorType.Activate, CardId.PsychicEndPunisher, PsychicEndPunisherEffect);
-
-            // Spells (Board Breakers)
-            AddExecutor(ExecutorType.Activate, CardId.HarpiesFeatherDuster, DefaultHarpiesFeatherDusterFirst);
-            AddExecutor(ExecutorType.Activate, CardId.HeavyStorm, DefaultHeavyStorm);
-            AddExecutor(ExecutorType.Activate, CardId.IllusionGate, IllusionGateEffect);
-
-            // Engine Spells
-            AddExecutor(ExecutorType.Activate, CardId.ElfnotesWelcomeHome, ElfnotesWelcomeHomeEffect);
-            AddExecutor(ExecutorType.Activate, CardId.TheFallenAndTheVirtuous, TheFallenAndTheVirtuousEffect);
-
-            // Special Summons from Hand (Chainless Summon Conditions)
-            AddExecutor(ExecutorType.SpSummon, CardId.ElfnoteLucina, ElfnoteLucinaSpSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.ElfnoteTinia, ElfnoteTiniaSpSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.ElfnoteFortuna, ElfnoteFortunaSpSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.IncredibleEcclesiaTheVirtuous, IncredibleEcclesiaTheVirtuousSpSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.FallenOfTheWhiteDragon, FallenOfTheWhiteDragonSpSummon);
-
-            // Monster Effects (Activated from hand/field)
-            AddExecutor(ExecutorType.Activate, CardId.MediusThePure, MediusThePureEffect);
-            AddExecutor(ExecutorType.Activate, CardId.IncredibleEcclesiaTheVirtuous, IncredibleEcclesiaTheVirtuousEffect);
-            AddExecutor(ExecutorType.Activate, CardId.FallenOfAlbaz, FallenOfAlbazEffect);
-            AddExecutor(ExecutorType.Activate, CardId.FallenOfTheWhiteDragon, FallenOfTheWhiteDragonFieldEffect);
-            
-            AddExecutor(ExecutorType.Activate, CardId.ElfnoteLucina, ElfnoteLucinaEffect);
-            AddExecutor(ExecutorType.Activate, CardId.ElfnoteTinia, ElfnoteTiniaEffect);
-            AddExecutor(ExecutorType.Activate, CardId.ElfnoteFortuna, ElfnoteFortunaEffect);
-            AddExecutor(ExecutorType.Activate, CardId.ElfnoteRegina, ElfnoteReginaEffect);
-            AddExecutor(ExecutorType.Activate, CardId.ElfnotePowerPatron, ElfnotePowerPatronEffect);
-            AddExecutor(ExecutorType.Activate, CardId.PowerPatronShadowSpiritJunordo, PowerPatronShadowSpiritJunordoEffect);
-
-            // Normal Summons
-            AddExecutor(ExecutorType.Summon, CardId.MediusThePure);
-            AddExecutor(ExecutorType.Summon, CardId.ElfnoteLucina);
-            AddExecutor(ExecutorType.Summon, CardId.ElfnoteTinia);
-            AddExecutor(ExecutorType.Summon, CardId.ElfnoteFortuna);
-            AddExecutor(ExecutorType.Summon, CardId.IncredibleEcclesiaTheVirtuous);
-            AddExecutor(ExecutorType.Summon, CardId.FallenOfAlbaz);
-            AddExecutor(ExecutorType.Summon, CardId.ElfnotePowerPatron);
-            AddExecutor(ExecutorType.Summon, CardId.ElfnoteRegina);
-            AddExecutor(ExecutorType.Summon, CardId.PowerPatronShadowSpiritJunordo);
-
-            // Extra Deck Synchro Summoning Priority
-            AddExecutor(ExecutorType.SpSummon, CardId.BaronneDeFleur, BaronneSpSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.PsychicEndPunisher, PsychicEndPunisherSpSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.JunoraThePowerPatronOfTuning);
-            AddExecutor(ExecutorType.SpSummon, CardId.DespianLuluwalilith);
-            AddExecutor(ExecutorType.SpSummon, CardId.ElfnoteSeraphimStrelitzia, ElfnoteSeraphimStrelitziaSpSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.EcclesiaAndTheDarkDragon);
-            AddExecutor(ExecutorType.SpSummon, CardId.GoldenCloudBeastMalong, GoldenCloudBeastMalongSpSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.PSYFramelordOmega);
-            AddExecutor(ExecutorType.SpSummon, CardId.BlackRoseDragon, BlackRoseDragonSpSummon);
-
-            // Fallen of the White Dragon (summon from hand)
-            AddExecutor(ExecutorType.Activate, CardId.FallenOfTheWhiteDragon, FallenOfTheWhiteDragonHandEffect);
-
-            // Extra Deck Fusion Summoning (Usually initiated by card effects)
+            // ── 9. Extra Deck Fusion Summoning ──
             AddExecutor(ExecutorType.SpSummon, CardId.MirrorjadeTheIcebladeDragon);
             AddExecutor(ExecutorType.SpSummon, CardId.AlbionTheBrandedDragon);
             AddExecutor(ExecutorType.SpSummon, CardId.RindbrummTheStrikingDragon);
             AddExecutor(ExecutorType.SpSummon, CardId.TheDragonThatDevoursTheDogma);
             AddExecutor(ExecutorType.SpSummon, CardId.SprindTheIrondashDragon);
 
-            // Extra Deck Monster Effects
-            AddExecutor(ExecutorType.Activate, CardId.ElfnoteSeraphimStrelitzia, ElfnoteSeraphimStrelitziaEffect);
-            AddExecutor(ExecutorType.Activate, CardId.EcclesiaAndTheDarkDragon, EcclesiaAndTheDarkDragonEffect);
-            AddExecutor(ExecutorType.Activate, CardId.DespianLuluwalilith, DespianLuluwalilithEffect);
-            AddExecutor(ExecutorType.Activate, CardId.GoldenCloudBeastMalong, GoldenCloudBeastMalongEffect);
-            AddExecutor(ExecutorType.Activate, CardId.PSYFramelordOmega, PSYFramelordOmegaEffect);
-            AddExecutor(ExecutorType.Activate, CardId.JunoraThePowerPatronOfTuning, JunoraEffect);
-            
-            AddExecutor(ExecutorType.Activate, CardId.AlbionTheBrandedDragon, AlbionTheBrandedDragonEffect);
-            AddExecutor(ExecutorType.Activate, CardId.TheDragonThatDevoursTheDogma, TheDragonThatDevoursTheDogmaEffect);
-            AddExecutor(ExecutorType.Activate, CardId.SprindTheIrondashDragon, SprindEffect);
-
-            // Traps & Continuous Spells (Set/Activate)
+            // ── 10. Traps & Continuous Spells (Set / Activate) ──
             AddExecutor(ExecutorType.SpellSet, CardId.DimensionalBarrier);
             AddExecutor(ExecutorType.SpellSet, CardId.SolemnWarning);
             AddExecutor(ExecutorType.SpellSet, CardId.SolemnJudgment);
@@ -396,26 +344,21 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.Activate, CardId.SolemnJudgment, DefaultSolemnJudgment);
             AddExecutor(ExecutorType.Activate, CardId.ElfnotesRhapsodiaOfMadness, ElfnotesRhapsodiaOfMadnessEffect);
 
-            // Side Deck Bystial
+            // ── 11. Side Deck Bystial ──
             AddExecutor(ExecutorType.SpSummon, CardId.BystialMagnamhut, BystialMagnamhutSpSummon);
             AddExecutor(ExecutorType.Activate, CardId.BystialMagnamhut, BystialMagnamhutEffect);
 
-            // Reposition / Battle
+            // ── 12. Reposition / Battle ──
             AddExecutor(ExecutorType.Repos, DefaultMonsterRepos);
         }
 
         private bool IsTargetable(ClientCard card)
         {
             if (card == null) return false;
-            
-            // Chaos MAX is always untargetable by opponent's card effects
             if (card.IsCode(CardId.BlueEyesChaosMAXDragon)) return false;
-
-            // Dragon monsters are untargetable if opponent controls Azure-Eyes Silver Dragon
             if (card.HasRace(CardRace.Dragon) && Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && c.IsCode(CardId.AzureEyesSilverDragon)))
                 return false;
-
-            return true;
+            return !card.IsShouldNotBeTarget();
         }
 
         protected override bool IsViableEffectTarget(ClientCard card)
@@ -427,19 +370,14 @@ namespace WindBot.Game.AI.Decks
             bool isEternalSoulActive = Enemy.GetSpells().Any(s => s != null && s.IsFaceup() && s.IsCode(CardId.EternalSoul) && !s.IsDisabled());
             if (isEternalSoulActive)
             {
-                // Dark Magician and Dark Magician the Dragon Knight are unaffected by card effects
                 if (card.IsCode(CardId.DarkMagician) || card.IsCode(CardId.DarkMagicianTheDragonKnight))
-                {
                     return false;
-                }
             }
 
             // If opponent controls active Dark Magician the Dragon Knight
             bool hasDragonKnight = Enemy.GetMonsters().Any(m => m != null && m.IsFaceup() && m.IsCode(CardId.DarkMagicianTheDragonKnight) && !m.IsDisabled());
             if (hasDragonKnight && (card.IsSpell() || card.IsTrap()))
-            {
                 return false;
-            }
 
             return true;
         }
@@ -453,6 +391,7 @@ namespace WindBot.Game.AI.Decks
         {
             if (IsSpecialSummonBlocked()) return false;
             if (ShouldSkipCombo()) return false;
+            if (HasLethalOnBoard()) return false;
             if (IsBoardStrongEnough() && !IsInGrindGame()) return false;
             if (IsCenterZoneEmpty())
             {
@@ -472,6 +411,7 @@ namespace WindBot.Game.AI.Decks
         {
             if (IsSpecialSummonBlocked()) return false;
             if (ShouldSkipCombo()) return false;
+            if (HasLethalOnBoard()) return false;
             if (IsBoardStrongEnough() && !IsInGrindGame()) return false;
             if (IsCenterZoneEmpty())
             {
@@ -485,6 +425,7 @@ namespace WindBot.Game.AI.Decks
         {
             if (IsSpecialSummonBlocked()) return false;
             if (ShouldSkipCombo()) return false;
+            if (HasLethalOnBoard()) return false;
             if (IsBoardStrongEnough() && !IsInGrindGame()) return false;
             if (IsCenterZoneEmpty())
             {
@@ -498,6 +439,7 @@ namespace WindBot.Game.AI.Decks
         {
             if (IsSpecialSummonBlocked()) return false;
             if (ShouldSkipCombo()) return false;
+            if (HasLethalOnBoard()) return false;
             if (IsBoardStrongEnough() && !IsInGrindGame()) return false;
             AI.SelectPosition(CardPosition.FaceUpDefence);
             return true;
@@ -507,8 +449,9 @@ namespace WindBot.Game.AI.Decks
         {
             if (IsSpecialSummonBlocked()) return false;
             if (ShouldSkipCombo()) return false;
+            if (HasLethalOnBoard()) return false;
             if (IsBoardStrongEnough() && !IsInGrindGame()) return false;
-            AI.SelectPosition(CardPosition.FaceUpDefence);
+            AI.SelectPosition(CardPosition.FaceUpAttack);
             return true;
         }
 
@@ -528,12 +471,13 @@ namespace WindBot.Game.AI.Decks
             if (Card != null && Card.Location == CardLocation.MonsterZone && Duel.Player == 0)
             {
                 if (ShouldSkipCombo()) return false;
+                if (HasLethalOnBoard()) return false;
                 if (IsBoardStrongEnough() && !IsInGrindGame()) return false;
                 AI.SelectCard(new[] {
                     CardId.ElfnoteRegina,
+                    CardId.ElfnotePowerPatron,
                     CardId.ElfnoteTinia,
-                    CardId.ElfnoteFortuna,
-                    CardId.ElfnotePowerPatron
+                    CardId.ElfnoteFortuna
                 });
                 return true;
             }
@@ -560,6 +504,7 @@ namespace WindBot.Game.AI.Decks
             if (Card != null && Card.Location == CardLocation.MonsterZone && Duel.Player == 0)
             {
                 if (ShouldSkipCombo()) return false;
+                if (HasLethalOnBoard()) return false;
                 if (IsBoardStrongEnough() && !IsInGrindGame()) return false;
                 AI.SelectCard(CardId.ElfnotesWelcomeHome);
                 return true;
@@ -581,6 +526,7 @@ namespace WindBot.Game.AI.Decks
             if (Card != null && Card.Location == CardLocation.MonsterZone && Duel.Player == 0)
             {
                 if (ShouldSkipCombo()) return false;
+                if (HasLethalOnBoard()) return false;
                 if (IsBoardStrongEnough() && !IsInGrindGame()) return false;
                 AI.SelectCard(CardId.ElfnotesRhapsodiaOfMadness);
                 return true;
@@ -619,12 +565,13 @@ namespace WindBot.Game.AI.Decks
             {
                 if (IsSpecialSummonBlocked()) return false;
                 if (ShouldSkipCombo()) return false;
+                if (HasLethalOnBoard()) return false;
                 if (IsBoardStrongEnough() && !IsInGrindGame()) return false;
 
-                // Bait check!
+                // Bait check
                 var bait = GetBaitIfNeeded(Card);
                 if (bait != null) return false;
-                DecisionTracer.Trace("ReginaEffect", "Evaluating hand activation โ€” searching cost card...");
+                DecisionTracer.Trace("ReginaEffect", "Evaluating hand activation — searching cost card...");
                 ClientCard costCard = null;
                 
                 // 1. Center Zone monster (Zone 2) to free it for Regina
@@ -642,7 +589,7 @@ namespace WindBot.Game.AI.Decks
                     if (costCard != null) DecisionTracer.TraceSelect("ReginaEffect", "COST (step2: PowerPatron hand)", costCard);
                 }
 
-                // 3. Other Elfnote monsters in hand (excluding Regina unless it's a duplicate)
+                // 3. Other Elfnote monsters in hand (excluding Regina unless duplicate)
                 if (costCard == null)
                 {
                     costCard = Bot.Hand.FirstOrDefault(c => c != null && c != Card && c.IsMonster() && c.IsCode(ElfnoteCards));
@@ -656,7 +603,7 @@ namespace WindBot.Game.AI.Decks
                     if (costCard != null) DecisionTracer.TraceSelect("ReginaEffect", "COST (step4: Elfnote field)", costCard);
                 }
 
-                // 5. Duplicate Spells/Traps in hand (we have more than 1 Welcome Home or Rhapsodia, or already have one active on field)
+                // 5. Duplicate Spells/Traps in hand
                 if (costCard == null)
                 {
                     costCard = Bot.Hand.FirstOrDefault(c => c != null && c.IsCode(CardId.ElfnotesWelcomeHome, CardId.ElfnotesRhapsodiaOfMadness) &&
@@ -671,7 +618,7 @@ namespace WindBot.Game.AI.Decks
                     if (costCard != null) DecisionTracer.TraceSelect("ReginaEffect", "COST (step6: any Elfnote hand)", costCard);
                 }
 
-                // 7. Fallback: Any Elfnote card on field (Spells/Traps)
+                // 7. Fallback: Any Elfnote card on field
                 if (costCard == null)
                 {
                     costCard = Bot.GetSpells().FirstOrDefault(c => c != null && c.IsCode(ElfnoteCards));
@@ -693,7 +640,7 @@ namespace WindBot.Game.AI.Decks
             {
                 if (IsSpecialSummonBlocked()) return false;
                 if (ShouldSkipCombo()) return false;
-                DecisionTracer.TraceActivate("ReginaEffect", "Center zone effect โ€” summoning from Deck");
+                DecisionTracer.TraceActivate("ReginaEffect", "Center zone effect — summoning from Deck");
                 AI.SelectCard(new[] {
                     CardId.ElfnotePowerPatron,
                     CardId.ElfnoteLucina,
@@ -715,9 +662,9 @@ namespace WindBot.Game.AI.Decks
             }
             if (EnemyHasKnownNegate()) return false;
 
-            if (CanOTK())
+            if (HasLethalOnBoard() || CanOTK())
             {
-                DecisionTracer.TraceSkip("PowerPatronEffect", "Can OTK โ€” attack first, synchro in MP2");
+                DecisionTracer.TraceSkip("PowerPatronEffect", "Can OTK / Lethal on board — attack first");
                 return false;
             }
             // Main Phase (Quick Effect): Target center zone monster; increase Level by 3 and Synchro Summon
@@ -735,33 +682,13 @@ namespace WindBot.Game.AI.Decks
                 DecisionTracer.TraceSelect("PowerPatronEffect", "Synchro target (center)", centerMonster);
                 AI.SelectCard(centerMonster);
                 
-                // Select the optimal Synchro monster from the Extra Deck based on resulting levels
-                if (ShouldPrioritizePEP())
-                {
-                    DecisionTracer.Trace("PowerPatronEffect", "Priority: PsychicEndPunisher (LP advantage)");
-                    AI.SelectNextCard(new[] {
-                        CardId.PsychicEndPunisher,
-                        CardId.BaronneDeFleur,
-                        CardId.JunoraThePowerPatronOfTuning,
-                        CardId.DespianLuluwalilith,
-                        CardId.ElfnoteSeraphimStrelitzia,
-                        CardId.EcclesiaAndTheDarkDragon,
-                        CardId.PSYFramelordOmega
-                    });
-                }
-                else
-                {
-                    DecisionTracer.Trace("PowerPatronEffect", "Priority: BaronneDeFleur (negate)");
-                    AI.SelectNextCard(new[] {
-                        CardId.BaronneDeFleur,
-                        CardId.JunoraThePowerPatronOfTuning,
-                        CardId.PsychicEndPunisher,
-                        CardId.DespianLuluwalilith,
-                        CardId.ElfnoteSeraphimStrelitzia,
-                        CardId.EcclesiaAndTheDarkDragon,
-                        CardId.PSYFramelordOmega
-                    });
-                }
+                // Power Patron effect can specifically Synchro Summon an Elfnote Synchro or Junora
+                AI.SelectNextCard(new[] {
+                    CardId.JunoraThePowerPatronOfTuning,
+                    CardId.ElfnoteSeraphimStrelitzia,
+                    CardId.BaronneDeFleur,
+                    CardId.PsychicEndPunisher
+                });
                 return true;
             }
             // GY effect: Add 1 Elfnote card from Deck to hand
@@ -811,7 +738,10 @@ namespace WindBot.Game.AI.Decks
             if (Card.Location == CardLocation.MonsterZone)
             {
                 if (ShouldSkipCombo()) return false;
-                AI.SelectCard(CardId.ElfnotePowerPatron);
+                AI.SelectCard(new[] {
+                    CardId.ElfnotePowerPatron,
+                    CardId.PowerPatronShadowSpiritJunordo
+                });
                 AI.SelectPosition(CardPosition.FaceUpDefence);
                 return true;
             }
@@ -820,11 +750,17 @@ namespace WindBot.Game.AI.Decks
             {
                 if (IsSpecialSummonBlocked()) return false;
                 if (ShouldSkipCombo()) return false;
+                if (HasLethalOnBoard()) return false;
                 if (IsBoardStrongEnough() && !IsInGrindGame()) return false;
+
                 ClientCard shuffleTarget = Bot.Hand.FirstOrDefault(c => c != null && c.IsMonster() && c.IsCode(CardId.EffectVeiler, CardId.DrollAndLockBird, CardId.MaxxC));
                 if (shuffleTarget == null)
                 {
-                    shuffleTarget = Bot.Hand.FirstOrDefault(c => c != null && c.IsMonster() && c != Card);
+                    shuffleTarget = Bot.Hand.FirstOrDefault(c => c != null && c.IsMonster() && c != Card && !IsAceCard(c));
+                }
+                if (shuffleTarget == null)
+                {
+                    shuffleTarget = Bot.GetMonsters().FirstOrDefault(c => c != null && !IsAceCard(c) && c != Bot.MonsterZone[2]);
                 }
                 
                 if (shuffleTarget != null)
@@ -841,12 +777,11 @@ namespace WindBot.Game.AI.Decks
         private bool FallenOfTheWhiteDragonSpSummon()
         {
             // Cost: Send Albaz-mentioning monster from Extra Deck to GY
-            // Prioritize Albion for its End Phase search
             AI.SelectCard(new[] {
                 CardId.AlbionTheBrandedDragon,
+                CardId.TheDragonThatDevoursTheDogma,
                 CardId.RindbrummTheStrikingDragon,
-                CardId.SprindTheIrondashDragon,
-                CardId.TheDragonThatDevoursTheDogma
+                CardId.SprindTheIrondashDragon
             });
             return true;
         }
@@ -854,6 +789,8 @@ namespace WindBot.Game.AI.Decks
         private bool FallenOfTheWhiteDragonHandEffect()
         {
             if (IsSpecialSummonBlocked()) return false;
+            if (HasLethalOnBoard()) return false;
+
             // Hand activation to summon itself
             if (Card != null && Card.Location == CardLocation.Hand)
             {
@@ -862,20 +799,21 @@ namespace WindBot.Game.AI.Decks
                 // 1. If we already control one of our Level 10/11 boss monsters, the lock is fine.
                 if (Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.IsCode(CardId.BaronneDeFleur, CardId.PsychicEndPunisher, CardId.JunoraThePowerPatronOfTuning)))
                 {
-                    DecisionTracer.TraceActivate("FallenWhiteDragonHand", "Already have boss on field โ€” lock OK");
+                    DecisionTracer.TraceActivate("FallenWhiteDragonHand", "Already have boss on field — lock OK");
                     AI.SelectCard(new[] {
                         CardId.AlbionTheBrandedDragon,
+                        CardId.TheDragonThatDevoursTheDogma,
                         CardId.RindbrummTheStrikingDragon,
                         CardId.SprindTheIrondashDragon
                     });
                     return true;
                 }
 
-                // 2. If we have Incredible Ecclesia in hand or on field, we should NOT use the hand effect.
+                // 2. If we have Incredible Ecclesia in hand or on field, prioritize her
                 if (Bot.Hand.Any(c => c != null && c.IsCode(CardId.IncredibleEcclesiaTheVirtuous)) ||
                     Bot.GetMonsters().Any(c => c != null && c.IsCode(CardId.IncredibleEcclesiaTheVirtuous)))
                 {
-                    DecisionTracer.TraceSkip("FallenWhiteDragonHand", "Ecclesia available โ€” use her to avoid lock");
+                    DecisionTracer.TraceSkip("FallenWhiteDragonHand", "Ecclesia available — use her to avoid lock");
                     return false;
                 }
 
@@ -895,7 +833,6 @@ namespace WindBot.Game.AI.Decks
                     return false;
                 }
 
-                // If we have Regina in hand and another Elfnote card in hand/field, Regina can initiate the combo. Don't lock.
                 bool hasReginaInHand = Bot.Hand.Any(c => c != null && c.IsCode(CardId.ElfnoteRegina));
                 int elfnoteCount = Bot.Hand.Count(c => c != null && ElfnoteCards.Contains(c.Id)) +
                                    Bot.GetMonsters().Count(c => c != null && ElfnoteCards.Contains(c.Id)) +
@@ -906,18 +843,17 @@ namespace WindBot.Game.AI.Decks
                     return false;
                 }
 
-                // If we have Elfnotes Welcome Home active on field or in hand, and we can pay its cost
                 bool hasWelcomeHome = Bot.HasInSpellZone(CardId.ElfnotesWelcomeHome) || Bot.Hand.Any(c => c != null && c.IsCode(CardId.ElfnotesWelcomeHome));
                 if (hasWelcomeHome && !_welcomeHomeUsed && GetWelcomeHomeCostCard() != null)
                 {
-                    DecisionTracer.TraceSkip("FallenWhiteDragonHand", "WelcomeHome available โ€” don't lock");
+                    DecisionTracer.TraceSkip("FallenWhiteDragonHand", "WelcomeHome available — don't lock");
                     return false;
                 }
 
-                // Otherwise, we have no other viable Level 10/11 play, so it's safe to activate.
-                DecisionTracer.TraceActivate("FallenWhiteDragonHand", "No alternative Synchro play โ€” activating hand effect");
+                DecisionTracer.TraceActivate("FallenWhiteDragonHand", "No alternative Synchro play — activating hand effect");
                 AI.SelectCard(new[] {
                     CardId.AlbionTheBrandedDragon,
+                    CardId.TheDragonThatDevoursTheDogma,
                     CardId.RindbrummTheStrikingDragon,
                     CardId.SprindTheIrondashDragon
                 });
@@ -956,6 +892,8 @@ namespace WindBot.Game.AI.Decks
         {
             if (IsSpecialSummonBlocked()) return false;
             if (EnemyHasKnownNegate()) return false;
+            if (HasLethalOnBoard()) return false;
+
             // Tribute this card; Special Summon 1 Fallen of Albaz or Fallen of the White Dragon
             if (Bot.Hand.Count > 0 && OpponentHasAlbazFusionTarget())
             {
@@ -981,6 +919,7 @@ namespace WindBot.Game.AI.Decks
             if (EnemyHasKnownNegate()) return false;
             // Fusion Summon using opponent's monsters. Discard 1 card as cost.
             AI.SelectCard(new[] {
+                CardId.PowerPatronShadowSpiritJunordo,
                 CardId.ElfnotePowerPatron,
                 CardId.MediusThePure,
                 CardId.MaxxC,
@@ -999,10 +938,10 @@ namespace WindBot.Game.AI.Decks
             if (_fallenVirtuousUsed) return false;
             if (!Bot.Hand.Any(c => c != null && c.IsCode(CardId.TheFallenAndTheVirtuous))) return false;
 
-            ClientCard destroyTarget = Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && IsTargetable(c));
+            ClientCard destroyTarget = Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && IsViableEffectTarget(c));
             if (destroyTarget == null)
             {
-                destroyTarget = Enemy.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup() && IsTargetable(c));
+                destroyTarget = Enemy.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup() && IsViableEffectTarget(c));
             }
 
             int[] validSummonTargets = {
@@ -1226,8 +1165,8 @@ namespace WindBot.Game.AI.Decks
             {
                 AI.SelectCard(new[] {
                     CardId.AlbionTheBrandedDragon,
-                    CardId.RindbrummTheStrikingDragon,
                     CardId.TheDragonThatDevoursTheDogma,
+                    CardId.RindbrummTheStrikingDragon,
                     CardId.SprindTheIrondashDragon
                 });
                 AI.SelectNextCard(destroyTarget);
@@ -1247,7 +1186,6 @@ namespace WindBot.Game.AI.Decks
 
         private bool IllusionGateEffect()
         {
-            // Illusion Gate โ€” generic combo extender, check game state
             if (ShouldSkipCombo()) return false;
             if (Card.Location == CardLocation.MonsterZone && Card.IsDisabled()) return false;
             return true;
@@ -1317,7 +1255,6 @@ namespace WindBot.Game.AI.Decks
             return true;
         }
 
-
         private bool ShouldPrioritizePEP()
         {
             return Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && (c.Attack >= 3000 || c.IsCode(CardId.BlueEyesChaosMAXDragon)));
@@ -1333,25 +1270,23 @@ namespace WindBot.Game.AI.Decks
         {
             if (IsSpecialSummonBlocked()) return false;
             if (ShouldSkipCombo()) return false;
-            // Do not summon PEP on Turn 1, because LP is equal and it has no immunity.
+
+            // Do not summon PEP on Turn 1, because LP is equal and it has no immunity
             if (Duel.Turn == 1)
             {
                 return false;
             }
 
-            // Always summon if we can OTK
-            if (CanOTK())
+            if (CanOTK() || HasLethalOnBoard())
             {
                 return true;
             }
 
-            // Always summon if opponent has a high-ATK threat or Chaos MAX
             if (ShouldPrioritizePEP())
             {
                 return true;
             }
 
-            // Always summon if opponent has the DM lock
             bool hasDMLock = Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && c.IsCode(CardId.DarkMagicianTheDragonKnight)) &&
                              Enemy.GetSpells().Any(c => c != null && c.IsFaceup() && c.IsCode(CardId.EternalSoul));
             if (hasDMLock)
@@ -1359,13 +1294,11 @@ namespace WindBot.Game.AI.Decks
                 return true;
             }
 
-            // Summon PEP if our LP is lower than opponent's LP (immune to activated effects)
             if (Bot.LifePoints < Enemy.LifePoints)
             {
                 return true;
             }
 
-            // If we have no other options and opponent has no monsters/threats, summon to push beater on field
             if (Enemy.GetMonsterCount() == 0 && Enemy.GetSpellCount() == 0)
             {
                 return true;
@@ -1378,37 +1311,21 @@ namespace WindBot.Game.AI.Decks
         {
             if (IsSpecialSummonBlocked()) return false;
             if (ShouldSkipCombo()) return false;
+            if (HasLethalOnBoard()) return false;
             if (IsBoardStrongEnough() && !IsInGrindGame()) return false;
+
             if (Bot.HasInExtra(CardId.PsychicEndPunisher))
             {
-                // ONLY yield to PEP if PEP is actually special summonable right now
                 if (IsSpecialSummonable(CardId.PsychicEndPunisher))
                 {
-                    // Yield to PEP if we can OTK
-                    if (CanOTK())
-                    {
-                        return false;
-                    }
+                    if (CanOTK()) return false;
+                    if (ShouldPrioritizePEP()) return false;
 
-                    // Yield to PEP if opponent has a high-ATK threat or Chaos MAX
-                    if (ShouldPrioritizePEP())
-                    {
-                        return false;
-                    }
-
-                    // Yield to PEP if opponent has the Dark Magician the Dragon Knight + Eternal Soul lock
                     bool hasDMLock = Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && c.IsCode(CardId.DarkMagicianTheDragonKnight)) &&
                                      Enemy.GetSpells().Any(c => c != null && c.IsFaceup() && c.IsCode(CardId.EternalSoul));
-                    if (hasDMLock)
-                    {
-                        return false;
-                    }
+                    if (hasDMLock) return false;
 
-                    // Yield to PEP if our LP is lower than opponent's LP (so PEP gets its effect immunity)
-                    if (Bot.LifePoints < Enemy.LifePoints)
-                    {
-                        return false;
-                    }
+                    if (Bot.LifePoints < Enemy.LifePoints) return false;
                 }
             }
             return true;
@@ -1461,7 +1378,6 @@ namespace WindBot.Game.AI.Decks
 
             if (targets.Count > 0)
             {
-                // Prioritize: Eternal Soul -> Dark Magical Circle -> Boss/Other Spells/Traps -> Monsters
                 ClientCard bestTarget = targets.OrderBy(c => {
                     if (c.IsCode(CardId.EternalSoul)) return 0;
                     if (c.IsCode(CardId.DarkMagicalCircle)) return 1;
@@ -1501,18 +1417,15 @@ namespace WindBot.Game.AI.Decks
                     ourCost = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsCode(CardId.MediusThePure, CardId.ElfnotePowerPatron));
                 }
 
-                // DO NOT banish Psychic End Punisher itself
+                // Never banish Psychic End Punisher itself
                 if (ourCost == null)
                 {
                     return false;
                 }
 
-                if (ourCost != null)
-                {
-                    AI.SelectCard(ourCost);
-                    AI.SelectNextCard(target);
-                    return true;
-                }
+                AI.SelectCard(ourCost);
+                AI.SelectNextCard(target);
+                return true;
             }
             return false;
         }
@@ -1582,34 +1495,58 @@ namespace WindBot.Game.AI.Decks
 
         private bool MirrorjadeTheIcebladeDragonEffect()
         {
-            // Banish 1 monster on the field by sending 1 Albaz monster from Extra Deck to GY
-            // Mirrorjade does not target, so we bypass targetability check (e.g. for Chaos MAX/Azure-Eyes)
-            ClientCard target = Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(CardId.BlueEyesChaosMAXDragon));
-            if (target == null)
+            if (Card != null && Card.Location == CardLocation.MonsterZone)
             {
-                target = Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(CardId.AzureEyesSilverDragon));
-            }
-            if (target == null)
-            {
-                target = Enemy.GetMonsters().Where(c => c != null && c.IsFaceup()).OrderByDescending(c => c.Attack).FirstOrDefault();
-            }
+                ClientCard target = Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(CardId.BlueEyesChaosMAXDragon));
+                if (target == null)
+                {
+                    target = Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(CardId.DarkMagicianTheDragonKnight));
+                }
+                if (target == null)
+                {
+                    target = Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(CardId.AlternativeWhiteDragon, CardId.AzureEyesSilverDragon));
+                }
+                if (target == null)
+                {
+                    target = Enemy.GetMonsters().Where(c => c != null && c.IsFaceup()).OrderByDescending(c => c.Attack).FirstOrDefault();
+                }
 
-            if (target != null)
-            {
-                AI.SelectCard(new[] {
-                    CardId.AlbionTheBrandedDragon,
-                    CardId.RindbrummTheStrikingDragon,
-                    CardId.SprindTheIrondashDragon
-                });
-                AI.SelectNextCard(target);
-                return true;
+                if (target != null)
+                {
+                    AI.SelectCard(new[] {
+                        CardId.AlbionTheBrandedDragon,
+                        CardId.TheDragonThatDevoursTheDogma,
+                        CardId.RindbrummTheStrikingDragon,
+                        CardId.SprindTheIrondashDragon
+                    });
+                    AI.SelectNextCard(target);
+                    return true;
+                }
+                return false;
             }
-            return false;
+            return true;
         }
 
         private bool AlbionTheBrandedDragonEffect()
         {
-            // Fusion summon by banishing materials from hand, field, and/or GY
+            if (Card == null) return false;
+            // End Phase GY search:
+            if (Card.Location == CardLocation.Grave)
+            {
+                AI.SelectCard(CardId.TheFallenAndTheVirtuous);
+                return true;
+            }
+            // Fusion summon:
+            if (Card.Location == CardLocation.MonsterZone)
+            {
+                if (IsSpecialSummonBlocked()) return false;
+                AI.SelectCard(new[] {
+                    CardId.MirrorjadeTheIcebladeDragon,
+                    CardId.RindbrummTheStrikingDragon,
+                    CardId.SprindTheIrondashDragon
+                });
+                return true;
+            }
             return true;
         }
 
@@ -1638,7 +1575,8 @@ namespace WindBot.Game.AI.Decks
                     ClientCard target = Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && IsViableEffectTarget(c));
                     if (target == null)
                     {
-                        target = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup());
+                        // Safely bounce our own expendable monster if needed
+                        target = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && !IsAceCard(c));
                     }
                     if (target != null)
                     {
@@ -1648,7 +1586,7 @@ namespace WindBot.Game.AI.Decks
                 }
                 return false;
             }
-            if (Card.Location == CardLocation.Grave)
+            if (Card != null && Card.Location == CardLocation.Grave)
             {
                 // Special summon Albaz or this card
                 AI.SelectCard(new[] {
@@ -1678,7 +1616,7 @@ namespace WindBot.Game.AI.Decks
                 CardId.BlackRoseDragon
             });
             
-            // If 3+ revealed, send 1 to GY:
+            // If 4+ revealed, send 1 to GY:
             // Send Malong to bounce if there are cards to target, otherwise Luluwalilith for End Phase Ecclesia summon.
             if (Enemy.GetMonsterCount() > 0 || Enemy.GetSpellCount() > 0)
             {
@@ -1689,7 +1627,7 @@ namespace WindBot.Game.AI.Decks
                 AI.SelectNextCard(CardId.DespianLuluwalilith, CardId.GoldenCloudBeastMalong);
             }
 
-            // Queue the 3rd selection (destruction target) if we reveal 5 Synchros
+            // Queue 3rd selection (destruction target) if 6 cards revealed
             if (Enemy.GetMonsterCount() > 0)
             {
                 ClientCard destroyTarget = Enemy.GetMonsters().Where(c => c != null && c.IsFaceup()).OrderByDescending(c => c.Attack).FirstOrDefault();
@@ -1709,7 +1647,8 @@ namespace WindBot.Game.AI.Decks
             // Prevent self-board wipe: do not summon if we control other boss monsters
             if (Bot.HasInMonstersZone(CardId.BaronneDeFleur) || 
                 Bot.HasInMonstersZone(CardId.MirrorjadeTheIcebladeDragon) ||
-                Bot.HasInMonstersZone(CardId.DespianLuluwalilith))
+                Bot.HasInMonstersZone(CardId.DespianLuluwalilith) ||
+                Bot.HasInMonstersZone(CardId.JunoraThePowerPatronOfTuning))
             {
                 return false;
             }
@@ -1717,7 +1656,6 @@ namespace WindBot.Game.AI.Decks
             int ourCards = Bot.GetMonsterCount() + Bot.GetSpellCount();
             int enemyCards = Enemy.GetMonsterCount() + Enemy.GetSpellCount();
             
-            // Only summon if opponent has established a board of at least 3 cards and we are behind
             return enemyCards > ourCards && enemyCards >= 3;
         }
 
@@ -1735,18 +1673,23 @@ namespace WindBot.Game.AI.Decks
             }
             return true;
         }
+
         public override bool IsAceCard(ClientCard card)
         {
             if (card == null) return false;
-            return card.IsCode(CardId.MirrorjadeTheIcebladeDragon) ||
-                   card.IsCode(CardId.BaronneDeFleur) ||
-                   card.IsCode(CardId.DespianLuluwalilith) ||
-                   card.IsCode(CardId.ElfnoteSeraphimStrelitzia) ||
-                   card.IsCode(CardId.PsychicEndPunisher) ||
-                   card.IsCode(CardId.PSYFramelordOmega) ||
-                   card.IsCode(CardId.FallenOfTheWhiteDragon) ||
-                   card.IsCode(CardId.IncredibleEcclesiaTheVirtuous) ||
-                   card.IsCode(CardId.FallenOfAlbaz);
+            return card.IsCode(
+                CardId.BaronneDeFleur,
+                CardId.PsychicEndPunisher,
+                CardId.MirrorjadeTheIcebladeDragon,
+                CardId.DespianLuluwalilith,
+                CardId.AlbionTheBrandedDragon,
+                CardId.RindbrummTheStrikingDragon,
+                CardId.ElfnoteSeraphimStrelitzia,
+                CardId.EcclesiaAndTheDarkDragon,
+                CardId.JunoraThePowerPatronOfTuning,
+                CardId.TheDragonThatDevoursTheDogma,
+                CardId.SprindTheIrondashDragon
+            );
         }
 
         public override int GetMaterialPriority(ClientCard c)
@@ -1764,8 +1707,11 @@ namespace WindBot.Game.AI.Decks
         {
             if (location == CardLocation.MonsterZone)
             {
-                // If it is Regina or one of our Boss Monsters, we want it in the Center Zone (Zone 2)
-                if (cardId == CardId.ElfnoteRegina || BossMonsters.Contains((int)cardId))
+                // If cardId is 0, fall back to Card.Id
+                long actualId = (cardId != 0) ? cardId : (Card != null ? Card.Id : 0);
+
+                // If it is Regina or Strelitzia, priority goes to Center Zone (Zone 2, bitmask 1 << 2)
+                if (actualId == CardId.ElfnoteRegina || actualId == CardId.ElfnoteSeraphimStrelitzia)
                 {
                     int centerZone = 1 << 2;
                     if ((available & centerZone) > 0)
@@ -1773,7 +1719,7 @@ namespace WindBot.Game.AI.Decks
                 }
                 else
                 {
-                    // For other monsters, avoid the Center Zone (Zone 2) if possible
+                    // For other monsters, preserve Center Zone (Zone 2) if possible
                     int nonCenterAvailable = available & ~(1 << 2);
                     if (nonCenterAvailable > 0)
                         return nonCenterAvailable;
@@ -1789,51 +1735,76 @@ namespace WindBot.Game.AI.Decks
 
             for (int i = 0; i < options.Count; i++)
             {
-                long cardId = options[i] >> 20;
+                long cardId = options[i] >> 4;
                 if (cardId == 0 && Card != null)
                 {
                     cardId = Card.Id;
                 }
-                long optIndex = options[i] & 0xfffff;
+                long optIndex = options[i] & 0xf;
                 
                 // Medius the Pure: Option 0: Add to Hand, Option 1: Special Summon.
-                // We prefer Special Summon if we have space on the field.
-                if (cardId == CardId.MediusThePure && optIndex == 1)
+                // Choose Special Summon if we have space on field, otherwise Add to Hand.
+                if (cardId == CardId.MediusThePure)
                 {
-                    if (Bot.GetMonsterCount() < 5)
+                    if (optIndex == 1 && Bot.GetMonsterCount() < 5 && !IsSpecialSummonBlocked())
+                    {
+                        return i;
+                    }
+                    if (optIndex == 0)
                     {
                         return i;
                     }
                 }
-            }
-
-            for (int i = 0; i < options.Count; i++)
-            {
-                long cardId = options[i] >> 20;
-                if (cardId == 0 && Card != null)
-                {
-                    cardId = Card.Id;
-                }
-                long optIndex = options[i] & 0xfffff;
 
                 // The Fallen and the Virtuous:
-                // Option 0: Send Albaz monster from Extra Deck to GY, destroy 1 card
+                // Option 0: Send Albaz monster from Extra Deck to GY, destroy 1 face-up card
                 // Option 1: Special Summon 1 monster from GY
                 if (cardId == CardId.TheFallenAndTheVirtuous)
                 {
-                    bool hasEnemyCard = Enemy.GetMonsterCount() > 0 || Enemy.GetSpellCount() > 0;
-                    if (hasEnemyCard && optIndex == 0)
+                    bool hasEnemyFaceup = Enemy.GetMonsters().Concat(Enemy.GetSpells()).Any(c => c != null && c.IsFaceup() && IsTargetable(c));
+                    bool hasExtraSend = Bot.ExtraDeck.Any(c => c != null && c.IsCode(
+                        CardId.TheDragonThatDevoursTheDogma, CardId.AlbionTheBrandedDragon, CardId.RindbrummTheStrikingDragon, CardId.SprindTheIrondashDragon));
+
+                    if (hasEnemyFaceup && hasExtraSend && optIndex == 0)
                     {
                         return i; // Destroy
                     }
-                    if (!hasEnemyCard && optIndex == 1)
+
+                    bool hasEcclesia = Bot.GetMonsters().Concat(Bot.Graveyard).Any(c => c != null && c.IsCode(CardId.IncredibleEcclesiaTheVirtuous));
+                    bool hasReviveTarget = hasEcclesia && Bot.Graveyard.Concat(Enemy.Graveyard).Any(c => c != null && c.IsMonster() && c.IsCanRevive());
+                    if (hasReviveTarget && optIndex == 1)
                     {
                         return i; // Special Summon from GY
                     }
+
+                    if (hasEnemyFaceup && optIndex == 0)
+                    {
+                        return i;
+                    }
+                }
+
+                // Triple Tactics Talent:
+                if (cardId == CardId.TripleTacticsTalent)
+                {
+                    if (Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && IsTargetable(c)) && (HasLethalOnBoard() || OpponentHasThreateningMonster()) && optIndex == 1)
+                    {
+                        return i; // Take control
+                    }
+                    if (optIndex == 0)
+                    {
+                        return i; // Draw 2
+                    }
+                }
+
+                // Lightning Storm:
+                if (cardId == CardId.LightningStorm)
+                {
+                    if (Enemy.GetSpellCount() >= 2 && optIndex == 1) return i;
+                    if (Enemy.GetMonsterCount() >= 2 && optIndex == 0) return i;
                 }
             }
 
-            return 0;
+            return base.OnSelectOption(options);
         }
 
         private bool AshBlossomEffect()
@@ -1942,7 +1913,7 @@ namespace WindBot.Game.AI.Decks
                 }
             }
 
-            // Only activate Called by the Grave on our turn as Chain Link 1 to banish a GY threat
+            // Called by the Grave on our turn as Chain Link 1
             if (Duel.Player == 0 && Duel.CurrentChain.Count == 0)
             {
                 int[] targetList =
@@ -1980,25 +1951,21 @@ namespace WindBot.Game.AI.Decks
             return Duel.Player == 1 && Bot.GetFieldCount() == 0;
         }
 
-
-
         public override CardPosition OnSelectPosition(int cardId, IList<CardPosition> positions)
         {
+            // Tuners & handtraps should prefer FaceUpDefence
             int[] lowStatMonsters = {
-                CardId.FidraulisHarmonia,
                 CardId.ElfnotePowerPatron,
-                CardId.ElfnoteLucina,
-                CardId.ElfnoteTinia,
-                CardId.ElfnoteFortuna,
-                CardId.ElfnoteRegina,
                 CardId.PowerPatronShadowSpiritJunordo,
-                CardId.MediusThePure,
                 CardId.AshBlossom,
                 CardId.MaxxC,
                 CardId.DrollAndLockBird,
                 CardId.EffectVeiler,
                 CardId.MulcharmyFuwalos,
-                CardId.MulcharmyPurulia
+                CardId.MulcharmyPurulia,
+                CardId.GhostBelle,
+                CardId.GhostOgre,
+                CardId.GoldenCloudBeastMalong
             };
 
             if (lowStatMonsters.Contains(cardId) && positions.Contains(CardPosition.FaceUpDefence))
@@ -2006,68 +1973,150 @@ namespace WindBot.Game.AI.Decks
                 return CardPosition.FaceUpDefence;
             }
 
+            // Boss monsters prefer Attack position
+            int[] bossAttackMonsters = {
+                CardId.BaronneDeFleur,
+                CardId.PsychicEndPunisher,
+                CardId.MirrorjadeTheIcebladeDragon,
+                CardId.JunoraThePowerPatronOfTuning,
+                CardId.DespianLuluwalilith,
+                CardId.ElfnoteSeraphimStrelitzia,
+                CardId.AlbionTheBrandedDragon,
+                CardId.TheDragonThatDevoursTheDogma,
+                CardId.SprindTheIrondashDragon
+            };
+
+            if (bossAttackMonsters.Contains(cardId) && positions.Contains(CardPosition.FaceUpAttack))
+            {
+                return CardPosition.FaceUpAttack;
+            }
+
             return base.OnSelectPosition(cardId, positions);
         }
 
         public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
         {
-            // Fidraulis Harmonia GY send selection (hint 504)
-            if (Card != null && Card.Id == CardId.FidraulisHarmonia && hint == 504)
+            if (cards == null || cards.Count == 0)
+                return base.OnSelectCard(cards, min, max, hint, cancelable);
+
+            // ── Hint 501: Discard selection (HINTMSG_DISCARD) ──
+            if (hint == 501)
             {
-                bool hasEnemyCards = Enemy.GetMonsterCount() > 0 || Enemy.GetSpellCount() > 0;
-                if (hasEnemyCards)
-                {
-                    var malong = cards.FirstOrDefault(c => c != null && c.Id == CardId.GoldenCloudBeastMalong);
-                    if (malong != null) return new[] { malong };
-                }
-                var lulu = cards.FirstOrDefault(c => c != null && c.Id == CardId.DespianLuluwalilith);
-                if (lulu != null) return new[] { lulu };
+                var sorted = cards.OrderBy(c => {
+                    if (c == null) return 999;
+                    if (IsAceCard(c)) return 900;
+                    if (c.IsCode(CardId.PowerPatronShadowSpiritJunordo)) return 10;
+                    if (c.IsCode(CardId.ElfnotesWelcomeHome, CardId.ElfnotesRhapsodiaOfMadness, CardId.TheFallenAndTheVirtuous) &&
+                        Bot.Hand.Count(h => h.IsCode(c.Id)) > 1) return 20;
+                    if (c.IsCode(CardId.EffectVeiler, CardId.MaxxC, CardId.DrollAndLockBird) && Bot.Hand.Count > 4) return 30;
+                    return 50;
+                }).ToList();
+                return sorted.Take(max).ToList();
             }
 
-            // 1. Link Material Selection โ€” Protect Ace Cards (hint 533)
+            // ── Hint 504 / 508: Send to GY selection (HINTMSG_TOGRAVE) ──
+            if (hint == 504 || hint == 508)
+            {
+                // Fidraulis Harmonia sending from Extra Deck
+                if (Card != null && Card.Id == CardId.FidraulisHarmonia)
+                {
+                    bool hasEnemyCards = Enemy.GetMonsterCount() > 0 || Enemy.GetSpellCount() > 0;
+                    if (hasEnemyCards)
+                    {
+                        var malong = cards.FirstOrDefault(c => c != null && c.Id == CardId.GoldenCloudBeastMalong);
+                        if (malong != null) return new[] { malong };
+                    }
+                    var lulu = cards.FirstOrDefault(c => c != null && c.Id == CardId.DespianLuluwalilith);
+                    if (lulu != null) return new[] { lulu };
+
+                    var dogma = cards.FirstOrDefault(c => c != null && c.Id == CardId.TheDragonThatDevoursTheDogma);
+                    if (dogma != null) return new[] { dogma };
+                }
+
+                // Extra Deck send for Fallen of the White Dragon or Mirrorjade or The Fallen and the Virtuous
+                var extraSend = cards.Where(c => c != null && c.Location == CardLocation.Extra).OrderBy(c => {
+                    if (c.IsCode(CardId.AlbionTheBrandedDragon)) return 0;
+                    if (c.IsCode(CardId.TheDragonThatDevoursTheDogma)) return 1;
+                    if (c.IsCode(CardId.RindbrummTheStrikingDragon)) return 2;
+                    if (c.IsCode(CardId.SprindTheIrondashDragon)) return 3;
+                    return 10;
+                }).ToList();
+                if (extraSend.Count >= min)
+                    return extraSend.Take(max).ToList();
+            }
+
+            // ── Hint 506: Add to hand / Search selection (HINTMSG_ATOHAND) ──
+            if (hint == 506)
+            {
+                var sortedSearch = cards.Where(c => c != null && c.Controller == 0).OrderBy(c => {
+                    if (c.IsCode(CardId.ElfnoteRegina)) return 0;
+                    if (c.IsCode(CardId.ElfnotePowerPatron)) return 1;
+                    if (c.IsCode(CardId.ElfnotesWelcomeHome)) return 2;
+                    if (c.IsCode(CardId.TheFallenAndTheVirtuous)) return 3;
+                    if (c.IsCode(CardId.MediusThePure)) return 4;
+                    if (c.IsCode(CardId.ElfnoteLucina)) return 5;
+                    if (c.IsCode(CardId.ElfnoteTinia)) return 6;
+                    if (c.IsCode(CardId.IncredibleEcclesiaTheVirtuous)) return 7;
+                    if (c.IsCode(CardId.FallenOfAlbaz)) return 8;
+                    return 20;
+                }).ToList();
+                if (sortedSearch.Count >= min)
+                    return sortedSearch.Take(max).ToList();
+            }
+
+            // ── Hint 533: Link Material Selection — Protect Ace Cards ──
             if (hint == 533)
             {
                 var safe = cards.Where(c => c != null && !IsAceCard(c)).ToList();
                 if (safe.Count >= min) return safe.Take(max).ToList();
             }
 
-            // 2. Destruction target selection (hint 502)
+            // ── Hint 502: Destruction target selection (HINTMSG_DESTROY) ──
             if (hint == 502)
+            {
+                var opponentTargets = cards.Where(c => c != null && c.Controller == 1 && IsViableEffectTarget(c)).ToList();
+                if (opponentTargets.Count >= min)
+                {
+                    var sorted = opponentTargets.OrderByDescending(c => {
+                        if (c.IsCode(CardId.EternalSoul, CardId.DarkMagicalCircle)) return 10000;
+                        if (c.IsFloodgate()) return 9000;
+                        if (c.IsMonster())
+                        {
+                            int score = 5000 + c.Attack;
+                            if (c.IsFaceup() && !c.IsDisabled() && c.HasType(CardType.Effect)) score += 2000;
+                            return score;
+                        }
+                        if (c.IsSpell() || c.IsTrap())
+                        {
+                            return c.IsFaceup() ? 4000 : 2000;
+                        }
+                        return 1000;
+                    }).ToList();
+                    return sorted.Take(max).ToList();
+                }
+
+                // Junordo destroying itself
+                var junordo = cards.FirstOrDefault(c => c != null && c.IsCode(CardId.PowerPatronShadowSpiritJunordo));
+                if (junordo != null) return new[] { junordo };
+            }
+
+            // ── Hint 509: Special Summon / Revival selection (HINTMSG_SPSUMMON) ──
+            // CRITICAL FIX: Invert boss scoring to prioritize Ace Bosses!
+            if (hint == 509)
             {
                 var sorted = cards.OrderByDescending(c => {
                     if (c == null) return -999;
-                    int score = (c.Controller == 1) ? 10000 : 0;
-                    if (c.IsMonster())
-                    {
-                        if (c.IsFaceup() && !c.IsDisabled())
-                        {
-                            if (c.Attack >= 2500 && c.HasType(CardType.Effect)) return score + 5000;
-                        }
-                        return score + c.Attack;
-                    }
-                    else if (c.IsSpell() || c.IsTrap())
-                    {
-                        if (c.IsFaceup()) return score + 2000;
-                        return score + 100;
-                    }
-                    return score;
+                    int score = (c.Controller == 0) ? 1000 : 500;
+                    if (IsAceCard(c)) score += 5000;
+                    if (c.IsCode(CardId.BaronneDeFleur, CardId.MirrorjadeTheIcebladeDragon, CardId.PsychicEndPunisher, CardId.JunoraThePowerPatronOfTuning)) score += 3000;
+                    if (c.IsCode(CardId.ElfnoteRegina, CardId.ElfnotePowerPatron, CardId.MediusThePure)) score += 2000;
+                    if (c.IsCode(CardId.IncredibleEcclesiaTheVirtuous, CardId.FallenOfAlbaz)) score += 1500;
+                    return score + c.Attack;
                 }).ToList();
                 return sorted.Take(max).ToList();
             }
 
-            // 3. Special Summon / Revival selection (hint 509)
-            if (hint == 509)
-            {
-                var sorted = cards.OrderBy(c => {
-                    if (c == null) return 999;
-                    int controllerScore = (c.Controller == 0) ? 0 : 1000;
-                    int bossScore = IsAceCard(c) ? 100 : 0;
-                    return controllerScore + bossScore;
-                }).ToList();
-                return sorted.Take(max).ToList();
-            }
-
-            // 4. Attack target selection (hint 549)
+            // ── Hint 549: Attack target selection ──
             if (hint == 549)
             {
                 int ourBestAtk = Bot.GetMonsters()
@@ -2081,36 +2130,37 @@ namespace WindBot.Game.AI.Decks
                 if (validTargets.Count >= min) return validTargets.Take(max).ToList();
             }
 
-            // 5. Bystial Magnamhut summon cost (or other banish costs)
-            if (Card != null && (Card.Id == CardId.BystialMagnamhut || Card.Id == CardId.FallenOfTheWhiteDragon))
+            // ── Hint 503: Banish target selection (HINTMSG_REMOVE) ──
+            if (hint == 503)
             {
-                var sorted = cards.OrderBy(c => {
-                    if (c == null) return 999;
-                    if (c.Controller == 1) return 1; // Banish opponent's cards first
-                    if (c.Location == CardLocation.Grave)
-                    {
-                        if (IsAceCard(c)) return 100;
-                        if (c.Id == CardId.FallenOfAlbaz || c.Id == CardId.IncredibleEcclesiaTheVirtuous) return 80;
-                        return 10; // Discard/banish non-essential GY cards
-                    }
-                    return 200;
+                var opponentTargets = cards.Where(c => c != null && c.Controller == 1 && IsViableEffectTarget(c)).ToList();
+                if (opponentTargets.Count >= min)
+                {
+                    var sorted = opponentTargets.OrderByDescending(c => {
+                        if (c.IsCode(CardId.BlueEyesChaosMAXDragon)) return 10000;
+                        if (c.IsCode(CardId.DarkMagicianTheDragonKnight)) return 9500;
+                        if (c.IsCode(CardId.EternalSoul)) return 9000;
+                        return 5000 + c.Attack;
+                    }).ToList();
+                    return sorted.Take(max).ToList();
+                }
+
+                // Banishing from GY for costs (Bystial or Albion)
+                var ourSafeCost = cards.Where(c => c != null && c.Controller == 0 && !IsAceCard(c)).OrderBy(c => {
+                    if (c.Location == CardLocation.Grave) return 10;
+                    if (c.Location == CardLocation.Hand) return 50;
+                    return 100;
                 }).ToList();
-                return sorted.Take(max).ToList();
+                if (ourSafeCost.Count >= min)
+                    return ourSafeCost.Take(max).ToList();
             }
 
-            // Protect our Ace cards from generic selections
-            if (cards.Any(c => c != null && c.Controller == 0 && c.Location == CardLocation.MonsterZone && IsAceCard(c)))
-            {
-                var safeCards = cards.Where(c => c == null || c.Controller != 0 || c.Location != CardLocation.MonsterZone || !IsAceCard(c)).ToList();
-                if (safeCards.Count >= min)
-                    return safeCards.Take(max).ToList();
-            }
-
-            // 6. Negate target selection (hint 575 = HINTMSG_NEGATE)
+            // ── Hint 575: Negate target selection (HINTMSG_NEGATE) ──
+            // CRITICAL FIX: NEVER target own monsters
             if (hint == 575)
             {
                 var opponentCards = cards.Where(c => c != null && c.Controller == 1 && c.IsFaceup() && !c.IsDisabled() && !IsUnaffectedByEffects(c)).ToList();
-                if (opponentCards.Count > 0)
+                if (opponentCards.Count >= min)
                 {
                     var sorted = opponentCards.OrderBy(c => {
                         if (c.IsCode(CardId.EternalSoul)) return 0;
@@ -2119,29 +2169,28 @@ namespace WindBot.Game.AI.Decks
                         if (c.IsCode(CardId.DarkMagicianTheDragonKnight)) return 3;
                         if (c.IsCode(CardId.AzureEyesSilverDragon)) return 4;
                         if (c.IsCode(CardId.BlueEyesChaosMAXDragon)) return 5;
-                        if (c.IsSpell() || c.IsTrap()) return 6;
-                        return 7;
+                        if (c.IsFloodgate()) return 6;
+                        if (c.IsSpell() || c.IsTrap()) return 7;
+                        return 8;
                     }).ToList();
                     return sorted.Take(max).ToList();
                 }
 
-                var ourCards = cards.Where(c => c != null && c.Controller == 0 && c.IsFaceup()).ToList();
-                if (ourCards.Count > 0)
-                {
-                    var sortedOur = ourCards.OrderBy(c => {
-                        if (c.IsSpell() || c.IsTrap()) return 0;
-                        if (c.IsCode(CardId.ElfnotePowerPatron, CardId.MediusThePure)) return 1;
-                        return 2;
-                    }).ToList();
-                    return sortedOur.Take(max).ToList();
-                }
+                // If cancelable and no opponent targets, do not self-negate!
+                if (cancelable)
+                    return new List<ClientCard>();
+
+                // Forced selection: target continuous spell/trap before any monster
+                var ourSpells = cards.Where(c => c != null && c.Controller == 0 && (c.IsSpell() || c.IsTrap())).ToList();
+                if (ourSpells.Count >= min)
+                    return ourSpells.Take(max).ToList();
             }
 
-            // 7. Bounce target selection (hint 505 = HINTMSG_RTOHAND)
+            // ── Hint 505: Bounce target selection (HINTMSG_RTOHAND) ──
             if (hint == 505)
             {
                 var opponentMonsters = cards.Where(c => c != null && c.Controller == 1 && c.IsFaceup() && !IsUnaffectedByEffects(c)).ToList();
-                if (opponentMonsters.Count > 0)
+                if (opponentMonsters.Count >= min)
                 {
                     var sorted = opponentMonsters.OrderByDescending(c => {
                         if (c.IsCode(CardId.BlueEyesChaosMAXDragon)) return 9999;
@@ -2152,21 +2201,25 @@ namespace WindBot.Game.AI.Decks
                     return sorted.Take(max).ToList();
                 }
 
-                var ourMonsters = cards.Where(c => c != null && c.Controller == 0 && c.IsFaceup()).ToList();
-                if (ourMonsters.Count > 0)
+                var ourMonsters = cards.Where(c => c != null && c.Controller == 0 && c.IsFaceup() && !IsAceCard(c)).ToList();
+                if (ourMonsters.Count >= min)
                 {
                     var sortedOur = ourMonsters.OrderBy(c => {
                         if (c.IsCode(CardId.IncredibleEcclesiaTheVirtuous)) return 0;
                         if (c.IsCode(CardId.FallenOfAlbaz)) return 1;
-                        if (c.IsCode(CardId.MediusThePure, CardId.ElfnotePowerPatron)) return 2;
-                        if (IsAceCard(c)) return 100;
                         return 10;
                     }).ToList();
                     return sortedOur.Take(max).ToList();
                 }
             }
 
-            if (Card == null) return base.OnSelectCard(cards, min, max, hint, cancelable);
+            // Protect our Ace cards from generic selections
+            if (cards.Any(c => c != null && c.Controller == 0 && c.Location == CardLocation.MonsterZone && IsAceCard(c)))
+            {
+                var safeCards = cards.Where(c => c == null || c.Controller != 0 || c.Location != CardLocation.MonsterZone || !IsAceCard(c)).ToList();
+                if (safeCards.Count >= min)
+                    return safeCards.Take(max).ToList();
+            }
 
             return base.OnSelectCard(cards, min, max, hint, cancelable);
         }
@@ -2223,10 +2276,8 @@ namespace WindBot.Game.AI.Decks
             // If we have PEP on field and PEP's effect immunity is active (our LP <= opponent's LP)
             if (Bot.HasInMonstersZone(CardId.PsychicEndPunisher) && Bot.LifePoints <= Enemy.LifePoints)
             {
-                // If we can OTK, don't hold back!
-                if (CanOTK()) return false;
+                if (CanOTK() || HasLethalOnBoard()) return false;
 
-                // Calculate damage from this attack
                 int damage = 0;
                 if (defender == null)
                 {
@@ -2237,17 +2288,14 @@ namespace WindBot.Game.AI.Decks
                     damage = Math.Max(0, attacker.Attack - defender.Attack);
                 }
 
-                // If this attack would make opponent's LP lower than ours (breaking PEP's immunity)
+                // If this attack would break PEP's LP immunity without killing opponent
                 if (Enemy.LifePoints - damage < Bot.LifePoints)
                 {
-                    // If defender is a threat we are destroying by battle, it is fine to proceed
                     if (defender != null && (defender.Attack >= 2500 || 
                         defender.IsCode(CardId.BlueEyesChaosMAXDragon, CardId.DarkMagicianTheDragonKnight, CardId.AlternativeWhiteDragon)))
                     {
                         return false;
                     }
-                    
-                    // Otherwise, hold the attack to preserve PEP's immunity!
                     return true;
                 }
             }
@@ -2269,19 +2317,16 @@ namespace WindBot.Game.AI.Decks
             {
                 if (c == null || !c.IsFaceup() || c.IsDisabled()) continue;
 
-                // Crystal Wing Synchro Dragon (only negates level 5+ monster effects on the field)
                 if (c.IsCode(50954680) && ourCard != null && ourCard.Location == CardLocation.MonsterZone && ourCard.Level >= 5 && ourCard.IsMonster())
                 {
                     return true;
                 }
 
-                // Baronne de Fleur (negates any activation)
                 if (c.IsCode(CardId.BaronneDeFleur))
                 {
                     return true;
                 }
 
-                // Apollousa, Bow of the Goddess (negates any monster effect activation)
                 if (c.IsCode(42815418) && c.Attack >= 800 && ourCard != null && ourCard.IsMonster())
                 {
                     return true;
@@ -2295,7 +2340,6 @@ namespace WindBot.Game.AI.Decks
             // Despian Luluwalilith negation prompt: (53971455 << 4) + 2 = 863543282
             if (desc == ((long)CardId.DespianLuluwalilith << 4) + 2)
             {
-                // Only negate if opponent has a negatable face-up card on field
                 bool opponentHasNegatable = Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsDisabled() && !IsUnaffectedByEffects(c)) ||
                                             Enemy.GetSpells().Any(c => c != null && c.IsFaceup() && !c.IsDisabled());
                 return opponentHasNegatable;
@@ -2316,22 +2360,101 @@ namespace WindBot.Game.AI.Decks
 
         private bool DespianLuluwalilithEffect()
         {
+            if (Card == null) return false;
+            // On field: Negate 1 face-up card on field
+            if (Card.Location == CardLocation.MonsterZone)
+            {
+                var target = Enemy.GetMonsters().Concat(Enemy.GetSpells())
+                    .FirstOrDefault(c => c != null && c.IsFaceup() && !c.IsDisabled() && IsViableEffectTarget(c));
+                if (target != null)
+                {
+                    AI.SelectCard(target);
+                    return true;
+                }
+                return true; // Still activate for the +500 ATK boost
+            }
+            // End Phase GY effect: Special Summon LIGHT Spellcaster (ATK == DEF)
+            if (Card.Location == CardLocation.Grave)
+            {
+                AI.SelectCard(new[] {
+                    CardId.IncredibleEcclesiaTheVirtuous,
+                    CardId.MediusThePure,
+                    CardId.EffectVeiler
+                });
+                AI.SelectPosition(CardPosition.FaceUpDefence);
+                return true;
+            }
             return true;
         }
 
         private bool JunoraEffect()
         {
+            if (OpponentHasActiveNegator(Card)) return false;
+            if (EnemyHasKnownNegate()) return false;
+
+            // Target opponent monster to steal if available
+            var enemyMonsters = Enemy.GetMonsters().Where(c => c != null && c.IsFaceup() && IsViableEffectTarget(c)).ToList();
+            if (enemyMonsters.Count > 0)
+            {
+                ClientCard stealTarget = enemyMonsters.OrderByDescending(c => c.Attack).FirstOrDefault();
+                if (stealTarget != null)
+                {
+                    AI.SelectCard(stealTarget);
+                    AI.SelectNextCard(new[] {
+                        CardId.ElfnotePowerPatron,
+                        CardId.PowerPatronShadowSpiritJunordo
+                    });
+                    return true;
+                }
+            }
+
+            // Search effect: Add Power Patron from Deck to hand
+            AI.SelectCard(new[] {
+                CardId.ElfnotePowerPatron,
+                CardId.PowerPatronShadowSpiritJunordo
+            });
             return true;
         }
 
         private bool TheDragonThatDevoursTheDogmaEffect()
         {
-            return Duel.Player == 0 && (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Main2);
+            if (Card == null) return false;
+            // End Phase GY search for Dogmatika card
+            if (Card.Location == CardLocation.Grave)
+            {
+                AI.SelectCard(CardId.TheFallenAndTheVirtuous);
+                return true;
+            }
+            // On summon: shuffle up to 2 cards from GY/banished
+            if (Card.Location == CardLocation.MonsterZone)
+            {
+                var oppGY = Enemy.Graveyard.Where(c => c != null && c.IsMonster()).OrderByDescending(c => c.Attack).Take(2).ToList();
+                if (oppGY.Count > 0)
+                {
+                    AI.SelectCard(oppGY);
+                    return true;
+                }
+                var botGY = Bot.Graveyard.Where(c => c != null && IsAceCard(c)).Take(2).ToList();
+                if (botGY.Count > 0)
+                {
+                    AI.SelectCard(botGY);
+                    return true;
+                }
+                return true;
+            }
+            return true;
         }
 
         private bool SprindEffect()
         {
             if (Card == null) return false;
+            // End Phase GY effect:
+            if (Card.Location == CardLocation.Grave)
+            {
+                AI.SelectCard(CardId.FallenOfAlbaz);
+                AI.SelectPosition(CardPosition.FaceUpDefence);
+                return true;
+            }
             if (Card.Location != CardLocation.MonsterZone) return true;
 
             int botCol = GetCardColumn(Card);
@@ -2342,7 +2465,6 @@ namespace WindBot.Game.AI.Decks
         }
 
         // Map a card's Sequence to a physical column index (0..4) from Bot's perspective.
-        // Returns -1 for cards outside Monster/Spell zones (or unsupported sequences).
         private static int GetCardColumn(ClientCard c)
         {
             if (c == null) return -1;
@@ -2351,8 +2473,8 @@ namespace WindBot.Game.AI.Decks
             if (c.Location == CardLocation.MonsterZone)
             {
                 if (seq >= 0 && seq <= 4) return isBot ? seq : (4 - seq);
-                if (seq == 5) return isBot ? 1 : 3; // Extra Monster Zone (left from owner's POV)
-                if (seq == 6) return isBot ? 3 : 1; // Extra Monster Zone (right from owner's POV)
+                if (seq == 5) return isBot ? 1 : 3;
+                if (seq == 6) return isBot ? 3 : 1;
             }
             else if (c.Location == CardLocation.SpellZone)
             {

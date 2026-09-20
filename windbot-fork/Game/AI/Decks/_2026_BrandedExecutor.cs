@@ -1,27 +1,42 @@
-// ============================================================
-// CARD AUDIT — 2026_Branded
-// | Card Name                     | Type      | OPT? | Effect                                      | Activate When               | NEVER When            |
-// |-------------------------------|-----------|------|---------------------------------------------|-----------------------------|-----------------------|
-// | Branded Fusion                | Normal Sp | HOPT | Fusion from Deck using Albaz + LIGHT/DARK   | Main Phase starter combo    | Extra Deck locked     |
-// | Aluber the Jester of Despia   | Effect Mn | HOPT | Search Branded S/T / GY negate & SS         | NS/SS to search; GY trigger | Effect negated        |
-// | Fallen of the White Dragon    | Effect Mn | HOPT | Send Albaz ED -> SS self; SS Ecclesia       | Hand starter; field trigger | SS locked             |
-// | Guiding Quem the Virtuous     | Tuner Lv4 | HOPT | Dump Albaz/support; SS from GY on ED exit   | NS/SS starter; ED trigger   | SS locked             |
-// | Blazing Cartesia the Virtuous | Tuner Lv4 | HOPT | SS if Albaz in field/GY; Quick Fusion       | Main Phase / opponent turn  | Board saturated       |
-// | Incredible Ecclesia           | Tuner Lv4 | HOPT | SS if opp controls more; tribute -> Albaz   | SS / Synchro material       | Self-harm tribute     |
-// | Tri-Brigade Springans Kitt    | Effect Mn | HOPT | GY send trigger: SS Albaz/mention from GY   | Sent to GY from Hand/Deck/ED| No targets in GY      |
-// | The Golden Swordsoul          | Tuner Lv4 | HOPT | Attack negate & pop; Banished -> SS LIGHT Sp| Opponent attack / Banish trg| Bad timing            |
-// | Tri-Brigade Mercourier        | Effect Mn | HOPT | Handtrap monster negate; Banished -> Search | Opponent monster eff; Banish| No Albaz fusion ctrl  |
-// | Albion the Shrouded Dragon    | Effect Mn | HOPT | Dump Branded S/T or Albaz -> draw 1 card    | Hand/GY setup               | Main Phase only       |
-// | Nadir Servant                 | Normal Sp | HOPT | Send ED -> Search Dogmatika/Albaz; ED lock  | Hand starter / extender     | Before fusion plays   |
-// | Branded in High Spirits       | Quick-Play| HOPT | Reveal matching type -> send Lv8 ED & search| Hand starter / setup        | Invalid reveal target |
-// | The Fallen & The Virtuous     | Quick-Play| HOPT | Destroy 1 face-up (send ED) / Revive from GY| Opponent threat / Turn 1 SS | Invalid target        |
-// | Super Polymerization          | Quick-Play| None | Unbreakable fusion using field monsters     | Opponent board break / push | Missing discard cost  |
-// | Mirrorjade the Iceblade Dragon| Fusion Lv8| SOPT | Quick non-target banish (cost ED); Wipe     | Priority disruption         | Board clear           |
-// | The Dragon That Devours Dogma | Fusion Lv8| HOPT | Tower if Ecclesia; Shuffle GY; Search Merc  | Priority boss / Disruption  | SS locked             |
-// | Ecclesia and the Dark Dragon  | SynchroLv8| HOPT | Quick banish -> SS Albaz from Deck/GY; Recyc| Opponent Main Phase tag-out | Non-Tuner missing     |
-// | Granguignol the Dusk Dragon   | Fusion Lv8| HOPT | Send Lv6+ LIGHT/DARK from ED/Deck; Tag-out  | Fusion setup / Tag Luluwa   | Missing material      |
-// | Despian Luluwalilith          | Synchro 12| HOPT | 3000 ATK; ED exit -> Negate face-up; End SS| Tagged by Granguignol / Boss| Unsummonable          |
-// ============================================================
+// ====================================================================================
+// CARD AUDIT — 2026_Branded (Branded Despia Dogmatika Bystial Fusion Midrange)
+// ====================================================================================
+// Card Name                            | Type       | OPT? | HOPT? | Effect Summary
+// -------------------------------------|------------|------|-------|---------------------------------------------------
+// Branded Fusion                       | Normal Sp  | Yes  | Yes   | Fusion from Deck using Albaz + LIGHT/DARK
+// Aluber the Jester of Despia          | Effect Mn  | Yes  | Yes   | On NS/SS: Search Branded S/T / GY negate & SS
+// Fallen of the White Dragon           | Effect Mn  | Yes  | Yes   | Send Albaz ED -> SS self; SS Ecclesia from Deck/GY
+// Guiding Quem the Virtuous            | Tuner Lv4  | Yes  | Yes   | NS/SS: Dump Albaz/support; SS from GY on ED exit
+// Blazing Cartesia the Virtuous        | Tuner Lv4  | Yes  | Yes   | SS if Albaz in field/GY; Quick Fusion in MP
+// Incredible Ecclesia the Virtuous     | Tuner Lv4  | Yes  | Yes   | SS if opp controls more; tribute -> Albaz; EP recycle
+// The Golden Swordsoul                 | Tuner Lv4  | Yes  | Yes   | Attack negate & pop; Banished -> SS LIGHT Spellcaster
+// Tri-Brigade Springans Kitt           | Effect Mn  | Yes  | Yes   | SS if Tri/Springans; Sent to GY -> Revive Albaz/mention
+// Tri-Brigade Mercourier               | Effect Mn  | Yes  | Yes   | Handtrap monster negate; Banished -> Search Albaz/mention
+// Albion the Shrouded Dragon           | Effect Mn  | Yes  | Yes   | Dump Branded S/T or Albaz -> draw 1 card
+// Mulcharmy Fuwalos                    | HandTrap   | Yes  | Yes   | Discard if 0 cards controlled: Draw on opp ED/Deck SS
+// Ash Blossom & Joyous Spring          | HandTrap   | Yes  | Yes   | Negate deck search / dump / SS from deck
+// Bystial Magnamhut                    | Effect Mn  | Yes  | Yes   | Banish LIGHT/DARK from GY -> SS self; EP search Dragon
+// Nadir Servant                        | Normal Sp  | Yes  | Yes   | Send ED -> Search Dogmatika/Albaz; ED lock for rest of turn
+// Branded in High Spirits              | Quick-Play | Yes  | Yes   | Reveal matching type -> send Lv8 ED & search; EP recycle
+// The Fallen & The Virtuous            | Quick-Play | Yes  | Yes   | Send ED -> Destroy 1 face-up / Revive from GY if Ecclesia
+// Forbidden Droplet                    | Quick-Play | No   | No    | Send cards -> Negate & halve ATK of opp monsters
+// Super Polymerization                 | Quick-Play | No   | No    | Discard 1 -> Unbreakable fusion using field monsters
+// Triple Tactics Talent                | Normal Sp  | Yes  | Yes   | If opp used monster eff in MP: Draw 2 / Steal / Hand shuffle
+// Gold Sarcophagus                     | Normal Sp  | No   | No    | Banish 1 card from Deck (Triggers Mercourier!)
+// Branded Retribution                  | Counter Tr | Yes  | Yes   | Return Fusion to ED -> Negate SS eff / GY: Banish to add Branded S/T
+// Mirrorjade the Iceblade Dragon       | Fusion Lv8 | Yes  | No    | Quick non-target banish (cost ED); End Phase wipe if leaves
+// The Dragon that Devours the Dogma    | Fusion Lv8 | Yes  | Yes   | Unaffected Tower if Ecclesia; Shuffle GY/banished; EP search
+// Ecclesia and the Dark Dragon         | Synchro Lv8| Yes  | Yes   | Quick banish -> SS Albaz/mention; GY: Shuffle & bounce
+// Granguignol the Dusk Dragon          | Fusion Lv8 | Yes  | Yes   | On Fusion: Send Lv6+ LIGHT/DARK from ED/Deck; Tag Luluwa
+// Despian Luluwalilith                 | Synchro 12 | Yes  | Yes   | ED exit -> +500 ATK & Negate face-up; EP float Quem/Cartesia
+// Albion the Branded Dragon            | Fusion Lv8 | Yes  | Yes   | On Fusion: Banish materials to fuse; EP search/set Branded
+// Lubellion the Searing Dragon         | Fusion Lv8 | Yes  | Yes   | On Fusion: Discard 1 -> Shuffle materials to fuse
+// Rindbrumm the Striking Dragon        | Fusion Lv8 | Yes  | Yes   | Quick negate ED monster & bounce; Opp turn GY revive Albaz
+// Titaniklad the Ash Dragon            | Fusion Lv8 | Yes  | Yes   | High ATK; EP GY search/SS Quem or Albaz
+// Garura, Wings of Resonant Life       | Fusion Lv6 | Yes  | Yes   | Super Poly target; Draw 1 when sent to GY
+// Mudragon of the Swamp                | Fusion Lv4 | No   | No    | Super Poly target; Attribute protection
+// PSY-Framelord Omega                  | Synchro Lv8| Yes  | No    | Banish opp hand card; Standby recycle; GY recycle
+// ====================================================================================
 
 using System;
 using System.Collections.Generic;
@@ -63,8 +78,6 @@ namespace WindBot.Game.AI.Decks
             public const int TripleTacticsTalent = 25311006;
             public const int GoldSarcophagus = 75500286;
             public const int BrandedRetribution = 17751597;
-            public const int BrandedSword = 81767888;
-            public const int CalledByTheGrave = 24224830;
 
             // Extra Deck
             public const int AlbionTheBrandedDragon = 87746184;
@@ -79,21 +92,18 @@ namespace WindBot.Game.AI.Decks
             public const int PSYFramelordOmega = 74586817;
             public const int DespianLuluwalilith = 53971455;
             public const int EcclesiaAndTheDarkDragon = 78397661;
-            public const int DespianQuaeritis = 72272462;
-            public const int AlbaLenatusTheAbyssDragon = 3410461;
-            public const int BorreloadFuriousDragon = 92892239;
 
-            // Side Deck Handtraps & Board Breakers
-            public const int GhostSisterAndSpookyDogwood = 29726552;
+            // Side Deck (Accurate card IDs from 2026_Branded.ydk & cards.cdb)
+            public const int KumongousTheStickyStringKaiju = 29726552;
             public const int DrollAndLockBird = 94145021;
             public const int HarpiesFeatherDuster = 18144507;
             public const int LightningStorm = 14532163;
             public const int Raigeki = 12580477;
-            public const int DimensionalBarrier = 33017964;
-            public const int CosmicCyclone = 35269904;
-            public const int RedReboot = 41420027;
+            public const int IllusionGate = 33017964;
+            public const int TripleTacticsThrust = 35269904;
+            public const int SolemnJudgment = 41420027;
 
-            // Threat / Floodgate card references
+            // Known Enemy Floodgate / Threat card IDs
             public const int EternalSoul = 48680970;
             public const int DarkMagicalCircle = 47222536;
             public const int DarkMagicianDragonKnight = 41721210;
@@ -109,14 +119,34 @@ namespace WindBot.Game.AI.Decks
             public const int BBusterDrake = 77411244;
             public const int UnionDriver = 99249638;
             public const int GalaxySoldier = 46659709;
-            public const int MaxxC = 23434538;
-            public const int PotOfDesires = 35261759;
-            public const int PotOfExtravagance = 72426662;
             public const int ImperialOrder = 61740673;
             public const int AntiSpellFragrance = 58921041;
             public const int NaturiaBeast = 33198837;
             public const int SkillDrain = 82732705;
         }
+
+        // Standard OCGCore Hint Message IDs
+        private const long HINTMSG_RELEASE = 500;
+        private const long HINTMSG_DISCARD = 501;
+        private const long HINTMSG_DESTROY = 502;
+        private const long HINTMSG_REMOVE = 503;
+        private const long HINTMSG_REMOVE_ALT = 504;
+        private const long HINTMSG_RTOHAND = 505;
+        private const long HINTMSG_ATOHAND = 506;
+        private const long HINTMSG_TODECK = 506;
+        private const long HINTMSG_EQUIP = 507;
+        private const long HINTMSG_TOGRAVE = 508;
+        private const long HINTMSG_SPSUMMON = 509;
+        private const long HINTMSG_FMATERIAL = 511;
+        private const long HINTMSG_SMATERIAL = 512;
+        private const long HINTMSG_XMATERIAL = 513;
+        private const long HINTMSG_POSCHANGE = 518;
+        private const long HINTMSG_CONTROL = 519;
+        private const long HINTMSG_LMATERIAL = 533;
+        private const long HINTMSG_TARGET = 551;
+        private const long HINTMSG_DISABLE = 552;
+        private const long HINTMSG_NEGATE = 572;
+        private const long HINTMSG_FACEUP = 575;
 
         private static readonly int[] HighThreatChokepoints = {
             CardId.AltergeistMultifaker,
@@ -134,9 +164,7 @@ namespace WindBot.Game.AI.Decks
             CardId.DarkMagicalCircle,
             CardId.DarkMagicianDragonKnight,
             CardId.SkillDrain,
-            CardId.MaxxC,
-            CardId.PotOfDesires,
-            CardId.PotOfExtravagance,
+            CardId.SecretVillageOfSpellcasters,
             71039903, // White Stone of Ancients
             79814787, // White Stone of Legend
             8240199,  // Sage with Eyes of Blue
@@ -288,8 +316,7 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.Activate, CardId.DrollAndLockBird, DrollAndLockBirdEffect);
             AddExecutor(ExecutorType.Activate, CardId.TriBrigadeMercourier, TriBrigadeMercourierEffect);
             AddExecutor(ExecutorType.Activate, CardId.TheGoldenSwordsoul, TheGoldenSwordsoulEffect);
-            AddExecutor(ExecutorType.Activate, CardId.CalledByTheGrave, CalledByTheGraveEffect);
-            AddExecutor(ExecutorType.Activate, CardId.GhostSisterAndSpookyDogwood, GhostSisterEffect);
+            AddExecutor(ExecutorType.Activate, CardId.SolemnJudgment, SolemnJudgmentEffect);
 
             // ==========================================
             // PRIORITY 2: Quick Board Breakers & Spells
@@ -301,7 +328,6 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.Activate, CardId.LightningStorm, LightningStormEffect);
             AddExecutor(ExecutorType.Activate, CardId.Raigeki, RaigekiEffect);
             AddExecutor(ExecutorType.Activate, CardId.HarpiesFeatherDuster, DefaultHarpiesFeatherDusterFirst);
-            AddExecutor(ExecutorType.Activate, CardId.CosmicCyclone, CosmicCycloneEffect);
 
             // ==========================================
             // PRIORITY 3: Boss Quick Effects & Triggers
@@ -368,15 +394,11 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.SpSummon, CardId.GaruraWingsOfResonantLife, FusionSummonCheck);
             AddExecutor(ExecutorType.SpSummon, CardId.MudragonOfTheSwamp, FusionSummonCheck);
             AddExecutor(ExecutorType.SpSummon, CardId.TitanikladTheAshDragon, FusionSummonCheck);
-            AddExecutor(ExecutorType.SpSummon, CardId.AlbaLenatusTheAbyssDragon, FusionSummonCheck);
 
             // ==========================================
             // PRIORITY 8: Traps & Backrow Set
             // ==========================================
             AddExecutor(ExecutorType.Activate, CardId.BrandedRetribution, BrandedRetributionEffect);
-            AddExecutor(ExecutorType.Activate, CardId.BrandedSword, BrandedSwordEffect);
-            AddExecutor(ExecutorType.Activate, CardId.DimensionalBarrier, DimensionalBarrierEffect);
-            AddExecutor(ExecutorType.Activate, CardId.RedReboot, RedRebootEffect);
             AddExecutor(ExecutorType.SpellSet, SpellSetFiltered);
             AddExecutor(ExecutorType.Repos, MonsterRepos);
         }
@@ -410,6 +432,29 @@ namespace WindBot.Game.AI.Decks
         // Safety & Board State Checks
         // ==========================================
 
+        private bool HasLethalOnBoard()
+        {
+            if (Duel.Phase != DuelPhase.Main1 && Duel.Phase != DuelPhase.Main2) return false;
+            if (Enemy.GetMonsterCount() > 0)
+            {
+                int enemyDefAtk = Enemy.GetMonsters().Sum(m => m.IsAttack() ? m.Attack : m.Defense);
+                int botAtk = Bot.GetMonsters().Where(m => m.IsFaceup() && m.IsAttack()).Sum(m => m.Attack);
+                return (botAtk - enemyDefAtk) >= Enemy.LifePoints;
+            }
+            int totalAtk = Bot.GetMonsters().Where(m => m.IsFaceup() && m.IsAttack()).Sum(m => m.Attack);
+            return totalAtk >= Enemy.LifePoints;
+        }
+
+        private bool IsMaterialBossProtected(ClientCard card)
+        {
+            if (card == null) return false;
+            int id = card.Id;
+            return id == CardId.MirrorjadeTheIcebladeDragon ||
+                   id == CardId.TheDragonThatDevoursTheDogma ||
+                   id == CardId.DespianLuluwalilith ||
+                   id == CardId.EcclesiaAndTheDarkDragon;
+        }
+
         private bool IsTargetable(ClientCard card)
         {
             if (card == null) return false;
@@ -424,17 +469,20 @@ namespace WindBot.Game.AI.Decks
         private bool FusionSummonCheck()
         {
             if (IsExtraDeckLocked()) return false;
+            if (HasLethalOnBoard()) return false;
             return !IsSpecialSummonBlocked();
         }
 
         private bool SynchroSummonCheck()
         {
             if (IsExtraDeckLocked() || _brandedFusionUsed) return false;
+            if (HasLethalOnBoard()) return false;
             return !IsSpecialSummonBlocked();
         }
 
         protected override bool IsBoardStrongEnough()
         {
+            if (HasLethalOnBoard()) return true;
             if (BoardScore() >= 18) return true;
             if (Bot.HasInMonstersZone(CardId.MirrorjadeTheIcebladeDragon) && Bot.HasInMonstersZone(CardId.TheDragonThatDevoursTheDogma))
                 return true;
@@ -482,6 +530,7 @@ namespace WindBot.Game.AI.Decks
         private bool BrandedFusionEffect()
         {
             if (ShouldSkipCombo()) return false;
+            if (HasLethalOnBoard()) return false;
             if (AreSpellsNegatedOrDisabled()) return false;
             if (_brandedFusionUsed) return false;
             if (IsSpecialSummonBlocked()) return false;
@@ -489,12 +538,26 @@ namespace WindBot.Game.AI.Decks
             if (EnemyHasSpellNegator() && Bot.Hand.Any(c => c != null && c.IsCode(CardId.GoldSarcophagus, CardId.NadirServant)))
                 return false;
 
-            AI.SelectCard(new[] {
-                CardId.LubellionTheSearingDragon,
-                CardId.AlbionTheBrandedDragon,
-                CardId.TheDragonThatDevoursTheDogma,
-                CardId.RindbrummTheStrikingDragon
-            });
+            // Hand discard availability check: Lubellion requires discarding 1 card on summon!
+            // If hand count <= 1 (only Branded Fusion itself being played), summon Albion (no discard cost)!
+            int handAfterActivation = Bot.Hand.Count(c => c != null && !c.IsCode(CardId.BrandedFusion));
+            if (handAfterActivation == 0)
+            {
+                AI.SelectCard(new[] {
+                    CardId.AlbionTheBrandedDragon,
+                    CardId.TheDragonThatDevoursTheDogma,
+                    CardId.MirrorjadeTheIcebladeDragon
+                });
+            }
+            else
+            {
+                AI.SelectCard(new[] {
+                    CardId.LubellionTheSearingDragon,
+                    CardId.AlbionTheBrandedDragon,
+                    CardId.TheDragonThatDevoursTheDogma,
+                    CardId.RindbrummTheStrikingDragon
+                });
+            }
 
             _brandedFusionUsed = true;
             return true;
@@ -531,7 +594,7 @@ namespace WindBot.Game.AI.Decks
             // Option 0: Destroy 1 face-up card on field
             if (enemyFaceup != null && hasExtraSend)
             {
-                // Extra Deck send priority: Dogma Dragon (searches Mercourier) > Albion > Titaniklad > Rindbrumm
+                // Extra Deck send priority: Dogma Dragon (searches Mercourier in EP) > Albion > Titaniklad > Rindbrumm
                 AI.SelectCard(new[] {
                     CardId.TheDragonThatDevoursTheDogma,
                     CardId.AlbionTheBrandedDragon,
@@ -572,11 +635,12 @@ namespace WindBot.Game.AI.Decks
         private bool NadirServantEffect()
         {
             if (ShouldSkipCombo()) return false;
+            if (HasLethalOnBoard()) return false;
             if (AreSpellsNegatedOrDisabled()) return false;
             if (_nadirServantUsed) return false;
 
             // If we have Branded Fusion or Aluber in hand, execute fusion plays first before locking Extra Deck
-            bool canBrandedFusionFirst = !_brandedFusionUsed && Bot.Hand.Any(c => c.IsCode(CardId.BrandedFusion, CardId.AluberTheJesterOfDespia));
+            bool canBrandedFusionFirst = !_brandedFusionUsed && Bot.Hand.Any(c => c != null && c.IsCode(CardId.BrandedFusion, CardId.AluberTheJesterOfDespia));
             if (canBrandedFusionFirst) return false;
 
             AI.SelectCard(new[] {
@@ -599,6 +663,7 @@ namespace WindBot.Game.AI.Decks
         private bool BrandedInHighSpiritsEffect()
         {
             if (ShouldSkipCombo()) return false;
+            if (HasLethalOnBoard()) return false;
             if (AreSpellsNegatedOrDisabled()) return false;
             if (_brandedHighSpiritsUsed) return false;
 
@@ -651,6 +716,7 @@ namespace WindBot.Game.AI.Decks
         private bool GoldSarcophagusEffect()
         {
             if (ShouldSkipCombo()) return false;
+            if (HasLethalOnBoard()) return false;
             if (AreSpellsNegatedOrDisabled()) return false;
             if (_goldSarcUsed) return false;
 
@@ -710,12 +776,11 @@ namespace WindBot.Game.AI.Decks
             if (Bot.Hand.Count < requiredHand) return false;
 
             if (!CanSuperPoly()) return false;
-            if (Enemy.GetMonsterCount() == 0 && !CanDealLethal()) return false;
+            if (Enemy.GetMonsterCount() == 0 && !HasLethalOnBoard()) return false;
 
             AI.SelectCard(new[] {
                 CardId.TheGoldenSwordsoul,
                 CardId.BrandedRetribution,
-                CardId.BrandedSword,
                 CardId.TriBrigadeSpringansKitt,
                 CardId.TriBrigadeMercourier,
                 CardId.FallenOfAlbaz,
@@ -748,7 +813,6 @@ namespace WindBot.Game.AI.Decks
             AI.SelectCard(new[] {
                 CardId.TheGoldenSwordsoul,
                 CardId.BrandedRetribution,
-                CardId.BrandedSword,
                 CardId.TriBrigadeSpringansKitt,
                 CardId.TriBrigadeMercourier,
                 CardId.FallenOfAlbaz,
@@ -764,6 +828,10 @@ namespace WindBot.Game.AI.Decks
             if (Card.Location == CardLocation.SpellZone)
             {
                 if (Duel.LastChainPlayer != 1) return false;
+                // Require returning 2 Fusion monsters from GY (preferred) or 1 face-up from field
+                int fusionsInGy = Bot.Graveyard.Count(c => c != null && c.IsMonster() && c.HasType(CardType.Fusion));
+                bool hasFieldFusion = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.HasType(CardType.Fusion) && !IsMaterialBossProtected(c));
+                if (fusionsInGy < 2 && !hasFieldFusion) return false;
                 return true;
             }
             else if (Card.Location == CardLocation.Grave)
@@ -780,35 +848,28 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
-        private bool BrandedSwordEffect()
-        {
-            if (Card.Location == CardLocation.Grave)
-            {
-                int[] validRecycle = {
-                    CardId.FallenOfAlbaz,
-                    CardId.AluberTheJesterOfDespia,
-                    CardId.TriBrigadeMercourier,
-                    CardId.BlazingCartesiaTheVirtuous,
-                    CardId.GuidingQuemTheVirtuous,
-                    CardId.FallenOfTheWhiteDragon,
-                    CardId.IncredibleEcclesiaTheVirtuous
-                };
-                ClientCard target = Bot.Banished.FirstOrDefault(c => c != null && c.IsMonster() && validRecycle.Contains(c.Id));
-                if (target != null)
-                {
-                    AI.SelectCard(target);
-                    return true;
-                }
-            }
-            return false;
-        }
-
         private bool SpellSetFiltered()
         {
             if (Card == null) return false;
+
+            // Anti-Pattern 5: Never set handtraps!
+            if (Card.IsCode(CardId.AshBlossom, CardId.MulcharmyFuwalos, CardId.TriBrigadeMercourier, CardId.TheGoldenSwordsoul))
+                return false;
+
             if (Card.IsCode(CardId.BrandedFusion) && _brandedFusionUsed) return false;
 
-            if (Card.HasType(CardType.QuickPlay) || Card.HasType(CardType.Trap))
+            // Quick-Play Spells: Preserve in hand during MP1 going second to attack/break board freely
+            if (Card.HasType(CardType.QuickPlay))
+            {
+                if (Duel.Turn == 1 || Duel.Phase == DuelPhase.Main2)
+                {
+                    return DefaultSpellSet();
+                }
+                return false;
+            }
+
+            // Normal / Counter Traps: Set in MP2 or Turn 1
+            if (Card.HasType(CardType.Trap))
             {
                 if (Duel.Turn == 1 || Duel.Phase == DuelPhase.Main2)
                 {
@@ -833,7 +894,7 @@ namespace WindBot.Game.AI.Decks
             if (_mirrorjadeUsed) return false;
 
             // Mirrorjade banish does NOT target, so it bypasses targeting immunity
-            var oppMonsters = Enemy.GetMonsters().Where(c => c != null && c.IsFaceup()).ToList();
+            var oppMonsters = Enemy.GetMonsters().Where(c => c != null).ToList();
             if (oppMonsters.Count == 0) return false;
 
             ClientCard target = oppMonsters.FirstOrDefault(c => HighThreatChokepoints.Contains(c.Id) || c.IsFloodgate())
@@ -845,8 +906,8 @@ namespace WindBot.Game.AI.Decks
                 AI.SelectCard(new[] {
                     CardId.AlbionTheBrandedDragon,
                     CardId.TheDragonThatDevoursTheDogma,
-                    CardId.RindbrummTheStrikingDragon,
-                    CardId.TitanikladTheAshDragon
+                    CardId.TitanikladTheAshDragon,
+                    CardId.RindbrummTheStrikingDragon
                 });
 
                 AI.SelectNextCard(target);
@@ -861,21 +922,33 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location == CardLocation.MonsterZone)
             {
-                var oppTargets = Enemy.Graveyard.Concat(Enemy.Banished)
-                    .Where(c => c != null && (c.IsMonster() || c.IsCode(CardId.EternalSoul, CardId.DarkMagicalCircle)))
+                // On SS: Shuffle up to 2 cards from GY/banished into Deck (disrupt enemy chokepoints, or recycle own fusions)
+                var enemyThreatsInGy = Enemy.Graveyard.Concat(Enemy.Banished)
+                    .Where(c => c != null && (HighThreatChokepoints.Contains(c.Id) || c.IsMonster()))
                     .Take(2).ToList();
 
-                if (oppTargets.Count > 0)
+                if (enemyThreatsInGy.Count > 0)
                 {
-                    AI.SelectCard(oppTargets);
+                    AI.SelectCard(enemyThreatsInGy);
+                    return true;
+                }
+
+                var ownRecycle = Bot.Graveyard.Concat(Bot.Banished)
+                    .Where(c => c != null && c.IsCode(CardId.MirrorjadeTheIcebladeDragon, CardId.AlbionTheBrandedDragon, CardId.LubellionTheSearingDragon))
+                    .Take(2).ToList();
+
+                if (ownRecycle.Count > 0)
+                {
+                    AI.SelectCard(ownRecycle);
                     return true;
                 }
             }
             else if (Card.Location == CardLocation.Grave)
             {
+                // End Phase search: Tri-Brigade Mercourier (handtrap negate) > Springans Kitt
                 AI.SelectCard(new[] {
                     CardId.TriBrigadeMercourier,
-                    CardId.TheFallenAndTheVirtuous
+                    CardId.TriBrigadeSpringansKitt
                 });
                 return true;
             }
@@ -884,20 +957,21 @@ namespace WindBot.Game.AI.Decks
 
         private bool GranguignolTheDuskDragonEffect()
         {
-            int opt = (int)ActivateDescription;
-            if (Card.Location == CardLocation.MonsterZone && opt == 0)
+            if (Card.Location == CardLocation.MonsterZone && Card.IsFaceup())
             {
+                // On Fusion Summon: dump Lv6+ LIGHT/DARK from Deck/Extra Deck
                 AI.SelectCard(new[] {
                     CardId.DespianLuluwalilith,
                     CardId.TheDragonThatDevoursTheDogma,
-                    CardId.AlbionTheShroudedDragon,
-                    CardId.TitanikladTheAshDragon
+                    CardId.TitanikladTheAshDragon,
+                    CardId.AlbionTheShroudedDragon
                 });
                 return true;
             }
             else
             {
-                if (Duel.Player == 1)
+                // Tag-out trigger on opponent monster Special Summon: summon Luluwalilith from Extra Deck
+                if (Duel.Player == 1 || Bot.GetMonsterCount() < 5)
                 {
                     AI.SelectCard(CardId.DespianLuluwalilith);
                     AI.SelectPosition(CardPosition.FaceUpAttack);
@@ -918,9 +992,11 @@ namespace WindBot.Game.AI.Decks
                     AI.SelectCard(target);
                     return true;
                 }
+                return true; // Still activate for permanent +500 ATK buff across all monsters
             }
             else if (Card.Location == CardLocation.Grave)
             {
+                // End Phase float: SS LIGHT Spellcaster with ATK=DEF from Hand/Deck
                 AI.SelectCard(new[] {
                     CardId.GuidingQuemTheVirtuous,
                     CardId.BlazingCartesiaTheVirtuous,
@@ -959,8 +1035,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool EcclesiaAndTheDarkDragonEffect()
         {
-            int opt = (int)ActivateDescription;
-            if (opt == Util.GetStringId(CardId.EcclesiaAndTheDarkDragon, 0) || Card.Location == CardLocation.MonsterZone)
+            if (Card.Location == CardLocation.MonsterZone)
             {
                 if (Duel.Player == 1 || (Duel.Player == 0 && ShouldGoBreakBoard))
                 {
@@ -998,8 +1073,8 @@ namespace WindBot.Game.AI.Decks
             AI.SelectCard(new[] {
                 CardId.TheGoldenSwordsoul,
                 CardId.BrandedRetribution,
-                CardId.BrandedSword,
                 CardId.TriBrigadeSpringansKitt,
+                CardId.AlbionTheShroudedDragon,
                 CardId.TriBrigadeMercourier,
                 CardId.FallenOfTheWhiteDragon,
                 CardId.FallenOfAlbaz
@@ -1031,8 +1106,8 @@ namespace WindBot.Game.AI.Decks
             else if (Card.Location == CardLocation.Grave)
             {
                 AI.SelectCard(new[] {
-                    CardId.BrandedFusion,
                     CardId.TheFallenAndTheVirtuous,
+                    CardId.BrandedFusion,
                     CardId.BrandedRetribution,
                     CardId.BrandedInHighSpirits
                 });
@@ -1063,6 +1138,7 @@ namespace WindBot.Game.AI.Decks
         {
             if (_whiteDragonHandUsed) return false;
             if (IsSpecialSummonBlocked()) return false;
+            if (HasLethalOnBoard()) return false;
 
             AI.SelectCard(new[] {
                 CardId.TheDragonThatDevoursTheDogma,
@@ -1099,6 +1175,7 @@ namespace WindBot.Game.AI.Decks
             if (Card.Location == CardLocation.MonsterZone)
             {
                 if (_cartesiaUsed) return false;
+                if (HasLethalOnBoard()) return false;
 
                 AI.SelectCard(new[] {
                     CardId.GranguignolTheDuskDragon,
@@ -1111,7 +1188,7 @@ namespace WindBot.Game.AI.Decks
             }
             else if (Card.Location == CardLocation.Grave)
             {
-                return true;
+                return true; // Recycle to hand in End Phase
             }
             return false;
         }
@@ -1199,32 +1276,37 @@ namespace WindBot.Game.AI.Decks
                 CardId.BrandedFusion,
                 CardId.TheFallenAndTheVirtuous,
                 CardId.BrandedInHighSpirits,
-                CardId.BrandedRetribution,
-                CardId.BrandedSword
+                CardId.BrandedRetribution
             });
             return true;
         }
 
         private bool GuidingQuemTheVirtuousEffect()
         {
-            int opt = (int)ActivateDescription;
-            if (opt == Util.GetStringId(CardId.GuidingQuemTheVirtuous, 0) || Card.Location == CardLocation.MonsterZone)
+            if (Card.Location == CardLocation.MonsterZone && Card.IsFaceup())
             {
+                // On NS/SS: send Albaz or card mentioning Albaz from Deck to GY
                 AI.SelectCard(new[] {
                     CardId.AlbionTheShroudedDragon,
-                    CardId.BlazingCartesiaTheVirtuous,
                     CardId.FallenOfTheWhiteDragon,
+                    CardId.BlazingCartesiaTheVirtuous,
                     CardId.FallenOfAlbaz,
+                    CardId.BrandedRetribution,
                     CardId.IncredibleEcclesiaTheVirtuous
                 });
                 return true;
             }
             else
             {
+                // When card leaves Extra Deck: revive Albaz or card mentioning Albaz
                 AI.SelectCard(new[] {
+                    CardId.MirrorjadeTheIcebladeDragon,
+                    CardId.TheDragonThatDevoursTheDogma,
+                    CardId.DespianLuluwalilith,
+                    CardId.GranguignolTheDuskDragon,
                     CardId.BlazingCartesiaTheVirtuous,
-                    CardId.FallenOfAlbaz,
                     CardId.FallenOfTheWhiteDragon,
+                    CardId.FallenOfAlbaz,
                     CardId.IncredibleEcclesiaTheVirtuous,
                     CardId.TriBrigadeSpringansKitt
                 });
@@ -1241,7 +1323,6 @@ namespace WindBot.Game.AI.Decks
             AI.SelectCard(new[] {
                 CardId.TheGoldenSwordsoul,
                 CardId.BrandedRetribution,
-                CardId.BrandedSword,
                 CardId.TriBrigadeSpringansKitt,
                 CardId.TriBrigadeMercourier,
                 CardId.FallenOfTheWhiteDragon
@@ -1257,7 +1338,6 @@ namespace WindBot.Game.AI.Decks
             if (hasExtra || hasBeast) fusionPriority.Add(CardId.RindbrummTheStrikingDragon);
             if (hasLight) fusionPriority.Add(CardId.AlbionTheBrandedDragon);
             if (hasDark) fusionPriority.Add(CardId.LubellionTheSearingDragon);
-            if (hasDragon) fusionPriority.Add(CardId.AlbaLenatusTheAbyssDragon);
             fusionPriority.Add(CardId.MirrorjadeTheIcebladeDragon);
             fusionPriority.Add(CardId.TheDragonThatDevoursTheDogma);
             fusionPriority.Add(CardId.TitanikladTheAshDragon);
@@ -1346,6 +1426,7 @@ namespace WindBot.Game.AI.Decks
                     CardId.GuidingQuemTheVirtuous,
                     CardId.BlazingCartesiaTheVirtuous,
                     CardId.IncredibleEcclesiaTheVirtuous,
+                    CardId.TriBrigadeSpringansKitt,
                     CardId.FallenOfAlbaz
                 });
                 return true;
@@ -1360,23 +1441,27 @@ namespace WindBot.Game.AI.Decks
         private bool NormalSummonAluber()
         {
             if (ShouldSkipCombo()) return false;
+            if (HasLethalOnBoard()) return false;
             return NormalSummonPriorityCheck();
         }
 
         private bool NormalSummonQuem()
         {
             if (ShouldSkipCombo()) return false;
+            if (HasLethalOnBoard()) return false;
             return NormalSummonPriorityCheck();
         }
 
         private bool NormalSummonCartesia()
         {
             if (ShouldSkipCombo()) return false;
+            if (HasLethalOnBoard()) return false;
             return NormalSummonPriorityCheck();
         }
 
         private bool NormalSummonAlbaz()
         {
+            if (HasLethalOnBoard()) return false;
             bool oppHasMonsters = Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && IsTargetable(c));
             if (!oppHasMonsters && Bot.Hand.Count > 1) return false;
             return NormalSummonPriorityCheck();
@@ -1395,16 +1480,16 @@ namespace WindBot.Game.AI.Decks
         private bool EcclesiaAndTheDarkDragonSynchroSummonCheck()
         {
             if (!SynchroSummonCheck()) return false;
-            bool hasTuner = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.IsTuner() && c.Level == 4);
-            bool hasNonTuner = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsTuner() && c.Level == 4);
+            bool hasTuner = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.IsTuner() && c.Level == 4 && !IsMaterialBossProtected(c));
+            bool hasNonTuner = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsTuner() && c.Level == 4 && !IsMaterialBossProtected(c));
             return hasTuner && hasNonTuner;
         }
 
         private bool PSYFramelordOmegaSynchroSummonCheck()
         {
             if (!SynchroSummonCheck()) return false;
-            bool hasTuner = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.IsTuner() && c.Level == 4);
-            bool hasNonTuner = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsTuner() && c.Level == 4);
+            bool hasTuner = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.IsTuner() && c.Level == 4 && !IsMaterialBossProtected(c));
+            bool hasNonTuner = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsTuner() && c.Level == 4 && !IsMaterialBossProtected(c));
             return hasTuner && hasNonTuner;
         }
 
@@ -1417,17 +1502,6 @@ namespace WindBot.Game.AI.Decks
             if (_handTrapsUsedThisTurn >= 2) return false;
             if (Duel.Player != 1 || Bot.GetFieldCount() > 0) return false;
 
-            ClientCard lastChain = Util.GetLastChainCard();
-            if (lastChain == null || lastChain.Controller != 1) return false;
-
-            if (HighThreatChokepoints.Contains(lastChain.Id) || lastChain.HasType(CardType.Monster))
-            {
-                _handTrapsUsedThisTurn++;
-                return true;
-            }
-
-            if (!SmartHandTrapChain(HighThreatChokepoints)) return false;
-
             _handTrapsUsedThisTurn++;
             return true;
         }
@@ -1438,7 +1512,6 @@ namespace WindBot.Game.AI.Decks
             ClientCard lastChain = Util.GetLastChainCard();
             if (lastChain == null || lastChain.Controller != 1) return false;
 
-            // Direct must-negate override for critical opponent chokepoints
             if (HighThreatChokepoints.Contains(lastChain.Id))
             {
                 _handTrapsUsedThisTurn++;
@@ -1460,26 +1533,12 @@ namespace WindBot.Game.AI.Decks
             return canUse;
         }
 
-        private bool GhostSisterEffect()
+        private bool SolemnJudgmentEffect()
         {
-            if (!SmartHandTrapChain()) return false;
-            return Duel.Player == 1;
-        }
-
-        private bool CalledByTheGraveEffect()
-        {
-            if (AreSpellsNegatedOrDisabled()) return false;
+            if (Duel.LastChainPlayer != 1) return false;
             ClientCard lastChain = Util.GetLastChainCard();
-            if (Duel.LastChainPlayer == 1 && lastChain != null && lastChain.IsMonster())
-            {
-                ClientCard target = Enemy.Graveyard.FirstOrDefault(c => c != null && c.IsCode(lastChain.Id));
-                if (target != null)
-                {
-                    AI.SelectCard(target);
-                    return true;
-                }
-            }
-            return false;
+            if (lastChain == null) return true;
+            return lastChain.Controller == 1;
         }
 
         private bool TripleTacticsTalentEffect()
@@ -1489,7 +1548,7 @@ namespace WindBot.Game.AI.Decks
             if (_tttUsed) return false;
 
             bool canControl = Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && IsTargetable(c));
-            if (canControl && (CanDealLethal() || OpponentHasThreateningMonster()))
+            if (canControl && (HasLethalOnBoard() || OpponentHasThreateningMonster()))
             {
                 AI.SelectOption(1);
                 AI.SelectCard(Enemy.GetMonsters().Where(c => c != null && c.IsFaceup() && IsTargetable(c)).OrderByDescending(c => c.Attack).ToList());
@@ -1497,7 +1556,7 @@ namespace WindBot.Game.AI.Decks
                 return true;
             }
 
-            AI.SelectOption(0);
+            AI.SelectOption(0); // Default: Draw 2 cards
             _tttUsed = true;
             return true;
         }
@@ -1530,36 +1589,6 @@ namespace WindBot.Game.AI.Decks
         {
             if (AreSpellsNegatedOrDisabled()) return false;
             return Enemy.GetMonsterCount() >= 1;
-        }
-
-        private bool CosmicCycloneEffect()
-        {
-            if (AreSpellsNegatedOrDisabled()) return false;
-            var target = Enemy.GetSpells().FirstOrDefault(c => c != null && c.IsCode(CardId.EternalSoul, CardId.DarkMagicalCircle, CardId.AltergeistProtocol, CardId.PersonalSpoofing, CardId.SkillDrain))
-                ?? Enemy.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup() && IsTargetable(c))
-                ?? Enemy.GetSpells().FirstOrDefault(c => c != null && IsTargetable(c));
-            if (target != null)
-            {
-                AI.SelectCard(target);
-                return true;
-            }
-            return false;
-        }
-
-        private bool DimensionalBarrierEffect()
-        {
-            if (Duel.Player == 1)
-            {
-                AI.SelectOption(0);
-                return true;
-            }
-            return false;
-        }
-
-        private bool RedRebootEffect()
-        {
-            ClientCard lastChain = Util.GetLastChainCard();
-            return lastChain != null && lastChain.Controller == 1 && lastChain.IsTrap();
         }
 
         private bool MudragonOfTheSwampEffect()
@@ -1604,7 +1633,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool MonsterRepos()
         {
-            if (Card != null && IsAceCard(Card) && Card.IsDefense() && Duel.Phase == DuelPhase.Main1 && !CanDealLethal())
+            if (Card != null && IsAceCard(Card) && Card.IsDefense() && Duel.Phase == DuelPhase.Main1 && !HasLethalOnBoard())
                 return false;
             return DefaultMonsterRepos();
         }
@@ -1616,8 +1645,43 @@ namespace WindBot.Game.AI.Decks
         public override IList<ClientCard> OnSelectCard(
             IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
         {
-            // Safety & Target Priority Guard (Destruction / Banish / Bounce / Faceup / Target)
-            if (hint == 502 || hint == 503 || hint == 505 || hint == 551 || hint == 575)
+            if (cards == null || cards.Count == 0)
+                return base.OnSelectCard(cards, min, max, hint, cancelable);
+
+            // ── 1. Strict Hint 506 (HINTMSG_ATOHAND) Search Segregation ──
+            if (hint == HINTMSG_ATOHAND)
+            {
+                var deckOrGraveCandidates = cards.Where(c => c != null && c.Controller == 0).ToList();
+                if (deckOrGraveCandidates.Count >= min)
+                {
+                    var sorted = deckOrGraveCandidates.OrderBy(c => {
+                        // Spells & Traps
+                        if (c.IsCode(CardId.BrandedFusion)) return 1;
+                        if (c.IsCode(CardId.TheFallenAndTheVirtuous)) return 2;
+                        if (c.IsCode(CardId.BrandedInHighSpirits)) return 3;
+                        if (c.IsCode(CardId.BrandedRetribution)) return 4;
+
+                        // Key Monsters
+                        if (c.IsCode(CardId.FallenOfTheWhiteDragon)) return 10;
+                        if (c.IsCode(CardId.GuidingQuemTheVirtuous)) return 11;
+                        if (c.IsCode(CardId.BlazingCartesiaTheVirtuous)) return 12;
+                        if (c.IsCode(CardId.IncredibleEcclesiaTheVirtuous)) return 13;
+                        if (c.IsCode(CardId.TriBrigadeMercourier)) return 14;
+                        if (c.IsCode(CardId.TriBrigadeSpringansKitt)) return 15;
+                        if (c.IsCode(CardId.AlbionTheShroudedDragon)) return 16;
+                        if (c.IsCode(CardId.FallenOfAlbaz)) return 17;
+                        if (c.IsCode(CardId.AluberTheJesterOfDespia)) return 18;
+                        return 50;
+                    }).ToList();
+
+                    return sorted.Take(Math.Max(min, Math.Min(max, sorted.Count))).ToList();
+                }
+            }
+
+            // ── 2. Removal & Disruption: Strictly Restrict to Opponent Cards (c.Controller == 1) ──
+            if (hint == HINTMSG_DESTROY || hint == HINTMSG_REMOVE || hint == HINTMSG_REMOVE_ALT ||
+                hint == HINTMSG_RTOHAND || hint == HINTMSG_TARGET || hint == HINTMSG_DISABLE ||
+                hint == HINTMSG_NEGATE || hint == HINTMSG_FACEUP)
             {
                 var enemyCards = cards.Where(c => c != null && c.Controller == 1).ToList();
                 if (enemyCards.Count >= min)
@@ -1647,25 +1711,28 @@ namespace WindBot.Game.AI.Decks
                 }
             }
 
-            // HINTMSG_TOGRAVE / HINTMSG_DISCARD (501 / 504): Protect key starters from being discarded
-            if (hint == 501 || hint == 504)
+            // ── 3. Discard Selection: Prioritize GY Fodder and Protect Starters/Bosses ──
+            if (hint == HINTMSG_DISCARD)
             {
                 var candidates = cards.Where(c => !c.IsCode(CardId.BrandedFusion)).ToList();
                 if (candidates.Count >= min)
                 {
                     return candidates.OrderBy(c => {
                         if (c.IsCode(CardId.TheGoldenSwordsoul)) return 1;
-                        if (c.IsCode(CardId.BrandedRetribution) || c.IsCode(CardId.BrandedSword)) return 2;
+                        if (c.IsCode(CardId.BrandedRetribution)) return 2;
                         if (c.IsCode(CardId.TriBrigadeSpringansKitt)) return 3;
-                        if (c.IsCode(CardId.TriBrigadeMercourier)) return 4;
+                        if (c.IsCode(CardId.AlbionTheShroudedDragon)) return 4;
+                        if (c.IsCode(CardId.TriBrigadeMercourier)) return 5;
+                        if (c.IsCode(CardId.FallenOfTheWhiteDragon)) return 6;
+                        if (c.IsCode(CardId.FallenOfAlbaz)) return 7;
                         if (IsAceCard(c)) return 100;
                         return 10;
                     }).Take(max).ToList();
                 }
             }
 
-            // HINTMSG_TODECK (507): When shuffling fusion materials for Lubellion
-            if (hint == 507)
+            // ── 4. Shuffling to Deck (Lubellion the Searing Dragon) ──
+            if (Card != null && Card.IsCode(CardId.LubellionTheSearingDragon))
             {
                 var albazAndLubellion = cards.Where(c => c != null && c.IsCode(CardId.FallenOfAlbaz, CardId.LubellionTheSearingDragon)).ToList();
                 if (albazAndLubellion.Count >= min)
@@ -1674,8 +1741,42 @@ namespace WindBot.Game.AI.Decks
                 }
             }
 
-            // HINTMSG_FMATERIAL (533): Fusion materials
-            if (hint == 533)
+            // ── 5. Extra Deck & Deck Dumps (HINTMSG_TOGRAVE = 508) ──
+            if (hint == HINTMSG_TOGRAVE)
+            {
+                var extraCandidates = cards.Where(c => c != null && c.Location == CardLocation.Extra).ToList();
+                if (extraCandidates.Count >= min)
+                {
+                    var sortedEd = extraCandidates.OrderBy(c => {
+                        if (c.IsCode(CardId.TheDragonThatDevoursTheDogma)) return 1;
+                        if (c.IsCode(CardId.AlbionTheBrandedDragon)) return 2;
+                        if (c.IsCode(CardId.TitanikladTheAshDragon)) return 3;
+                        if (c.IsCode(CardId.RindbrummTheStrikingDragon)) return 4;
+                        if (c.IsCode(CardId.DespianLuluwalilith)) return 5;
+                        if (c.IsCode(CardId.GranguignolTheDuskDragon)) return 6;
+                        if (c.IsCode(CardId.GaruraWingsOfResonantLife)) return 7;
+                        return 20;
+                    }).ToList();
+                    return sortedEd.Take(Math.Max(min, Math.Min(max, sortedEd.Count))).ToList();
+                }
+
+                var deckCandidates = cards.Where(c => c != null && c.Location == CardLocation.Deck).ToList();
+                if (deckCandidates.Count >= min)
+                {
+                    var sortedDeck = deckCandidates.OrderBy(c => {
+                        if (c.IsCode(CardId.AlbionTheShroudedDragon)) return 1;
+                        if (c.IsCode(CardId.FallenOfTheWhiteDragon)) return 2;
+                        if (c.IsCode(CardId.BlazingCartesiaTheVirtuous)) return 3;
+                        if (c.IsCode(CardId.FallenOfAlbaz)) return 4;
+                        if (c.IsCode(CardId.BrandedRetribution)) return 5;
+                        return 20;
+                    }).ToList();
+                    return sortedDeck.Take(Math.Max(min, Math.Min(max, sortedDeck.Count))).ToList();
+                }
+            }
+
+            // ── 6. Material Priority: Protect Established Bosses ──
+            if (hint == HINTMSG_FMATERIAL || hint == HINTMSG_SMATERIAL)
             {
                 var sorted = cards.OrderBy(c => GetMaterialPriority(c)).ToList();
                 if (sorted.Count >= min)
@@ -1684,19 +1785,47 @@ namespace WindBot.Game.AI.Decks
                 }
             }
 
-            // HINTMSG_SPSUMMON (509): Prefer Deck over Hand if available
-            if (hint == 509)
+            // ── 7. Special Summon Selection (HINTMSG_SPSUMMON = 509) ──
+            if (hint == HINTMSG_SPSUMMON)
             {
-                if (cards.Any(c => c.Location == CardLocation.Deck))
+                if (cards.Any(c => c != null && c.Location == CardLocation.Deck))
                 {
-                    var deckCards = cards.Where(c => c.Location == CardLocation.Deck).ToList();
+                    var deckCards = cards.Where(c => c != null && c.Location == CardLocation.Deck).OrderBy(c => {
+                        if (c.IsCode(CardId.IncredibleEcclesiaTheVirtuous)) return 1;
+                        if (c.IsCode(CardId.GuidingQuemTheVirtuous)) return 2;
+                        if (c.IsCode(CardId.BlazingCartesiaTheVirtuous)) return 3;
+                        if (c.IsCode(CardId.FallenOfAlbaz)) return 4;
+                        return 10;
+                    }).ToList();
+
                     if (deckCards.Count >= min)
                     {
                         return deckCards.Take(Math.Max(min, Math.Min(max, deckCards.Count))).ToList();
                     }
                 }
+
+                if (cards.Any(c => c != null && c.Location == CardLocation.Grave))
+                {
+                    var gyCards = cards.Where(c => c != null && c.Location == CardLocation.Grave).OrderBy(c => {
+                        if (c.IsCode(CardId.MirrorjadeTheIcebladeDragon)) return 1;
+                        if (c.IsCode(CardId.TheDragonThatDevoursTheDogma)) return 2;
+                        if (c.IsCode(CardId.DespianLuluwalilith)) return 3;
+                        if (c.IsCode(CardId.GranguignolTheDuskDragon)) return 4;
+                        if (c.IsCode(CardId.GuidingQuemTheVirtuous)) return 5;
+                        if (c.IsCode(CardId.BlazingCartesiaTheVirtuous)) return 6;
+                        if (c.IsCode(CardId.FallenOfTheWhiteDragon)) return 7;
+                        if (c.IsCode(CardId.FallenOfAlbaz)) return 8;
+                        return 20;
+                    }).ToList();
+
+                    if (gyCards.Count >= min)
+                    {
+                        return gyCards.Take(Math.Max(min, Math.Min(max, gyCards.Count))).ToList();
+                    }
+                }
             }
 
+            // ── 8. Card-Specific Custom Routing ──
             if (Card != null)
             {
                 if (Card.IsCode(CardId.BrandedFusion))
@@ -1717,7 +1846,7 @@ namespace WindBot.Game.AI.Decks
 
                 if (Card.IsCode(CardId.FallenOfTheWhiteDragon))
                 {
-                    var costExtra = cards.FirstOrDefault(c => c.Location == CardLocation.Extra &&
+                    var costExtra = cards.FirstOrDefault(c => c != null && c.Location == CardLocation.Extra &&
                         c.IsCode(CardId.TheDragonThatDevoursTheDogma, CardId.AlbionTheBrandedDragon, CardId.TitanikladTheAshDragon, CardId.RindbrummTheStrikingDragon));
                     if (costExtra != null) return new List<ClientCard> { costExtra };
                 }
@@ -1742,9 +1871,13 @@ namespace WindBot.Game.AI.Decks
 
             for (int i = 0; i < options.Count; i++)
             {
-                long cardId = options[i] >> 20;
-                if (cardId == 0 && Card != null) cardId = Card.Id;
-                long optIndex = options[i] & 0xfffff;
+                // Bitshift fix: (id << 4) | opt
+                long cardId = options[i] >> 4;
+                if (cardId == 0 && Card != null)
+                {
+                    cardId = Card.Id;
+                }
+                long optIndex = options[i] & 0xf;
 
                 if (cardId == CardId.TheFallenAndTheVirtuous)
                 {
@@ -1752,11 +1885,13 @@ namespace WindBot.Game.AI.Decks
                     bool hasExtraSend = Bot.ExtraDeck.Any(c => c != null && c.IsCode(
                         CardId.TheDragonThatDevoursTheDogma, CardId.AlbionTheBrandedDragon, CardId.TitanikladTheAshDragon, CardId.RindbrummTheStrikingDragon));
 
+                    // Option 0: Destroy 1 face-up card on field
                     if (hasEnemyFaceup && hasExtraSend && optIndex == 0)
                     {
                         return i;
                     }
 
+                    // Option 1: Revive monster from GY
                     bool hasEcclesia = Bot.GetMonsters().Concat(Bot.Graveyard).Any(c => c != null && (EcclesiaIds.Contains(c.Id) || (c.Name != null && c.Name.Contains("Ecclesia"))));
                     bool hasReviveTarget = hasEcclesia && Bot.Graveyard.Concat(Enemy.Graveyard).Any(c => c != null && c.IsMonster() && c.IsCanRevive() && ValidReviveIds.Contains(c.Id));
                     if (hasReviveTarget && optIndex == 1)
@@ -1769,9 +1904,69 @@ namespace WindBot.Game.AI.Decks
                         return i;
                     }
                 }
+
+                if (cardId == CardId.TripleTacticsTalent)
+                {
+                    // Option 1: Take control of opponent monster if threatening or lethal
+                    if (Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && IsTargetable(c)) && (HasLethalOnBoard() || OpponentHasThreateningMonster()) && optIndex == 1)
+                    {
+                        return i;
+                    }
+                    // Option 0: Draw 2 cards
+                    if (optIndex == 0) return i;
+                }
+
+                if (cardId == CardId.LightningStorm)
+                {
+                    if (Enemy.GetSpellCount() >= 2 && optIndex == 1) return i;
+                    if (Enemy.GetMonsterCount() >= 2 && optIndex == 0) return i;
+                }
             }
 
             return base.OnSelectOption(options);
+        }
+
+        public override CardPosition OnSelectPosition(int cardId, IList<CardPosition> positions)
+        {
+            // Low-ATK or utility monsters strictly FaceUpDefence
+            int[] forceDefenceCards = {
+                CardId.MulcharmyFuwalos,
+                CardId.AshBlossom,
+                CardId.DrollAndLockBird,
+                CardId.TriBrigadeMercourier,
+                CardId.IncredibleEcclesiaTheVirtuous,
+                CardId.GuidingQuemTheVirtuous,
+                CardId.BlazingCartesiaTheVirtuous,
+                CardId.TriBrigadeSpringansKitt
+            };
+
+            if (forceDefenceCards.Contains(cardId) && positions.Contains(CardPosition.FaceUpDefence))
+            {
+                if (!HasLethalOnBoard())
+                    return CardPosition.FaceUpDefence;
+            }
+
+            // High-ATK Boss monsters strictly FaceUpAttack
+            int[] forceAttackBosses = {
+                CardId.MirrorjadeTheIcebladeDragon,
+                CardId.TheDragonThatDevoursTheDogma,
+                CardId.DespianLuluwalilith,
+                CardId.PSYFramelordOmega,
+                CardId.TitanikladTheAshDragon,
+                CardId.EcclesiaAndTheDarkDragon
+            };
+
+            if (forceAttackBosses.Contains(cardId) && positions.Contains(CardPosition.FaceUpAttack))
+            {
+                return CardPosition.FaceUpAttack;
+            }
+
+            return base.OnSelectPosition(cardId, positions);
+        }
+
+        public override bool OnSelectYesNo(long desc)
+        {
+            return base.OnSelectYesNo(desc);
         }
 
         public override bool IsAceCard(ClientCard card)
@@ -1784,6 +1979,7 @@ namespace WindBot.Game.AI.Decks
         {
             if (c == null) return 999;
             if (c.Controller == 1) return 10;
+            if (IsMaterialBossProtected(c)) return 950;
             if (IsAceCard(c)) return 900;
             if (c.IsCode(CardId.MulcharmyFuwalos) || c.IsCode(CardId.AshBlossom) || c.IsCode(CardId.DrollAndLockBird))
                 return 800;

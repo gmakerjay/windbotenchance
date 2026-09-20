@@ -1,5 +1,193 @@
 # Progress Log: AFS, ArtMage, Tenpai, Centurion, VoicelessVoice & ModernExecutors
 
+
+## 0.030. Strategic Modernization & Full Refactoring: 2026_Dreadnought (Destiny HERO Dreadnought Engine) (2026-09-20)
+- **User Directives**:
+  - `_2026_DreadnoughtExecutor.cs refactor + rework`
+- **Audit & Identified Issues**:
+  1. **Card Identity & Constant Corrections (CRITICAL)**:
+     - Card `46759931` was incorrectly labeled as `StarvingVenomFusionDragon`. Corrected to `VisionHEROTrinity` (5000 ATK, 3 attacks on monsters for lethal board breaking).
+     - Card `78114463` was labeled as `SolemnAccusation`. Corrected to `SolemnReport`.
+  2. **True Engine Synergy: Clock Tower -> Dreadnought Servant -> Dreadmaster -> Dreadnought (+2 Search)**:
+     - The previous executor mistakenly assumed `Destiny HERO - Dreadnought` dumped 2 cards from deck to GY. Implemented its true effect: searching TWO Destiny HERO cards to hand upon Special Summon while scaling ATK to all other D-HEROs on field and in GY.
+     - Implemented the core engine loop: Activate `Clock Tower Prison City - Dark City` -> search `Dreadnought Servant` -> SS Servant -> Servant pops Dark City to search `Polymerization` -> Dark City triggers to SS `Dreadmaster` from Deck -> Dreadmaster revives D-HEROs from GY and grants complete battle/destruction immunity -> Dreadnought Servant in GY triggers to spin 1 opponent card to top of deck -> Tribute Dreadmaster to SS `Destiny HERO - Dreadnought` -> Dreadnought searches 2 cards (`Fusion Destiny` + `Plasma` / `D-Force` / `Death Dogma`).
+  3. **Death Dogma Quick Effect Fusion & Banish Revival**:
+     - Implemented `Destiny HERO - Death Dogma` Special Summon from Hand or GY by banishing 3 Warrior/DARK monsters (protecting Malicious/Denier).
+     - Implemented Quick Effect during opponent's turn: on opponent effect activation, Fusion Summons `DPE`, `Dystopia`, `Dominance`, or `Dangerous` by shuffling materials from GY/hand/field into Deck.
+  4. **Option Bitshift Bug in `OnSelectOption` (CRITICAL)**:
+     - Old code compared raw option numbers without decoding OCGCore's 64-bit encoded `options[i] >> 4` and `options[i] & 0xf`, breaking `Solemn Report` choice selection, and fell back to `return 0;` rather than calling `base.OnSelectOption(options)`.
+     - Standardized to OCGCore bitshift: Option 1 (pay 3000 to banish all copies from hand & deck) when LP >= 4000 and target is key chokepoint / negator; Option 0 (pay 1500) otherwise.
+  5. **Anti-Pattern 1 Violation Fix in `OnSelectCard`**:
+     - `hint == 506` (Search): Dedicated search priority for Dreadnought, Dark City, Cross Crusader, Vyon, Shadow Mist, Sabatiel, and ROTA.
+     - `hint == 501` (Discard): GY triggers (`Malicious`, `Shadow Mist`, `Denier`) prioritized; single-copy bosses and starters protected.
+     - `hint == 502` (Destroy): Self-pop costs prioritize `Clock Tower` (triggers Dreadmaster SS!) and `DPE` (self-reviving); enemy pops strictly enforce `c.Controller == 1 && IsViableEffectTarget(c)`.
+     - `hint == 503 / 504` (Banish): Enemy banish for Doom Liege, Dreadnought Servant, and Dominus Spark strictly targets opponent cards; friendly banish costs protect core extenders.
+     - `hint == 505` (Recycle): Denier selects `Malicious` to reset the loop.
+     - `hint == 508` (Send to GY): Vyon / Doom Liege / Foolish Burial prioritize `Malicious` (if 0 in GY), `Shadow Mist`, `Denier`, `Death Dogma`.
+     - `hint == 509` (Special Summon): Clock Tower destruction strictly selects `Dreadmaster`; DPE Standby revival strictly selects `DPE`.
+     - `hint == 500 / 512 / 513` (Materials/Release): Strictly protects Ace bosses (`DPE`, `Plasma`, `Dreadnought`, `Dark Law`, `Trinity`).
+  6. **Anti-Pattern 5 Violation Fix (Handtraps Set in MP1)**:
+     - Purged `MonsterSet` on `AshBlossom` that set Ash face-down. Handtraps (`Ash`, `Fuwalos`, `Impermanence`) are strictly preserved in hand.
+  7. **Stat-Aware `OnSelectPosition` & Column-Safe `OnSelectPlace`**:
+     - Enforced `FaceUpAttack` for boss beaters (`Dreadnought`, `DPE`, `Trinity`, `Plasma`, `Death Dogma`, `Dogma`, `Dystopia`, `Dusktopia`, `Dominance`, `Contrast HERO Chaos`, `Dread Decimator`).
+     - Enforced `FaceUpDefence` for low ATK / utility monsters (`Dreadnought Servant`, `Doom Liege`, `Denier`, `Vyon`, `Shadow Mist`, `Ash Blossom`, `Fuwalos`, `Cross Crusader`, `Wonder Driver`).
+     - Column-safe placement avoids columns with active enemy Spell/Trap threats.
+  8. **Lethal & Rush Mode Guard (`HasLethalOnBoard`)**:
+     - Implemented `HasLethalOnBoard()` calculation across summon and combo methods to prevent overextension when confirmed lethal damage is on board.
+- **Build & Exclusive Deployment**:
+  - Successfully compiled via `BUILD_AND_DEPLOY.ps1` with 0 errors and deployed exclusively to `C:\Users\admin\Documents\EdoGame\`.
+  - Verified runtime instantiation without error via `dotnet WindBot.dll Deck=2026_Dreadnought`.
+
+
+## 0.029. Strategic Modernization & Full Refactoring: 2026_Doomz (DoomZ WIND Machine Xyz & Power Patron Engine) (2026-09-20)
+- **User Directives**:
+  - `_2026_DoomzExecutor.cs Refactor`
+- **Audit & Identified Issues**:
+  1. **Card ID Typo Fix (CRITICAL)**:
+     - `AshBlossom` was defined as `14558128` (invalid ID). Corrected to `14558127` matching `cards.cdb`.
+  2. **Dead Code & Phantom Card Purge**:
+     - Removed phantom card constants not present in `2026_Doomz.ydk`: `ClockworkKnight`, `BystialMagnamhut`, `GhostBelle`, `DrollAndLockBird`.
+     - Purged obsolete `NeuralDoomzExecutor` class adhering to Rule 1 (100% Rule-based C# ModernExecutor).
+  3. **Option Bitshift Bug in `OnSelectOption` (CRITICAL)**:
+     - `OnSelectOption` previously used `options.Contains(1)` on 64-bit encoded numbers, causing option selection to always fail.
+     - Standardized to OCGCore bitshift: `long cardId = options[i] >> 4; long optIndex = options[i] & 0xf;` with `base.OnSelectOption(options)` fallback.
+     - `Medius the Pure`: Selects Option 1 (Special Summon) when field space exists (`Bot.GetMonsterCount() < 5`), Option 0 (Search) otherwise.
+     - `Null Power Patron Realm - Vidria`: Selects Option 1 (SS Zegredo) when space exists, Option 0 otherwise.
+     - `DoomZ Raiders`: Selects Option 1 (SS) when space exists, Option 0 otherwise.
+     - `The Fallen & The Virtuous`: Selects Option 0 (Destroy enemy face-up) if enemy face-up exists, Option 1 (Revive) otherwise.
+  4. **Stat-Aware `OnSelectPosition`**:
+     - Enforced `FaceUpDefence` for low ATK and utility monsters (`PowerPatronShadowMachineZegredo` 300 ATK, `PowerPatronDoomZ` 300 ATK, `AshBlossom` 0 ATK, `MulcharmyFuwalos` 100 ATK, `SpringansMerrymaker` 1100 ATK).
+     - Enforced `FaceUpAttack` for boss beaters (`Jupiter`, `Drastrius`, `Varudras`, `Diactorus`, `Graflario`, `Sargas`, `Vidrium`).
+  5. **Comprehensive Hint-Specific Segregation in `OnSelectCard`**:
+     - `hint == 506` (Search): Priority for `Medius`, `Zegredo`, `Amalthe`, `Elara`, `Vidria`, `DoomZ Change`.
+     - `hint == 501` (Discard): GY triggers (`Adrasteia`, `DoomZ Change`, `Vidrium`) prioritized; starters and bosses protected.
+     - `hint == 502` (Destroy): Self-pop costs destroy `Elara`/`Amalthe` (trigger destruction effects) or `DoomZ Change`; enemy pops strictly enforce `c.Controller == 1`.
+     - `hint == 503` (Banish): Enemy banish for `Vidrium`; safe hand banish for `Vidria` cost.
+     - `hint == 509` (Special Summon): Prioritizes Deck over Hand, prioritizes Ace Bosses (`Jupiter`, `Drastrius`, `Varudras`) and key extenders.
+     - `hint == 500 / 512 / 513`: Strictly protects Ace bosses from tributes/materials.
+  6. **Lethal & Rush Mode Guard (`HasLethalOnBoard`)**:
+     - Added `HasLethalOnBoard()` calculation across summon and combo methods to prevent overextension when confirmed lethal damage is on board.
+- **Build & Exclusive Deployment**:
+  - Successfully compiled via `BUILD_AND_DEPLOY.ps1` with 0 errors and deployed exclusively to `C:\Users\admin\Documents\EdoGame\`.
+  - Verified runtime instantiation without error via `dotnet WindBot.dll Deck=2026_Doomz`.
+
+
+## 0.028. Strategic Modernization & Full Refactoring: 2026_BrElfnote (Elfnote Branded Tuning) (2026-09-20)
+- **User Directives**:
+  - `_2026_BrElfnoteExecutor.cs Refactor`
+- **Audit & Identified Issues**:
+  1. **Option Bitshift Bug in `OnSelectOption` (CRITICAL)**:
+     - `OnSelectOption` previously had `options[i] >> 20`, evaluating card ID to `0` and completely breaking option routing for `Medius the Pure` and `The Fallen & The Virtuous`. In addition, a hardcoded `return 0;` at the end prevented `ModernExecutor` base option logic from running.
+     - Standardized to OCGCore bitshift: `long cardId = options[i] >> 4; long optIndex = options[i] & 0xf;` with `base.OnSelectOption(options)` fallback.
+     - `Medius the Pure`: Intelligently selects Option 1 (Special Summon) if field has space (`Bot.GetMonsterCount() < 5`) and Option 0 (Add to Hand) otherwise.
+     - `The Fallen & The Virtuous`: Selects Option 0 (Destroy 1 face-up card) if enemy has face-up cards and Extra Deck has Albaz dump targets, or Option 1 (Revive from GY) if Ecclesia is present.
+  2. **Severe Constructor Duplication & Dead Code Purge**:
+     - Eliminated an ~80-line duplicate `AddExecutor` registration block that bloated the file to 2,365 lines.
+     - Removed phantom card constant `InfernalStrikeFighter = 66122213` (not in `2026_BrElfnote.ydk` Extra Deck).
+  3. **Critical Inverted Boss Scoring Bug in `OnSelectCard` (Hint 509)**:
+     - In `hint == 509` (Special Summon / Revival), `int bossScore = IsAceCard(c) ? 100 : 0;` in an ascending `OrderBy` previously sorted Ace Bosses to the back of the revival priority queue.
+     - Fixed with descending threat/boss priority: Ace Bosses (`Baronne`, `Mirrorjade`, `PEP`, `Junora`, `Luluwalilith`, `Strelitzia`) and key extenders (`Regina`, `Power Patron`, `Medius`, `Ecclesia`) now take highest priority.
+  4. **Self-Negation Bug in `OnSelectCard` (Hint 575)**:
+     - In `hint == 575` (`HINTMSG_NEGATE`), if the opponent had no face-up negatable cards, the bot previously targeted and negated its own monsters (`ElfnotePowerPatron`, `MediusThePure`).
+     - Fixed: strictly restricts targeting to opponent cards (`c.Controller == 1`). If no enemy targets exist and effect is cancelable, safely cancels without self-negation.
+  5. **Comprehensive Hint-Specific Segregation in `OnSelectCard`**:
+     - `hint == 506` (`HINTMSG_ATOHAND` / Search): Added dedicated search priority for Elfnote monsters (`Regina` > `Power Patron` > `Welcome Home` > `Fallen & Virtuous` > `Medius` > `Lucina` > `Tinia`).
+     - `hint == 501` (`HINTMSG_DISCARD`): Prioritizes GY fodder and triggers (`Junordo`, duplicate Spells/Traps) while strictly protecting single-copy starters and Ace monsters.
+     - `hint == 504 / 508` (`HINTMSG_TOGRAVE`): Optimized `Fidraulis Harmonia` dumps (`Malong` to bounce opponent cards, `Luluwalilith` for EP Special Summon, or `DevoursDogma`) and Albaz dumps (`Albion`, `Dogma`, `Rindbrumm`, `Sprind`).
+     - `hint == 502 / 503 / 505`: Enforces strict `c.Controller == 1` targeting for destruction, banishing, and bouncing.
+  6. **Center Main Monster Zone (MMZ) Strategic Placement (`OnSelectPlace`)**:
+     - Archetype center MMZ synergy: `Elfnote Regina` (requires center MMZ to trigger SS from Deck) and `Elfnote Seraphim Strelitzia` (original ATK becomes 3000 in center MMZ) are prioritized for Zone 2 (`1 << 2`).
+     - Non-center zones (`available & ~(1 << 2)`) are assigned to utility monsters, normal summons, and handtraps to keep Zone 2 open.
+  7. **Position Logic (`OnSelectPosition`) & Lethal Guard (`HasLethalOnBoard`)**:
+     - Enforced `FaceUpDefence` for low ATK and utility tuners (`ElfnotePowerPatron`, `Junordo`, `Handtraps`, `Malong`).
+     - Enforced `FaceUpAttack` for boss beaters (`Baronne`, `PEP`, `Mirrorjade`, `Junora`, `Luluwalilith`, `Strelitzia`, `DevoursDogma`).
+     - Implemented `HasLethalOnBoard()` calculation across summon and combo methods to prevent overextension when confirmed lethal damage is on board.
+  8. **Enhanced Card-Specific Handlers**:
+     - `Junora the Power Patron of Tuning`: Added steal target selection (takes control of highest ATK enemy monster) and search.
+     - `Despian Luluwalilith`: Added face-up negation targeting and End Phase revival of LIGHT Spellcaster (`Ecclesia` / `Medius`).
+     - `The Dragon that Devours the Dogma`: Added GY disruption/recycle on summon and End Phase search for `The Fallen & The Virtuous`.
+     - `Elfnote Power Patron`: Corrected Extra Deck Synchro target filtering to `Junora` and `Strelitzia`.
+- **Build & Exclusive Deployment**:
+  - Successfully compiled via `BUILD_AND_DEPLOY.ps1` with 0 errors and deployed exclusively to `C:\Users\admin\Documents\EdoGame\`.
+  - Verified runtime instantiation without error via `dotnet WindBot.dll Deck=2026_BrElfnote`.
+
+
+## 0.027. Strategic Overhaul & Modern Refactor: 2026_Branded (Branded Despia Dogmatika Bystial) (2026-09-20)
+- **User Directives**:
+  - `_2026_BrandedExecutor.cs Refactor`
+- **Audit & Identified Issues**:
+  1. **Option Bitshift Bug in `OnSelectOption` (CRITICAL)**:
+     - `OnSelectOption` previously had `options[i] >> 20`, evaluating card ID to `0` and completely breaking option routing for `The Fallen & The Virtuous` and `Triple Tactics Talent`.
+     - Standardized to OCGCore bitshift: `long cardId = options[i] >> 4; long optIndex = options[i] & 0xf;`.
+  2. **Dead Code & Phantom Card Purge**:
+     - Removed phantom card constants and dead executors for cards not present in `2026_Branded.ydk`: `BrandedSword` (81767888), `CalledByTheGrave` (24224830), `DespianQuaeritis` (72272462), `AlbaLenatusTheAbyssDragon` (3410461), `BorreloadFuriousDragon` (92892239).
+     - Fixed misnamed Side Deck constants aligning with `2026_Branded.ydk` and `cards.cdb` (`KumongousTheStickyStringKaiju = 29726552`, `IllusionGate = 33017964`, `TripleTacticsThrust = 35269904`, `SolemnJudgment = 41420027`).
+  3. **Branded Fusion Resource & Discard Safeguard**:
+     - When hand count == 0 (Branded Fusion was the last card in hand), summoning `Lubellion the Searing Dragon` previously caused a bot stall because Lubellion requires discarding 1 card.
+     - Implemented dynamic route: If hand count == 0, `BrandedFusionEffect` summons `Albion the Branded Dragon` (banishes from GY/field with 0 discard cost) into `Mirrorjade`; if hand count >= 1, summons `Lubellion` (shuffling materials back).
+  4. **Strict Hint-Specific Segregation in `OnSelectCard` (Anti-Pattern 1 Violation Fix)**:
+     - `hint == 506` (`HINTMSG_ATOHAND`): Dedicated Deck search priority (`BrandedFusion` > `TheFallenAndTheVirtuous` > `BrandedInHighSpirits` > `BrandedRetribution` > `WhiteDragon` > `Quem` > `Cartesia` > `Ecclesia` > `Mercourier` > `SpringansKitt` > `AlbionTheShrouded` > `Albaz`).
+     - `hint == 506` under Lubellion: Dedicated shuffle selection of `FallenOfAlbaz` + `LubellionTheSearingDragon`.
+     - `hint == 502 / 503 / 504 / 505 / 551 / 552 / 572 / 575`: Enforced strict `c.Controller == 1` opponent targeting to protect friendly Ace bosses from self-removal.
+     - `hint == 501` (`HINTMSG_DISCARD`): Prioritizes GY fodder and triggers (`TheGoldenSwordsoul`, `BrandedRetribution`, `SpringansKitt`, `AlbionTheShroudedDragon`, `Mercourier`).
+     - `hint == 508` (`HINTMSG_TOGRAVE`): Optimized Extra Deck and Main Deck dumps.
+     - `hint == 509` (`HINTMSG_SPSUMMON`): Intelligently prioritizes bosses and key extenders from Deck and GY.
+     - `hint == 500 / 511 / 512` (`RELEASE / FMATERIAL / SMATERIAL`): Strictly protects Ace bosses (`Mirrorjade`, `TheDragonThatDevoursTheDogma`, `DespianLuluwalilith`, `EcclesiaAndTheDarkDragon`).
+  5. **Lethal & Rush Mode Control (`HasLethalOnBoard`)**:
+     - Implemented `HasLethalOnBoard()` calculation. Starters, extenders, and normal summons halt unnecessary combos when confirmed lethal damage is on board to close out the game directly.
+  6. **Stat-Aware `OnSelectPosition`**:
+     - Enforced `FaceUpDefence` for low ATK and utility monsters (`MulcharmyFuwalos`, `AshBlossom`, `TriBrigadeMercourier`, `IncredibleEcclesia`, `GuidingQuem`, `BlazingCartesia`, `TriBrigadeSpringansKitt`).
+     - Enforced `FaceUpAttack` for bosses (`Mirrorjade`, `TheDragonThatDevoursTheDogma`, `DespianLuluwalilith`, `PSYFramelordOmega`, `Titaniklad`, `EcclesiaAndTheDarkDragon`).
+  7. **Expanded Engine Synergies & Float Recovery**:
+     - `GuidingQuem` revival now includes `Mirrorjade` and `TheDragonThatDevoursTheDogma`.
+     - `TheDragonThatDevoursTheDogma` on-summon shuffles enemy GY chokepoints or recycles own Fusions; End Phase search prioritized to `Mercourier`.
+     - `DespianLuluwalilith` on-field +500 ATK buff & face-up negate; End Phase float into `Quem`, `Cartesia`, or `Ecclesia`.
+     - `Granguignol` tag-out into `Despian Luluwalilith` on opponent monster effect SS.
+     - `BrandedRetribution` Counter Trap activation verified for 2 GY Fusions or 1 non-boss field Fusion.
+- **Build & Exclusive Deployment**:
+  - Successfully compiled via `BUILD_AND_DEPLOY.ps1` with 0 errors and deployed exclusively to `C:\Users\admin\Documents\EdoGame\`.
+
+## 0.026. Strategic Overhaul & Modern Rework: Anime_Crow (Crow Hogan - Blackwing Synchro & Burn Army) (2026-09-20)
+- **User Directives**:
+  - `Anime_CrowExecutor.cs ปรับปรุง`
+- **Audit & Identified Issues**:
+  1. **Game-Breaking Turn-1 Freeze Bug in `OnSelectYesNo`**:
+     - `OnSelectYesNo` had `if (Enemy.GetMonsterCount() == 0 && Enemy.GetSpellCount() == 0) return false;`. On Turn 1 going first, the opponent controls 0 cards, causing the bot to answer "NO" to ALL optional effects (searches, summons, level changes, Zephyros bounce), completely breaking the bot and forcing a dead pass.
+     - Fixed by returning `base.OnSelectYesNo(desc)` safely.
+  2. **Illegal Deck Construction (`Shamal the Sandstorm` & Missing `Black Feather Whirlwind`)**:
+     - The deck ran 3x `Shamal the Sandstorm` which discards to place `Black Feather Whirlwind` (7602800) from Deck. However, `Black Feather Whirlwind` was completely missing from the deck list, making Shamal's hand activation 100% illegal and unplayable under OCG/TCG rules.
+     - Added 2x `Black Feather Whirlwind` (7602800) into `Anime_Crow.ydk`, enabling Shamal's hand placement and free Blackwing revival from GY on every DARK Synchro summon.
+  3. **Banlist Limit Violation (TCG Limit 1)**:
+     - `Called by the Grave` was at 2 copies, violating the TCG Limited list (max 1). Adjusted to 1 copy to strictly prevent `ERRMSG_DECKERROR` (Rule 10).
+  4. **Missing Extra Deck Summon Registrations**:
+     - `Black-Winged Dragon` (Crow's signature Signer Dragon ace) and `Chidori the Rain Sprinkling` were in the Extra Deck but were never registered for Special Summon in `RegisterExecutors`.
+     - Fully registered both monsters along with comprehensive climbing conditions.
+  5. **Vata Dragon Engine Integration**:
+     - Added 2x `Blackwing - Vata the Emblem of Wandering` (71187462) (Crow's signature Darkwing Blast support) to send materials directly from Deck to summon `Black-Winged Dragon` and bridge into `Black-Winged Assault Dragon`.
+  6. **Anti-Pattern 5 Violation (Handtraps Set in MP1)**:
+     - `Infinite Impermanence` and `Blackbird Close` were being set in MP1 via `SpellSetStrategy`.
+     - Fixed: Handtraps are strictly preserved in hand. `Blackbird Close` is retained in hand when controlling a Blackwing Synchro or BWD to function as an unrevealed Counter Trap.
+  7. **Anti-Pattern 3 Violation (Boss Sacrificed for Blackbird Close)**:
+     - `BlackbirdCloseActivate` had a fallback that could tribute `Full Armor Master` (3000 ATK tower).
+     - Fixed: Ace bosses (`FullArmorMaster`, `AssaultDragon`, `Onimaru`, `HawkJoe`) are strictly immune from being sacrificed for Blackbird Close.
+  8. **Comprehensive Hint-Specific Segregation in `OnSelectCard`**:
+     - `hint == 500` (`RELEASE`): Protects Ace cards; prioritizes Tokens and low-ATK fodder.
+     - `hint == 501` (`DISCARD`): Prioritizes Zephyros, Shamal, and duplicate cards.
+     - `hint == 502 / 503` (`DESTROY / REMOVE`): Strictly enforces `c.Controller == 1` opponent targets sorted by threat score.
+     - `hint == 504` (`FRIENDLY REMOVE`): For `Black-Winged Assault Dragon` contact banish, prioritizes Tuner Synchro (`Boreastorm`) and `Black-Winged Dragon` from GY first to preserve field cards.
+     - `hint == 505` (`RTOHAND`): Zephyros bounces `Black Whirlwind` (re-activatable) or `Bora` (re-summonable); protects bosses.
+     - `hint == 506` (`ATOHAND`): Sudri only searches cards mentioning BWD (`Shamal`, `Vata`, `Blackbird Close`, `Black Feather Whirlwind`).
+     - `hint == 508` (`TOGRAVE`): Boreastorm checks deck for `Zephyros` first for free revival, then Level 4/2 extenders.
+     - `hint == 509` (`SPSUMMON`): Prioritizes bosses and key extenders.
+     - `hint == 512` (`SMATERIAL`): Excludes established boss monsters from being consumed.
+   9. **OCGCore Engine Fix (`c73218989.lua` - Black-Winged Assault Dragon)**:
+      - Fixed OCGCore Lua engine script error: `[string "c73218989.lua"]:86: Attempting to access deleted object.` during Contact Banish Special Summon.
+      - In `sptg`, the card material group `g` created by `aux.SelectUnselectGroup` lacked `g:KeepAlive()`, causing OCGCore to collect the group before `spop` executed `Duel.Remove(g, POS_FACEUP, REASON_COST)`.
+      - Added `g:KeepAlive()` in `sptg` and `g:DeleteGroup()` in `spop` across `script/c73218989.lua` and `repositories/official-scripts/official/c73218989.lua`.
+- **Build & Exclusive Deployment**:
+  - Successfully compiled with 0 errors via `BUILD_AND_DEPLOY.ps1` and deployed exclusively to `C:\Users\admin\Documents\EdoGame\`.
+  - Synchronized `Anime_Crow.ydk` to both `windbot-fork/Decks/` and `deck/`.
+
 ## 0.025. Code Cleanup & Strategic Refactoring: 2026_Angelechy (2026-09-20)
 - **User Directives**:
   - `_2026_AngelechyExecutor.cs` & `yugioh-executor/SKILL.md`
@@ -157,318 +345,10 @@
 - **Exclusive Deployment**:
   - คอมไพล์และ Deploy ผ่าน `BUILD_AND_DEPLOY.ps1` มายัง `C:\Users\admin\Documents\EdoGame\` ครบถ้วน (WindBot.dll, ExecutorBase.dll, core.dll, bots.json, WhiteForest.ydk, DashBot)
 
-## 0.020.New Anime ModernExecutor: Anime_Sayer (Sayer / Divine - Ultimate Psychic Synchro) (2026-09-20)
-- **User Directives**:
-  - "https://ygoprodeck.com/deck/sayer-ultimate-deck-732776#/ เขียน Executor เด็คนี้หน่อยครับ อ่านการ์ดทุกใบว่าทำอะไรได้แล้ว วิเคราะเพื่อจัดคอมโบตามแนวทางของโปรเจคนี้"
-  - "บอทเก่ง, เล่นถูกจังหวะ, ระวังการดค้างมือ, ปรับแก้เด็คได้แต่ขออย่าใส่การ์ดมั่วเข้ามา"
-- **Card & Banlist Audit (`cards.cdb` & `0TCG.lflist.conf`)**:
-  - วิเคราะห์การ์ดครบถ้วน 100% จาก YGOPRODeck URL จำนวน 64 ใบ
-  - **Banlist Violation Prevented**: นำ `Mind Master (96782886)` ซึ่งเป็น Forbidden (0 ใบ) ใน TCG ออกจากเด็ค ป้องกันข้อผิดพลาด `ERRMSG_DECKERROR` (ทำให้บอทเข้าห้องดวลไม่ได้)
-  - **Dead Hand Elimination**: ปรับขนาดเด็คจาก 60 ใบเดิมที่มีการ์ดกับดักเงื่อนไขแคบและมอนสเตอร์สังเวยมากเกินไป ให้เป็นเด็คที่กระชับ สมดุล 42 ใบ โดยคัดเลือกเฉพาะการ์ดสาย Psychic / Sayer / Arcadia Movement แท้ 100% ไม่มีการ์ดมั่ว
-  - **In-Theme Handtrap Integration**: ใส่ `Ghost Ogre & Snow Rabbit (59438930)` (มอนสเตอร์เผ่า Psycho / Tuner แท้ 100%) 3 ใบ ซึ่งสามารถเรียกผ่าน `Emergency Teleport`, `Overdrive Teleporter` และเสิร์ชผ่าน `Hushed Psychic Minister` ได้อย่างสมบูรณ์แบบ
-- **ModernExecutor Strategy & Architecture (`Anime_SayerExecutor.cs`)**:
-  - สืบทอดจาก `ModernExecutor` พร้อมตาราง CARD AUDIT ที่ส่วนหัว
-  - **Turn 1 First Board**: กางสนาม `Brain Research Lab` เพื่อรับ Normal Summon เสริมฟรีโดยไม่ต้องจ่าย LP, ใช้ `Emergency Teleport` ดึงชิ้นส่วนตั้งกระดาน, ซิงโครขึ้นสู่ `Thought Ruler Archfiend` (ฮีล LP + Negate S/T เล็งเป้า Psychic), `PSY-Framelord Omega` (แบนการ์ดบนมือศัตรู), `Hyper Psychic Riser` (Floodgate ล็อคมอนสเตอร์ ATK > 2000), หรือเซ็ต Counter Trap `Mind Over Matter`
-  - **Turn 2 Board Breaking & OTK**: ทะลวงบอร์ดด้วย `Psychokinesis`, `Brain Control` (ยึดมอนสเตอร์ศัตรูมาเป็นวัตถุดิบซิงโคร), ซิงโครขึ้นสู่ `Psychic End Punisher` (Level 11) ซึ่งเมื่อ LP เราน้อยกว่าหรือเท่ากับศัตรู จะได้รับผล Unaffected จากเอฟเฟกต์ศัตรูทั้งหมด และเพิ่ม ATK ใน Battle Phase มหาศาล ปิดเกม OTK ได้ทันที
-  - **Strict Anti-Pattern Safeguards**:
-    - บังคับ `OnSelectCard` สำหรับ Hint 502 (Destroy), 503/504 (Remove/Banish) เลือกเฉพาะการ์ดศัตรู (`c.Controller == 1`) เสมอ ป้องกันการยิงการ์ดตัวเอง
-    - ตรวจสอบ `Bot.GetMonsterCount() >= 1` สำหรับ Tribute Summon ของ `Overdrive Teleporter` ป้องกันบอทค้าง/Pass Turn
-    - ห้ามเซ็ต Handtrap (`Ghost Ogre`) บนสนามใน Main Phase 1
-- **Deck & Bot Registration**:
-  - สร้างไฟล์เด็ค `Anime_Sayer.ydk` (42 Main / 15 Extra) ใน `windbot-fork\Decks\`
-  - ลงทะเบียนใน `bots.json` (`name: "Anime_Sayer"`, `deck: "Anime_Sayer"`)
-- **Exclusive Deployment**:
-  - คอมไพล์และ Deploy ผ่าน `BUILD_AND_DEPLOY.ps1` มายัง `C:\Users\admin\Documents\EdoGame\` ครบถ้วน (WindBot.dll, ExecutorBase.dll, core.dll, bots.json, Anime_Sayer.ydk, DashBot)
-
-## 0.019.Workspace Cleanup & Maintenance: Removal of Legacy Binaries, Scratch Scripts & Stale Artifacts (2026-09-20)
-- **User Directives**:
-  - "ทำการเคลียร์ไฟล์ขยะ สคริปที่ไมไ่ด้ใช้ และไฟล์ที่ไม่จำเป็นทิ้ง อย่าให้โปรเจคพัง ตรวจสอบอย่างละเอียดก่อนลงมือทำ"
-  - (Clear garbage files, unused scripts, and unnecessary files safely. Verify thoroughly before acting).
-- **Audit & Identification**:
-  1. **Scratch RE Scripts & Text Dumps**: 31 reverse engineering scripts (`check_*.ps1`, `find_*.ps1`, `dump_*.ps1`, `*.cs` decompilers) from September 6 and 3 card text dump files (`purrely_cards.txt`, `scratch_cards.txt`, `yummy_cards.txt`) in root.
-  2. **Obsolete Backups & Stale Binaries**: `cards.cdb.bak` (17.1MB), `error.log`, `__pycache__`, `src/cards.cdb` (0-byte corrupt file), `training.*` binaries in `WindBot/` from discarded AI training, and broken-path scripts in `windbot-fork/Game/AI/Decks/`.
-  3. **High-Storage Stale Backups**: `src/YGO_AI_SOURCE_BACKUP/` (45MB, 441 files) and old unused builds `bin/Debug/` (42MB) and `bin/x86/` (42MB).
-  4. **Preservation & Re-homing**: 16 missing card images in `src/pics/` safely copied into `pics/` before directory deletion. Essential tools `apply_mr5_patch.ps1` and `download_card_pics.py` relocated into `Docs/tools/`.
-- **Action Taken & Validation**:
-  - All verified junk files and old builds safely purged (~150+ MB reclaimed).
-  - Protected all runtime critical binaries: `._cache_ygopro.exe`, `ygopro.exe`, `cards.cdb`, and engine DLLs.
-  - Successfully compiled and verified via `BUILD_AND_DEPLOY.ps1 -BuildOnly` (0 Errors).
-  - Re-deployed clean binaries to `C:\Users\admin\Documents\EdoGame\`.
-
-## 0.018. Universal Safeguard for Nibiru & Kaiju: Elimination of Self-Target Attacks & DPE Friendly Fire (2026-09-20)
-- **User Directives**:
-  1. "ดู Log ล่าสุด destroy pheonix ทำลายการ์ดตัวเองจนหมด" (Audit live duel log where Destiny HERO - Destroyer Phoenix Enforcer destroyed its own cards until empty).
-  2. "จงไล่ Refactor ใหม่ให้ละเอียด" (Thoroughly refactor and harden the executor logic).
-  3. "เด็คไหนใช้อุกกาบาต / ไคจูให้ระวังโดนของตัวเองตี" (For any deck using Nibiru or Kaiju, beware of getting attacked by the monsters we give the opponent!).
-- **Comprehensive Audit & Root Causes Identified**:
-  1. **Destiny HERO - Destroyer Phoenix Enforcer (DPE / 60461880) Suicidal Friendly Fire**:
-     - `DPEReviveInStandby()` ended with unconditional `return true;` outside `if (Card.Location == CardLocation.Grave)`. When DPE was in `MonsterZone`, it triggered DPE's on-field Quick Pop effect even when opponent controlled 0 cards.
-     - DPE's mandatory requirement ("destroy 1 card you control and 1 card on the field") forced Jaden to destroy 2 of his own cards repeatedly (Shadow Mist, Imperm, Cross Crusader, Faris, Mask Change, and DPE himself).
-  2. **Nibiru (27204311) Primal Being Token Attack Risk**:
-     - When Nibiru resolves, the player selects the battle position for the opponent's `Primal Being Token` (27204312). Default logic evaluated the Token's combined ATK (often 5000–10000+ ATK), selecting `FaceUpAttack`.
-     - In Attack Position, the opponent immediately attacked Nibiru or our empty board on their turn, dealing lethal direct damage with our own Token.
-  3. **Kaiju (63941210 Jizukiru, 48770333 Thunder King, etc.) Suicidal Summoning**:
-     - `DefaultExecutor.DefaultKaijuSpsummon()` had `if (isCriticalThreat || canHandleKaiju)`. If the opponent controlled a floodgate/negator, the bot summoned a 3300 ATK Kaiju to the opponent's field even when `canHandleKaiju` was completely `false`, leaving a 3300 ATK beatstick for the opponent to kill us next turn.
-- **Architectural Safeguards Implemented**:
-  1. **Engine-Level Position Enforcement for Nibiru Token (`GameBehavior.cs`, `Executor.cs`, `ModernExecutor.cs`)**:
-     - In `GameBehavior.OnSelectPosition` (network packet level), if `cardId == 27204312` and `FaceUpDefence` is available, **ALWAYS force `CardPosition.FaceUpDefence`**. The Token can NEVER be placed in Attack Position regardless of which deck plays it.
-  2. **Universal Intelligent `DefaultNibiru()` (`DefaultExecutor.cs` & `ModernExecutor.cs`)**:
-     - Opponent's turn only (`Duel.Player == 1`), Main Phase only.
-     - SmartHandTrapChain timing awareness.
-     - **Boss Protection**: Never drop Nibiru if Bot controls Ace/Boss monsters (ATK >= 2500) and opponent's total ATK is less than Bot's LP and enemy count <= 2 (prevents throwing away established winning boards).
-     - Connected across `Tenpai`, `Centurion`, `AFS`, `_2026_EvilTwin`, `_2026_Monarch`, `_2026_Archfiend`, `_2026_Magnet`, `_2026_Purrely`, `_2026_Regenesis`, `_2026_RyuGe`, `_2026_TrueDraco`, `_2026_Yummy`, `Anime_Judai`, `Anime_Kaiba`, `Anime_JackAtlas`, and `Anime_Zane`.
-  3. **Guaranteed Kaiju Removal Guard (`DefaultExecutor.cs`, `_2026_KaijuCrusadiaExecutor.cs`, `_2026_AmazonExecutor.cs`, `Anime_ZaneExecutor.cs`)**:
-     - Enforced that Kaijus are NEVER summoned to opponent unless Bot can handle them on the exact same turn (`canHandleKaiju == true`).
-     - Zane contact fusion check strictly verifies that `Chimeratech Fortress Dragon` (21060005) is present in Extra Deck.
-     - Crusadia checks for available extenders/Equimax and prioritizes lowest ATK Kaiju (Gameciel 2200 ATK) to give opponent.
-     - Amazoness checks for active Onslaught, > 2200 ATK attacker, or fusion ready before giving Gameciel.
-  4. **DPE Target Isolation & Engine Fix (`Anime_JudaiExecutor.cs`)**:
-     - Standby revival strictly isolated to `CardLocation.Grave`.
-     - Field pop requires `enemyTargets.Count > 0`.
-     - In `OnSelectCard` (Hint 502/503), when targeting own cards, strictly picks DPE himself (floats) or Absolute Zero (board wipe); never touches Dark Law or Plasma.
-- **Build & Deployment**:
-  - Successfully compiled with 0 errors via `BUILD_AND_DEPLOY.ps1` and deployed to `C:\Users\admin\Documents\EdoGame\`.
-
-## 0.017. Anime Gong & Zane Hard-Bot Rework: Steadfast DEF OTK & Clockwork Contact (2026-09-20)
-- **User Directives**:
-  - "Rework เด็ค Gong + Zane ในหมวด anime ใหม่ ก่อนลงมือทำให้ออดิตและทำความเข้าใจการ์ดทุกใบก่อนว่ามันเล่นยังไง คอมโบควรเป็นแบบไหน ผมต้องการบอท Hard"
-  - (Rework Gong + Zane decks in anime category from scratch. Audit and understand every card effect and optimal combo lines before writing code. Requires competitive Bot Hard standard).
-- **Comprehensive Audit & Root Cause Analysis**:
-  1. **`Anime_Gong` (Gongenzaka / Gong Strong — Steadfast Superheavy Samurai)**:
-     - **Banlist Violations in Legacy Deck**: `Baronne de Fleur` (84815190) and `Superheavy Samurai Scarecrow` (33918636) were Forbidden (Limit 0) in `0TCG.lflist.conf`, causing instant `ERRMSG_DECKERROR` disconnects.
-     - **Defects in Legacy Executor & Live Duel Audit**:
-       - `Monk Big Benkei` (19510093) in Hand was dead: `MonkBenkeiActivate` only handled `SpellZone`. When drawn, it never placed itself in Scale or Special Summoned itself, leaving Gong to pass turn. Increased to 3 copies in deck and enabled hand/extra activations.
-       - Defense Combat Mismatch: `DefaultExecutor` evaluated battle stats using `attacker.Attack`. SHS monsters attack using DEF (Shutendoji 2500 DEF vs 500 ATK, Masurawo 4000 DEF vs 2100 ATK). Overrode `OnPreBattleBetween`, `OnSelectAttacker`, and `OnBattle` to calculate `RealPower = Defense` (doubled with `Soulbuster Gauntlet`).
-       - Premature `ResourcePlanner` stop: Tuner + non-Tuner bodies on field were stopped before Synchro climbing. Overrode `ShouldStopExtending()` to keep climbing.
-       - Missing Level 7 Synchro: Fist (L2 Tuner) reducing Shutendoji (L6) to Level 5 resulted in 5+2=7 with no Level 7 in Extra Deck. Replaced 1 Musashi with `Superheavy Samurai Stealth Ninja` (50065971, L7, 2800 DEF direct attacker).
-       - Fallback Normal Summons: Added `Fist` and `Soulpiercer` fallback normal summons so `Soulpeacemaker` can equip and tribute to cheat out engines from Deck.
-     - **Hard-Bot Solution**:
-       - Replaced banned cards with **`Naturia Beast` (33198837)** and **`Superheavy Samurai Stealth Ninja` (50065971)**.
-       - Implemented full Wakaushi 1-card climb: Wakaushi P-Scale -> Monk Benkei Scale 1 -> Soulpiercer search -> Scales Normal Summon reviving Soulpiercer -> Synchro climbing -> Soulpiercer searches Soulbuster Gauntlet.
-       - Damage Step DEF Honest: In damage calc, `Soulbuster Gauntlet` doubles defending/battling DEF up to 8,000 - 9,600 DEF for lethal counter-strikes and direct attack OTK.
-       - Enforced `FaceUpDefence` position via `OnSelectPosition` & `RepositionStrategy` so SHS monsters utilize their DEF stats.
-  2. **`Anime_Zane` (Hell Kaiser Zane Truesdale — Cyber Dragon & Clockwork Contact)**:
-     - **Extra Deck Rebalance**: Replaced unmakeable `Dingirsu` (Rank 8) with legal **`Constellar Pleiades` (73964868)** (Rank 5 LIGHT Machine Quick-Effect bounce to hand).
-     - **Live Duel Performance**: Zane executed lethal rush seamlessly — Contact Fused `Fortress Dragon` using opponent's Machine monsters, used `Called by the Grave` on Soulpiercer, revived `Chimeratech Rampage Dragon` via `Nachster`, boosted ATK via `Sieger` to 4,200 ATK, and achieved 3x attack OTK.
-  3. **DashBot Character Display Mapping**:
-     - Added `{ "Gong", "Gong Strong" }` in `dashbot/MainWindow.xaml.cs` to ensure clean Anime category display alongside "Zane Truesdale".
-- **Banlist & Deck Integrity Verification (`cards.cdb` & `0TCG.lflist.conf`)**:
-  - `Anime_Gong`: Exactly 40 Main / 15 Extra, **0 Banlist Violations**, **0 Missing Cards**.
-  - `Anime_Zane`: Exactly 40 Main / 15 Extra, **0 Banlist Violations**, **0 Missing Cards**.
-- **Build & Deployment**:
-  - Successfully compiled and deployed `WindBot.dll`, `ExecutorBase.dll`, `core.dll`, `bots.json`, Decks, and `DashBot.exe` to `C:\Users\admin\Documents\EdoGame\`.
-  - Instantiation tests verified clean startup and deck resolution for both bots via CLI.
-
-## 0.016. DashBot UX Alignment: Strict Single-Bot Mode & Hidden P2 (2026-09-20)
-- **User Directives**:
-  - "ปุ่ม p2 oponet จะต้องไม่มีครับ หากไม่กด Bot Vs Bot นั้นรูปแรกยังเลือกได้อยู่สีม่วงเห็นไหม ก็คือถ้าไม่กดจะกดได้แค่ P1 อย่างเดียวเลย"
-  - (The P2 Opponent button must NOT exist if Bot Vs Bot is not clicked. If Bot Vs Bot is not clicked, the user can ONLY select P1 alone. In single mode, P2 must be completely hidden and no purple or P2 badges can appear).
-- **Comprehensive Solution**:
-  1. **Strict Single-Bot Mode (`Play vs Bot` - Default)**:
-     - The `P2 (Opponent)` button (`RbAssignBot2`) is completely collapsed and hidden. Only `P1 (Bot)` is visible.
-     - The right Matchup Card only displays `SELECTED BOT (P1)` expanding across the preview; `VS` badge and `P2 Box` are collapsed and hidden.
-     - The bottom summary bar only displays `Selected Bot: [Name]`; `Bot 2 (P2)` is collapsed and hidden.
-     - `DeckItem.IsBotVsBotActive = false`: All deck cards strictly ignore `IsBot2Selected`. Only the active `P1` badge is displayed in Blue (`#0284C7`). No green P2 badge or purple `P1/P2` combination can ever appear.
-     - Clicking any deck card strictly assigns to P1 alone. Right-clicking also assigns to P1 alone.
-     - Connect Button: `Start & Connect Bot ({BotName}) to Room` (spawns single bot into the EDOPro room).
-  2. **Bot Vs Bot Mode (`Bot Vs Bot`)**:
-     - Checking `Bot Vs Bot` dynamically reveals:
-       - The `P2 (Bot 2)` selector button in the top target switcher.
-       - The `VS` circle and `BOT 2 (P2)` card in the matchup preview.
-       - The `Bot 2 (P2)` label in the bottom summary bar.
-       - Visual highlights on deck items for both `P1` (blue), `P2` (green), and `P1/P2` (purple).
-     - Allows toggling active target between P1 and P2 via card click or radio button.
-     - Connect Button: `Start & Connect Both ({Bot1} vs {Bot2})` (spawns both bots to duel each other).
-- **Build & Deployment**:
-  - Recompiled and published `WindBot.dll`, `ExecutorBase.dll`, `core.dll`, and `DashBot.exe` with 0 errors.
-  - Deployed directly to `C:\Users\admin\Documents\EdoGame\`.
-
-## 0.015. Anime Decks Active Play Overhaul & DashBot Dual-Mode Redesign (2026-09-20)
-- **User Directives**:
-  1. "บอทไม่ยอมเล่นการ์ดปรับปรุงชัด Anime ใหม่ครับ หลายๆเด็ค เลย" (The bots refuse to play cards, overhaul/update the new Anime decks clearly! Multiple decks are doing this).
-  2. "แล้วก็ในส่วนของ Dashbot หากไม่กด 2Bot จะเลือกบอทอีกตัวไม่ได้ ที่เป็นอยู่ชวนสับสน" (And in DashBot, if you don't click 2Bot, you cannot select the second bot, which is confusing).
-- **Root Cause Analysis & Comprehensive Fixes**:
-  1. **DashBot UI Redesign (Eliminating Bot 1/2 Selection Confusion)**:
-     - **Previous Issue**: When 2Bot was unchecked, the UI still displayed a static `BOT 1 VS BOT 2` matchup preview and dual assignment pills. Clicking a deck always changed Bot 1, leaving users unable to choose Bot 2 without checking 2Bot; and selecting Bot 2 still only connected Bot 1 in single mode.
-     - **Solution Implemented**:
-       - Introduced clean **Duel Mode Radio Buttons**: `[●] 1 Bot (Play vs AI)` and `[○] 2 Bots (Bot vs Bot)`.
-       - In **1 Bot Mode**: Displays a dedicated single-bot preview card `SELECTED BOT: [Name]` with subtext `Click any deck to select this bot`. Left-clicking any deck instantly updates this bot.
-       - In **2 Bots Mode**: Displays interactive clickable cards for `[ BOT 1 ]` and `[ BOT 2 ]` with glowing selection rings and `● ACTIVE` badges. Clicking either card sets it as the active assignment target.
-       - Right-clicking any deck in 1-Bot mode automatically switches to 2-Bots mode, assigns Bot 2, and logs the change.
-       - Connect button dynamically changes label (`Start & Connect Bot to Room` vs `Start & Connect 2 Bots (Bot vs Bot)`).
-  2. **`Anime_JackAtlas` (Crippling Turn-1 Bug Eliminated)**:
-     - **Root Cause**: `OnSelectYesNo` contained `if (Enemy.GetMonsterCount() == 0 && Enemy.GetSpellCount() == 0) return false;`. On Turn 1 (First turn), the opponent always controls 0 cards, causing the bot to answer "NO" to ALL of its own ignition/trigger effects, completely freezing and passing the turn!
-     - **Fix**: Removed the empty field check, allowing `base.OnSelectYesNo` to evaluate effects properly.
-  3. **`Anime_Kaiba` (Dictator of D. & Turn-1 Play Overhaul)**:
-     - **Root Cause**: `DictatorOfD` was registered as `ExecutorType.SpSummon` instead of `ExecutorType.Activate` (it is an activated effect with cost). Consequently, the bot never summoned Dictator from hand. In addition, `SpellSetStrategy` required `Duel.Phase == DuelPhase.Main2 || Bot.GetMonsterCount() > 0`, causing the bot to never set `TrueLight`, `UltimateFusion`, or `Impermanence` on Turn 1 with an empty board.
-     - **Fix**: Registered `DictatorOfD` under `ExecutorType.Activate`, unified `DictatorActivate` to handle hand summon (dump BEWD from deck to GY) and field revival; updated `TheMelodyOfAwakeningDragon` to prioritize searching BEWD if not in hand so Alternative is live; enabled setting `TrueLight`, `UltimateFusion`, and `Impermanence` during Main Phase 1.
-  4. **`Anime_Judai` (Vyon Engine & Normal Summon Unblock)**:
-     - **Root Cause**: `VyonActivate` was checking `Bot.Deck.Any(...)` and getting stuck trying to execute effect 1 (dump) instead of effect 2 (banish from GY for Polymerization). `LiquidSoldierNormalSummon` required existing GY monsters, causing dead passes on empty boards.
-     - **Fix**: Unlocked `VyonNormalSummon` and `LiquidSoldierNormalSummon` on empty boards; fixed `VyonActivate` to execute both GY dump and Poly search without getting stuck on deck checks; enabled setting `MaskChange` and `Impermanence` during Main Phase 1.
-  5. **`Anime_Zane` (Deck Error & Backrow Fix)**:
-     - **Root Cause**: Zane was previously rejected with `ERRMSG_DECKERROR` due to illegal extra deck cards in main deck. After deck correction, `SpellSetStrategy` was blocking Turn-1 sets of `CyberneticOverflow` and `CyberloadFusion`.
-     - **Fix**: Enabled setting `CyberneticOverflow`, `CyberloadFusion`, and `Impermanence` in MP1; verified `CyberEmergency` searchers, `Core` -> `MachineDuplication` -> `Nova` -> `Infinity` combo ladder.
-  6. **`Anime_Yusei` (Synchro Fellowship Search Fix)**:
-     - **Root Cause**: `SynchroFellowship` requires adding 2 cards (Junk Synchron + monster mentioning Junk Warrior/Stardust Dragon) then discarding 1. The selector was only passing a single card selection.
-     - **Fix**: Updated `SynchroFellowshipActivate` to select `CardId.JunkSynchron` and then `SelectNextCard` for the second search target and discard.
-  7. **Build & Deployment**:
-     - Successfully built and published `WindBot.dll`, `ExecutorBase.dll`, `core.dll`, `bots.json`, and `DashBot.exe`.
-     - Deployed exclusively to `C:\Users\admin\Documents\EdoGame\`. All binaries verified fresh.
-
-## 0.014. Five Premier Anime ModernExecutors: Immortal Stickiness & Bot Hard AI Architecture (2026-09-20)
-- **User Directives**:
-  - "/goal https://ygoprodeck.com/deck-search/?_sft_category=Tournament%20Meta%20Decks%20Worlds&sort=Deck%20Views&offset=0"
-  - "เขียน Executor Deck ขึ้นมา คัดเลือกเด็คที่คิดว่า แข็งแกร่งการ์ดตายยากๆ คอมโบเก่ง บอทไม่โง่ วิเคราะห์จากเอฟเฟคจริง ทั้งหมด 5 เด็ค ในหมวด Anime ดัดแปลงเด็คให้เหมาะสมได้ วิเคราะห์จากการ์ดจริงๆ ไม่มั่วขึ้นมา เสร็จแล้วทำรายงานให้ผมด้วย ผมจะได้ไปทดสอบเอง ย้ำว่าขอแบบ Bot Hard วิเคราะห์โดยละเอียด ห้ามพลาดเด็ดขาด ออดิต และตรวจสอบซ้ำว่าบอทจะใช้งานได้จริง วิเคราะห์ร่วมกับโปรเจคจริง Core จริง"
-- **Strategic Selection of 5 Ultimate Anime Decks**:
-  1. **`Anime_Kaiba` (Seto Kaiba — Blue-Eyes Jet & Ultimate Fusion)** [NEW]:
-     - **Resilience / Stickiness**: `Blue-Eyes Jet Dragon` (infinite GY/hand recursion on ANY card destruction, non-destruction blanket protection for all cards, battle step bounce), `True Light` (targeting immunity for BEWD + free summons/sets), `Blue-Eyes Twin Burst Dragon` (battle destruction immunity + banish on attack), `Azure-Eyes Silver Dragon` (Dragon targeting/destruction immunity).
-     - **Combo & Bosses**: `The Melody of Awakening Dragon`, `Dictator of D.`, `Blue-Eyes Alternative`, `Blue-Eyes Spirit Dragon` (floodgate multi-summons + GY negate + tag out), `Number 38: Hope Harbinger` (Spell negate), `Number 90: Photon Lord` (Monster negate), `Number 97: Draglubion` -> `Number 100: Numeron Dragon` (17,000 ATK OTK), `Ultimate Fusion` into `Neo Blue-Eyes Ultimate Dragon` (4,500 ATK x 3 attacks).
-  2. **`Anime_Judai` (Jaden Yuki — HERO Destiny Phoenix & Dark Law Omni-Lock)** [NEW]:
-     - **Resilience / Stickiness**: `Destiny HERO - Destroyer Phoenix Enforcer` (DPE: Quick targeted destruction of self + enemy card, loops and recurses itself from GY every single Standby Phase indefinitely; 200 ATK debuff per HERO in GY).
-     - **Locks & Disruptions**: `Masked HERO Dark Law` (one-sided Macro Cosmos banishing all cards sent to enemy GY + random hand rip), `Destiny HERO - Plasma` (one-sided Skill Drain negating all opponent field monster effects + absorbs enemy monster as equip).
-     - **Engine & OTK**: `Vision HERO Faris` -> `Increase` -> `Vyon` -> `Shadow Mist` -> `Malicious` -> `Denier` recycling loop; `Elemental HERO Sunrise` (searches Miracle Fusion), `Elemental HERO Absolute Zero` + `Masked HERO Acid` (Raigeki + Harpie's Feather Duster board wipe), `Wake Up Your Elemental HERO` (multi-attack beatdown).
-  3. **`Anime_Zane` (Zane Truesdale — Cyber Dragon Infinity & Clockwork Contact)** [NEW]:
-     - **Resilience & Board Eating**: `Clockwork Night` turns all face-up monsters into Machines (+500/-1000 ATK) -> enables `Chimeratech Fortress Dragon` to Contact Fuse and devour the opponent's entire monster field without starting a chain; `Chimeratech Megafleet Dragon` devours Extra Monster Zone.
-     - **Bosses & Disruptions**: `Cyber Dragon Infinity` (detach to Omni-Negate activations + non-destructive monster absorption), `Cyber Dragon Nova` (floats into 4,000 ATK `Cyber End Dragon` upon enemy removal), `Therion "King" Regulus` (Machine Omni-Negate), `Cyber Dragon Sieger` (Quick +2,100 ATK boost), `Chimeratech Rampage Dragon` (backrow wipe + 3x attack OTK).
-     - **Engine**: `Cyber Dragon Core`, `Herz`, `Nachster`, `Machine Duplication`, `Cyber Emergency`, `Cyber Repair Plant`, `Cyber Revsystem`, `Cyberload Fusion`.
-  4. **`Anime_JackAtlas` (Jack Atlas — Resonator & Red Supernova Calamity-Free Revamp)** [REWORK]:
-     - **Banlist Fix**: Purged banned `Hot Red Dragon Archfiend King Calamity` (Limit 0) and replaced with legal Level 10 DARK Dragon Synchro powerhouse `Bystial Dis Pater` (27572350 - targets banished LIGHT/DARK to revive; Quick monster negate/destroy).
-     - **Resilience & Board Wipe**: `Red Supernova Dragon` (4,000+ ATK, effect destruction immunity; Quick Effect banishes itself to wipe and banish the opponent's ENTIRE board), `Soul Resonator` (GY banish prevents any card destruction), `Hot Red Dragon Archfiend Abyss` (Quick targeted negate), `Hot Red Dragon Archfiend Bane` (revival loop), `Scarred Dragon Archfiend` (floats into RDA + destroys all attack position monsters), `Red Zone` (pop card + revive banished Synchro).
-  5. **`Anime_Yusei` (Yusei Fudo — Cosmic Blazar & Shooting Majestic Accel Synchro Revamp)** [REWORK]:
-     - **Resilience & Evasion**: `Cosmic Blazar Dragon` (banishes itself as cost to negate any card/effect activation, summon, or attack — completely immune to negation/removal during resolution), `Shooting Majestic Star Dragon` (permanent monster effect negate + Quick activation negate & banish + multi-attacks).
-     - **Ladder**: `Junk Speeder` (summons 5 Tuners from deck), `Accel Synchro Stardust Dragon` (Quick Synchro bosses that are unaffected by opponent's activated effects this turn), `Stardust Dragon`, `Shooting Quasar Dragon`, `Crimson Dragon`.
-- **Banlist & Integrity Verification (`cards.cdb` & `0TCG.lflist.conf`)**:
-  - All 5 decks strictly rebalanced to 40-41 Main / 15 Extra.
-  - Automated CDB & banlist scanner confirmed **0 Banlist Violations**, **0 Missing Cards**, and **0 Deck Errors** across all 5 decks.
-- **Bot Hard AI & Anti-Pattern Safeguards**:
-  - Hint 506 isolation for searches in `OnSelectCard`.
-  - Enemy-only targeting (`c.Controller == 1`) for destructions (502) and banishes (503).
-  - Proper Level 5+ tribute summon checks preventing bot stalls.
-  - Main Phase 2 trap setting preserving handtrap usability.
-- **DashBot Launcher & Registration**:
-  - Registered all 5 bots in `bots.json` (`Anime_Kaiba`, `Anime_Judai`, `Anime_Zane`, `Anime_JackAtlas`, `Anime_Yusei`).
-  - Added clean display name mappings in `dashbot/MainWindow.xaml.cs` for "Seto Kaiba", "Jaden Yuki", and "Zane Truesdale".
-  - DashBot automatically categorizes them under **Anime** via `Anime_` prefix.
-- **Compilation & Exclusive Deployment**:
-  - Full project compiled and deployed via `BUILD_AND_DEPLOY.ps1` with 0 errors to `C:\Users\admin\Documents\EdoGame\`.
-  - Tested WindBot engine instantiation for all 5 bots via CLI (`dotnet .\WindBot.dll Deck=Anime_*`) — all 5 loaded their decks and executors flawlessly without crash.
-
-## 0.013. AFS & ArtMage Rework: Real Lua Mechanics, Zero-Prefix Migration & Banlist Clean (2026-09-20)
-- **User Directives**:
-  - "Refactor เด็ค AFS + Atrmage ใหม่ครับ อยากให้ปรับปรุงให้โค๊ดสะอาด บอทเก่งวิเคราะเอฟเฟคการ์ดจริง หากจำเป็นต้อง Rework จัดการได้เลย" (Refactor AFS + ArtMage decks, clean code, smart bot analyzing real card effects, rework if needed).
-- **Audit & In-Depth Card Script Analysis (`cards.cdb` & Lua Scripts)**:
-  1. **ArtMage Real Card Mechanics (`c53589300.lua`, `c27184601.lua`, `c74631897.lua`, `c34541940.lua`)**:
-     - `Nerva the Power Patron of Creation` (53589300): Quick Effect triggers upon activation of an Artmage monster effect (`re:IsMonsterEffect() && Chain.IsSetcode(SET_ARTMAGE)`), changing that effect to **"Destroy all cards your opponent controls"** (total board wipe). Cannot be destroyed by card effects while Field Spell is present.
-     - `Artmage Diactorus` (27184601): Quick Effect Omni-Negate that negates and destroys any card/effect activated on field; switches battle positions; floats into Medius upon destruction.
-     - `Artmage Non-Finito` (74631897): Alternate summons by discarding S/T + tributing Finmel; on summon sets Artmage Spell/Trap (`Impasto Recapture`, `Pact`, etc.); Quick Fusion on opponent's turn.
-     - `Artmage Finmel` (34541940): Free hand SS + Draw 1; Quick Effect blankets opponent monsters with effect negation and ATK halving when 3+ Monster Types are present.
-     - `Artmage Graflare` (60946049): Free hand SS + Sets Artmage Spell from deck; targeted S/T destruction (Quick Effect when 3+ types).
-     - `Artmage Litera` (97434754): Free hand SS + GY recycle; Quick bounces self to hand during opponent Main Phase to SS Artmage from hand/GY.
-     - `Medius the Pure` (97556336): On Normal/Special summon, searches or Special Summons `Shadow Beast Nervedo` directly from Deck.
-     - `Shadow Beast Nervedo` (17473466): Banishes 3 cards face-down from Deck to cheat out `Nerva` (treated as Fusion Summon); when added to face-up Extra Deck, Special Summons `Finmel` from Deck.
-     - `Artmage Impasto -Recapture-` (44654994): Counter Trap that can be activated the turn it is Set; banishes Fusion monster to negate monster effect & destroy, bouncing opponent backrow.
-  2. **Banlist & Deck Construction Fixes (0TCG.lflist.conf)**:
-     - **AFS**: Purged banned cards (`Maxx "C"` x2, `Original Sinful Spoils` x1, `'Moon of the Closed Heaven'` x1), corrected `Called by the Grave` (to 1). Rebuilt to 40 Main / 15 Extra with `Fiendsmith's Agnumday` and legal staples.
-     - **ArtMage**: Purged banned `Maxx "C"`, trimmed `Triple Tactics Talent` to 1, removed dead bricks (`Vidrium` and `Zegredo` which could not summon their targets). Rebuilt to 40 Main / 15 Extra.
-  3. **Zero-Prefix Naming & DashBot Integration**:
-     - Renamed both decks and executors: `AFS` and `ArtMage`.
-     - Purged obsolete `_2026_AFSExecutor.cs`, `_2026_ArtMageExecutor.cs`, `2026_AFS.ydk`, `2026_ArtMage.ydk`.
-     - Registered clean bot entries in `bots.json` (`AFS`, `Expert_AFS`, `ArtMage`, `Expert_ArtMage`).
-     - Added `AFS` and `ArtMage` to `ModernArchetypes` and `CleanDeckDisplayName` in `dashbot/MainWindow.xaml.cs`.
-- **Compilation & Exclusive Deployment**:
-  - Compiled and deployed with 0 errors via `BUILD_AND_DEPLOY.ps1` to `C:\Users\admin\Documents\EdoGame\`.
-  - Verified WindBot CLI startup for both `AFS` and `ArtMage` with 0 deck errors.
-
-## 0.012. Modern Meta 3-Deck Revamp: Zero-Prefix Naming, Room-Join DeckError Fixes & DashBot Modern Categorization (2026-09-20)
-- **User Directives**:
-  1. "ชุดที่ทำให้สามเด็คล่าสุดปรับปรุงใหม่ให้บอทเข้าห้องได้ก่อนเลยครับ" (Fix the 3 latest decks so the bot can enter the room first!).
-  2. "ไม่ต้องใช้ชื่อนำหน้า 2026 หรืออะไรแล้วครับ ต่อไปนี้แค่จัดหมวดจำไว้ด้วย" (No need to use prefix 2026 or anything anymore. From now on, just categorize them, remember this too!).
-- **Root Cause Analysis (Why Bots Failed to Enter Room)**:
-  - From WindBot client logs (`client__2026_Tenpai_...log` & `client__2026_Centurion_...log`):
-    - `[OnErrorMsg] Received error message code: 2` (ERRMSG_DECKERROR)
-    - `DeckError Details: flag=4, code=73491419` (flag 4 = UNKNOWN CARD in `cards.cdb`)
-    - `DeckError Details: flag=6, code=...` (flag 6 / 1 = BANLIST / FORBIDDEN CARD VIOLATION)
-  - Card ID verification against `cards.cdb` revealed mismatched / hallucinated card IDs:
-    - Earth Golem was `73491419` (real ID: `62111090`)
-    - Bonfire was `67332219` (real ID: `85106525`)
-    - TY-PHON was `12470404` (real ID: `93039339`)
-    - Mudragon was `42110604` (real ID: `54757758`)
-    - Kuibelt was `97093867` (real ID: `87837090`)
-    - Bystial Dis Pater was `24857466` (real ID: `27572350`)
-    - Preparation of Rites was `44155002` (real ID: `96729612`)
-    - Dyna Mondo was `54447022` (was Soul Charge, banned!) (real ID: `73898890`)
-    - Bagooska was `2625939` (real ID: `90590303`)
-  - Banlist check against default room banlist `0TCG.lflist.conf` (`2026.05 TCG`):
-    - `Baronne de Fleur`, `Abyss Dweller`, `Herald of the Arc Light` are Forbidden (0).
-    - `Sangen Summoning`, `Sangen Kaimen`, `Tenpai Dragon Chundra`, `Bonfire`, `Pot of Prosperity`, and `Called by the Grave` are Limited (1).
-- **Comprehensive Fixes & Re-Architecture**:
-  1. **Clean Naming Policy (No `2026_` Prefix)**:
-     - Renamed all 3 decks and executors: `Tenpai`, `Centurion`, `VoicelessVoice`.
-     - Purged all old `_2026_*.ydk` and `_2026_*Executor.cs` files.
-     - Registered clean bot names in `bots.json`.
-  2. **100% Validated Deck Construction**:
-     - Queried and verified all card IDs against `cards.cdb`.
-     - Rebalanced all 3 main decks (exactly 40 cards) and extra decks (exactly 15 cards) to have **0 Banlist Violations** against `0TCG.lflist.conf`.
-  3. **DashBot Modern Categorization**:
-     - Updated `dashbot/MainWindow.xaml.cs` with `ModernArchetypes` hashset to classify `Tenpai`, `VoicelessVoice`, `Centurion`, and other modern meta decks under **Modern** category without relying on prefix strings.
-     - Added clean display name mappings ("Tenpai Dragon", "Voiceless Voice", "Centur-Ion").
-  4. **Compilation & Deployment**:
-     - Built and deployed all components via `BUILD_AND_DEPLOY.ps1` with 0 errors directly to `C:\Users\admin\Documents\EdoGame\`.
-     - Verified WindBot CLI initialization for `Tenpai`, `Centurion`, and `VoicelessVoice` (0 deck errors, connects cleanly).
-  5. **Policy & Guidelines Update**:
-     - Updated `AGENTS.md` and `.agents/skills/yugioh-executor/SKILL.md` with strict rules against version prefixes and unverified card IDs.
-
-## 0.010. Anime_Pegasus (Pegasus) S:P Little Knight Audit & Self-Targeting Removal Fix (2026-09-20)
-- **Problem Statement**:
-  - The user observed "pegasus ดีดการ์ดตัวเองลงหลุมหรอ" (Why does Pegasus send his own cards to GY?) and requested "ดู log ล่าสุดเกี่ยวกับการกระทำของ SP knight" (Analyze recent logs regarding S:P Little Knight's actions).
-- **Log Analysis & Root Cause Findings (`WindBot/logs/Blue_Angel_vs_Pegasus_25690920_123602` & `123537`)**:
-  1. **Comic Hand Waste on S:P Link Summon (Turn 2)**:
-     - Pegasus activated `Comic Hand` (33453260) to take control of Blue Angel's `Trickstar Lilybell` (98700941) and Normal Summoned `Toon Cyber Dragon` (83629030).
-     - Because `SPLittleKnightSpSummon()` returned `true` unconditionally, the bot sacrificed both the stolen monster and `Toon Cyber Dragon` as Link materials to summon `S:P Little Knight` (29301450).
-     - As a result, the stolen monster left the field, sending `Comic Hand` straight to the GY, destroying Pegasus's own advantage and replacing high-ATK direct attackers under `Toon Kingdom` with a 1600 ATK link monster.
-  2. **S:P Little Knight Quick Effect Dodge (Turn 3 & Turn 5)**:
-     - On Turn 3 (12:36:16) and Turn 5 (12:36:17), Blue Angel activated monster effects. `SPLittleKnightActivate` responded with Quick Effect (Effect 2: target 2 face-up monsters including 1 bot controls to banish until End Phase).
-     - The bot correctly targeted Blue Angel's monster (`98700941` / `37683441`) and itself (`29301450`), causing both to fly out of the field temporarily until the End Phase.
-  3. **Toon Black Luster Soldier Self-Banish Bug (Turn 2 in 123537)**:
-     - In the earlier duel, `Toon Black Luster Soldier` activated its once-per-turn banish effect (`hint=503`).
-     - In `OnSelectCard()`, the bot unconditionally matched `preferred` cards containing `ToonBlackLusterSoldier`.
-     - Because hint type wasn't checked, the bot selected **its own Toon BLS as the target to banish**, removing its own boss monsters twice!
-- **Architectural Fixes in `Anime_PegasusExecutor.cs`**:
-  - **`SPLittleKnightSpSummon` Hard Guards**: Added strict conditions:
-    - NEVER Link Summon S:P if Pegasus controls any monster equipped with `Comic Hand`.
-    - NEVER sacrifice high-ATK Toons under `Toon Kingdom` in Main Phase 1 (preserves direct attack win condition).
-    - Only Link Summon S:P in Main Phase 2 as an end-board piece or in Main Phase 1 if opponent has high threats and bot has small non-Toon bodies.
-  - **`OnSelectCard` Hint-Specific Segregation**:
-    - Restricted `preferred` search list solely to Deck searches (`hint == 506` / `HINTMSG_ATOHAND` or all cards located in Deck).
-    - For removal hints (`hint == 503` / `HINTMSG_REMOVE`, `hint == 502` / `HINTMSG_DESTROY`, `hint == 504` / `HINTMSG_TOGRAVE`), bot strictly prioritizes enemy cards (`c.Controller == 1`) and never targets friendly cards.
-  - **`ComicHandActivate` Target Validation**: Requires face-up opponent monsters (`Controller == 1`) that are not tokens and not already equipped with `Comic Hand`.
-  - **`SPLittleKnightActivate` Dual-Branch Handling**:
-    - Quick Effect dodge: targets highest-ATK opponent monster + S:P itself only when opponent activates effects.
-    - On-Summon banish: targets highest-ATK enemy monster, enemy backrow, or opponent GY monster.
-  - **Extra Deck Safeguards**: Added guards to `BigEyeSpSummon`, `RelinquishedAnimaSpSummon`, and `HopeHarbingerSpSummon` to avoid throwing away Toon direct lethal push.
-- **Build & Exclusive Deployment**:
-  - Compiled with 0 errors via `BUILD_AND_DEPLOY.ps1`; deployed new `WindBot.dll`, `ExecutorBase.dll`, `core.dll`, `bots.json`, and deck assets to `C:\Users\admin\Documents\EdoGame\`.
-
-## 0.009. Anime_Yugi (Yugi Muto) AI Freeze Fix & Deck Optimization (2026-09-20)
-- **Problem Statement**: The user reported "เด็ค yugi muto ไม่ยอมเล่นการ์ด" (Yugi Muto deck refuses to play cards / freezes / passes turns doing nothing).
-- **Root Causes Identified from Duel Logs (`WindBot/logs/Yugi_Muto_vs_Shark_...`)**:
-  1. **Impossible Tribute Condition Bug**: In `Anime_YugiExecutor.cs`, Normal/Tribute summons for `DarkMagicianGirl`, `SkullArchfiendOfChaos`, and `PharaohsServant` had condition `return Bot.GetMonsterCount() == 0;`. Because Level 6 & 7 monsters require 1-2 tributes, they could NEVER be summoned when the board had monsters, and the game engine couldn't offer them when the board was empty, locking the bot out of normal summons 100% of the time.
-  2. **Searcher Self-Sabotage in `OnSelectCard`**: When `Illusion of Chaos` activated its hand search, `OnSelectCard` lacked priority handling and frequently selected the searched `Pharaoh's Servant` to put immediately back on top of the deck!
-  3. **Starter Starvation & Severe Deck Bricks**: The original 46-card `Anime_Yugi.ydk` had only 1 copy of `Dark Magician, the Pharaoh's Servant` and 0 copies of original `Dark Magician`. As a result, 3x `Dark Magical Curtain` frequently had zero targets in Deck and failed to trigger its search; 3x `Preparation of Rites` bricked because there was only 1 Level <= 7 Ritual in the deck; and 3x `Pre-Preparation of Rites` bricked because there were only 2 Ritual monsters total.
-  4. **Pot of Prosperity Sabotage**: `PotOfProsperityActivate` was banishing all 3 copies of `Dark Magician of Destruction`, severing the bot's primary Extra Deck route into `Red-Eyes Dark Dragoon`.
-  5. **Handtrap Exposure**: `SpellSetStrategy` was setting `Dominus Impulse` face-down immediately on Turn 1, exposing it to removal instead of keeping it in hand as an active handtrap.
-- **Architectural Solutions & Fixes**:
-  - **`Anime_Yugi.ydk` Optimization**: Rebalanced main deck to 45 cards: added 2x original `Dark Magician` (46986414) enabling full search trigger on `Dark Magical Curtain`, increased `Pharaoh's Servant` to 2x, `Illusion of Chaos` to 2x, and `Magician of Dark Chaos` to 2x so all searchers (`Pre-Prep`, `Prep`, `Curtain`, `Soul Servant`) remain live throughout the match.
-  - **`Anime_YugiExecutor.cs` Overhaul**:
-    - Rewrote `OnSelectCard` with intelligent rules: never returns searched starters with `Illusion of Chaos`; intelligently reveals disposable spells for `Pharaoh's Servant`; picks top starters from `Pot of Prosperity` excavations.
-    - Fixed all summon methods: `DarkMagicianGirlSummon` and `SkullArchfiendSummon` now properly check `Bot.GetMonsterCount() > 0` for 1-tribute lines.
-    - Restructured priority pipeline so Turn 1 starters (`Illusion of Chaos` -> `Preparation of Rites` -> `Pre-Prep` -> `Griffoh` -> `Black Chaos` discard -> `Pharaoh's Servant` SS -> `Dark Magician of Destruction` -> `The Gaze of Timaeus` into `Red-Eyes Dark Dragoon`) activate sequentially without bottlenecking.
-    - Updated `Pot of Prosperity` banish list to preserve core fusion bosses (`Dragoon`, `Dragon Knight`, `Master of Chaos`, and `Dark Magician of Destruction`).
-- **Compilation & Exclusive Deployment**: Rebuilt with 0 errors via `BUILD_AND_DEPLOY.ps1`; deployed to `C:\Users\admin\Documents\EdoGame\`. Synchronized `Anime_Yugi.ydk` to both `WindBot/Decks/` and `deck/`.
 
 ---
 
 ## 📚 Historical Development Archives
-> ประวัติการพัฒนาและบันทึกการทดสอบเวอร์ชันก่อนหน้า (รวมถึง 0.001 - 0.008) ได้รับการย้ายไปจัดเก็บอย่างเป็นหมวดหมู่ที่:
+> ประวัติการพัฒนาและบันทึกการทดสอบเวอร์ชันก่อนหน้า (รวมถึง 0.001 - 0.021) ได้รับการย้ายไปจัดเก็บอย่างเป็นหมวดหมู่ที่:
 > [Docs/PROGRESS_ARCHIVE.md](Docs/PROGRESS_ARCHIVE.md)
 
