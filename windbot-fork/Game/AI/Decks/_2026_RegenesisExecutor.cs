@@ -309,9 +309,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool NibiruEffect()
         {
-            if (!SmartHandTrapChain()) return false;
-            int oppMonsters = Enemy.GetMonsterCount();
-            return oppMonsters >= 2 || Enemy.GetMonsters().Any(m => m != null && m.IsFaceup() && m.Attack >= 2000);
+            return DefaultNibiru();
         }
 
         private ClientCard GetBystialTarget()

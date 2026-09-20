@@ -1231,22 +1231,72 @@ namespace WindBot.Game.AI
                     canHandleKaiju = true;
                 }
                 // 3. Do we have removal options in hand or set on field?
-                else if (Bot.Hand.Any(c => c != null && (c.Id == 12580477 || c.Id == 53129443 || c.Id == 24299458 || c.Id == 6430623 || c.Id == 37520316 || c.Id == 25311006)) ||
-                         Bot.GetSpells().Any(c => c != null && c.IsFacedown()))
+                else if (Bot.Hand.Any(c => c != null && (c.Id == 12580477 || c.Id == 53129443 || c.Id == 24299458 || c.Id == 6430623 || c.Id == 37520316 || c.Id == 25311006)))
                 {
                     canHandleKaiju = true;
                 }
                 // 4. Contact fusion material (Cyber Dragon + Machine Kaiju)
-                else if (Card.Id == _CardId.JizukirutheStarDestroyingKaiju && (Bot.HasInHand(70095154) || Bot.HasInMonstersZone(70095154)))
+                else if (Card.Id == _CardId.JizukirutheStarDestroyingKaiju &&
+                         Bot.ExtraDeck.Any(c => c != null && c.Id == 21060005) && // Chimeratech Fortress Dragon
+                         (Bot.HasInHand(70095154) || Bot.HasInMonstersZone(70095154)))
                 {
                     canHandleKaiju = true;
                 }
 
-                if (isCriticalThreat || canHandleKaiju)
+                // CRITICAL SAFEGUARD: Avoid giving opponent a Kaiju we cannot handle.
+                // If we give them a 3300 ATK Kaiju and cannot remove or beat over it,
+                // the opponent will attack and destroy us with our own Kaiju!
+                if (!canHandleKaiju)
                 {
-                    AI.SelectCard(target);
-                    return true;
+                    // Only acceptable if target is a hard floodgate AND Kaiju is low ATK (<= 2400)
+                    // AND Bot has enough defense/LP to survive
+                    if (isCriticalThreat && kaijuPower <= 2400 &&
+                        (Bot.LifePoints > kaijuPower || Bot.GetMonsters().Any(m => m != null && m.IsDefense())))
+                    {
+                        AI.SelectCard(target);
+                        return true;
+                    }
+
+                    return false;
                 }
+
+                AI.SelectCard(target);
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Intelligent Nibiru activation:
+        /// 1. Opponent's turn only, Main Phase only.
+        /// 2. Protects our own Ace/Boss monsters unless opponent has lethal ATK.
+        /// 3. Ensures opponent has committed meaningful board presence.
+        /// </summary>
+        protected virtual bool DefaultNibiru()
+        {
+            // 1. Opponent's turn, Main Phase only
+            if (Duel.Player != 1 || (Duel.Phase != DuelPhase.Main1 && Duel.Phase != DuelPhase.Main2))
+                return false;
+
+            // 2. Chain check: don't chain to our own cards
+            if (Duel.CurrentChain.Count > 0 && Duel.LastChainPlayer == 0)
+                return false;
+
+            // 3. Boss protection: NEVER wipe our own field if we control Ace/Boss monsters unless opponent has lethal!
+            int ourBossCount = Bot.GetMonsters().Count(m => m != null && m.IsFaceup() && (IsAceCard(m) || m.Attack >= 2500));
+            int enemyTotalAtk = Enemy.GetMonsters().Where(m => m != null && m.IsFaceup()).Sum(m => m.Attack);
+
+            if (ourBossCount > 0 && enemyTotalAtk < Bot.LifePoints && Enemy.GetMonsterCount() <= 2)
+            {
+                // Our boss board is winning, don't throw it away!
+                return false;
+            }
+
+            // 4. Opponent must have committed at least 2 monsters, or total ATK >= 2500, or a critical threat
+            if (Enemy.GetMonsterCount() >= 2 || enemyTotalAtk >= 2500 || Enemy.GetMonsters().Any(m => m != null && m.IsFaceup() && CardIntelligence.IsHighThreatChokepoint(m.Id)))
+            {
+                return true;
             }
 
             return false;

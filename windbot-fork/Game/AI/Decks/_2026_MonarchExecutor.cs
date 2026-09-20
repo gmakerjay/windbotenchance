@@ -1,4 +1,4 @@
-﻿// =========================================================================================
+// =========================================================================================
 // CARD AUDIT โ€” 2026_Monarch
 // | Card Name                    | Type    | OPT? | Cost              | Effect                                       | Activate When             | NEVER When                |
 // | Erebus the Underworld Monarch| Monster | Yes  | Send 2 Monarch S/T| Shuffles 1 card from hand/field/GY into deck | On Tribute Summon         | Opponent has negate setup |
@@ -289,9 +289,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool NibiruEffect()
         {
-            if (!SmartHandTrapChain()) return false;
-            int oppMonsters = Enemy.GetMonsterCount();
-            return oppMonsters >= 2 || Enemy.GetMonsters().Any(m => m != null && m.IsFaceup() && m.Attack >= 2000);
+            return DefaultNibiru();
         }
 
         // --- Setup Spells ---

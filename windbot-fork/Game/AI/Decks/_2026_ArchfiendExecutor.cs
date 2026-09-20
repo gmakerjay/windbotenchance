@@ -1042,8 +1042,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool NibiruEffect()
         {
-            if (!SmartHandTrapChain()) return false;
-            return Enemy.GetMonsterCount() >= 2 || Enemy.GetMonsters().Any(m => m != null && m.IsFaceup() && m.Attack >= 2000);
+            return DefaultNibiru();
         }
 
         // ── Extra Deck Effect Handlers ──

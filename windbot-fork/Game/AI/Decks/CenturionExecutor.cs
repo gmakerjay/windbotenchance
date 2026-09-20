@@ -53,6 +53,7 @@ namespace WindBot.Game.AI.Decks
             public const int AshBlossom = 14558127;
             public const int InfiniteImpermanence = 10045474;
             public const int GhostBelle = 73642296;
+            public const int Nibiru = 27204311;
 
             // Extra Deck
             public const int CenturIonLegatia = 15982593;
@@ -127,6 +128,7 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.Activate, CardId.GhostBelle, GhostBelleActivate);
             AddExecutor(ExecutorType.Activate, CardId.CalledByTheGrave, CalledByTheGraveActivate);
             AddExecutor(ExecutorType.Activate, CardId.CosmicCyclone, CosmicCycloneActivate);
+            AddExecutor(ExecutorType.Activate, CardId.Nibiru, DefaultNibiru);
 
             // Counter Trap Omni-Negate
             AddExecutor(ExecutorType.Activate, CardId.CenturIonTrueAwakening, TrueAwakeningActivate);

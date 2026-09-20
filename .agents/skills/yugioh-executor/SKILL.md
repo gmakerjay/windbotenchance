@@ -3,10 +3,10 @@ name: yugioh-executor
 description: |
   คู่มือพัฒนา, สร้าง Combo, และ Deploy YugiohTH Rule-Based WindBot Executor
   ครอบคลุมโครงสร้างโปรเจกต์, สถาปัตยกรรม Central Core & ModernExecutor,
-  ขั้นตอน Build & Deploy, และหลักการออกแบบ AI เชิงกลยุทธ์
+  ขั้นตอน Build & Deploy, และหลักการตัดสินใจเชิงกลยุทธ์ (Strategic Decision System)
 ---
 
-# YugiohTH Executor Development Skill v9.0
+# YugiohTH Executor Development Skill & Strategic Decision System v10.0
 
 ## 0. กฎเหล็ก: ห้ามมั่ว ต้องอ้างอิงของจริงเสมอ
 
@@ -20,14 +20,12 @@ description: |
 | Threat / Chokepoint Targets | `CardIntelligence.cs` | ฐานข้อมูลกลาง O(1) ของ Floodgate, Negator, Handtrap, Immunity ห้ามฮาร์ดโค้ดซ้ำ |
 | Hint ID ของ Effect | OCGCore constants & `ModernExecutor.cs` | Hint ผิดตัวทำให้เลือกการ์ดผิดพลาด |
 
-**ขั้นตอนก่อนลงมือทุกครั้ง**: อ่านไฟล์ที่เกี่ยวข้องจริง → ยืนยัน Card ID/Effect/Method Signature ตรงกับที่จะใช้ → ถ้าไม่แน่ใจให้เปิดไฟล์เช็คซ้ำ ห้ามเขียนโค้ดที่อ้างอิง field/method ที่ยังไม่ได้ยืนยันว่ามีอยู่จริง
-
 ---
 
 ## 1. Workflow เมื่อได้รับคำสั่ง "สร้างเด็คใหม่" / "แก้ไขเด็ค" / "ปรับปรุง Executor"
 
 1. **ศึกษาเด็คจากของจริง**: อ่าน `.ydk` + `cards.cdb` ของเด็คเป้าหมายทั้งหมด ก่อนออกแบบใดๆ
-2. **ออกแบบคอมโบตามหลักการเชิงกลยุทธ์** (ดูหมวด 2): Main Route + แผนสำรอง (Route B/C/D), First Turn / Second Turn
+2. **ออกแบบคอมโบตามหลักการเชิงกลยุทธ์**: Main Route + แผนสำรอง (Route B/C/D), First Turn / Second Turn
 3. **เขียนโค้ด ModernExecutor และลงทะเบียนเด็ค**: สร้าง `.ydk`, เขียน `Executor.cs`, ลงทะเบียนใน `bots.json`
 4. **Build & Deploy ไปยังเป้าหมาย**: คอมไพล์ผ่าน `BUILD_AND_DEPLOY.ps1` และ Deploy มาที่ `C:\Users\admin\Documents\EdoGame\` เสมอ และบันทึกประวัติลงใน `PROGRESS.md`
 5. **นโยบายการทดสอบ Headless Simulation (กฎเหล็ก)**:
@@ -41,77 +39,79 @@ description: |
 
 ---
 
-## 2. หลักการออกแบบคอมโบ (Core AI Principles)
+## 2. Strategic Decision System (หลักการตัดสินใจเชิงกลยุทธ์)
 
-Agent ต้องคิดแบบ **Strategic Executor** ไม่ใช่ Combo Script ท่องจำ:
+> **"Do not play cards. Play the game state."**  
+> เป้าหมายสูงสุดคือ: **Bot ที่ไม่ได้แค่รู้ว่าการ์ดทำอะไรได้ แต่รู้ว่าเมื่อไหร่ควรทำ และเมื่อไหร่ไม่ควรทำ** โดยเลือก Action ที่ให้ **Expected Value สูงสุด** ไม่ใช่คอมโบที่ยาวที่สุด
 
-`GAME STATE → SITUATION → WIN CONDITION → TARGET END BOARD → COMBO LINE → RISK/RESOURCE → ACTION → RE-EVALUATE`
+### 2.1 Core Decision Loop
+ทุกการกระทำต้องผ่านกระบวนการประเมินสถานการณ์เสมอ:
+```text
+OBSERVE (Board/Hand/GY/LP) → IDENTIFY THREATS → CHECK WIN/DEFENSE → SCORE ACTIONS → EXECUTE → PRESERVE FOLLOW-UP
+```
 
-> **Do not play cards. Play the game state.**
+### 2.2 Threat Priority Model (ลำดับความสำคัญของภัยคุกคาม)
+1. **Priority 1 — Immediate Lethal Threat**: การ์ดหรือสถานการณ์ที่ทำให้เราแพ้ในเทิร์นนี้ (ต้องเคลียร์ก่อนเสมอ)
+2. **Priority 2 — Hard Interaction**: Omni Negate, Monster Negate, S/T Negate, Continuous Floodgate, Turn-skip lock
+3. **Priority 3 — Resource Engine**: การ์ดค้นหา (Search), จั่ว (Draw), ชุบ (Revive), หรือสร้าง Token ของคู่แข่ง
+4. **Priority 4 — Board Pressure**: มอนสเตอร์ ATK สูงแต่ไม่มี Interaction ขัดจังหวะ
 
-ในทุก Combo ที่ออกแบบ ต้องครอบคลุมทั้ง 4 ข้อนี้เสมอ:
-- **Main Route + แผนสำรอง**: ทุกคอมโบต้องมี Route หลัก และอย่างน้อย 1 Route สำรอง สำหรับกรณีโดน Handtrap ตัด (`Ash Blossom`, `Infinite Impermanence`, `Maxx "C"`, `Nibiru` ฯลฯ)
-- **ใช้การ์ดอย่างคุ้มค่า (Resource Efficiency)**: ไม่ทุ่ม Resource เกินจำเป็น ประเมินว่าคู่ต่อสู้ต้องใช้อะไรตอบโต้ ถ้า Bait ด้วยของถูกได้ให้ Bait ก่อนเปิดของแพง
-- **ไม่ทำร้ายตัวเอง (Self-Harm Prevention)**: ก่อนเปิดใช้งานการ์ดใดๆ ตรวจสอบว่าเงื่อนไขไม่ทำลายบอร์ดตัวเอง (เช่น การ์ดที่บังคับเลือกทำลายการ์ดบนสนามเมื่อสนามศัตรูว่าง)
-- **อ่านบอร์ดฝ่ายตรงข้าม (Opponent Board Reading)**: ประเมินการ์ดที่มองเห็นได้จริง คาดการณ์ความเสี่ยง และเล็งเป้ากำจัด Chokepoint/Floodgate ตาม `CardIntelligence.cs`
-
----
-
-## 2.1 ข้อห้ามเด็ดขาดในการเขียน Executor (CRITICAL ANTI-PATTERNS & STRICT PROHIBITIONS)
-
-เพื่อป้องกันไม่ให้บอทเล่นพลาด ทำร้ายตัวเอง หรือเกิดข้อผิดพลาดซ้ำเดิม ให้ Agent ตัวถัดไปปฏิบัติตามข้อห้ามเหล่านี้อย่างเคร่งครัด:
-
-### 🚫 1. ห้ามใช้ `preferred` list ใน `OnSelectCard` โดยไม่แยกแยะ Hint ID (ห้ามทำลาย/รีมูฟการ์ดตัวเอง)
-- **ปัญหาที่เคยเกิด**: กำหนด `preferred = { ToonBLS, ToonKingdom, ... }` เพื่อหาการ์ดขึ้นมือ แต่ไม่ได้ตรวจสอบ Hint ID เมื่อการ์ดใช้เอฟเฟกต์ "รีมูฟการ์ด 1 ใบ" (`hint=503`) บอทเห็นการ์ดเอซตัวเองอยู่ในรายชื่อ จึงสั่งรีมูฟบอสตัวเองออกจากสนามซะเอง!
-- **ข้อปฏิบัติที่ถูกต้อง**:
-  - `preferred` search list ต้องทำงานเฉพาะคำสั่งค้นหาขึ้นมือจากเด็ค (`hint == 506` / `HINTMSG_ATOHAND` หรือเมื่อการ์ดทุกใบมาจากเด็ค `cards.All(c => c.Location == CardLocation.Deck)`) เท่านั้น
-  - เมื่อ Hint เป็นคำสั่งขจัด/ทำลาย/ส่งลงสุสาน (`hint == 503 [REMOVE]`, `hint == 502 [DESTROY]`, `hint == 504 [TOGRAVE]`): **ต้องบังคับเลือกเฉพาะการ์ดฝ่ายตรงข้าม (`c.Controller == 1`) เสมอ** ห้ามเลือกการ์ดฝั่งเราเด็ดขาดถ้ายังมีการ์ดศัตรูให้เลือก
-
-### 🚫 2. ห้ามเขียนฟังก์ชัน Extra Deck คืนค่า `return true;` แบบไร้เงื่อนไข
-- **ปัญหาที่เคยเกิด**: `SPLittleKnightSpSummon()` คืนค่า `true` ตลอดเวลา บอทจึงนำมอนสเตอร์ที่เพิ่งขโมยมาด้วย `Comic Hand` หรือ Toon พลังสูงใต้ Toon Kingdom ไปทำ Link เป็น S:P Little Knight พลัง 1600 ส่งผลให้การ์ดสวมใส่พังหลุดลงสุสานฟรีๆ และเสียจังหวะโจมตีตรงปิดเกม
-- **ข้อปฏิบัติที่ถูกต้อง**:
-  - **ห้าม** นำมอนสเตอร์ที่สวมใส่การ์ดขโมย (เช่น `Comic Hand`, `Snatch Steal`) ไปทำวัตถุดิบ Extra Deck (Link/Xyz/Synchro) หรือสังเวยเด็ดขาด
-  - **ห้าม** สังเวยมอนสเตอร์พลังโจมตีสูง (2000+) ที่มีผลโจมตีตรง (เช่น ภายใต้ `Toon Kingdom`) ใน Main Phase 1 เพื่อไปทำตัว Extra Deck ที่พลังน้อยกว่าและตีตรงไม่ได้
-  - ตัวตั้งรับ/ขัดขวาง (เช่น S:P Little Knight, Big Eye, Hope Harbinger) ควรอัญเชิญใน Main Phase 2 เพื่อตั้งบอร์ดขัดขวาง หรืออัญเชิญเมื่อต้องการขจัดตัวปัญหาของศัตรูเท่านั้น
-
-### 🚫 3. ห้ามกำหนดเงื่อนไข Tribute Summon ที่เป็นไปไม่ได้ (`Bot.GetMonsterCount() == 0`)
-- **ปัญหาที่เคยเกิด**: มอนสเตอร์เลเวล 5 ขึ้นไปที่ต้องการ 1-2 บูชายัญ (เช่น Dark Magician Girl, Pharaoh's Servant) ไปใส่เงื่อนไข `return Bot.GetMonsterCount() == 0;` ทำให้เครื่องเกมไม่สามารถเสนอคำสั่งอัญเชิญได้ ส่งผลให้บอทหยุดเล่น (Freeze) / Pass Turn ข้ามเทิร์นไปเฉยๆ
-- **ข้อปฏิบัติที่ถูกต้อง**: มอนสเตอร์ที่ต้องบูชายัญ ต้องตรวจสอบว่าบนสนามเรามีมอนสเตอร์ให้บูชายัญ (`Bot.GetMonsterCount() >= 1`) เสมอ
-
-### 🚫 4. ห้ามเสิร์ชแล้วเลือกการ์ดใบเดิมกลับเข้าเด็คทันที
-- **ปัญหาที่เคยเกิด**: เอฟเฟกต์ที่เสิร์ชการ์ดขึ้นมือแล้วต้องเลือกการ์ด 1 ใบกลับเด็ค (เช่น `Illusion of Chaos`) ใน `OnSelectCard` ดันเลือกการ์ดที่เพิ่งเสิร์ชมาวางกลับเด็ค
-- **ข้อปฏิบัติที่ถูกต้อง**: ใน `OnSelectCard` เมื่อต้องคืนการ์ดเข้าเด็ค ต้องเลือกการ์ดที่ไม่จำเป็นหรือการ์ดขยะ ห้ามคืนการ์ด Starter หรือการ์ดที่เพิ่งหยิบขึ้นมาเด็ดขาด
-
-### 🚫 5. ห้ามสั่ง `SpellSetStrategy` นำ Handtrap ไปเซ็ตหมอบใน Main Phase 1
-- **ปัญหาที่เคยเกิด**: แฮนด์แทรปที่ทำงานจากบนมือได้ (เช่น `Dominus Impulse`, `Ash Blossom`) ถูกสั่งให้หมอบลงสนาม ทำให้โดนทำลายฟรีโดยไม่ได้ใช้งาน
-- **ข้อปฏิบัติที่ถูกต้อง**: แฮนด์แทรปต้องเก็บไว้บนมือเท่านั้น ยกเว้นกรณีที่เป็น Quick-Play / Normal Trap ที่ต้องเซ็ตเพื่อเปิดใช้ในเทิร์นคู่แข่ง และควรเซ็ตใน Main Phase 2
-
-### 🚫 6. ห้ามรีมูฟหรือทิ้ง Core Piece สำคัญของเด็คอย่างไร้เหตุผล
-- **ปัญหาที่เคยเกิด**: เอฟเฟกต์รีมูฟ Extra Deck เพื่อจั่ว (เช่น `Pot of Prosperity`) สุ่มรีมูฟคีย์การ์ดบอสชิ้นเดียวของเด็ค (เช่น Dragoon) ทำให้เด็คหมดทางชนะ
-- **ข้อปฏิบัติที่ถูกต้อง**: ต้องระบุลิสต์การ์ดสำรอง (Disposable / Fodder) ให้ชัดเจน และล็อกยกเว้น Core Boss ห้ามนำไปรีมูฟ
-
-### 🚫 7. ห้ามรัน Headless Simulation โดยอัตโนมัติ (กฎเหล็ก)
-- ผู้ใช้ต้องการทดสอบการเล่นในเกมจริงด้วยตนเองก่อนเสมอ **ห้ามรันคำสั่งจำลองดวล Headless Simulator เด็ดขาดจนกว่าผู้ใช้จะพิมพ์สั่งคำว่า "Text Duel" (หรือ "จำลองดวล") เท่านั้น**
-
-### 🚫 8. ห้าม Deploy นอกโฟลเดอร์ `C:\Users\admin\Documents\EdoGame\` เด็ดขาด
-- ทุกไบนารีต้อง Deploy มาที่ `C:\Users\admin\Documents\EdoGame\` ผ่าน `BUILD_AND_DEPLOY.ps1` เท่านั้น
-
-### 🚫 9. ห้ามใช้ AI Training / Neural Models / RL
-- โปรเจกต์นี้เป็น Rule-Based C# Executor 100% ห้ามสร้าง Neural Code หรือโค้ดเทรนโมเดล
+### 2.3 Strategic Rules of Engagement (กฎทองคำ 10 ประการ)
+1. **Can Activate ≠ Should Activate**: อย่าใช้เอฟเฟกต์หรืออัญเชิญเพียงเพราะ "ทำได้" ให้ถามตัวเองเสมอว่าทำแล้วได้อะไร เสียอะไร และคุ้มค่าหรือไม่
+2. **Anti-Overextend & Win Condition First**: ถ้าเข้าเงื่อนไขชนะแล้ว (เช่น เข้า RUSH MODE / Lethal Confirmed หรือคู่แข่งไม่มี Interaction ขัดขวาง) **ให้หยุดใช้ทรัพยากรทันทีและสั่งเข้า Battle Phase ปิดเกม** ห้ามรันคอมโบเสิร์ชหรือสเปเชียลต่อให้ยืดเยื้อ
+3. **High Material Cost Awareness**: ห้ามนำมอนสเตอร์มูลค่าสูง (Ace Boss, ตัวขัดจังหวะ Quick Effect, Floodgate, หรือตัวที่มีพลังโจมตีสูง) ไปเป็น Material หรือบูชายัญโดยไร้เหตุผลเด็ดขาด
+4. **Chain Discipline & Negate Value**: อย่า Chain การ์ดตัวเองโดยไม่เพิ่มคุณค่า และอย่าใช้ Negate/Disruption สำคัญกับการ์ดขยะของคู่แข่ง (เก็บไว้ขัด Chokepoint)
+5. **MST & Removal Discipline**: ทำลายเฉพาะการ์ดที่ **ต้องคงอยู่บนสนามเพื่อส่งผล** (`Continuous`, `Field`, `Equip`, `Pendulum Scale`) **ห้ามโซ่ทำลายใส่ Normal Spell / Normal Trap เด็ดขาด** เพราะการทำลายไม่ได้ Negate ผลการ์ด
+6. **Targeting Sanity**: ห้ามเพิ่มพลัง/บัฟให้มอนสเตอร์ของคู่แข่ง และเมื่อใช้เอฟเฟกต์ทำลาย/รีมูฟ/ส่งลงสุสาน **ต้องเลือกการ์ดของคู่แข่ง (`c.Controller == 1`) เสมอ**
+7. **Preserve Follow-up**: รักษา Resource สำหรับเทิร์นถัดไปเสมอ บอร์ดที่แข็งแกร่งแต่ไม่เหลือการ์ดบนมือเลย ด้อยกว่าบอร์ดที่แข็งแกร่งและมี Starter สำหรับเทิร์นหน้า
+8. **Anti-Hoarding vs Anti-Brick**: ใช้การ์ดทันทีเมื่อ Current Value > Expected Future Value อย่ากั๊กการ์ดจนเสียโอกาส และอย่าทิ้งการ์ดอเนกประสงค์ไปกับหน้าที่เล็กๆ
+9. **Risk-Aware Simulation**: ประเมินความเสี่ยงของการโดน Handtrap หรือ Board Breaker เสมอ และเลือก Combo Line ที่มี Recovery รองรับ
+10. **Information As Resource**: จดจำการ์ดที่คู่แข่งเสิร์ช/เปิดเผย รวมถึง Once-Per-Turn ที่คู่แข่งใช้ไปแล้ว เพื่อวางแผนดักทาง
 
 ---
 
-## 3. Project Overview
+## 3. ข้อห้ามเด็ดขาดในการเขียน Executor (CRITICAL ANTI-PATTERNS)
 
-YugiohTH เป็น **Rule-Based C# Executor Platform** สำหรับสร้าง AI Bot เล่น Yu-Gi-Oh! ผ่าน EDOPro
-โฟกัส 100% ที่ C# ModernExecutor — **ไม่มี AI Training, Neural Network, หรือ RL**
+เพื่อป้องกันบอทเล่นพลาด ทำร้ายตัวเอง หรือเกิดข้อผิดพลาดซ้ำเดิม ให้ปฏิบัติตามข้อห้ามเหล่านี้อย่างเคร่งครัด:
+
+1. 🚫 **ห้ามใช้ `preferred` list ใน `OnSelectCard` โดยไม่แยกแยะ Hint ID**:
+   - `preferred` search list ต้องทำงานเฉพาะคำสั่งค้นหาขึ้นมือจากเด็ค (`hint == 506` / `HINTMSG_ATOHAND`) เท่านั้น
+   - เมื่อ Hint เป็นคำสั่งขจัด/ทำลาย/ส่งลงสุสาน (`hint == 503 [REMOVE]`, `hint == 502 [DESTROY]`, `hint == 504/508 [TOGRAVE]`): **ต้องบังคับเลือกเฉพาะการ์ดฝ่ายตรงข้าม (`c.Controller == 1`) เสมอ** ห้ามเลือกการ์ดฝั่งเราเด็ดขาดถ้ายังมีการ์ดศัตรูให้เลือก ป้องกันบอททำลาย/รีมูฟเอซตัวเอง
+2. 🚫 **ห้ามเขียน Extra Deck Summon คืนค่า `return true;` แบบไร้เงื่อนไข**:
+   - **ห้าม** นำมอนสเตอร์ที่สวมใส่การ์ดขโมย (เช่น `Comic Hand`, `Snatch Steal`) ไปทำวัตถุดิบ Extra Deck หรือสังเวยเด็ดขาด (จะทำให้การ์ดสวมใส่หลุดลงสุสานฟรี)
+   - **ห้าม** สังเวยมอนสเตอร์พลังโจมตีสูง (2000+) ที่มีผลโจมตีตรง (เช่น ใต้ `Toon Kingdom`) ใน Main Phase 1 เพื่อไปทำตัว Extra Deck ที่พลังน้อยกว่า
+   - **ห้าม** นำ Boss Monster หลัก 2 ตัวไปทำ Xyz (เช่น Diabellze + Diabell Queen รวมร่างเป็น Dingirsu) จนพลังโจมตีรวมลดฮวบและเสียบอร์ดขัดจังหวะ
+3. 🚫 **ห้ามกำหนดเงื่อนไข Tribute Summon ที่เป็นไปไม่ได้**:
+   - ห้ามเขียนเงื่อนไขบูชายัญมอนสเตอร์เลเวล 5+ ว่า `Bot.GetMonsterCount() == 0` เด็ดขาด เพราะจะทำให้บอทค้าง/Pass Turn
+4. 🚫 **ห้ามเสิร์ชแล้วเลือกการ์ดใบเดิมกลับเข้าเด็คทันที**:
+   - ใน `OnSelectCard` เมื่อต้องคืนการ์ดเข้าเด็ค (เช่น `Illusion of Chaos`) ต้องเลือกการ์ดที่ไม่จำเป็น ห้ามคืนการ์ดที่เพิ่งเสิร์ชมา
+5. 🚫 **ห้ามสั่ง `SpellSetStrategy` นำ Handtrap ไปเซ็ตหมอบใน Main Phase 1**:
+   - แฮนด์แทรปที่ทำงานจากบนมือได้ (เช่น `Dominus Impulse`, `Ash Blossom`, `Ghost Ogre`) ต้องเก็บไว้บนมือเท่านั้น
+6. 🚫 **ห้ามรีมูฟหรือทิ้ง Core Boss สำคัญของเด็คอย่างไร้เหตุผล**:
+   - ใน `Pot of Prosperity` หรือ Cost ต่างๆ ต้องยกเว้น Core Boss ห้ามนำไปรีมูฟ
+7. 🚫 **ห้ามโซ่ทำลายใส่ Normal Spell / Normal Trap ("MST Negates" Fallacy)**:
+   - การ์ดทำลายอย่าง `Mystical Space Typhoon` ไม่ได้ Negate ผล ห้ามโซ่ใส่เวทมนตร์ปกติ/กับดักปกติของศัตรูเด็ดขาด
+8. 🚫 **ห้ามคอมโบต่อเมื่อเข้าสู่ RUSH MODE / มี Lethal ยืนยันแล้ว**:
+   - เมื่อสนามคู่แข่งว่างเปล่า และบอทมีพลังโจมตีปิดเกมได้ ให้เข้า Battle Phase ตีทันที ห้ามรันคอมโบยืดเยื้อ
+9. 🚫 **ห้ามอัญเชิญ Tuner 2 ตัวมาติดบนสนามโดยไม่มี Non-Tuner รองรับ**:
+   - หลีกเลี่ยงการ Normal Summon มอนสเตอร์ Tuner ซ้ำซ้อน 2 ตัวหากไม่มีตัว Non-Tuner หรือ Xyz รองรับ
+10. 🚫 **ห้ามรัน Headless Simulation โดยอัตโนมัติ (กฎเหล็ก)**:
+    - รอคำสั่ง "Text Duel" (หรือ "จำลองดวล") จากผู้ใช้เท่านั้น
+11. 🚫 **ห้าม Deploy นอกโฟลเดอร์ `C:\Users\admin\Documents\EdoGame\` เด็ดขาด**:
+    - ทุกไบนารีต้อง Deploy มาที่ `C:\Users\admin\Documents\EdoGame\` ผ่าน `BUILD_AND_DEPLOY.ps1` เท่านั้น
+12. 🚫 **ห้ามใช้ AI Training / Neural Models / RL**:
+    - โปรเจกต์นี้เป็น Rule-Based C# Executor 100% ห้ามสร้างโค้ด Neural หรือ AI Training
+13. 🚫 **ห้ามใช้คำนำหน้าปีหรือเวอร์ชันในชื่อเด็ค และห้ามใส่ Card ID ผิดหรือการ์ดผิด Banlist**:
+    - ตรวจสอบกับ `cards.cdb` และ `0TCG.lflist.conf` / `OCG.lflist.conf` เสมอ เพื่อป้องกัน `ERRMSG_DECKERROR`
+
+---
+
+## 4. โครงสร้างโปรเจกต์ (Project Overview & Paths)
 
 ### Source Location (MANDATORY)
-```
+```text
 C:\Users\admin\Documents\EdoGame\src\YGO_SOURCE_CLEAN\
 ```
-
-### Key Components
 
 | Component | Path (Relative to `src\YGO_SOURCE_CLEAN`) | Purpose |
 |---|---|---|
@@ -126,42 +126,43 @@ C:\Users\admin\Documents\EdoGame\src\YGO_SOURCE_CLEAN\
 
 ---
 
-## 4. Central Core AI Architecture (`ExecutorBase`)
+## 5. Central Core AI Architecture (`ExecutorBase`)
 
 WindBot ได้รับการปฏิรูป Core กลางเพื่อลดการฮาร์ดโค้ดรายเด็ค และช่วยให้บอทตัดสินใจได้อย่างชาญฉลาดโดยอัตโนมัติ:
 
-### 4.1 Central Intelligence (`CardIntelligence.cs`)
+### 5.1 Central Intelligence (`CardIntelligence.cs`)
 - ฐานข้อมูลส่วนกลางเก็บข้อมูลการ์ดในรูปแบบ $O(1)$ HashSets:
-  - `FloodgateMonsters`, `FloodgateSpellsTraps` (เช่น Skill Drain, Winda, Bagooska, Secret Village)
-  - `KnownNegators` (เช่น Baronne de Fleur, Savage Dragon, Apollousa, Mechaba)
+  - `FloodgateMonsters`, `FloodgateSpellsTraps` (Skill Drain, Winda, Bagooska, Secret Village)
+  - `KnownNegators` (Baronne de Fleur, Savage Dragon, Apollousa, Mechaba)
   - `UniversalChokepoints` (เป้าหมายขัดขวางสำคัญของเด็คเมต้าและเลกาซี่)
   - `Handtraps` (Ash Blossom, Impermanence, Ghost Ogre, Droll, Maxx C, Mulcharmy)
   - `TargetImmuneMonsters` & `DestructionImmuneMonsters` (ป้องกันการยิงใส่เป้าที่กันเอฟเฟกต์)
 
-### 4.2 Universal Fallback Engine (`GameAI.cs` & `Executor.cs`)
+### 5.2 Universal Fallback Engine (`GameAI.cs` & `Executor.cs`)
 - **`FallbackSelectCard()`**: ประเมิน Threat/Cost/Utility อัตโนมัติเมื่ออยู่นอกสคริปต์คอมโบ ขจัดปัญหาบอทหยิบ `cards[0]` มั่ว
-- **Stat-Aware `OnSelectPosition()`**: เลือกตั้งรับ (FaceUpDefence) อัตโนมัติหากมอนสเตอร์มีพลังป้องกันเหนือกว่าพลังโจมตีอย่างมีนัยสำคัญ ป้องกันมอนสเตอร์คอมโบ/แฮนด์แทรปตกเป็นเป้าตีฟรี
+- **Stat-Aware `OnSelectPosition()`**: เลือกตั้งรับ (FaceUpDefence) อัตโนมัติหากมอนสเตอร์มีพลังป้องกันเหนือกว่าพลังโจมตีอย่างมีนัยสำคัญ
 - **Column-Safe `OnSelectPlace()`**: หลีกเลี่ยงการวางการ์ดในคอลัมน์ที่มี Continuous Spell/Trap หรือเสี่ยงต่อ Infinite Impermanence
 
-### 4.3 Comprehensive Hint Table (`ModernExecutor.cs`)
+### 5.3 Comprehensive Hint Table (`ModernExecutor.cs`)
 | Hint ID | Constant | Meaning & AI Behavior |
 |---|---|---|
 | **500** | `HINTMSG_RELEASE` | บูชายัญ: เลือกลำดับ Fodder/Token ก่อน ห้ามสังเวย Ace |
 | **501** | `HINTMSG_DISCARD` | ทิ้งการ์ด: ทิ้งใบที่ได้ผลในสุสาน หรือของซ้ำ ป้องกัน Starter |
 | **502** | `HINTMSG_DESTROY` | ทำลาย: เล็งเป้า Threat/Floodgate ของศัตรูตาม ThreatScore |
-| **504** | `HINTMSG_REMOVE` | แบน: กำจัดตัวอันตรายสูงสุด ข้ามมอนสเตอร์ที่กันการตกเป็นเป้า |
+| **503 / 504** | `HINTMSG_REMOVE` | แบน: กำจัดตัวอันตรายสูงสุด ข้ามมอนสเตอร์ที่กันการตกเป็นเป้า |
 | **505** | `HINTMSG_ATOHAND / RTOHAND` | เสิร์ชขึ้นมือ หรือเด้งการ์ดขึ้นมือศัตรู |
 | **506** | `HINTMSG_TODECK` | สับ/ส่งกลับเด็ค (Spin removal) |
 | **507** | `HINTMSG_EQUIP` | สวมใส่การ์ด: เล็งเป้าหมายมอนสเตอร์ที่เหมาะสม |
 | **508** | `HINTMSG_TOGRAVE` | ส่งลงสุสาน: ส่งชิ้นส่วนคอมโบ/การ์ดทริกเกอร์ |
 | **509** | `HINTMSG_SPSUMMON` | อัญเชิญพิเศษ: เลือก Ace/Negate/Extra Deck สูงสุด |
+| **512** | `HINTMSG_SMATERIAL` | วัตถุดิบ Synchro: ปกป้องบอส เรียงจาก Tuner/ตัวเล็กขึ้นไป |
+| **513 / 519**| `HINTMSG_XMATERIAL` | วัตถุดิบ Xyz: ปลดหรือเลือกวัตถุดิบที่ไม่ใช่บอสหลัก |
 | **518** | `HINTMSG_POSCHANGE` | ปรับสถานะการตั้ง |
-| **519** | `HINTMSG_XMATERIAL` | ปลด Xyz Material: ปลดวัตถุดิบที่ใช้แล้ว/มีเอฟเฟกต์ในสุสาน |
-| **552 / 572** | `HINTMSG_DISABLE / NEGATE` | เล็ง Negate/ขัดขวางการ์ดสำคัญ |
+| **552 / 572**| `HINTMSG_DISABLE / NEGATE` | เล็ง Negate/ขัดขวางการ์ดสำคัญ |
 
 ---
 
-## 5. Build & Deploy Pipeline
+## 6. Build & Deploy Pipeline
 
 ```powershell
 cd C:\Users\admin\Documents\EdoGame\src\YGO_SOURCE_CLEAN
@@ -175,7 +176,7 @@ powershell -ExecutionPolicy Bypass -File .\BUILD_AND_DEPLOY.ps1
 
 ---
 
-## 6. Progress Log & Archiving Policy (MANDATORY)
+## 7. Progress Log & Archiving Policy (MANDATORY)
 
 - **ความกระชับของ PROGRESS.md**:
   - ไฟล์ `PROGRESS.md` ต้องถูกรักษาขนาดให้อยู่ในช่วง **~200–400 บรรทัด** เสมอ (เก็บเฉพาะ 5–10 รายการล่าสุด) เพื่อให้ AI อ่านได้สมบูรณ์ใน 1 Tool Call และไม่กิน Token Context เกินจำเป็น

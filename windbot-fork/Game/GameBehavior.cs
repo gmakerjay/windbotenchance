@@ -1562,6 +1562,15 @@ namespace WindBot.Game
                 Connection.Send(CtosMessage.Response, pos);
                 return;
             }
+
+            // Universal Engine Safeguard: Primal Being Token (27204312) summoned by Nibiru to opponent's field
+            // ALWAYS force Face-Up Defense Position so opponent cannot attack with it!
+            if (cardId == 27204312 && (pos & (int)CardPosition.FaceUpDefence) != 0)
+            {
+                Connection.Send(CtosMessage.Response, (int)CardPosition.FaceUpDefence);
+                return;
+            }
+
             IList<CardPosition> positions = new List<CardPosition>();
             if ((pos & (int)CardPosition.FaceUpAttack) != 0)
                 positions.Add(CardPosition.FaceUpAttack);

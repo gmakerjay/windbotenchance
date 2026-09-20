@@ -281,13 +281,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool NibiruEffect()
         {
-            if (!SmartHandTrapChain()) return false;
-            if (Duel.Player == 1 && (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Main2))
-            {
-                if (Enemy.GetMonsterCount() >= 2)
-                    return true;
-            }
-            return false;
+            return DefaultNibiru();
         }
 
         private bool DrollEffect()

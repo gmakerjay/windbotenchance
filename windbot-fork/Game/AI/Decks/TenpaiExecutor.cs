@@ -51,6 +51,7 @@ namespace WindBot.Game.AI.Decks
             public const int CalledByTheGrave = 24224830;
             public const int AshBlossom = 14558127;
             public const int InfiniteImpermanence = 10045474;
+            public const int Nibiru = 27204311;
 
             // Extra Deck
             public const int SangenpaiBidentDragion = 82570174;
@@ -121,6 +122,7 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.Activate, CardId.InfiniteImpermanence, ImpermanenceActivate);
             AddExecutor(ExecutorType.Activate, CardId.CalledByTheGrave, CalledByTheGraveActivate);
             AddExecutor(ExecutorType.Activate, CardId.ForbiddenDroplet, ForbiddenDropletActivate);
+            AddExecutor(ExecutorType.Activate, CardId.Nibiru, DefaultNibiru);
 
             // ═══════════════════════════════════════════════════════════════
             //  TIER 1: BOARD BREAKERS & SUPER POLYMERIZATION

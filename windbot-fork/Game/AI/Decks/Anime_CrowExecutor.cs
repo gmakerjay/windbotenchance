@@ -179,15 +179,13 @@ namespace WindBot.Game.AI.Decks
             //  TIER 4: EXTRA DECK SYNCHRO PROGRESSION & BOARD REMOVAL
             // ═══════════════════════════════════════════════════════════════
 
-            // Level 6 Boreastorm (Synchro Tuner: Foolish & Copy Level)
-            AddExecutor(ExecutorType.SpSummon, CardId.BoreastormTheWickedWind, BoreastormSpSummon);
-            AddExecutor(ExecutorType.Activate, CardId.BoreastormTheWickedWind, BoreastormEffect);
+            // Level 10 Full Armor Master (Tower boss - PRIORITY #1 BOSS)
+            AddExecutor(ExecutorType.SpSummon, CardId.FullArmorMaster, FullArmorMasterSpSummon);
 
-            // Level 6 Nothung (800 burn + debuff + extra NS)
-            AddExecutor(ExecutorType.SpSummon, CardId.NothungTheStarlight, NothungSpSummon);
-            AddExecutor(ExecutorType.Activate, CardId.NothungTheStarlight, NothungEffect);
+            // Level 10 Black-Winged Assault Dragon (3200 ATK burn boss - PRIORITY #2 BOSS)
+            AddExecutor(ExecutorType.SpSummon, CardId.BlackWingedAssaultDragon, AssaultDragonSpSummon);
 
-            // Level 7 Raikiri (Board wipe)
+            // Level 7 Raikiri (Board wipe when opp controls cards)
             AddExecutor(ExecutorType.SpSummon, CardId.RaikiriTheRainShower, RaikiriSpSummon);
             AddExecutor(ExecutorType.Activate, CardId.RaikiriTheRainShower, RaikiriEffect);
 
@@ -195,13 +193,15 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.SpSummon, CardId.ObsidianHawkJoe, HawkJoeSpSummon);
             AddExecutor(ExecutorType.Activate, CardId.ObsidianHawkJoe, HawkJoeEffect);
 
-            // Level 10 Full Armor Master (Tower boss)
-            AddExecutor(ExecutorType.SpSummon, CardId.FullArmorMaster, FullArmorMasterSpSummon);
+            // Level 6 Nothung (800 burn + debuff + extra NS)
+            AddExecutor(ExecutorType.SpSummon, CardId.NothungTheStarlight, NothungSpSummon);
+            AddExecutor(ExecutorType.Activate, CardId.NothungTheStarlight, NothungEffect);
 
-            // Level 10 Black-Winged Assault Dragon (3200 ATK burn boss)
-            AddExecutor(ExecutorType.SpSummon, CardId.BlackWingedAssaultDragon, AssaultDragonSpSummon);
+            // Level 6 Boreastorm (Synchro Tuner: Foolish & Copy Level)
+            AddExecutor(ExecutorType.SpSummon, CardId.BoreastormTheWickedWind, BoreastormSpSummon);
+            AddExecutor(ExecutorType.Activate, CardId.BoreastormTheWickedWind, BoreastormEffect);
 
-            // Level 12 Onimaru (6000 ATK attack push)
+            // Level 12 Onimaru (6000 ATK attack push finisher)
             AddExecutor(ExecutorType.SpSummon, CardId.OnimaruTheDivineThunder, OnimaruSpSummon);
 
             // ═══════════════════════════════════════════════════════════════
@@ -344,12 +344,16 @@ namespace WindBot.Game.AI.Decks
 
         private bool SimoonActivate()
         {
-            // Banish 1 Blackwing from hand
-            ClientCard fodder = Bot.Hand.FirstOrDefault(c => c.HasSetcode(0x33) && c != Card && c.Id != CardId.SudriThePhantomGlimmer);
-            if (fodder != null)
+            if (Card.Location == CardLocation.Hand && Bot.GetMonsterCount() == 0)
             {
-                AI.SelectCard(fodder);
-                return true;
+                // Banish 1 other Blackwing from hand to place Black Whirlwind and NS Simoon
+                ClientCard fodder = Bot.Hand.FirstOrDefault(c => c.HasSetcode(0x33) && c != Card && c.Id != CardId.SudriThePhantomGlimmer)
+                                 ?? Bot.Hand.FirstOrDefault(c => c.HasSetcode(0x33) && c != Card);
+                if (fodder != null)
+                {
+                    AI.SelectCard(fodder);
+                    return true;
+                }
             }
             return false;
         }
@@ -365,19 +369,28 @@ namespace WindBot.Game.AI.Decks
 
         private bool SudriSummon()
         {
+            // If Bot controls 0 monsters and has Simoon + another Blackwing, let Simoon activate first!
+            if (Bot.GetMonsterCount() == 0 && Bot.HasInHand(CardId.SimoonThePoisonWind) && Bot.Hand.Any(c => c.HasSetcode(0x33) && c.Id != CardId.SimoonThePoisonWind))
+            {
+                return false;
+            }
             return true;
         }
 
         private bool SudriEffect()
         {
-            // Search Blackbird Close or Shamal/Harmattan
-            if (!Bot.HasInHand(CardId.BlackbirdClose))
+            // Search Blackbird Close, Shamal, or extenders
+            if (Card.Location == CardLocation.MonsterZone)
             {
-                AI.SelectCard(CardId.BlackbirdClose);
-            }
-            else
-            {
-                AI.SelectCard(CardId.HarmattanTheDust, CardId.BoraTheSpear);
+                if (!Bot.HasInHand(CardId.BlackbirdClose) && Bot.HasInExtra(CardId.BlackWingedDragon))
+                {
+                    AI.SelectCard(CardId.BlackbirdClose, CardId.ShamalTheSandstorm, CardId.HarmattanTheDust, CardId.BoraTheSpear);
+                }
+                else
+                {
+                    AI.SelectCard(CardId.HarmattanTheDust, CardId.BoraTheSpear, CardId.GaleTheWhirlwind, CardId.KrisTheCrackOfDawn);
+                }
+                return true;
             }
             return true;
         }
@@ -425,8 +438,9 @@ namespace WindBot.Game.AI.Decks
 
         private bool HarmattanEffect()
         {
-            // Target Blackwing to copy level
-            ClientCard target = Bot.GetMonsters().FirstOrDefault(m => m != Card && m.HasSetcode(0x33));
+            // Target Blackwing to copy level (prefer Level 4 or Level 6 to reach Level 8 or 10)
+            ClientCard target = Bot.GetMonsters().FirstOrDefault(m => m != Card && m.HasSetcode(0x33) && (m.Level == 4 || m.Level == 6))
+                             ?? Bot.GetMonsters().FirstOrDefault(m => m != Card && m.HasSetcode(0x33));
             if (target != null)
             {
                 AI.SelectCard(target);
@@ -463,36 +477,53 @@ namespace WindBot.Game.AI.Decks
         //  EXTRA DECK SYNCHRO & REMOVAL
         // ═══════════════════════════════════════════════════════════════
 
-        private bool BoreastormSpSummon()
+        private bool IsCrowHighValueBoss(ClientCard c)
         {
-            return true;
+            if (c == null) return false;
+            if (c.Id == CardId.FullArmorMaster || c.Id == CardId.BlackWingedAssaultDragon) return true;
+            if (c.Id == CardId.OnimaruTheDivineThunder) return true;
+            return false;
         }
 
-        private bool BoreastormEffect()
+        private bool FullArmorMasterSpSummon()
         {
-            // Dump Blackwing to copy level
-            AI.SelectCard(CardId.ZephyrosTheElite, CardId.SudriThePhantomGlimmer, CardId.HarmattanTheDust);
-            return true;
-        }
-
-        private bool NothungSpSummon()
-        {
-            return true;
-        }
-
-        private bool NothungEffect()
-        {
-            ClientCard target = Enemy.GetMonsters().OrderByDescending(m => m.Attack).FirstOrDefault();
-            if (target != null)
+            // Level 10 Tower Boss (3000 ATK, unaffected by card effects)
+            // Limit to 1 on field; never sacrifice existing Full Armor Master or Assault Dragon!
+            if (Bot.GetMonsters().Any(m => m.Id == CardId.FullArmorMaster))
             {
-                AI.SelectCard(target);
+                return false;
             }
-            return true;
+
+            var nonBosses = Bot.GetMonsters().Where(m => !IsCrowHighValueBoss(m)).ToList();
+            return nonBosses.Count >= 2;
+        }
+
+        private bool AssaultDragonSpSummon()
+        {
+            // Level 10 Burn & Nuke Boss (3200 ATK)
+            if (Bot.GetMonsters().Any(m => m.Id == CardId.BlackWingedAssaultDragon))
+            {
+                return false;
+            }
+
+            // Contact Banish from field/GY: 1 Tuner Synchro + 1 Black-Winged Dragon
+            bool canContact = (Bot.GetMonsters().Any(m => m.Id == CardId.BlackWingedDragon) || Bot.Graveyard.Any(c => c.Id == CardId.BlackWingedDragon))
+                           && (Bot.GetMonsters().Any(m => m.HasType(CardType.Synchro) && m.HasType(CardType.Tuner)) || Bot.Graveyard.Any(c => c.HasType(CardType.Synchro) && c.HasType(CardType.Tuner)));
+            if (canContact) return true;
+
+            var nonBosses = Bot.GetMonsters().Where(m => !IsCrowHighValueBoss(m)).ToList();
+            return nonBosses.Count >= 2;
         }
 
         private bool RaikiriSpSummon()
         {
-            return true;
+            // Level 7 Board Wipe (2600 ATK)
+            // Only summon if opponent controls cards to destroy!
+            if (Enemy.GetMonsterCount() == 0 && Enemy.GetSpellCount() == 0) return false;
+
+            // NEVER sacrifice Level 10 bosses (Full Armor Master / Assault Dragon)
+            var nonBosses = Bot.GetMonsters().Where(m => !IsCrowHighValueBoss(m)).ToList();
+            return nonBosses.Count >= 2;
         }
 
         private bool RaikiriEffect()
@@ -508,7 +539,13 @@ namespace WindBot.Game.AI.Decks
 
         private bool HawkJoeSpSummon()
         {
-            return true;
+            // Level 7 Reviver (2600 ATK)
+            // Only summon if GY has a Level 5+ Winged Beast Synchro to revive or for lethal push
+            bool hasGyReviveTarget = Bot.Graveyard.Any(c => c.IsMonster() && c.HasType(CardType.Synchro) && c.Level >= 5);
+            if (!hasGyReviveTarget && Enemy.GetMonsterCount() == 0 && Bot.GetMonsterCount() >= 2) return false;
+
+            var nonBosses = Bot.GetMonsters().Where(m => !IsCrowHighValueBoss(m)).ToList();
+            return nonBosses.Count >= 2;
         }
 
         private bool HawkJoeEffect()
@@ -526,19 +563,55 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
-        private bool FullArmorMasterSpSummon()
+        private bool NothungSpSummon()
         {
+            // Level 6 Extender (2400 ATK, 800 burn, extra Normal Summon)
+            // ONLY summon from Main Deck non-Synchro monsters (never consume Level 7+ or bosses!)
+            var mainDeckFodder = Bot.GetMonsters().Where(m => !m.HasType(CardType.Synchro)).ToList();
+            return mainDeckFodder.Count >= 2;
+        }
+
+        private bool NothungEffect()
+        {
+            ClientCard target = Enemy.GetMonsters().OrderByDescending(m => m.Attack).FirstOrDefault();
+            if (target != null)
+            {
+                AI.SelectCard(target);
+            }
             return true;
         }
 
-        private bool AssaultDragonSpSummon()
+        private bool BoreastormSpSummon()
         {
+            // Level 6 Synchro Tuner (2400 ATK)
+            // ONLY summon from Main Deck non-Synchro monsters
+            var mainDeckFodder = Bot.GetMonsters().Where(m => !m.HasType(CardType.Synchro)).ToList();
+            return mainDeckFodder.Count >= 2;
+        }
+
+        private bool BoreastormEffect()
+        {
+            // Dump Blackwing to copy level (Zephyros first for free revival, then Sudri or Harmattan)
+            if (!Bot.Graveyard.Any(c => c.Id == CardId.ZephyrosTheElite))
+            {
+                AI.SelectCard(CardId.ZephyrosTheElite);
+            }
+            else
+            {
+                AI.SelectCard(CardId.SudriThePhantomGlimmer, CardId.HarmattanTheDust, CardId.BoraTheSpear);
+            }
             return true;
         }
 
         private bool OnimaruSpSummon()
         {
-            return true;
+            // Level 12 Finisher (3000/6000 ATK)
+            // ONLY summon in MP1 when opponent has a high-ATK monster (ATK > 2800) or for lethal
+            if (Duel.Phase != DuelPhase.Main1) return false;
+
+            // NEVER sacrifice Full Armor Master or Assault Dragon!
+            var sacrificialSynchros = Bot.GetMonsters().Where(m => m.HasType(CardType.Synchro) && !IsCrowHighValueBoss(m)).ToList();
+            return sacrificialSynchros.Count >= 1 && Bot.GetMonsterCount() >= 2;
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -570,17 +643,65 @@ namespace WindBot.Game.AI.Decks
 
         public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
         {
-            if (cards != null && cards.Count > 0)
+            if (cards == null || cards.Count == 0)
+                return base.OnSelectCard(cards, min, max, hint, cancelable);
+
+            // Anti-Pattern Rule 1: Search to hand (hint == 506)
+            if (hint == 506)
             {
-                var preferred = cards.Where(c => c.Id == CardId.SudriThePhantomGlimmer ||
-                                                c.Id == CardId.SimoonThePoisonWind ||
-                                                c.Id == CardId.HarmattanTheDust ||
-                                                c.Id == CardId.BlackbirdClose).ToList();
-                if (preferred.Count >= min)
+                var preferred = new List<int>
                 {
-                    return preferred.Take(max).ToList();
+                    CardId.SimoonThePoisonWind,
+                    CardId.SudriThePhantomGlimmer,
+                    CardId.ShamalTheSandstorm,
+                    CardId.GaleTheWhirlwind,
+                    CardId.BoraTheSpear,
+                    CardId.HarmattanTheDust,
+                    CardId.OroshiTheSquall,
+                    CardId.KrisTheCrackOfDawn,
+                    CardId.ZephyrosTheElite,
+                    CardId.BlackbirdClose
+                };
+
+                var matches = cards.Where(c => preferred.Contains(c.Id))
+                                   .OrderBy(c => preferred.IndexOf(c.Id))
+                                   .ToList();
+
+                if (matches.Count >= min)
+                    return matches.Take(max).ToList();
+            }
+
+            // Anti-Pattern Rule 2: Removal (hint == 502 Destroy, 503 Banish) -> MUST target enemy cards!
+            if (hint == 502 || hint == 503)
+            {
+                var enemyTargets = cards.Where(c => c.Controller == 1).ToList();
+                if (enemyTargets.Count >= min)
+                {
+                    return enemyTargets.OrderByDescending(c => c.Attack).Take(max).ToList();
                 }
             }
+
+            // Synchro Material Selection: NEVER pick Full Armor Master, Assault Dragon, or Onimaru!
+            if (hint == 507 || (Duel.Phase != DuelPhase.Battle && cards.All(c => c.Location == CardLocation.MonsterZone && c.Controller == 0)))
+            {
+                var materialOrder = cards.OrderBy(c =>
+                {
+                    if (c.Id == CardId.FullArmorMaster) return 999; // NEVER SACRIFICE TOWER BOSS
+                    if (c.Id == CardId.BlackWingedAssaultDragon) return 998; // NEVER SACRIFICE BURN BOSS
+                    if (c.Id == CardId.OnimaruTheDivineThunder) return 997; // NEVER SACRIFICE FINISHER
+                    if (c.Id == CardId.ObsidianHawkJoe) return 500;
+                    if (c.Id == CardId.RaikiriTheRainShower) return 400;
+                    if (c.Id == CardId.BlackWingedDragon) return 300;
+                    if (c.Id == CardId.NothungTheStarlight) return 200;
+                    if (c.Id == CardId.BoreastormTheWickedWind) return 100;
+                    if (c.IsDisabled()) return 1;
+                    return c.Attack; // Low ATK main deck monsters first (Oroshi 400, Harmattan 800, Gale 1300, Sudri 1400, Bora 1700, Kris 1900)
+                }).ToList();
+
+                if (materialOrder.Count >= min)
+                    return materialOrder.Take(max).ToList();
+            }
+
             return base.OnSelectCard(cards, min, max, hint, cancelable);
         }
     }

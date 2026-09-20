@@ -1768,6 +1768,16 @@ namespace WindBot.Game.AI
         }
 
         /// <summary>
+        /// ModernExecutor override of DefaultNibiru: adds SmartHandTrapChain timing awareness.
+        /// </summary>
+        protected override bool DefaultNibiru()
+        {
+            if (Duel.CurrentChain.Count > 0 && !SmartHandTrapChain())
+                return false;
+            return base.DefaultNibiru();
+        }
+
+        /// <summary>
         /// Check if bait should be played before the intended card.
         /// Returns the bait card to play, or null if no baiting needed.
         /// Deck executors call this at the top of their combo starter logic.
@@ -2037,6 +2047,11 @@ namespace WindBot.Game.AI
         /// </summary>
         public override CardPosition OnSelectPosition(int cardId, IList<CardPosition> positions)
         {
+            // Universal Safeguard: Primal Being Token (27204312) summoned by Nibiru to opponent's field
+            // ALWAYS place in Defense Position so opponent cannot attack with it!
+            if (cardId == 27204312 && positions.Contains(CardPosition.FaceUpDefence))
+                return CardPosition.FaceUpDefence;
+
             var card = YGOSharp.OCGWrapper.NamedCard.Get(cardId);
             if (card == null) return base.OnSelectPosition(cardId, positions);
 

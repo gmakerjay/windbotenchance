@@ -479,16 +479,42 @@ namespace WindBot.Game.AI.Decks
         private bool KaijuSpSummon()
         {
             if (IsSpecialSummonBlocked()) return false;
+
+            // Target must be a monster with ATK >= 2200 OR a dangerous floodgate/negator
             ClientCard target = Enemy.GetMonsters()
-                .Where(c => c != null && !c.IsShouldNotBeTarget())
+                .Where(c => c != null && (c.Attack >= 2200 || CardIntelligence.IsHighThreatChokepoint(c.Id) || c.IsMonsterShouldBeDisabledBeforeItUseEffect()))
                 .OrderByDescending(c => c.Attack)
                 .FirstOrDefault();
-            if (target != null)
+
+            if (target == null)
+            {
+                target = Util.GetProblematicEnemyMonster();
+            }
+
+            if (target == null) return false;
+
+            // Safeguard: Verify that Amazoness can handle the 2200 ATK Gameciel this turn!
+            // 1. Amazoness Onslaught is active -> Any Amazoness attacking it banishes it after damage calc
+            bool hasOnslaught = Bot.GetSpells().Any(c => c != null && c.IsFaceup() && c.Id == CardId.AmazonessOnslaught) &&
+                               Bot.GetMonsters().Any(m => m != null && m.IsFaceup() && !m.Attacked);
+
+            // 2. We already control a monster with > 2200 ATK that can attack
+            bool hasStrongAttacker = Bot.GetMonsters().Any(m => m != null && m.IsFaceup() && m.IsAttack() && !m.Attacked && m.Attack > 2200);
+
+            // 3. We have fusion in hand to make Pet Liger / Empress (> 2200 ATK)
+            bool canFusionBoss = (Bot.HasInHand(CardId.Polymerization) || Bot.HasInHand(CardId.AmazonessSecretArts)) && (Bot.GetMonsterCount() + Bot.Hand.Count(c => c != null && c.IsMonster()) >= 3);
+
+            // 4. Emergency: Target was a critical lethal floodgate and Bot has Defense monsters to stall
+            bool emergencyFloodgate = (CardIntelligence.IsHighThreatChokepoint(target.Id) || target.IsMonsterShouldBeDisabledBeforeItUseEffect()) &&
+                                     (Bot.GetMonsters().Any(m => m != null && m.IsDefense()) || Bot.LifePoints > 2200);
+
+            if (hasOnslaught || hasStrongAttacker || canFusionBoss || emergencyFloodgate)
             {
                 AI.SelectCard(target);
-                DecisionTracer.TraceActivate("KaijuSpSummon", $"Summoning Kaiju over opponent's {target.Name}");
+                DecisionTracer.TraceActivate("KaijuSpSummon", $"Summoning Kaiju over opponent's {target.Name} (safe: can handle 2200 ATK)");
                 return true;
             }
+
             return false;
         }
 

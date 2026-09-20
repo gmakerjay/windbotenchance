@@ -1593,8 +1593,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool NibiruEffect()
         {
-            if (Duel.Player == 0) return false;
-            return true;
+            return DefaultNibiru();
         }
 
         public override IList<ClientCard> OnSelectXyzMaterial(IList<ClientCard> cards, int min, int max)

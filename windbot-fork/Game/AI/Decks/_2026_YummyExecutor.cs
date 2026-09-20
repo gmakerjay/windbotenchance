@@ -557,13 +557,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool NibiruCondition()
         {
-            if (!SmartHandTrapChain()) return false;
-            if (Enemy.GetMonsterCount() >= 3 || Enemy.GetMonsters().Any(m => m != null && m.IsFaceup() && m.Attack >= 2500))
-            {
-                DecisionTracer.TraceActivate("Nibiru", "Wiping large board");
-                return true;
-            }
-            return false;
+            return DefaultNibiru();
         }
 
         private bool DominusPurgeCondition()

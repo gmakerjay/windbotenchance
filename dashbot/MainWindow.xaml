@@ -274,10 +274,10 @@
                         <Grid>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <TextBlock Text="Deck Target:" Foreground="#555555" FontWeight="Bold" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                <RadioButton x:Name="RbAssignBot1" Content="Bot 1 (Player)" Style="{StaticResource BotSelectorPill}" IsChecked="True" Checked="RbAssignBot_Checked"/>
-                                <RadioButton x:Name="RbAssignBot2" Content="Bot 2 (Opponent)" Style="{StaticResource BotSelectorPill}" Checked="RbAssignBot_Checked"/>
+                                <RadioButton x:Name="RbAssignBot1" Content="P1 (Bot)" Style="{StaticResource BotSelectorPill}" IsChecked="True" Checked="RbAssignBot_Checked"/>
+                                <RadioButton x:Name="RbAssignBot2" Content="P2 (Opponent)" Style="{StaticResource BotSelectorPill}" Visibility="Collapsed" Checked="RbAssignBot_Checked"/>
                             </StackPanel>
-                            <TextBlock Text="Click to select | Right-click for Bot 2" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#888888" FontSize="11"/>
+                            <TextBlock x:Name="TxtDeckSelectHint" Text="Click deck to select bot" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#888888" FontSize="11"/>
                         </Grid>
                     </Border>
 
@@ -338,12 +338,12 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="Bot 1:" Foreground="#0284C7" FontWeight="Bold" FontSize="11.5" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TxtSummaryBot1Label" Text="Selected Bot:" Foreground="#0284C7" FontWeight="Bold" FontSize="11.5" VerticalAlignment="Center"/>
                                 <TextBlock x:Name="TxtSummaryBot1" Text="None" Foreground="#111111" FontWeight="SemiBold" FontSize="11.5" Margin="6,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
 
-                            <StackPanel Grid.Column="1" x:Name="SummaryBot2Panel" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
-                                <TextBlock Text="Bot 2:" Foreground="#059669" FontWeight="Bold" FontSize="11.5" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Column="1" x:Name="SummaryBot2Panel" Visibility="Collapsed" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                <TextBlock Text="Bot 2 (P2):" Foreground="#059669" FontWeight="Bold" FontSize="11.5" VerticalAlignment="Center"/>
                                 <TextBlock x:Name="TxtSummaryBot2" Text="None" Foreground="#111111" FontWeight="SemiBold" FontSize="11.5" Margin="6,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Grid>
@@ -382,10 +382,14 @@
                             </StackPanel>
                         </Grid>
 
-                        <CheckBox x:Name="ChkTwoBots" Content="Spawn 2 Bots (Bot vs Bot Self-Play)" Margin="0,4,0,12" Click="ChkTwoBots_Click"/>
+                        <TextBlock Text="Mode:" FontWeight="Bold" Foreground="#444444" Margin="0,0,0,4" FontSize="11.5"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <RadioButton x:Name="RbModeSingle" Content="Play vs Bot" GroupName="DuelMode" IsChecked="True" Checked="RbDuelMode_Checked" Margin="0,0,14,0" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <RadioButton x:Name="RbModeDual" Content="Bot Vs Bot" GroupName="DuelMode" Checked="RbDuelMode_Checked" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </StackPanel>
 
                         <!-- Matchup Card Preview -->
-                        <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1.5" CornerRadius="4" Padding="12,10" Margin="0,0,0,12">
+                        <Border Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1.5" CornerRadius="4" Padding="8,8" Margin="0,0,0,12">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -393,19 +397,28 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
 
-                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                    <TextBlock Text="BOT 1" FontSize="10" FontWeight="Bold" Foreground="#0284C7"/>
-                                    <TextBlock x:Name="TxtMatchupBot1" Text="Blue-Eyes" FontSize="12.5" FontWeight="Bold" Foreground="#111111" TextTrimming="CharacterEllipsis"/>
-                                </StackPanel>
+                                <!-- P1 Box (Clickable) -->
+                                <Border x:Name="CardBoxBot1" Grid.Column="0" Background="#EFF6FF" BorderBrush="#0284C7" BorderThickness="1.5" CornerRadius="4" Padding="8,6" Cursor="Hand" MouseLeftButtonDown="CardBoxBot1_Click">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock x:Name="TxtCardHeaderBot1" Text="SELECTED BOT" FontSize="9.5" FontWeight="Bold" Foreground="#0284C7"/>
+                                        <TextBlock x:Name="TxtMatchupBot1" Text="Blue-Eyes" FontSize="12" FontWeight="Bold" Foreground="#111111" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock x:Name="TxtIndicatorBot1" Text="● ACTIVE" FontSize="9" FontWeight="Bold" Foreground="#0284C7" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
 
-                                <Border Grid.Column="1" Background="#E2E8F0" CornerRadius="12" Width="26" Height="26" VerticalAlignment="Center" Margin="6,0">
+                                <!-- VS Circle: Visible only in Bot Vs Bot -->
+                                <Border x:Name="VsCircle" Grid.Column="1" Visibility="Collapsed" Background="#E2E8F0" CornerRadius="12" Width="24" Height="24" VerticalAlignment="Center" Margin="6,0">
                                     <TextBlock Text="VS" FontSize="10" FontWeight="Bold" Foreground="#555555" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
 
-                                <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
-                                    <TextBlock Text="BOT 2" FontSize="10" FontWeight="Bold" Foreground="#059669" HorizontalAlignment="Right"/>
-                                    <TextBlock x:Name="TxtMatchupBot2" Text="Dark Magician" FontSize="12.5" FontWeight="Bold" Foreground="#111111" TextTrimming="CharacterEllipsis" HorizontalAlignment="Right"/>
-                                </StackPanel>
+                                <!-- P2 Box: Visible only in Bot Vs Bot -->
+                                <Border x:Name="CardBoxBot2" Grid.Column="2" Visibility="Collapsed" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="4" Padding="8,6" Cursor="Hand" MouseLeftButtonDown="CardBoxBot2_Click">
+                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Right">
+                                        <TextBlock Text="BOT 2 (P2)" FontSize="9.5" FontWeight="Bold" Foreground="#059669" HorizontalAlignment="Right"/>
+                                        <TextBlock x:Name="TxtMatchupBot2" Text="Dark Magician" FontSize="12" FontWeight="Bold" Foreground="#111111" TextTrimming="CharacterEllipsis" HorizontalAlignment="Right"/>
+                                        <TextBlock x:Name="TxtIndicatorBot2" Text="CLICK TO SELECT" FontSize="9" FontWeight="Bold" Foreground="#888888" Margin="0,2,0,0" HorizontalAlignment="Right"/>
+                                    </StackPanel>
+                                </Border>
                             </Grid>
                         </Border>
 

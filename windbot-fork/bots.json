@@ -1,5 +1,65 @@
 [
   {
+    "name": "Anime_Kaiba",
+    "deck": "Anime_Kaiba",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Anime_Judai",
+    "deck": "Anime_Judai",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Anime_Zane",
+    "deck": "Anime_Zane",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Anime_JackAtlas",
+    "deck": "Anime_JackAtlas",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Anime_Yusei",
+    "deck": "Anime_Yusei",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Anime_Sayer",
+    "deck": "Anime_Sayer",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
     "name": "Altergeist",
     "deck": "Altergeist",
     "difficulty": 3,
@@ -1498,8 +1558,8 @@
     ]
   },
   {
-    "name": "2026_AFS",
-    "deck": "2026_AFS",
+    "name": "AFS",
+    "deck": "AFS",
     "difficulty": 3,
     "masterRules": [
       3,
@@ -1508,8 +1568,8 @@
     ]
   },
   {
-    "name": "Expert_2026_AFS",
-    "deck": "2026_AFS",
+    "name": "Expert_AFS",
+    "deck": "AFS",
     "difficulty": 3,
     "masterRules": [
       3,
@@ -1650,18 +1710,22 @@
     ]
   },
   {
-    "name": "2026_ArtMage",
-    "deck": "2026_ArtMage",
+    "name": "ArtMage",
+    "deck": "ArtMage",
     "difficulty": 3,
     "masterRules": [
+      3,
+      4,
       5
     ]
   },
   {
-    "name": "Expert_2026_ArtMage",
-    "deck": "2026_ArtMage",
+    "name": "Expert_ArtMage",
+    "deck": "ArtMage",
     "difficulty": 3,
     "masterRules": [
+      3,
+      4,
       5
     ]
   },
@@ -1774,6 +1838,8 @@
     "dialog": "default",
     "difficulty": 3,
     "masterRules": [
+      3,
+      4,
       5
     ]
   },
@@ -1815,5 +1881,15 @@
       4,
       5
     ]
+  },
+  {
+    "name": "WhiteForest",
+    "deck": "WhiteForest",
+    "difficulty": 3,
+    "masterRules": [
+      4,
+      5
+    ],
+    "dialog": "default"
   }
 ]

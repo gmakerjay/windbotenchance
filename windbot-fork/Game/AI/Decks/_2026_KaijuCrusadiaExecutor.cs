@@ -403,6 +403,18 @@ namespace WindBot.Game.AI.Decks
                 return Bot.MonsterZone.Any(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaEquimax) && Bot.GetMonsterCount() < 5;
             }
 
+            // CRITICAL SAFEGUARD: Do not summon a Kaiju to opponent if Bot cannot make any plays this turn!
+            // Bot must have at least 1 monster on field or 1 Crusadia/Mekk-Knight extender in hand to build towards Equimax/Avramax
+            bool canCombo = Bot.GetMonsterCount() > 0 ||
+                            Bot.Hand.Any(c => c != null && (CrusadiaMainMonsters.Contains(c.Id) || MekkKnightMonsters.Contains(c.Id) || c.Id == CardId.ReinforcementOfTheArmy));
+            if (!canCombo) return false;
+
+            // If Bot holds Gameciel (lowest ATK Kaiju: 2200), prefer summoning Gameciel to opponent rather than higher ATK Kaijus
+            if (Card.Id != CardId.Gameciel && Bot.HasInHand(CardId.Gameciel))
+            {
+                return false; // Wait for Gameciel to be evaluated
+            }
+
             // Target selection for tributing opponent's monster:
             // 1. Chokepoints / Negators / Floodgates
             ClientCard target = Enemy.GetMonsters().FirstOrDefault(m => m != null && m.IsFaceup() && !m.IsDisabled() &&
@@ -411,10 +423,10 @@ namespace WindBot.Game.AI.Decks
             // 2. Problematic monster
             if (target == null) target = Util.GetProblematicEnemyMonster();
 
-            // 3. Highest ATK monster
+            // 3. Enemy monster with ATK >= 2000 (only Kaiju real threats!)
             if (target == null)
             {
-                target = Enemy.GetMonsters().Where(m => m != null && m.IsFaceup()).OrderByDescending(m => m.Attack).FirstOrDefault();
+                target = Enemy.GetMonsters().Where(m => m != null && m.IsFaceup() && m.Attack >= 2000).OrderByDescending(m => m.Attack).FirstOrDefault();
             }
 
             if (target != null)

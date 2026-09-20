@@ -617,6 +617,11 @@ namespace WindBot.Game.AI
             if (positions == null || positions.Count == 0) return CardPosition.FaceUpAttack;
             if (positions.Count == 1) return positions[0];
 
+            // Universal Safeguard: Primal Being Token (27204312) given to opponent
+            // ALWAYS place in Defense Position so opponent cannot attack with it!
+            if (cardId == 27204312 && positions.Contains(CardPosition.FaceUpDefence))
+                return CardPosition.FaceUpDefence;
+
             try
             {
                 NamedCard cardData = NamedCard.Get(cardId);

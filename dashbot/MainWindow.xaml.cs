@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using YgoAiPlatform.Core;
 
 namespace dashbot
@@ -49,15 +50,21 @@ namespace dashbot
             }
         }
 
+        public static bool IsBotVsBotActive { get; set; } = false;
+
         // Clean WinForm Light Styling
         public string CardBackground
         {
             get
             {
-                if (IsBot1Selected && IsBot2Selected) return "#F5F3FF";
-                if (IsBot1Selected) return "#F0F9FF";
-                if (IsBot2Selected) return "#ECFDF5";
-                return "#FFFFFF";
+                if (IsBotVsBotActive)
+                {
+                    if (IsBot1Selected && IsBot2Selected) return "#F5F3FF";
+                    if (IsBot1Selected) return "#F0F9FF";
+                    if (IsBot2Selected) return "#ECFDF5";
+                    return "#FFFFFF";
+                }
+                return IsBot1Selected ? "#F0F9FF" : "#FFFFFF";
             }
         }
 
@@ -65,27 +72,43 @@ namespace dashbot
         {
             get
             {
-                if (IsBot1Selected && IsBot2Selected) return "#7C3AED";
-                if (IsBot1Selected) return "#0284C7";
-                if (IsBot2Selected) return "#059669";
-                return "#CBD5E1";
+                if (IsBotVsBotActive)
+                {
+                    if (IsBot1Selected && IsBot2Selected) return "#7C3AED";
+                    if (IsBot1Selected) return "#0284C7";
+                    if (IsBot2Selected) return "#059669";
+                    return "#CBD5E1";
+                }
+                return IsBot1Selected ? "#0284C7" : "#CBD5E1";
             }
         }
 
-        public string BorderThicknessValue => (IsBot1Selected || IsBot2Selected) ? "1.5" : "1";
+        public string BorderThicknessValue => IsBotVsBotActive ? ((IsBot1Selected || IsBot2Selected) ? "1.5" : "1") : (IsBot1Selected ? "1.5" : "1");
 
         public string TextColor => "#111111";
 
-        public Visibility IndicatorVisibility => (IsBot1Selected || IsBot2Selected) ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility IndicatorVisibility
+        {
+            get
+            {
+                if (IsBotVsBotActive)
+                    return (IsBot1Selected || IsBot2Selected) ? Visibility.Visible : Visibility.Collapsed;
+                return IsBot1Selected ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
 
         public string IndicatorBackground
         {
             get
             {
-                if (IsBot1Selected && IsBot2Selected) return "#7C3AED";
-                if (IsBot1Selected) return "#0284C7";
-                if (IsBot2Selected) return "#059669";
-                return "#666666";
+                if (IsBotVsBotActive)
+                {
+                    if (IsBot1Selected && IsBot2Selected) return "#7C3AED";
+                    if (IsBot1Selected) return "#0284C7";
+                    if (IsBot2Selected) return "#059669";
+                    return "#666666";
+                }
+                return "#0284C7";
             }
         }
 
@@ -93,14 +116,18 @@ namespace dashbot
         {
             get
             {
-                if (IsBot1Selected && IsBot2Selected) return "P1/P2";
-                if (IsBot1Selected) return "P1";
-                if (IsBot2Selected) return "P2";
-                return string.Empty;
+                if (IsBotVsBotActive)
+                {
+                    if (IsBot1Selected && IsBot2Selected) return "P1/P2";
+                    if (IsBot1Selected) return "P1";
+                    if (IsBot2Selected) return "P2";
+                    return string.Empty;
+                }
+                return IsBot1Selected ? "P1" : string.Empty;
             }
         }
 
-        private void NotifyVisualChanges()
+        public void NotifyVisualChanges()
         {
             OnPropertyChanged(nameof(IsBot1Selected));
             OnPropertyChanged(nameof(IsBot2Selected));
@@ -296,6 +323,7 @@ namespace dashbot
 
         private static readonly HashSet<string> ModernArchetypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
+            "AFS", "ArtMage",
             "Tenpai", "VoicelessVoice", "Centurion", "CenturIon",
             "Branded", "Purrely", "Yummy", "RyuGe", "Runick", "Spright",
             "SnakeEye", "FireKing", "Tearla", "Tearlaments", "Kashtira", "Labrynth",
@@ -365,12 +393,20 @@ namespace dashbot
         {
             var overrides = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
+                { "AFS", "Azamina Fiendsmith Snake-Eye" },
+                { "ArtMage", "Artmage" },
                 { "Tenpai", "Tenpai Dragon" },
                 { "VoicelessVoice", "Voiceless Voice" },
                 { "Centurion", "Centur-Ion" },
+                { "WhiteForest", "White Forest" },
+                { "Sayer", "Sayer (Psychic)" },
                 { "JackAtlas", "Jack Atlas" },
                 { "Yugi", "Yugi Muto" },
                 { "Yusei", "Yusei Fudo" },
+                { "Kaiba", "Seto Kaiba" },
+                { "Judai", "Jaden Yuki" },
+                { "Zane", "Zane Truesdale" },
+                { "Gong", "Gong Strong" },
                 { "BlueEyes", "Blue-Eyes" },
                 { "BlueEyesMaxDragon", "Blue-Eyes Max" },
                 { "DarkMagician", "Dark Magician" },
@@ -453,25 +489,89 @@ namespace dashbot
             if (TxtSummaryBot2 != null) TxtSummaryBot2.Text = bot2Name;
             if (TxtMatchupBot1 != null) TxtMatchupBot1.Text = bot1Name;
             if (TxtMatchupBot2 != null) TxtMatchupBot2.Text = bot2Name;
+
+            bool isBotVsBot = (RbModeDual?.IsChecked == true);
+            if (BtnConnectAi != null)
+            {
+                if (isBotVsBot)
+                {
+                    BtnConnectAi.Content = $"Start & Connect Both ({bot1Name} vs {bot2Name})";
+                }
+                else
+                {
+                    BtnConnectAi.Content = $"Start & Connect Bot ({bot1Name}) to Room";
+                }
+            }
+
+            UpdateBotSelectionHighlights();
+        }
+
+        private void UpdateBotSelectionHighlights()
+        {
+            if (CardBoxBot1 == null || CardBoxBot2 == null) return;
+
+            bool isBotVsBot = (RbModeDual?.IsChecked == true);
+
+            if (isBotVsBot && _isAssigningBot2)
+            {
+                CardBoxBot1.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFFFFF"));
+                CardBoxBot1.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E2E8F0"));
+                CardBoxBot1.BorderThickness = new Thickness(1);
+                if (TxtIndicatorBot1 != null)
+                {
+                    TxtIndicatorBot1.Text = "CLICK TO SELECT";
+                    TxtIndicatorBot1.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#888888"));
+                }
+
+                CardBoxBot2.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#ECFDF5"));
+                CardBoxBot2.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#059669"));
+                CardBoxBot2.BorderThickness = new Thickness(1.5);
+                if (TxtIndicatorBot2 != null)
+                {
+                    TxtIndicatorBot2.Text = "● ACTIVE";
+                    TxtIndicatorBot2.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#059669"));
+                }
+            }
+            else
+            {
+                CardBoxBot1.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EFF6FF"));
+                CardBoxBot1.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0284C7"));
+                CardBoxBot1.BorderThickness = new Thickness(1.5);
+                if (TxtIndicatorBot1 != null)
+                {
+                    TxtIndicatorBot1.Text = "● ACTIVE";
+                    TxtIndicatorBot1.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0284C7"));
+                }
+
+                CardBoxBot2.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFFFFF"));
+                CardBoxBot2.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E2E8F0"));
+                CardBoxBot2.BorderThickness = new Thickness(1);
+                if (TxtIndicatorBot2 != null)
+                {
+                    TxtIndicatorBot2.Text = "CLICK TO SELECT";
+                    TxtIndicatorBot2.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#888888"));
+                }
+            }
         }
 
         private void DeckCard_Click(object sender, MouseButtonEventArgs e)
         {
             if (sender is FrameworkElement elem && elem.DataContext is DeckItem clickedDeck)
             {
-                if (_isAssigningBot2)
+                bool isBotVsBot = (RbModeDual?.IsChecked == true);
+                if (isBotVsBot && _isAssigningBot2)
                 {
                     if (_selectedBot2Deck != null) _selectedBot2Deck.IsBot2Selected = false;
                     _selectedBot2Deck = clickedDeck;
                     _selectedBot2Deck.IsBot2Selected = true;
-                    LogToConsole($"Selected Bot 2 Deck: {clickedDeck.DisplayName}");
+                    LogToConsole($"Assigned Bot 2 (P2): {clickedDeck.DisplayName}");
                 }
                 else
                 {
                     if (_selectedBot1Deck != null) _selectedBot1Deck.IsBot1Selected = false;
                     _selectedBot1Deck = clickedDeck;
                     _selectedBot1Deck.IsBot1Selected = true;
-                    LogToConsole($"Selected Bot 1 Deck: {clickedDeck.DisplayName}");
+                    LogToConsole(isBotVsBot ? $"Assigned Bot 1 (P1): {clickedDeck.DisplayName}" : $"Selected Bot: {clickedDeck.DisplayName}");
                 }
 
                 UpdateMatchupUI();
@@ -480,19 +580,20 @@ namespace dashbot
 
         private void DeckCard_RightClick(object sender, MouseButtonEventArgs e)
         {
+            bool isBotVsBot = (RbModeDual?.IsChecked == true);
+            if (!isBotVsBot)
+            {
+                DeckCard_Click(sender, e);
+                return;
+            }
+
             if (sender is FrameworkElement elem && elem.DataContext is DeckItem clickedDeck)
             {
                 if (_selectedBot2Deck != null) _selectedBot2Deck.IsBot2Selected = false;
                 _selectedBot2Deck = clickedDeck;
                 _selectedBot2Deck.IsBot2Selected = true;
 
-                if (ChkTwoBots.IsChecked != true)
-                {
-                    ChkTwoBots.IsChecked = true;
-                    ChkTwoBots_Click(this, new RoutedEventArgs());
-                }
-
-                LogToConsole($"[Right-Click] Assigned Bot 2 Deck: {clickedDeck.DisplayName}");
+                LogToConsole($"[Right-Click] Assigned Bot 2 (P2): {clickedDeck.DisplayName}");
                 UpdateMatchupUI();
             }
         }
@@ -520,15 +621,69 @@ namespace dashbot
         private void RbAssignBot_Checked(object sender, RoutedEventArgs e)
         {
             _isAssigningBot2 = (RbAssignBot2?.IsChecked == true);
+            UpdateBotSelectionHighlights();
         }
 
-        private void ChkTwoBots_Click(object sender, RoutedEventArgs e)
+        private void RbDuelMode_Checked(object sender, RoutedEventArgs e)
         {
-            bool spawnTwo = ChkTwoBots.IsChecked == true;
+            bool isBotVsBot = (RbModeDual?.IsChecked == true);
+            DeckItem.IsBotVsBotActive = isBotVsBot;
+
+            // Update P2 controls visibility
+            if (RbAssignBot2 != null)
+                RbAssignBot2.Visibility = isBotVsBot ? Visibility.Visible : Visibility.Collapsed;
+            if (VsCircle != null)
+                VsCircle.Visibility = isBotVsBot ? Visibility.Visible : Visibility.Collapsed;
+            if (CardBoxBot2 != null)
+                CardBoxBot2.Visibility = isBotVsBot ? Visibility.Visible : Visibility.Collapsed;
             if (SummaryBot2Panel != null)
+                SummaryBot2Panel.Visibility = isBotVsBot ? Visibility.Visible : Visibility.Collapsed;
+
+            if (TxtSummaryBot1Label != null)
+                TxtSummaryBot1Label.Text = isBotVsBot ? "Bot 1 (P1):" : "Selected Bot:";
+
+            if (TxtCardHeaderBot1 != null)
+                TxtCardHeaderBot1.Text = isBotVsBot ? "BOT 1 (P1)" : "SELECTED BOT";
+
+            if (TxtDeckSelectHint != null)
+                TxtDeckSelectHint.Text = isBotVsBot ? "Click deck to assign active | Right-click for P2" : "Click deck to select bot";
+
+            if (RbAssignBot1 != null)
+                RbAssignBot1.Content = isBotVsBot ? "P1 (Bot 1)" : "P1 (Bot)";
+
+            // If switching back to single mode, force assign to P1
+            if (!isBotVsBot)
             {
-                SummaryBot2Panel.Visibility = spawnTwo ? Visibility.Visible : Visibility.Collapsed;
+                _isAssigningBot2 = false;
+                if (RbAssignBot1 != null) RbAssignBot1.IsChecked = true;
             }
+
+            // Refresh all deck cards visually
+            foreach (var deck in _allDecks)
+            {
+                deck.NotifyVisualChanges();
+            }
+
+            UpdateMatchupUI();
+        }
+
+        private void CardBoxBot1_Click(object sender, MouseButtonEventArgs e)
+        {
+            _isAssigningBot2 = false;
+            if (RbAssignBot1 != null) RbAssignBot1.IsChecked = true;
+            UpdateBotSelectionHighlights();
+            LogToConsole("Active deck selection target: P1");
+        }
+
+        private void CardBoxBot2_Click(object sender, MouseButtonEventArgs e)
+        {
+            bool isBotVsBot = (RbModeDual?.IsChecked == true);
+            if (!isBotVsBot) return;
+
+            _isAssigningBot2 = true;
+            if (RbAssignBot2 != null) RbAssignBot2.IsChecked = true;
+            UpdateBotSelectionHighlights();
+            LogToConsole("Active deck selection target: P2 (Bot 2)");
         }
 
         private void LogToConsole(string message)
@@ -573,7 +728,7 @@ namespace dashbot
             string bot2FileName = _selectedBot2Deck?.FileName ?? "AI_DarkMagician";
             string bot2DisplayName = _selectedBot2Deck?.DisplayName ?? "Dark Magician";
 
-            bool spawnTwo = ChkTwoBots.IsChecked == true;
+            bool isBotVsBot = (RbModeDual?.IsChecked == true);
 
             if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(portStr))
             {
@@ -588,12 +743,16 @@ namespace dashbot
             }
 
             LogToConsole($"\n---------------------------------------------------");
-            LogToConsole($"Launching WindBot Bot (Bot 1): {bot1DisplayName} [{bot1FileName}]");
-
-            if (spawnTwo)
+            if (isBotVsBot)
             {
-                string botBName = (bot1FileName == bot2FileName) ? $"{bot2DisplayName} (Bot 2)" : bot2DisplayName;
-                LogToConsole($"Launching WindBot Bot (Bot 2): {botBName} [{bot2FileName}]");
+                string botBName = (bot1FileName == bot2FileName) ? $"{bot2DisplayName} (P2)" : bot2DisplayName;
+                LogToConsole($"Spawning Matchup: Bot vs Bot");
+                LogToConsole($"Bot 1 (P1): {bot1DisplayName} [{bot1FileName}]");
+                LogToConsole($"Bot 2 (P2): {botBName} [{bot2FileName}]");
+            }
+            else
+            {
+                LogToConsole($"Spawning WindBot: {bot1DisplayName} [{bot1FileName}]");
             }
             LogToConsole($"Connecting to {host}:{port}...");
             LogToConsole($"---------------------------------------------------\n");
@@ -605,7 +764,10 @@ namespace dashbot
             {
                 try
                 {
-                    var wrapper1 = new HeadlessClientWrapper(_windbotDllPath)
+                    HeadlessClientWrapper? wrapper1 = null;
+                    HeadlessClientWrapper? wrapper2 = null;
+
+                    wrapper1 = new HeadlessClientWrapper(_windbotDllPath)
                     {
                         Name = bot1DisplayName,
                         Deck = bot1FileName,
@@ -619,11 +781,10 @@ namespace dashbot
                     wrapper1.Start();
                     LogToConsole($"Bot {bot1DisplayName} started successfully (PID: {wrapper1.ProcessId}).");
 
-                    HeadlessClientWrapper? wrapper2 = null;
-                    if (spawnTwo)
+                    if (isBotVsBot)
                     {
                         Thread.Sleep(1000);
-                        string botBName = (bot1FileName == bot2FileName) ? $"{bot2DisplayName}_Bot2" : bot2DisplayName;
+                        string botBName = (bot1FileName == bot2FileName) ? $"{bot2DisplayName}_P2" : bot2DisplayName;
                         wrapper2 = new HeadlessClientWrapper(_windbotDllPath)
                         {
                             Name = botBName,
@@ -636,17 +797,17 @@ namespace dashbot
                         wrapper2.OnErrorReceived += (line) => LogToConsole($"[{botBName} Warning] {line}");
 
                         wrapper2.Start();
-                        LogToConsole($"Bot {botBName} started successfully (PID: {wrapper2.ProcessId}).");
+                        LogToConsole($"P2 Bot {botBName} started successfully (PID: {wrapper2.ProcessId}).");
                     }
 
                     int secondsElapsed = 0;
-                    while ((wrapper1.IsRunning || (wrapper2 != null && wrapper2.IsRunning)) && secondsElapsed < 180)
+                    while (((wrapper1 != null && wrapper1.IsRunning) || (wrapper2 != null && wrapper2.IsRunning)) && secondsElapsed < 180)
                     {
                         Thread.Sleep(1000);
                         secondsElapsed++;
                     }
 
-                    if (wrapper1.IsRunning)
+                    if (wrapper1 != null && wrapper1.IsRunning)
                     {
                         LogToConsole($"Disconnecting {wrapper1.Name}...");
                         wrapper1.Stop();

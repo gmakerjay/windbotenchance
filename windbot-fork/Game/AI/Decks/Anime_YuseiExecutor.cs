@@ -93,7 +93,8 @@ namespace WindBot.Game.AI.Decks
             public const int JunkSpeeder = 77075360;
             public const int ScrapWarrior = 42711820;
             public const int FormulaSynchron = 50091196;
-            public const int MajesticStarDragon = 7841112;
+            public const int CosmicBlazarDragon = 21123811;
+            public const int ShootingMajesticStarDragon = 40939228;
         }
 
         public Anime_YuseiExecutor(GameAI ai, Duel duel)
@@ -104,9 +105,8 @@ namespace WindBot.Game.AI.Decks
 
         private void RegisterExecutors()
         {
-            // -------------------------------------------------------------
-            // 1. High-Priority Handtraps & Interruptions (Enemy / Chain)
-            // -------------------------------------------------------------
+            AddExecutor(ExecutorType.Activate, CardId.CosmicBlazarDragon, CosmicBlazarNegateActivate);
+            AddExecutor(ExecutorType.Activate, CardId.ShootingMajesticStarDragon, ShootingMajesticNegateActivate);
             AddExecutor(ExecutorType.Activate, CardId.ShootingQuasarDragon, ShootingQuasarNegateActivate);
             AddExecutor(ExecutorType.Activate, CardId.StardustWarrior, StardustWarriorNegateActivate);
             AddExecutor(ExecutorType.Activate, CardId.StardustDragonVictimSanctuary, VictimSanctuaryActivate);
@@ -173,7 +173,9 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.Activate, CardId.SatelliteWarrior, SatelliteWarriorEffect);
             AddExecutor(ExecutorType.SpSummon, CardId.StardustWarrior, StardustWarriorSummon);
 
-            // Step 5: Level 12 Ultimate Bosses (Shooting Quasar Dragon / Crimson Dragon)
+            // Step 5: Level 12 Ultimate Bosses (Cosmic Blazar / Shooting Majestic / Quasar / Crimson Dragon)
+            AddExecutor(ExecutorType.SpSummon, CardId.CosmicBlazarDragon, CosmicBlazarSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.ShootingMajesticStarDragon, ShootingMajesticSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.ShootingQuasarDragon, ShootingQuasarSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.CrimsonDragon, CrimsonDragonSummon);
             AddExecutor(ExecutorType.Activate, CardId.CrimsonDragon, CrimsonDragonEffect);
@@ -192,6 +194,26 @@ namespace WindBot.Game.AI.Decks
         // =================================================================
         // EXECUTION IMPLEMENTATIONS
         // =================================================================
+
+        private bool CosmicBlazarNegateActivate()
+        {
+            if (Card.Location != CardLocation.MonsterZone || Card.IsFacedown()) return false;
+            // Omni-Negate / Attack End / Summon Negate (banishes as cost to dodge removal)
+            return Duel.LastChainPlayer != 0 || Duel.LastSummonPlayer != 0 || Duel.Phase == DuelPhase.BattleStart;
+        }
+
+        private bool ShootingMajesticNegateActivate()
+        {
+            if (Card.Location != CardLocation.MonsterZone || Card.IsFacedown()) return false;
+            if (Duel.LastChainPlayer != 0) return true;
+            ClientCard oppMonster = Enemy.GetMonsters().FirstOrDefault(m => m.IsFaceup() && !m.IsDisabled() && (m.Attack >= 2000 || AntiFloodgateHelper.NegateMonsterIds.Contains(m.Id)));
+            if (oppMonster != null)
+            {
+                AI.SelectCard(oppMonster);
+                return true;
+            }
+            return false;
+        }
 
         private bool ShootingQuasarNegateActivate()
         {
@@ -292,12 +314,9 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location == CardLocation.Hand)
             {
-                // Add Junk Synchron + 1 Stardust/Junk mention (Stardust Synchron or Junk Meister), then discard 1
-                AI.SelectCard(new[] {
-                    CardId.JunkSynchron,
-                    CardId.StardustSynchron,
-                    CardId.JunkMeister
-                });
+                // Add 1 Junk Synchron + 1 Stardust/Junk mention, then discard 1
+                AI.SelectCard(CardId.JunkSynchron);
+                AI.SelectNextCard(CardId.StardustSynchron, CardId.JunkMeister, CardId.AnchorboltHedgehog);
                 return true;
             }
             if (Card.Location == CardLocation.Grave)
@@ -564,6 +583,16 @@ namespace WindBot.Game.AI.Decks
             return true;
         }
 
+        private bool CosmicBlazarSummon()
+        {
+            return true;
+        }
+
+        private bool ShootingMajesticSummon()
+        {
+            return true;
+        }
+
         private bool ShootingQuasarSummon()
         {
             // Ultimate Omni-Negate & multi-attack boss
@@ -577,11 +606,12 @@ namespace WindBot.Game.AI.Decks
 
         private bool CrimsonDragonEffect()
         {
-            // Tag out into same level Dragon Synchro (e.g. Quasar or Stardust Dragon)
+            // Tag out into same level Dragon Synchro (Cosmic Blazar / Shooting Majestic / Quasar / Stardust)
             ClientCard dragonTarget = Bot.GetMonsters().FirstOrDefault(m => m.HasType(CardType.Synchro) && m.HasRace(CardRace.Dragon) && m.Id != CardId.CrimsonDragon);
             if (dragonTarget != null)
             {
                 AI.SelectCard(dragonTarget);
+                AI.SelectNextCard(CardId.CosmicBlazarDragon, CardId.ShootingMajesticStarDragon, CardId.ShootingQuasarDragon);
                 return true;
             }
             return false;

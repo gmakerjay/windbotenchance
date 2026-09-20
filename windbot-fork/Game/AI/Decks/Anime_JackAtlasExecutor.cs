@@ -82,7 +82,7 @@ namespace WindBot.Game.AI.Decks
 
             // Extra Deck
             public const int RedHypernovaDragon = 30698243;
-            public const int HotRedDragonArchfiendKingCalamity = 62242678;
+            public const int BystialDisPater = 27572350;
             public const int RedSupernovaDragon = 99585850;
             public const int RedNovaDragonBurningSoul = 65541655;
             public const int HotRedDragonArchfiendBane = 36857073;
@@ -189,8 +189,8 @@ namespace WindBot.Game.AI.Decks
 
             // Step 7: Level 12 Ultimate Bosses (Red Supernova / Red Nova / Calamity / Hypernova)
             AddExecutor(ExecutorType.SpSummon, CardId.RedSupernovaDragon, RedSupernovaSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.HotRedDragonArchfiendKingCalamity, KingCalamitySummon);
-            AddExecutor(ExecutorType.Activate, CardId.HotRedDragonArchfiendKingCalamity, KingCalamityEffect);
+            AddExecutor(ExecutorType.SpSummon, CardId.BystialDisPater, DisPaterSummon);
+            AddExecutor(ExecutorType.Activate, CardId.BystialDisPater, DisPaterEffect);
             AddExecutor(ExecutorType.SpSummon, CardId.RedNovaDragonBurningSoul, RedNovaSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.RedHypernovaDragon, RedHypernovaSummon);
 
@@ -316,13 +316,8 @@ namespace WindBot.Game.AI.Decks
 
         private bool NibiruActivate()
         {
-            if (Duel.Player == 0) return false; // Opponent's turn
-            if (Enemy.GetMonsterCount() >= 2 && Enemy.GetMonsters().Any(m => m.Attack >= 2500 || AntiFloodgateHelper.NegateMonsterIds.Contains(m.Id)))
-            {
-                AI.SelectPosition(CardPosition.FaceUpAttack);
-                return true;
-            }
-            return false;
+            AI.SelectPosition(CardPosition.FaceUpDefence);
+            return DefaultNibiru();
         }
 
         private bool BystialDruiswurmActivate()
@@ -792,15 +787,35 @@ namespace WindBot.Game.AI.Decks
             return true;
         }
 
-        private bool KingCalamitySummon()
+        private bool DisPaterSummon()
         {
-            // Level 12 lock
-            return true;
+            // Level 10 DARK Dragon Synchro
+            return Bot.GetMonsters().Any(m => m.IsTuner()) && Bot.GetMonsters().Any(m => !m.IsTuner() && m.HasRace(CardRace.Dragon));
         }
 
-        private bool KingCalamityEffect()
+        private bool DisPaterEffect()
         {
-            return true;
+            // Effect 1: Target 1 banished LIGHT/DARK monster to Special Summon
+            if (Card.Location == CardLocation.MonsterZone && (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Main2))
+            {
+                var banishedTarget = Bot.Banished.FirstOrDefault(c => (c.HasAttribute(CardAttribute.Light) || c.HasAttribute(CardAttribute.Dark)) && c.IsMonster());
+                if (banishedTarget != null)
+                {
+                    AI.SelectCard(banishedTarget);
+                    return true;
+                }
+            }
+            // Effect 2: Quick Effect when opponent monster effect activates
+            if (Duel.LastChainPlayer == 1)
+            {
+                var target = Bot.Banished.FirstOrDefault() ?? Enemy.Banished.FirstOrDefault();
+                if (target != null)
+                {
+                    AI.SelectCard(target);
+                    return true;
+                }
+            }
+            return false;
         }
 
         private bool RedNovaSummon()
@@ -838,11 +853,6 @@ namespace WindBot.Game.AI.Decks
 
         public override bool OnSelectYesNo(long desc)
         {
-            // Guard against self-destruction or empty field triggers
-            if (Enemy.GetMonsterCount() == 0 && Enemy.GetSpellCount() == 0)
-            {
-                return false;
-            }
             return base.OnSelectYesNo(desc);
         }
 

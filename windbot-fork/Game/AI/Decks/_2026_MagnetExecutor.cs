@@ -462,14 +462,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool NibiruEffect()
         {
-            if (Duel.Player == 1 && (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Main2))
-            {
-                if (Enemy.GetMonsterCount() >= 2 || Enemy.GetMonsters().Any(c => c.Attack >= 2500))
-                {
-                    return true;
-                }
-            }
-            return false;
+            return DefaultNibiru();
         }
 
         // ==========================================
