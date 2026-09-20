@@ -1184,7 +1184,7 @@ namespace WindBot.Game.AI.Decks
                     var ours = ourCards.FirstOrDefault(c => c.Id == CardId.DestinyHERODestroyerPhoenixEnforcer)
                             ?? ourCards.FirstOrDefault(c => c.Id == CardId.ClockTowerPrisonCityDarkCity)
                             ?? ourCards.FirstOrDefault(c => !IsAceCard(c))
-                            ?? ourCards[0];
+                            ?? ourCards.OrderBy(c => c.Attack).First();
                     if (ours != null) result.Add(ours);
                 }
 

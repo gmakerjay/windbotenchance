@@ -517,7 +517,7 @@ namespace WindBot.Game.AI.Decks
             if (opt == Util.GetStringId(CardId.Magnifica, 0) || Card.HasXyzMaterial())
             {
                 if (_magnificaBanishUsed) return false;
-                var target = GetBestBanishTarget();
+                var target = GetBestBanishTarget(fieldOnly: true);
                 if (target != null && target.Controller == 1)
                 {
                     _magnificaBanishUsed = true;
@@ -849,8 +849,10 @@ namespace WindBot.Game.AI.Decks
             if (_marthaHandUsed) return false;
             if (IsSpecialSummonBlocked()) return false;
             if (Card.Location != CardLocation.Hand) return false;
+            if (GetRemainingCount(CardId.Elis) == 0) return false;
 
-            bool canSS = Bot.GetMonsterCount() == 0 || Bot.GetMonsters().All(c => c != null && c.IsFaceup() && c.IsExtraCard());
+            // Strict condition: Control no monsters, or only Xyz Monsters
+            bool canSS = Bot.GetMonsterCount() == 0 || Bot.GetMonsters().All(c => c != null && c.IsFaceup() && c.HasType(CardType.Xyz));
             if (!canSS) return false;
 
             _marthaHandUsed = true;
@@ -1134,8 +1136,14 @@ namespace WindBot.Game.AI.Decks
         // Helper Methods: Targets & Battle
         // ==========================================
 
-        private ClientCard GetBestBanishTarget()
+        private ClientCard GetBestBanishTarget(bool fieldOnly = false)
         {
+            // Priority 0: If opponent just activated a card in GY and we can banish from GY, snipe it!
+            if (!fieldOnly && Duel.LastChainPlayer == 1 && LastChainCard != null && LastChainCard.Controller == 1 && LastChainCard.Location == CardLocation.Grave)
+            {
+                return LastChainCard;
+            }
+
             var spells = Enemy.GetSpells().Where(c => c != null && c.IsFaceup()).ToList();
             
             // Priority 1: High-threat continuous floodgates & field spells
@@ -1149,12 +1157,15 @@ namespace WindBot.Game.AI.Decks
                 ?? monsters.OrderByDescending(c => c.Attack).FirstOrDefault();
             if (threatMonster != null) return threatMonster;
 
-            // Priority 3: Dangerous GY cards (revivers & floaters)
-            var gyMonsters = Enemy.Graveyard.Where(c => c != null && c.IsMonster() && c.IsCanRevive()).ToList();
-            if (gyMonsters.Count > 0) return gyMonsters.OrderByDescending(c => c.Attack).First();
+            if (!fieldOnly)
+            {
+                // Priority 3: Dangerous GY cards (revivers & floaters)
+                var gyMonsters = Enemy.Graveyard.Where(c => c != null && c.IsMonster() && c.IsCanRevive()).ToList();
+                if (gyMonsters.Count > 0) return gyMonsters.OrderByDescending(c => c.Attack).First();
 
-            var anyGyMonster = Enemy.Graveyard.FirstOrDefault(c => c != null && c.IsMonster());
-            if (anyGyMonster != null) return anyGyMonster;
+                var anyGyMonster = Enemy.Graveyard.FirstOrDefault(c => c != null && c.IsMonster());
+                if (anyGyMonster != null) return anyGyMonster;
+            }
 
             // Priority 4: Face-down Spells/Traps in End Phase
             if (Duel.Player == 1 && Duel.Phase == DuelPhase.End)

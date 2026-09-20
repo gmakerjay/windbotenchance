@@ -71,14 +71,20 @@ powershell -ExecutionPolicy Bypass -File .\BUILD_AND_DEPLOY.ps1
    - ศึกษา Card ID, สเตตัส, Effect จริงจาก `cards.cdb` และ `.ydk`
    - วิเคราะห์ Starters, Extenders, Handtraps, Board Breakers, และ End Board Targets
    - ออกแบบแผนการเล่น: First Turn (Route A/B/C/D) และ Second Turn (Board Breaking & OTK)
-2. **ทดสอบดวลกับ 4 เด็ค Legacy ผ่าน HeadlessSimulator**:
-   - ใช้ 4 เด็คคู่ซ้อมมาตรฐานที่ขัดเกลามาแล้ว: `ABC`, `Altergeist`, `BlueEyes`, `DarkMagician`
-   - คำสั่ง: `dotnet run --project src\YGO_SOURCE_CLEAN\Client_Headless_Fortest\Client_Headless_Fortest.csproj -c Release -- --deck <DECK_NAME> --opponent <OPPONENT> --games 10 --timeout 60`
+2. **นโยบายการทดสอบ Headless Simulation (สำคัญมาก)**:
+   - **ห้ามรันการจำลองดวล Headless Simulator โดยอัตโนมัติ** หลังจากสร้างหรือแก้ไขเด็คเสร็จ เนื่องจากผู้ใช้ต้องการทดสอบด้วยตนเองก่อนเสมอ
+   - **จะทำการรัน Headless Text Duel ได้ก็ต่อเมื่อผู้ใช้สั่ง "Text Duel" (หรือ "จำลองดวล") เท่านั้น**
+   - เมื่อผู้ใช้สั่ง "Text Duel" เท่านั้น จึงทำการรันดวลกับ 4 เด็คคู่ซ้อม Legacy: `ABC`, `Altergeist`, `BlueEyes`, `DarkMagician`
+     `dotnet run --project src\YGO_SOURCE_CLEAN\Client_Headless_Fortest\Client_Headless_Fortest.csproj -c Release -- --deck <DECK_NAME> --opponent <OPPONENT> --games 10 --timeout 60`
    - วิเคราะห์ Log & Snapshots เพื่อหาจุดบกพร่องที่เป็นจุดร่วมกัน (Bottlenecks / Misplays / Missed Triggers)
-3. **Iterative Optimization Loop**:
+3. **Iterative Optimization Loop (เมื่อได้รับคำสั่ง Text Duel)**:
    - วนลูป: **วิเคราะห์ ➔ แก้ไขโค้ด ➔ Build & Deploy ➔ ทดสอบ Headless ➔ วิเคราะห์ผล ➔ แก้ไขซ้ำ** เพื่อให้ผลลัพธ์ดีขึ้นอย่างมีนัยสำคัญ
 4. **สรุปผลการดวลและสถิติ**:
    - รายงานสถิติการดวลแยกรายเด็ค (Wins / Losses / Win Rate %), สถิติ Violations (ต้องเป็น 0), และ Playbook Strategy
 5. **Exclusive Deployment**:
    - Deploy ไบนารีชุดใหม่มาที่ `C:\Users\admin\Documents\EdoGame\` เสมอ
    - บันทึกการเปลี่ยนแปลงลงใน `PROGRESS.md` และบันทึกรายงานลงในโฟลเดอร์ `Docs/`
+6. **Progress Log & Archiving Policy**:
+   - ควบคุมขนาด `PROGRESS.md` ให้กระชับ (~200–400 บรรทัด)
+   - หากความยาวเกิน 500–800 บรรทัด ให้ย้ายประวัติชุดเก่าไปเก็บไว้ที่ `Docs/PROGRESS_ARCHIVE.md` เสมอ เพื่อประหยัด Token และให้อ่านได้ครบใน 1 รอบ
+

@@ -1,44 +1,167 @@
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
 using YgoAiPlatform.Core;
 
 namespace dashbot
 {
+    public class DeckItem : INotifyPropertyChanged
+    {
+        public string FileName { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public string Category { get; set; } = "Modern";
+        public string CategoryTagText { get; set; } = "Modern";
+        public string CategoryTagBg { get; set; } = "#D97706";
+
+        private bool _isBot1Selected;
+        public bool IsBot1Selected
+        {
+            get => _isBot1Selected;
+            set
+            {
+                if (_isBot1Selected != value)
+                {
+                    _isBot1Selected = value;
+                    NotifyVisualChanges();
+                }
+            }
+        }
+
+        private bool _isBot2Selected;
+        public bool IsBot2Selected
+        {
+            get => _isBot2Selected;
+            set
+            {
+                if (_isBot2Selected != value)
+                {
+                    _isBot2Selected = value;
+                    NotifyVisualChanges();
+                }
+            }
+        }
+
+        // Clean WinForm Light Styling
+        public string CardBackground
+        {
+            get
+            {
+                if (IsBot1Selected && IsBot2Selected) return "#F5F3FF";
+                if (IsBot1Selected) return "#F0F9FF";
+                if (IsBot2Selected) return "#ECFDF5";
+                return "#FFFFFF";
+            }
+        }
+
+        public string BorderBrushColor
+        {
+            get
+            {
+                if (IsBot1Selected && IsBot2Selected) return "#7C3AED";
+                if (IsBot1Selected) return "#0284C7";
+                if (IsBot2Selected) return "#059669";
+                return "#CBD5E1";
+            }
+        }
+
+        public string BorderThicknessValue => (IsBot1Selected || IsBot2Selected) ? "1.5" : "1";
+
+        public string TextColor => "#111111";
+
+        public Visibility IndicatorVisibility => (IsBot1Selected || IsBot2Selected) ? Visibility.Visible : Visibility.Collapsed;
+
+        public string IndicatorBackground
+        {
+            get
+            {
+                if (IsBot1Selected && IsBot2Selected) return "#7C3AED";
+                if (IsBot1Selected) return "#0284C7";
+                if (IsBot2Selected) return "#059669";
+                return "#666666";
+            }
+        }
+
+        public string SelectionIndicator
+        {
+            get
+            {
+                if (IsBot1Selected && IsBot2Selected) return "P1/P2";
+                if (IsBot1Selected) return "P1";
+                if (IsBot2Selected) return "P2";
+                return string.Empty;
+            }
+        }
+
+        private void NotifyVisualChanges()
+        {
+            OnPropertyChanged(nameof(IsBot1Selected));
+            OnPropertyChanged(nameof(IsBot2Selected));
+            OnPropertyChanged(nameof(CardBackground));
+            OnPropertyChanged(nameof(BorderBrushColor));
+            OnPropertyChanged(nameof(BorderThicknessValue));
+            OnPropertyChanged(nameof(TextColor));
+            OnPropertyChanged(nameof(IndicatorVisibility));
+            OnPropertyChanged(nameof(IndicatorBackground));
+            OnPropertyChanged(nameof(SelectionIndicator));
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged(string prop) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+    }
+
     public partial class MainWindow : Window
     {
         private string _decksDir = string.Empty;
         private string _windbotDllPath = string.Empty;
         private readonly System.Windows.Threading.DispatcherTimer _timer;
 
+        private readonly List<DeckItem> _allDecks = new();
+        private readonly ObservableCollection<DeckItem> _filteredDecks = new();
+
+        private DeckItem? _selectedBot1Deck;
+        private DeckItem? _selectedBot2Deck;
+        private bool _isAssigningBot2 = false;
+        private string _currentCategory = "All";
+
         public MainWindow()
         {
             InitializeComponent();
             ResolvePaths();
 
+            DeckItemsHost.ItemsSource = _filteredDecks;
+
             // Real-time clock updater
-            _timer = new System.Windows.Threading.DispatcherTimer();
-            _timer.Interval = TimeSpan.FromSeconds(1);
+            _timer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
             _timer.Tick += (s, e) => TxtTime.Text = DateTime.Now.ToString("HH:mm:ss");
             _timer.Start();
 
-            TxtConsole.Text = "=== YGO Standalone Bot Launcher v2.3 (dashbot) ===\n" +
+            TxtConsole.Text = "=== YGO Standalone Bot Launcher ===\n" +
+                              "WindBot by IceYgo | Custom Deck By Jaynesiz\n" +
                               "Rule-based Bot Execution Engine\n" +
                               "---------------------------------------------------\n" +
                               $"Decks Directory: {_decksDir}\n" +
                               $"WindBot Engine: {_windbotDllPath}\n" +
                               "---------------------------------------------------\n" +
-                              "Select a deck and host settings on the left, then click 'Start & Connect Bot to Room'.\n" +
-                              "For training: Enable 'Spawn 2 Bots' for automatic self-play duels.\n\n";
+                              "Select a deck from the library on the left, then click 'Start & Connect Bot to Room'.\n" +
+                              "For Bot vs Bot testing: Enable 'Spawn 2 Bots' and select decks for Bot 1 & Bot 2.\n\n";
 
-            PopulateDecksComboBox();
+            PopulateDeckLibrary();
         }
 
         private void ResolvePaths()
         {
-            // Try deployed path first (when running inside Game_EDOPro/)
+            // 1. Try deployed path first (when running inside Game_EDOPro/)
             string deployedDecks = Path.Combine(AppContext.BaseDirectory, "WindBot", "Decks");
             string deployedDll = Path.Combine(AppContext.BaseDirectory, "WindBot", "WindBot.dll");
 
@@ -49,56 +172,47 @@ namespace dashbot
                 return;
             }
 
-            // Fallback: search up for dev environment (running from YGO_AI_PLATFORM/)
+            // 2. Dev environment check (running from EdoGame root or YGO_SOURCE_CLEAN/)
             string? searchDir = AppContext.BaseDirectory;
             while (!string.IsNullOrEmpty(searchDir))
             {
-                string devPath = Path.Combine(searchDir, "YGO_AI_PLATFORM");
-                if (Directory.Exists(devPath))
+                string cleanDecks = Path.Combine(searchDir, "src", "YGO_SOURCE_CLEAN", "windbot-fork", "Decks");
+                if (Directory.Exists(cleanDecks))
                 {
-                    string devDecks = Path.Combine(devPath, "windbot-fork", "Decks");
-                    if (Directory.Exists(devDecks))
+                    _decksDir = cleanDecks;
+                    string[] candidates = new[]
                     {
-                        _decksDir = devDecks;
-                        string[] candidates = new[]
+                        Path.Combine(searchDir, "src", "YGO_SOURCE_CLEAN", "windbot-fork", "bin", "Release", "net10.0-publish", "WindBot.dll"),
+                        Path.Combine(searchDir, "WindBot", "WindBot.dll"),
+                        Path.Combine(searchDir, "src", "YGO_SOURCE_CLEAN", "windbot-fork", "bin", "x86", "Release", "net10.0", "WindBot.dll"),
+                        Path.Combine(searchDir, "src", "YGO_SOURCE_CLEAN", "windbot-fork", "bin", "Release", "net10.0", "WindBot.dll")
+                    };
+                    foreach (var path in candidates)
+                    {
+                        if (File.Exists(path))
                         {
-                            Path.Combine(devPath, "windbot-fork", "bin", "x86", "Debug", "net10.0", "WindBot.dll"),
-                            Path.Combine(devPath, "windbot-fork", "bin", "Debug", "net10.0", "WindBot.dll"),
-                            Path.Combine(devPath, "windbot-fork", "bin", "x86", "Release", "net10.0", "WindBot.dll"),
-                            Path.Combine(devPath, "windbot-fork", "bin", "Release", "net10.0", "WindBot.dll")
-                        };
-                        foreach (var path in candidates)
-                        {
-                            if (File.Exists(path))
-                            {
-                                _windbotDllPath = path;
-                                return;
-                            }
+                            _windbotDllPath = path;
+                            return;
                         }
                     }
                 }
 
-                string rootPath = Path.Combine(searchDir, "config.json");
-                if (File.Exists(rootPath))
+                string directDecks = Path.Combine(searchDir, "windbot-fork", "Decks");
+                if (Directory.Exists(directDecks))
                 {
-                    string devDecks = Path.Combine(searchDir, "windbot-fork", "Decks");
-                    if (Directory.Exists(devDecks))
+                    _decksDir = directDecks;
+                    string[] candidates = new[]
                     {
-                        _decksDir = devDecks;
-                        string[] candidates = new[]
+                        Path.Combine(searchDir, "windbot-fork", "bin", "Release", "net10.0-publish", "WindBot.dll"),
+                        Path.Combine(searchDir, "windbot-fork", "bin", "Release", "net10.0", "WindBot.dll"),
+                        Path.Combine(searchDir, "windbot-fork", "bin", "x86", "Release", "net10.0", "WindBot.dll")
+                    };
+                    foreach (var path in candidates)
+                    {
+                        if (File.Exists(path))
                         {
-                            Path.Combine(searchDir, "windbot-fork", "bin", "x86", "Debug", "net10.0", "WindBot.dll"),
-                            Path.Combine(searchDir, "windbot-fork", "bin", "Debug", "net10.0", "WindBot.dll"),
-                            Path.Combine(searchDir, "windbot-fork", "bin", "x86", "Release", "net10.0", "WindBot.dll"),
-                            Path.Combine(searchDir, "windbot-fork", "bin", "Release", "net10.0", "WindBot.dll")
-                        };
-                        foreach (var path in candidates)
-                        {
-                            if (File.Exists(path))
-                            {
-                                _windbotDllPath = path;
-                                return;
-                            }
+                            _windbotDllPath = path;
+                            return;
                         }
                     }
                 }
@@ -106,190 +220,307 @@ namespace dashbot
                 searchDir = Path.GetDirectoryName(searchDir);
             }
 
-            // Ultimate fallback
+            // Fallback
             _decksDir = Path.Combine(AppContext.BaseDirectory, "WindBot", "Decks");
             _windbotDllPath = Path.Combine(AppContext.BaseDirectory, "WindBot", "WindBot.dll");
         }
 
-        private void PopulateDecksComboBox()
+        private void PopulateDeckLibrary()
         {
-            var legacyDecks = new System.Collections.Generic.List<string>();
-            var new2026Decks = new System.Collections.Generic.List<string>();
-            var otherDecks = new System.Collections.Generic.List<string>();
+            _allDecks.Clear();
 
             try
             {
                 if (Directory.Exists(_decksDir))
                 {
                     var files = Directory.GetFiles(_decksDir, "*.ydk");
-                    
                     foreach (var file in files)
                     {
                         string originalName = Path.GetFileNameWithoutExtension(file);
-                        string cleanName = originalName;
-
-                        if (cleanName.StartsWith("AI_"))
-                        {
-                            cleanName = cleanName.Substring(3); // Remove "AI_" prefix
-                        }
-                        
-                        // Strip Neural_ or Expert_ prefix if they are in the deck filenames
-                        if (cleanName.StartsWith("Neural_"))
-                        {
-                            cleanName = cleanName.Substring(7);
-                        }
-                        else if (cleanName.StartsWith("Expert_"))
-                        {
-                            cleanName = cleanName.Substring(7);
-                        }
-
-                        // Categorize based on original name prefix
-                        if (originalName.StartsWith("2026_") || originalName.StartsWith("Expert_2026_") || originalName.StartsWith("Neural_2026_"))
-                        {
-                            if (!new2026Decks.Contains(cleanName))
-                                new2026Decks.Add(cleanName);
-                        }
-                        else if (originalName.StartsWith("AI_"))
-                        {
-                            if (!legacyDecks.Contains(cleanName))
-                                legacyDecks.Add(cleanName);
-                        }
-                        else
-                        {
-                            if (!otherDecks.Contains(cleanName))
-                                otherDecks.Add(cleanName);
-                        }
+                        var item = ParseDeckItem(originalName);
+                        _allDecks.Add(item);
                     }
                 }
             }
             catch (Exception ex)
             {
-                LogToConsole($"Failed to load decks: {ex.Message}");
+                LogToConsole($"[Error loading decks] {ex.Message}");
             }
 
-            // Fallback lists if folders are empty
-            if (legacyDecks.Count == 0 && new2026Decks.Count == 0 && otherDecks.Count == 0)
+            // Fallbacks if directory is empty
+            if (_allDecks.Count == 0)
             {
-                legacyDecks.AddRange(new[] { "Altergeist", "BlueEyes", "SkyStriker" });
-                new2026Decks.AddRange(new[] { "2026_K9" });
-                otherDecks.AddRange(new[] { "Tour2025_Drytron", "Tour2024_Dogma" });
+                _allDecks.Add(ParseDeckItem("2026_Branded"));
+                _allDecks.Add(ParseDeckItem("Anime_JackAtlas"));
+                _allDecks.Add(ParseDeckItem("AI_BlueEyes"));
+                _allDecks.Add(ParseDeckItem("AI_DarkMagician"));
+                _allDecks.Add(ParseDeckItem("AI_Altergeist"));
             }
 
-            // Sort lists alphabetically
-            legacyDecks.Sort(StringComparer.OrdinalIgnoreCase);
-            new2026Decks.Sort(StringComparer.OrdinalIgnoreCase);
-            otherDecks.Sort(StringComparer.OrdinalIgnoreCase);
-
-            // Clear items
-            CbDecksLegacy.Items.Clear();
-            CbDecks2026.Items.Clear();
-            CbDecksOther.Items.Clear();
-            CbOpponentDecksLegacy.Items.Clear();
-            CbOpponentDecks2026.Items.Clear();
-            CbOpponentDecksOther.Items.Clear();
-
-            // Populate ComboBoxes
-            foreach (var deck in legacyDecks)
+            // Sort: Modern first, then Anime, then Legacy, then Special, sorted alphabetically
+            _allDecks.Sort((a, b) =>
             {
-                CbDecksLegacy.Items.Add(deck);
-                CbOpponentDecksLegacy.Items.Add(deck);
-            }
-            foreach (var deck in new2026Decks)
-            {
-                CbDecks2026.Items.Add(deck);
-                CbOpponentDecks2026.Items.Add(deck);
-            }
-            foreach (var deck in otherDecks)
-            {
-                CbDecksOther.Items.Add(deck);
-                CbOpponentDecksOther.Items.Add(deck);
-            }
+                int catOrderA = GetCategoryWeight(a.Category);
+                int catOrderB = GetCategoryWeight(b.Category);
+                if (catOrderA != catOrderB) return catOrderA.CompareTo(catOrderB);
+                return string.Compare(a.DisplayName, b.DisplayName, StringComparison.OrdinalIgnoreCase);
+            });
 
-            // Set default selections
-            if (CbDecksLegacy.Items.Count > 0) CbDecksLegacy.SelectedIndex = 0;
-            if (CbDecks2026.Items.Count > 0) CbDecks2026.SelectedIndex = 0;
-            if (CbDecksOther.Items.Count > 0) CbDecksOther.SelectedIndex = 0;
+            TxtDeckTotalCount.Text = $"({_allDecks.Count})";
 
-            if (CbOpponentDecksLegacy.Items.Count > 0) CbOpponentDecksLegacy.SelectedIndex = 0;
-            if (CbOpponentDecks2026.Items.Count > 0) CbOpponentDecks2026.SelectedIndex = 0;
-            if (CbOpponentDecksOther.Items.Count > 0) CbOpponentDecksOther.SelectedIndex = 0;
+            // Default selections
+            _selectedBot1Deck = _allDecks.Find(d => d.FileName.Contains("Branded", StringComparison.OrdinalIgnoreCase))
+                             ?? _allDecks[0];
+            _selectedBot1Deck.IsBot1Selected = true;
 
-            // Trigger checked states to enable/disable dropdowns
-            RbCategory_Checked(null, null);
-            RbOpponentCategory_Checked(null, null);
+            _selectedBot2Deck = _allDecks.Find(d => d.FileName.Contains("DarkMagician", StringComparison.OrdinalIgnoreCase))
+                             ?? _allDecks.Find(d => d.FileName.Contains("BlueEyes", StringComparison.OrdinalIgnoreCase))
+                             ?? _allDecks[0];
+            _selectedBot2Deck.IsBot2Selected = true;
+
+            UpdateMatchupUI();
+            ApplyFilter();
         }
 
-        private string GetSelectedDeck(bool isOpponent)
+        private static int GetCategoryWeight(string cat)
         {
-            if (isOpponent)
+            return cat switch
             {
-                if (RbOpponentLegacy?.IsChecked == true)
-                    return CbOpponentDecksLegacy.SelectedItem?.ToString() ?? "";
-                if (RbOpponent2026?.IsChecked == true)
-                    return CbOpponentDecks2026.SelectedItem?.ToString() ?? "";
-                if (RbOpponentOther?.IsChecked == true)
-                    return CbOpponentDecksOther.SelectedItem?.ToString() ?? "";
-                return "";
+                "Modern" => 1,
+                "Anime" => 2,
+                "Legacy" => 3,
+                "Special" => 4,
+                _ => 5
+            };
+        }
+
+        private static DeckItem ParseDeckItem(string originalName)
+        {
+            string cleanName = originalName;
+            string category;
+            string tagText;
+            string tagBg;
+
+            if (originalName.StartsWith("2026_") || originalName.StartsWith("Expert_2026_") || originalName.StartsWith("Neural_2026_"))
+            {
+                category = "Modern";
+                tagText = "Modern";
+                tagBg = "#D97706"; // Amber / Gold
+                if (cleanName.StartsWith("Expert_2026_")) cleanName = cleanName.Substring(12);
+                else if (cleanName.StartsWith("Neural_2026_")) cleanName = cleanName.Substring(12);
+                else if (cleanName.StartsWith("2026_")) cleanName = cleanName.Substring(5);
+            }
+            else if (originalName.StartsWith("Anime_"))
+            {
+                category = "Anime";
+                tagText = "Anime";
+                tagBg = "#BE185D"; // Deep Pink / Rose
+                cleanName = cleanName.Substring(6);
+            }
+            else if (originalName.StartsWith("AI_"))
+            {
+                category = "Legacy";
+                tagText = "Legacy";
+                tagBg = "#1D4ED8"; // Royal Blue
+                cleanName = cleanName.Substring(3);
+            }
+            else if (originalName.StartsWith("GOAT_"))
+            {
+                category = "Special";
+                tagText = "GOAT";
+                tagBg = "#047857"; // Emerald Green
+                cleanName = cleanName.Substring(5);
             }
             else
             {
-                if (RbLegacy?.IsChecked == true)
-                    return CbDecksLegacy.SelectedItem?.ToString() ?? "";
-                if (Rb2026?.IsChecked == true)
-                    return CbDecks2026.SelectedItem?.ToString() ?? "";
-                if (RbOther?.IsChecked == true)
-                    return CbDecksOther.SelectedItem?.ToString() ?? "";
-                return "";
+                category = "Special";
+                tagText = "Special";
+                tagBg = "#6D28D9"; // Purple
+            }
+
+            cleanName = CleanDeckDisplayName(cleanName);
+
+            return new DeckItem
+            {
+                FileName = originalName,
+                DisplayName = cleanName,
+                Category = category,
+                CategoryTagText = tagText,
+                CategoryTagBg = tagBg
+            };
+        }
+
+        private static string CleanDeckDisplayName(string name)
+        {
+            var overrides = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "JackAtlas", "Jack Atlas" },
+                { "Yugi", "Yugi Muto" },
+                { "Yusei", "Yusei Fudo" },
+                { "BlueEyes", "Blue-Eyes" },
+                { "BlueEyesMaxDragon", "Blue-Eyes Max" },
+                { "DarkMagician", "Dark Magician" },
+                { "RedDragon", "Red Dragon Archfiend" },
+                { "SkyStriker", "Sky Striker" },
+                { "CyberDragon", "Cyber Dragon" },
+                { "Blackwings", "Blackwing" },
+                { "Blackwing", "Blackwing" },
+                { "CrystronTrains", "Crystron Trains" },
+                { "TrainCryston", "Train Crystron" },
+                { "DarkWorld", "Dark World" },
+                { "EvilTwin", "Evil Twin" },
+                { "FairyTailPure", "Fairy Tail" },
+                { "GemKnight", "Gem-Knight" },
+                { "KaijuCrusadia", "Kaiju Crusadia" },
+                { "Kwtune", "Kewl Tune" },
+                { "RexRaptor", "Rex Raptor" },
+                { "TrueDraco", "True Draco" },
+                { "ChainBurn", "Chain Burn" },
+                { "LightswornShaddoldinosour", "Lightsworn Shaddoll Dino" },
+                { "ST1732", "Cyberse Link" },
+                { "Demise", "Demise OTK" },
+                { "Yubel2", "Yubel" },
+                { "DogmaStun", "Dogmatika Stun" },
+                { "BrElfnote", "Branded Elfnote" },
+                { "EneaCraft", "Enea Craft" },
+                { "EyeInside", "Eye Inside" },
+                { "Goldlord", "Eldlich Goldlord" },
+                { "AncientG", "Ancient Gear" },
+                { "DarkTime", "Dark Time" },
+                { "MagistusFairy", "Magistus Fairy" },
+                { "BlazeBaz", "Blaze Baz" },
+                { "PureWinds", "Pure Winds" },
+                { "OldSchool", "Old School" },
+                { "Timethief", "Time Thief" },
+                { "ToadallyAwesome", "Toadally Awesome" }
+            };
+
+            if (overrides.TryGetValue(name, out var customName))
+            {
+                return customName;
+            }
+
+            string spaced = Regex.Replace(name, "(?<=[a-z])([A-Z])", " $1");
+            return spaced.Trim();
+        }
+
+        private void ApplyFilter()
+        {
+            string keyword = TxtSearch?.Text?.Trim() ?? string.Empty;
+
+            _filteredDecks.Clear();
+            foreach (var deck in _allDecks)
+            {
+                if (_currentCategory != "All" && !deck.Category.Equals(_currentCategory, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (!string.IsNullOrEmpty(keyword))
+                {
+                    bool matchDisplay = deck.DisplayName.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0;
+                    bool matchFile = deck.FileName.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0;
+                    if (!matchDisplay && !matchFile)
+                    {
+                        continue;
+                    }
+                }
+
+                _filteredDecks.Add(deck);
             }
         }
 
-        private void RbCategory_Checked(object? sender, RoutedEventArgs? e)
+        private void UpdateMatchupUI()
         {
-            if (CbDecksLegacy == null || CbDecks2026 == null || CbDecksOther == null) return;
+            string bot1Name = _selectedBot1Deck?.DisplayName ?? "None";
+            string bot2Name = _selectedBot2Deck?.DisplayName ?? "None";
 
-            CbDecksLegacy.IsEnabled = RbLegacy.IsChecked == true;
-            CbDecks2026.IsEnabled = Rb2026.IsChecked == true;
-            CbDecksOther.IsEnabled = RbOther.IsChecked == true;
+            if (TxtSummaryBot1 != null) TxtSummaryBot1.Text = bot1Name;
+            if (TxtSummaryBot2 != null) TxtSummaryBot2.Text = bot2Name;
+            if (TxtMatchupBot1 != null) TxtMatchupBot1.Text = bot1Name;
+            if (TxtMatchupBot2 != null) TxtMatchupBot2.Text = bot2Name;
         }
 
-        private void RbOpponentCategory_Checked(object? sender, RoutedEventArgs? e)
+        private void DeckCard_Click(object sender, MouseButtonEventArgs e)
         {
-            if (CbOpponentDecksLegacy == null || CbOpponentDecks2026 == null || CbOpponentDecksOther == null) return;
+            if (sender is FrameworkElement elem && elem.DataContext is DeckItem clickedDeck)
+            {
+                if (_isAssigningBot2)
+                {
+                    if (_selectedBot2Deck != null) _selectedBot2Deck.IsBot2Selected = false;
+                    _selectedBot2Deck = clickedDeck;
+                    _selectedBot2Deck.IsBot2Selected = true;
+                    LogToConsole($"Selected Bot 2 Deck: {clickedDeck.DisplayName}");
+                }
+                else
+                {
+                    if (_selectedBot1Deck != null) _selectedBot1Deck.IsBot1Selected = false;
+                    _selectedBot1Deck = clickedDeck;
+                    _selectedBot1Deck.IsBot1Selected = true;
+                    LogToConsole($"Selected Bot 1 Deck: {clickedDeck.DisplayName}");
+                }
 
-            CbOpponentDecksLegacy.IsEnabled = RbOpponentLegacy.IsChecked == true;
-            CbOpponentDecks2026.IsEnabled = RbOpponent2026.IsChecked == true;
-            CbOpponentDecksOther.IsEnabled = RbOpponentOther.IsChecked == true;
+                UpdateMatchupUI();
+            }
         }
 
-        private void CbDecksLegacy_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        private void DeckCard_RightClick(object sender, MouseButtonEventArgs e)
         {
+            if (sender is FrameworkElement elem && elem.DataContext is DeckItem clickedDeck)
+            {
+                if (_selectedBot2Deck != null) _selectedBot2Deck.IsBot2Selected = false;
+                _selectedBot2Deck = clickedDeck;
+                _selectedBot2Deck.IsBot2Selected = true;
+
+                if (ChkTwoBots.IsChecked != true)
+                {
+                    ChkTwoBots.IsChecked = true;
+                    ChkTwoBots_Click(this, new RoutedEventArgs());
+                }
+
+                LogToConsole($"[Right-Click] Assigned Bot 2 Deck: {clickedDeck.DisplayName}");
+                UpdateMatchupUI();
+            }
         }
 
-        private void CbDecks2026_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        private void TxtSearch_TextChanged(object sender, TextChangedEventArgs e)
         {
+            if (TxtSearchPlaceholder != null)
+            {
+                TxtSearchPlaceholder.Visibility = string.IsNullOrEmpty(TxtSearch.Text) ? Visibility.Visible : Visibility.Collapsed;
+            }
+            ApplyFilter();
         }
 
-        private void CbDecksOther_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        private void RbCat_Checked(object sender, RoutedEventArgs e)
         {
+            if (RbCatAll?.IsChecked == true) _currentCategory = "All";
+            else if (RbCatModern?.IsChecked == true) _currentCategory = "Modern";
+            else if (RbCatAnime?.IsChecked == true) _currentCategory = "Anime";
+            else if (RbCatLegacy?.IsChecked == true) _currentCategory = "Legacy";
+            else if (RbCatSpecial?.IsChecked == true) _currentCategory = "Special";
+
+            ApplyFilter();
         }
 
-        private void CbOpponentDecksLegacy_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        private void RbAssignBot_Checked(object sender, RoutedEventArgs e)
         {
+            _isAssigningBot2 = (RbAssignBot2?.IsChecked == true);
         }
 
-        private void CbOpponentDecks2026_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        private void ChkTwoBots_Click(object sender, RoutedEventArgs e)
         {
-        }
-
-        private void CbOpponentDecksOther_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
-        {
+            bool spawnTwo = ChkTwoBots.IsChecked == true;
+            if (SummaryBot2Panel != null)
+            {
+                SummaryBot2Panel.Visibility = spawnTwo ? Visibility.Visible : Visibility.Collapsed;
+            }
         }
 
         private void LogToConsole(string message)
         {
             Dispatcher.Invoke(() =>
             {
-                // Prevent freezing by trimming console logs if they exceed limit
                 if (TxtConsole.Text.Length > 80000)
                 {
                     TxtConsole.Text = TxtConsole.Text.Substring(40000);
@@ -299,11 +530,21 @@ namespace dashbot
             });
         }
 
-        private void ChkTwoBots_Click(object sender, RoutedEventArgs e)
+        private void BtnClearConsole_Click(object sender, RoutedEventArgs e)
         {
-            if (OpponentDeckPanel != null)
+            TxtConsole.Text = string.Empty;
+        }
+
+        private void BtnCopyConsole_Click(object sender, RoutedEventArgs e)
+        {
+            try
             {
-                OpponentDeckPanel.Visibility = (ChkTwoBots.IsChecked == true) ? Visibility.Visible : Visibility.Collapsed;
+                Clipboard.SetText(TxtConsole.Text);
+                TxtConsoleStatus.Text = "Logs copied to clipboard.";
+            }
+            catch
+            {
+                TxtConsoleStatus.Text = "Copy failed.";
             }
         }
 
@@ -312,17 +553,17 @@ namespace dashbot
             string host = TxtHostIp.Text.Trim();
             string portStr = TxtHostPort.Text.Trim();
 
-            string selectedDeck = GetSelectedDeck(isOpponent: false);
-            if (string.IsNullOrEmpty(selectedDeck)) selectedDeck = "BlueEyes";
+            string bot1FileName = _selectedBot1Deck?.FileName ?? "AI_BlueEyes";
+            string bot1DisplayName = _selectedBot1Deck?.DisplayName ?? "Blue-Eyes";
 
-            string selectedOpponentDeck = GetSelectedDeck(isOpponent: true);
-            if (string.IsNullOrEmpty(selectedOpponentDeck)) selectedOpponentDeck = "BlueEyes";
+            string bot2FileName = _selectedBot2Deck?.FileName ?? "AI_DarkMagician";
+            string bot2DisplayName = _selectedBot2Deck?.DisplayName ?? "Dark Magician";
 
             bool spawnTwo = ChkTwoBots.IsChecked == true;
 
             if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(portStr))
             {
-                MessageBox.Show("Please specify host IP and port.", "Input Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Please specify target host IP and port.", "Input Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -333,12 +574,12 @@ namespace dashbot
             }
 
             LogToConsole($"\n---------------------------------------------------");
-            LogToConsole($"Launching WindBot Bot (Bot A): {selectedDeck}");
+            LogToConsole($"Launching WindBot Bot (Bot 1): {bot1DisplayName} [{bot1FileName}]");
 
             if (spawnTwo)
             {
-                string botBName = (selectedDeck == selectedOpponentDeck) ? $"{selectedOpponentDeck}_Bot2" : selectedOpponentDeck;
-                LogToConsole($"Launching WindBot Bot (Bot B): {botBName}");
+                string botBName = (bot1FileName == bot2FileName) ? $"{bot2DisplayName} (Bot 2)" : bot2DisplayName;
+                LogToConsole($"Launching WindBot Bot (Bot 2): {botBName} [{bot2FileName}]");
             }
             LogToConsole($"Connecting to {host}:{port}...");
             LogToConsole($"---------------------------------------------------\n");
@@ -352,27 +593,27 @@ namespace dashbot
                 {
                     var wrapper1 = new HeadlessClientWrapper(_windbotDllPath)
                     {
-                        Name = selectedDeck,
-                        Deck = selectedDeck,
+                        Name = bot1DisplayName,
+                        Deck = bot1FileName,
                         Host = host,
                         Port = port
                     };
 
-                    wrapper1.OnOutputReceived += (line) => LogToConsole($"[{selectedDeck}] {line}");
-                    wrapper1.OnErrorReceived += (line) => LogToConsole($"[{selectedDeck} Warning] {line}");
+                    wrapper1.OnOutputReceived += (line) => LogToConsole($"[{bot1DisplayName}] {line}");
+                    wrapper1.OnErrorReceived += (line) => LogToConsole($"[{bot1DisplayName} Warning] {line}");
 
                     wrapper1.Start();
-                    LogToConsole($"Bot {selectedDeck} started successfully (PID: {wrapper1.ProcessId}).");
+                    LogToConsole($"Bot {bot1DisplayName} started successfully (PID: {wrapper1.ProcessId}).");
 
                     HeadlessClientWrapper? wrapper2 = null;
                     if (spawnTwo)
                     {
-                        Thread.Sleep(1000); // Give the first bot a second to connect
-                        string botBName = (selectedDeck == selectedOpponentDeck) ? $"{selectedOpponentDeck}_Bot2" : selectedOpponentDeck;
+                        Thread.Sleep(1000);
+                        string botBName = (bot1FileName == bot2FileName) ? $"{bot2DisplayName}_Bot2" : bot2DisplayName;
                         wrapper2 = new HeadlessClientWrapper(_windbotDllPath)
                         {
                             Name = botBName,
-                            Deck = selectedOpponentDeck,
+                            Deck = bot2FileName,
                             Host = host,
                             Port = port
                         };
@@ -384,7 +625,6 @@ namespace dashbot
                         LogToConsole($"Bot {botBName} started successfully (PID: {wrapper2.ProcessId}).");
                     }
 
-                    // Monitor the bot processes for output (max 3 minutes or until stopped)
                     int secondsElapsed = 0;
                     while ((wrapper1.IsRunning || (wrapper2 != null && wrapper2.IsRunning)) && secondsElapsed < 180)
                     {
@@ -394,12 +634,12 @@ namespace dashbot
 
                     if (wrapper1.IsRunning)
                     {
-                        LogToConsole($"Disconnecting / Stopping {wrapper1.Name} process...");
+                        LogToConsole($"Disconnecting {wrapper1.Name}...");
                         wrapper1.Stop();
                     }
                     if (wrapper2 != null && wrapper2.IsRunning)
                     {
-                        LogToConsole($"Disconnecting / Stopping {wrapper2.Name} process...");
+                        LogToConsole($"Disconnecting {wrapper2.Name}...");
                         wrapper2.Stop();
                     }
                     LogToConsole("WindBot process stopped.\n");
@@ -412,11 +652,6 @@ namespace dashbot
 
             BtnConnectAi.IsEnabled = true;
             TxtConsoleStatus.Text = "Ready.";
-        }
-
-        private void BtnClearConsole_Click(object sender, RoutedEventArgs e)
-        {
-            TxtConsole.Text = string.Empty;
         }
     }
 }

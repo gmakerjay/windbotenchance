@@ -192,7 +192,7 @@
   },
   {
     "name": "R5NK",
-    "deck": "Rank V",
+    "deck": "Rank5",
     "difficulty": 2,
     "masterRules": [
       3,
@@ -212,7 +212,7 @@
   },
   {
     "name": "Rose Scrap Synchro",
-    "deck": "Level VIII",
+    "deck": "Level8",
     "difficulty": 2,
     "masterRules": [
       3,
@@ -249,7 +249,7 @@
   },
   {
     "name": "Toadally Awesome",
-    "deck": "Toadally Awesome",
+    "deck": "ToadallyAwesome",
     "difficulty": 2,
     "masterRules": [
       3,
@@ -297,7 +297,7 @@
   },
   {
     "name": "ZEXAL Weapon",
-    "deck": "Zexal Weapons",
+    "deck": "ZexalWeapons",
     "difficulty": 2,
     "masterRules": [
       3,
@@ -1594,6 +1594,141 @@
     "masterRules": [
       3,
       4,
+      5
+    ]
+  },
+  {
+    "name": "2026_KaijuCrusadia",
+    "deck": "2026_KaijuCrusadia",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_KaijuCrusadia",
+    "deck": "2026_KaijuCrusadia",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_GemKnight",
+    "deck": "2026_GemKnight",
+    "difficulty": 3,
+    "masterRules": [
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_GemKnight",
+    "deck": "2026_GemKnight",
+    "difficulty": 3,
+    "masterRules": [
+      5
+    ]
+  },
+  {
+    "name": "2026_Mimighoul",
+    "deck": "2026_Mimighoul",
+    "difficulty": 3,
+    "masterRules": [
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Mimighoul",
+    "deck": "2026_Mimighoul",
+    "difficulty": 3,
+    "masterRules": [
+      5
+    ]
+  },
+  {
+    "name": "2026_ArtMage",
+    "deck": "2026_ArtMage",
+    "difficulty": 3,
+    "masterRules": [
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_ArtMage",
+    "deck": "2026_ArtMage",
+    "difficulty": 3,
+    "masterRules": [
+      5
+    ]
+  },
+  {
+    "name": "2026_Exodia",
+    "deck": "2026_Exodia",
+    "difficulty": 3,
+    "masterRules": [
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Exodia",
+    "deck": "2026_Exodia",
+    "difficulty": 3,
+    "masterRules": [
+      5
+    ]
+  },
+  {
+    "name": "2026_Toon",
+    "deck": "2026_Toon",
+    "difficulty": 3,
+    "masterRules": [
+      5
+    ]
+  },
+  {
+    "name": "Expert_2026_Toon",
+    "deck": "2026_Toon",
+    "difficulty": 3,
+    "masterRules": [
+      5
+    ]
+  },
+  {
+    "name": "2026_DogmaStun",
+    "deck": "2026_DogmaStun",
+    "difficulty": 3,
+    "masterRules": [
+      5
+    ]
+  },
+  {
+    "name": "Anime_Yugi",
+    "deck": "Anime_Yugi",
+    "dialog": "default",
+    "difficulty": 3,
+    "masterRules": [
+      5
+    ]
+  },
+  {
+    "name": "Anime_Yusei",
+    "deck": "Anime_Yusei",
+    "dialog": "default",
+    "difficulty": 3,
+    "masterRules": [
+      5
+    ]
+  },
+  {
+    "name": "Anime_JackAtlas",
+    "deck": "Anime_JackAtlas",
+    "dialog": "default",
+    "difficulty": 3,
+    "masterRules": [
       5
     ]
   }

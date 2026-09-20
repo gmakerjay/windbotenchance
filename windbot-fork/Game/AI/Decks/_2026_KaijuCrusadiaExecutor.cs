@@ -1,8 +1,13 @@
 // ====================================================================================================
 // CARD AUDIT — 2026 Kaiju Crusadia Comprehensive AI Executor
 // ====================================================================================================
-// Goal: Go 2nd, break board with Kaijus/Slumber/Twin Twisters, OTK with Equimax + Maximus + Leonis.
-// Uses local dynamic evaluation and turn objectives.
+// Strategy:
+// Go 2nd: Break opponent board with Kaiju / Slumber / Twin Twisters.
+// Link climb: Normal Summon -> Magius (search Draco) -> Regulex (search Revival/Power, Draco retrieves Maximus)
+//             -> Equimax -> Special Summon Maximus & Extenders to Equimax pointers.
+// OTK: Equimax points to Kaiju on enemy field + Maximus doubles battle damage + Leonis grants piercing
+//      + Revival allows attacking all monsters. Result: 8000+ to 15000+ damage OTK.
+// Go 1st: End on Equimax (quick-effect negate) + Avramax + Crusadia Power (unaffected) protection.
 // ====================================================================================================
 
 using YGOSharp.OCGWrapper.Enums;
@@ -18,17 +23,14 @@ namespace WindBot.Game.AI.Decks
     [Deck("2026_KaijuCrusadia", "2026_KaijuCrusadia")]
     public class _2026_KaijuCrusadiaExecutor : ModernExecutor
     {
-        // ================================================================================================
-        // Card ID Constants Definition
-        // ================================================================================================
         public class CardId
         {
-            // Crusadia Monsters
-            public const int CrusadiaReclusia = 55241609;
-            public const int CrusadiaArboria = 91646304;
-            public const int CrusadiaLeonis = 28031913;
-            public const int CrusadiaDraco = 54525057;
+            // Crusadia Main Monsters
             public const int CrusadiaMaximus = 81524756;
+            public const int CrusadiaDraco = 54525057;
+            public const int CrusadiaArboria = 91646304;
+            public const int CrusadiaReclusia = 55241609;
+            public const int CrusadiaLeonis = 28031913;
 
             // Mekk-Knight Monsters & World Crown
             public const int MekkKnightPurple = 28692962;
@@ -42,7 +44,7 @@ namespace WindBot.Game.AI.Decks
             public const int Gadarla = 36956512;
             public const int Radian = 28674152;
 
-            // Spells
+            // Spells & Traps
             public const int InterruptedKaijuSlumber = 99330325;
             public const int WorldLegacySuccession = 99674361;
             public const int TwinTwisters = 43898403;
@@ -54,7 +56,7 @@ namespace WindBot.Game.AI.Decks
             public const int CrusadiaRevival = 69039982;
             public const int CrusadiaTestament = 87497553;
 
-            // Handtraps & Traps
+            // Handtraps & Disruptions
             public const int AshBlossom = 14558127;
             public const int EffectVeiler = 97268402;
             public const int ArtifactLancea = 34267821;
@@ -75,16 +77,13 @@ namespace WindBot.Game.AI.Decks
             public const int SaryujaSkullDread = 74997493;
         }
 
-        // ================================================================================================
-        // State Variable & List Initializations
-        // ================================================================================================
         private static readonly int[] AceCardIds = {
             CardId.CrusadiaEquimax, CardId.Avramax, CardId.BorrelswordDragon, CardId.SaryujaSkullDread
         };
 
         private static readonly int[] CrusadiaMainMonsters = {
-            CardId.CrusadiaReclusia, CardId.CrusadiaArboria, CardId.CrusadiaLeonis,
-            CardId.CrusadiaDraco, CardId.CrusadiaMaximus
+            CardId.CrusadiaMaximus, CardId.CrusadiaDraco, CardId.CrusadiaArboria,
+            CardId.CrusadiaReclusia, CardId.CrusadiaLeonis
         };
 
         private static readonly int[] KaijuMonsters = {
@@ -95,909 +94,271 @@ namespace WindBot.Game.AI.Decks
             CardId.MekkKnightPurple, CardId.MekkKnightBlue, CardId.MekkKnightIndigo
         };
 
-        private enum TurnObjective { EstablishBoard, BreakBoard, PushLethal, Survive }
-        private TurnObjective _objective;
-
+        // Turn Flags
         private bool _normalSummonedCrusadia = false;
         private bool _slumberUsed = false;
-        private bool _maximusUsed = false;
-        private bool _leonisUsed = false;
+        private bool _maximusBuffUsed = false;
+        private bool _leonisBuffUsed = false;
         private bool _revivalUsed = false;
-
-        // Target state memory to fix asynchronous selection leaks during Kaiju summons
         private ClientCard _kaijuTributeTarget = null;
 
-        // ================================================================================================
-        // Main Constructor: Setup Strategy & Register Executors
-        // ================================================================================================
         public _2026_KaijuCrusadiaExecutor(GameAI ai, Duel duel) : base(ai, duel)
         {
-            AI?.Log(LogLevel.Info, "[INIT] Initializing 2026 Kaiju Crusadia Executor...");
-
-            // 1. Register Ace Cards under the Resource Planner module
             ResourcePlan.RegisterAceCards(AceCardIds);
 
-            // 2. Register combo lines with fallback strategies
+            // ── Combo Router Routes ──
             ComboRouter.RegisterLine(new ComboRouter.ComboLine
             {
-                Name = "Crusadia-Climb",
-                RequiredCards = new List<int> { }, // Any 2 Crusadias in hand dynamically
-                FallbackLineName = "Kaiju-Beatdown",
+                Name = "Going2nd-Equimax-Maximus-OTK",
+                RequiredCards = new List<int> { CardId.CrusadiaMaximus },
                 Steps = new List<ComboRouter.ComboStep>
                 {
-                    new() { ActionType = ExecutorType.Summon, Description = "Normal Summon Crusadia Starter" },
-                    new() { CardId = CardId.CrusadiaMagius, ActionType = ExecutorType.SpSummon, Description = "Link into Magius" },
-                    new() { ActionType = ExecutorType.SpSummon, Description = "SS Crusadia to Magius pointer zone" },
-                    new() { CardId = CardId.CrusadiaRegulex, ActionType = ExecutorType.SpSummon, Description = "Link into Regulex" },
-                    new() { ActionType = ExecutorType.SpSummon, Description = "SS Crusadia to Regulex pointer zone" },
-                    new() { CardId = CardId.CrusadiaEquimax, ActionType = ExecutorType.SpSummon, Description = "Link into Equimax" }
+                    new() { CardId = CardId.CrusadiaMagius, ActionType = ExecutorType.SpSummon, Description = "Link 1 Magius" },
+                    new() { CardId = CardId.CrusadiaRegulex, ActionType = ExecutorType.SpSummon, Description = "Link 2 Regulex" },
+                    new() { CardId = CardId.CrusadiaEquimax, ActionType = ExecutorType.SpSummon, Description = "Link 3 Equimax" },
+                    new() { CardId = CardId.CrusadiaMaximus, ActionType = ExecutorType.Activate, Description = "Maximus double damage" }
                 },
-                EndBoardScore = 100
+                EndBoardScore = 95
             });
 
             ComboRouter.RegisterLine(new ComboRouter.ComboLine
             {
-                Name = "Kaiju-Beatdown",
-                RequiredCards = new List<int> { }, 
+                Name = "Going1st-Equimax-Avramax",
+                RequiredCards = new List<int> { CardId.CrusadiaArboria },
                 Steps = new List<ComboRouter.ComboStep>
                 {
-                    new() { ActionType = ExecutorType.SpSummon, Description = "Fallback: Tribute enemy with Kaiju and attack directly" }
+                    new() { CardId = CardId.CrusadiaMagius, ActionType = ExecutorType.SpSummon, Description = "Link 1 Magius" },
+                    new() { CardId = CardId.CrusadiaRegulex, ActionType = ExecutorType.SpSummon, Description = "Link 2 Regulex" },
+                    new() { CardId = CardId.CrusadiaEquimax, ActionType = ExecutorType.SpSummon, Description = "Link 3 Equimax" }
                 },
-                EndBoardScore = 40,
-                Condition = () => Bot.Hand.Any(c => KaijuMonsters.Contains(c.Id))
+                EndBoardScore = 80
             });
 
-            // 3. Register Starter and Bait cards with the Bait Planner
-            BaitPlanner.RegisterComboStarters(
-                CardId.CrusadiaMagius, CardId.CrusadiaRegulex, CardId.InterruptedKaijuSlumber
-            );
-            BaitPlanner.RegisterBaitCards(
-                CardId.TwinTwisters, CardId.CrusadiaTestament, CardId.CosmicCyclone
-            );
+            BaitPlanner.RegisterComboStarters(CardId.CrusadiaMaximus, CardId.CrusadiaDraco, CardId.CrusadiaArboria);
+            ChainAdvisor.RegisterHighValueTargets(CardId.CrusadiaEquimax, CardId.Avramax, CardId.CrusadiaRegulex, CardId.CrusadiaMagius);
 
             // ============================================================================================
-            // Register Executors (Hierarchical Tiers)
+            // Register Executors in Strategic Priority Order
             // ============================================================================================
 
-            // TIER 1: Hand Traps, Direct Countering & Called By The Grave
-            AddExecutor(ExecutorType.Activate, CardId.AshBlossom, AshActivate);
-            AddExecutor(ExecutorType.Activate, CardId.MaxxC, MaxxCActivate);
-            AddExecutor(ExecutorType.Activate, CardId.EffectVeiler, EffectVeilerActivate);
-            AddExecutor(ExecutorType.Activate, CardId.ArtifactLancea, LanceaActivate);
+            // TIER 1: Handtraps & Direct Response Counters
             AddExecutor(ExecutorType.Activate, CardId.CalledByTheGrave, DefaultCalledByTheGrave);
+            AddExecutor(ExecutorType.Activate, CardId.AshBlossom, AshActivate);
+            AddExecutor(ExecutorType.Activate, CardId.MaxxC, DefaultMaxxC);
+            AddExecutor(ExecutorType.Activate, CardId.EffectVeiler, DefaultEffectVeiler);
+            AddExecutor(ExecutorType.Activate, CardId.ArtifactLancea, LanceaActivate);
 
-            // TIER 2: Board-Breaking Spells & Traps
+            // TIER 2: Quick Disruption & Negation (Equimax Quick Effect)
+            AddExecutor(ExecutorType.Activate, CardId.CrusadiaEquimax, EquimaxNegateActivate);
+
+            // TIER 3: Protection (Crusadia Power & Arboria Grave Shield)
+            AddExecutor(ExecutorType.Activate, CardId.CrusadiaPower, PowerActivate);
+
+            // TIER 4: Board Breakers (Twin Twisters, Cosmic Cyclone, Slumber, Evenly Matched)
             AddExecutor(ExecutorType.Activate, CardId.TwinTwisters, TwinTwistersActivate);
-            AddExecutor(ExecutorType.Activate, CardId.InterruptedKaijuSlumber, SlumberActivate);
-            AddExecutor(ExecutorType.Activate, CardId.ReinforcementOfTheArmy, RotaActivate);
-            AddExecutor(ExecutorType.Activate, CardId.EvenlyMatched, EvenlyMatchedActivate);
             AddExecutor(ExecutorType.Activate, CardId.CosmicCyclone, CosmicCycloneActivate);
-            AddExecutor(ExecutorType.Activate, CardId.WorldLegacySuccession, SuccessionActivate);
+            AddExecutor(ExecutorType.Activate, CardId.EvenlyMatched, EvenlyMatchedActivate);
+            AddExecutor(ExecutorType.Activate, CardId.InterruptedKaijuSlumber, SlumberActivate);
 
-            // TIER 3: Kaiju Tributes
+            // TIER 5: Kaiju Tributes (Tribute opponent's threat before committing combo)
             AddExecutor(ExecutorType.SpSummon, KaijuSummon);
 
-            // TIER 4: Link Climbs (Magius, Regulex, Spatha)
-            AddExecutor(ExecutorType.SpSummon, CardId.CrusadiaMagius, MagiusSummon);
+            // TIER 6: Search & Link Effects (Magius, Regulex, Draco, Reclusia)
+            AddExecutor(ExecutorType.Activate, CardId.CrusadiaMagius, MagiusActivate);
+            AddExecutor(ExecutorType.Activate, CardId.CrusadiaRegulex, RegulexActivate);
+            AddExecutor(ExecutorType.Activate, CardId.CrusadiaDraco, DracoActivate);
+            AddExecutor(ExecutorType.Activate, CardId.CrusadiaReclusia, ReclusiaActivate);
+
+            // TIER 7: OTK Buff Effects (Maximus, Leonis, Revival)
+            AddExecutor(ExecutorType.Activate, CardId.CrusadiaMaximus, MaximusActivate);
+            AddExecutor(ExecutorType.Activate, CardId.CrusadiaLeonis, LeonisActivate);
+            AddExecutor(ExecutorType.Activate, CardId.CrusadiaRevival, RevivalActivate);
+            AddExecutor(ExecutorType.Activate, CardId.CrusadiaTestament, TestamentActivate);
+
+            // TIER 8: Extender Spells (ROTA, Succession, Reborn)
+            AddExecutor(ExecutorType.Activate, CardId.ReinforcementOfTheArmy, RotaActivate);
+            AddExecutor(ExecutorType.Activate, CardId.WorldLegacySuccession, SuccessionActivate);
+            AddExecutor(ExecutorType.Activate, CardId.MonsterReborn, MonsterRebornActivate);
+
+            // TIER 9: Extender Special Summons from Hand (into pointed zones)
+            AddExecutor(ExecutorType.SpSummon, CardId.CrusadiaDraco, CrusadiaHandSpSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.CrusadiaArboria, CrusadiaHandSpSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.CrusadiaLeonis, CrusadiaHandSpSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.CrusadiaReclusia, CrusadiaHandSpSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.WorldCrown, WorldCrownSpSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.CrusadiaMaximus, MaximusHandSpSummon);
+
+            // TIER 10: Link Climbs: Equimax (Link 3) -> Regulex (Link 2) -> Spatha -> Magius (Link 1)
+            AddExecutor(ExecutorType.SpSummon, CardId.CrusadiaEquimax, EquimaxSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.CrusadiaRegulex, RegulexSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.CrusadiaSpatha, SpathaSummon);
-
-            // TIER 5: Knightmares & Generic Extra Deck Support
+            AddExecutor(ExecutorType.SpSummon, CardId.CrusadiaMagius, MagiusSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.Avramax, AvramaxSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.BorrelswordDragon, BorrelswordSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.KnightmarePhoenix, KnightmarePhoenixSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.KnightmareCerberus, KnightmareCerberusSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.KnightmareUnicorn, KnightmareUnicornSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.TopologicTrisbaena, TrisbaenaSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.SaryujaSkullDread, SaryujaSummon);
 
-            // TIER 6: Boss Monsters (Equimax, Avramax, Borrelsword)
-            AddExecutor(ExecutorType.SpSummon, CardId.CrusadiaEquimax, EquimaxSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.Avramax, AvramaxSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.BorrelswordDragon, BorrelswordSummon);
-
-            // TIER 7: Crusadia Special Summons from Hand (Extenders)
-            AddExecutor(ExecutorType.SpSummon, CardId.CrusadiaReclusia, CrusadiaHandSpSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.CrusadiaArboria, CrusadiaHandSpSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.CrusadiaLeonis, CrusadiaHandSpSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.CrusadiaDraco, CrusadiaHandSpSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.CrusadiaMaximus, CrusadiaHandSpSummon);
-
-            // Mekk-Knights & World Crown
-            AddExecutor(ExecutorType.SpSummon, CardId.MekkKnightPurple);
-            AddExecutor(ExecutorType.SpSummon, CardId.MekkKnightBlue);
-            AddExecutor(ExecutorType.SpSummon, CardId.MekkKnightIndigo);
-            AddExecutor(ExecutorType.SpSummon, CardId.WorldCrown);
-
+            // TIER 11: Mekk-Knight Summons & Effects
+            AddExecutor(ExecutorType.SpSummon, CardId.MekkKnightPurple, MekkKnightSpSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.MekkKnightBlue, MekkKnightSpSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.MekkKnightIndigo, MekkKnightSpSummon);
             AddExecutor(ExecutorType.Activate, CardId.MekkKnightPurple, PurpleActivate);
             AddExecutor(ExecutorType.Activate, CardId.MekkKnightBlue, BlueActivate);
             AddExecutor(ExecutorType.Activate, CardId.MekkKnightIndigo, IndigoActivate);
 
-            AddExecutor(ExecutorType.Activate, CardId.CrusadiaReclusia, ReclusiaActivate);
-            AddExecutor(ExecutorType.Activate, CardId.CrusadiaArboria, ArboriaActivate);
-            AddExecutor(ExecutorType.Activate, CardId.CrusadiaLeonis, LeonisActivate);
-            AddExecutor(ExecutorType.Activate, CardId.CrusadiaDraco, DracoActivate);
-            AddExecutor(ExecutorType.Activate, CardId.CrusadiaMaximus, MaximusActivate);
-
-            // TIER 8: Recovery, Protect & Damage Boosters
-            AddExecutor(ExecutorType.Activate, CardId.MonsterReborn, MonsterRebornActivate);
-            AddExecutor(ExecutorType.Activate, CardId.CrusadiaPower, PowerActivate);
-            AddExecutor(ExecutorType.Activate, CardId.CrusadiaRevival, RevivalActivate);
-            AddExecutor(ExecutorType.Activate, CardId.CrusadiaTestament, TestamentActivate);
-
-            // TIER 9: Normal Summon
+            // TIER 12: Starter Normal Summon
             AddExecutor(ExecutorType.Summon, CrusadiaNormalSummon);
 
-            // Spell/Trap Sets and Repositioning
+            // TIER 13: Repos & Spell/Trap Setting
+            AddExecutor(ExecutorType.Repos, DefaultMonsterRepos);
             AddExecutor(ExecutorType.SpellSet, SpellSetLogic);
-            AddExecutor(ExecutorType.Repos, MonsterRepos);
         }
 
-        // ================================================================================================
-        // Duel Setup and Turn Operations
-        // ================================================================================================
-        public override bool OnSelectHand() => false; // We want to go second for OTK
+        public override bool OnSelectHand() => false; // Choose Second for OTK
 
         public override void OnNewTurn()
         {
             base.OnNewTurn();
-            _isGoingSecond = (Duel.Turn > 1);
             _normalSummonedCrusadia = false;
             _slumberUsed = false;
-            _maximusUsed = false;
-            _leonisUsed = false;
+            _maximusBuffUsed = false;
+            _leonisBuffUsed = false;
             _revivalUsed = false;
             _kaijuTributeTarget = null;
-
-            // ── Going-Second BreakBoard: prioritize disruption over combo ──
-            if (ShouldGoBreakBoard)
-            {
-                // Reset board-breaking resources for aggressive turn-2 plays
-                _slumberUsed = false;
-                _maximusUsed = false;
-            }
-
-            DetermineObjective();
-            LogCombatState();
         }
 
-        private void DetermineObjective()
+        protected override bool ShouldStopExtending() => false; // Pure OTK deck must commit to full combo
+
+        public override bool IsAceCard(ClientCard card)
         {
-            if (Duel.Turn <= 1)
-            {
-                _objective = TurnObjective.EstablishBoard;
-                return;
-            }
-
-            if (OTKDamageCalculator.EvaluateLethal(Bot, Enemy))
-            {
-                _objective = TurnObjective.PushLethal;
-                return;
-            }
-
-            if (Enemy.GetMonsterCount() > 0 || Enemy.GetSpellCount() > 0)
-            {
-                _objective = TurnObjective.BreakBoard;
-                return;
-            }
-
-            if (Bot.LifePoints < 2000)
-            {
-                _objective = TurnObjective.Survive;
-                return;
-            }
-
-            _objective = TurnObjective.EstablishBoard;
+            if (card == null) return false;
+            return AceCardIds.Contains(card.Id);
         }
 
-        // ================================================================================================
-        // Dynamic Local Decision Engine (Decision Before Execution)
-        // ================================================================================================
-        private class ActionCandidate
+        protected override bool IsBoardStrongEnough()
         {
-            public MainPhaseAction Action;
-            public ClientCard Card;
-            public int Score;
-            public string Description;
+            bool hasEquimax = Bot.HasInMonstersZone(CardId.CrusadiaEquimax);
+            bool hasAvramax = Bot.HasInMonstersZone(CardId.Avramax);
+            if (hasEquimax && hasAvramax) return true;
+            if (hasEquimax && Bot.HasInMonstersZone(CardId.CrusadiaArboria)) return true;
+            return base.IsBoardStrongEnough();
         }
 
-        public override MainPhaseAction OnSelectIdleCmd(MainPhase main)
-        {
-            DetermineObjective();
-            DynamicLethalCheck();
-
-            List<ActionCandidate> candidates = new List<ActionCandidate>();
-
-            // 1. Evaluate Activable Cards
-            for (int i = 0; i < main.ActivableCards.Count; ++i)
-            {
-                var card = main.ActivableCards[i];
-                if (card == null) continue;
-                int score = ScoreActivableCard(card, main.ActivableDescs[i]);
-                if (score > 0)
-                {
-                    candidates.Add(new ActionCandidate
-                    {
-                        Action = new MainPhaseAction(MainPhaseAction.MainAction.Activate, card.ActionActivateIndex[main.ActivableDescs[i]]),
-                        Card = card,
-                        Score = score,
-                        Description = $"Activate {card.Name} (Score: {score})"
-                    });
-                }
-            }
-
-            // 2. Evaluate Normal Summons
-            foreach (var card in main.SummonableCards)
-            {
-                if (card == null) continue;
-                int score = ScoreSummonCard(card);
-                if (score > 0)
-                {
-                    candidates.Add(new ActionCandidate
-                    {
-                        Action = new MainPhaseAction(MainPhaseAction.MainAction.Summon, card.ActionIndex),
-                        Card = card,
-                        Score = score,
-                        Description = $"Summon {card.Name} (Score: {score})"
-                    });
-                }
-            }
-
-            // 3. Evaluate Special Summons
-            foreach (var card in main.SpecialSummonableCards)
-            {
-                if (card == null) continue;
-                int score = ScoreSpecialSummonCard(card);
-                if (score > 0)
-                {
-                    candidates.Add(new ActionCandidate
-                    {
-                        Action = new MainPhaseAction(MainPhaseAction.MainAction.SpSummon, card.ActionIndex),
-                        Card = card,
-                        Score = score,
-                        Description = $"SpSummon {card.Name} (Score: {score})"
-                    });
-                }
-            }
-
-            // Execute best candidate if score > 0
-            if (candidates.Count > 0)
-            {
-                var best = candidates.OrderByDescending(c => c.Score).First();
-                AI?.Log(LogLevel.Info, $"[DECISION-ENGINE] Selected Action: {best.Description} (Objective: {_objective})");
-
-                if (best.Card != null)
-                {
-                    if (best.Card.Id == CardId.CrusadiaMaximus && best.Action.Action == MainPhaseAction.MainAction.SpSummon)
-                        _maximusUsed = true;
-                    if (best.Card.Id == CardId.CrusadiaLeonis && best.Action.Action == MainPhaseAction.MainAction.SpSummon)
-                        _leonisUsed = true;
-                }
-
-                return best.Action;
-            }
-
-            return base.OnSelectIdleCmd(main);
-        }
 
         // ================================================================================================
-        // Local Evaluators
-        // ================================================================================================
-        private int ScoreActivableCard(ClientCard card, long desc)
-        {
-            if (card.Id == CardId.InterruptedKaijuSlumber)
-            {
-                if (_slumberUsed) return 0;
-                if (Enemy.GetMonsterCount() == 0) return 0;
-                if (OpponentThreatEvaluator.HasNegatorOrFloodgate(Enemy)) return 95;
-                return 75;
-            }
-
-            if (card.Id == CardId.TwinTwisters)
-            {
-                int enemyBackrow = Enemy.GetSpellCount();
-                if (enemyBackrow == 0) return 0;
-                if (enemyBackrow >= 2) return 80;
-                return 60;
-            }
-
-            if (card.Id == CardId.ReinforcementOfTheArmy)
-            {
-                return 70;
-            }
-
-            if (card.Id == CardId.WorldLegacySuccession)
-            {
-                int pointedZones = 0;
-                for (int i = 0; i < 5; ++i)
-                {
-                    if (IsZonePointedToByAnyLink(i))
-                        pointedZones |= (1 << i);
-                }
-                if ((GetEmptyZones() & pointedZones) > 0 && Bot.Graveyard.Any(c => CrusadiaMainMonsters.Contains(c.Id)))
-                {
-                    return 85;
-                }
-                return 0;
-            }
-
-            if (card.Id == CardId.MonsterReborn)
-            {
-                if (Bot.Graveyard.Any(c => c.Id == CardId.CrusadiaEquimax)) return 80;
-                if (Bot.Graveyard.Any(c => CrusadiaMainMonsters.Contains(c.Id))) return 70;
-                return 20;
-            }
-
-            if (card.Id == CardId.CrusadiaTestament)
-            {
-                if (Bot.MonsterZone.Any(c => c != null && c.IsFaceup())) return 78;
-                return 40;
-            }
-
-            if (card.Id == CardId.CrusadiaRevival)
-            {
-                if (card.Location == CardLocation.SpellZone && card.IsFaceup())
-                {
-                    if (_revivalUsed) return 0;
-                    if (Bot.MonsterZone.Any(c => c != null && c.Id == CardId.CrusadiaEquimax) && _objective == TurnObjective.PushLethal)
-                    {
-                        return 90;
-                    }
-                    return 0;
-                }
-                if (card.Location == CardLocation.Hand)
-                {
-                    if (Bot.SpellZone[5] == null) return 82;
-                    return 10;
-                }
-                return 0;
-            }
-
-            if (card.Id == CardId.CosmicCyclone)
-            {
-                if (Enemy.GetSpellCount() > 0) return 65;
-                return 0;
-            }
-
-            if (card.Id == CardId.CrusadiaPower)
-            {
-                if (Bot.MonsterZone.Any(c => c != null && c.Id == CardId.CrusadiaEquimax) && _objective == TurnObjective.PushLethal)
-                {
-                    return 30;
-                }
-                return 5;
-            }
-
-            if (card.Id == CardId.CrusadiaReclusia)
-            {
-                if (Util.GetProblematicEnemyCard() != null) return 80;
-                return 0;
-            }
-
-            if (card.Id == CardId.CrusadiaLeonis)
-            {
-                if (_leonisUsed) return 0;
-                if (Bot.MonsterZone.Any(c => c != null && c.Id == CardId.CrusadiaEquimax) && _objective == TurnObjective.PushLethal)
-                    return 85;
-                return 0;
-            }
-
-            if (card.Id == CardId.CrusadiaMaximus)
-            {
-                if (_maximusUsed) return 0;
-                if (Bot.MonsterZone.Any(c => c != null && c.Id == CardId.CrusadiaEquimax) && _objective == TurnObjective.PushLethal)
-                    return 92;
-                return 0;
-            }
-
-            if (card.Id == CardId.CrusadiaDraco)
-            {
-                if (Bot.Graveyard.Any(c => CrusadiaMainMonsters.Contains(c.Id) && c.Id != CardId.CrusadiaDraco))
-                    return 86;
-                return 0;
-            }
-
-            return 0;
-        }
-
-        private int ScoreSummonCard(ClientCard card)
-        {
-            if (CrusadiaMainMonsters.Contains(card.Id))
-            {
-                if (!_normalSummonedCrusadia)
-                {
-                    if (Bot.GetMonsterCount() == 0) return 90;
-                    return 50;
-                }
-            }
-            return 0;
-        }
-
-        private int ScoreSpecialSummonCard(ClientCard card)
-        {
-            if (card.Location == CardLocation.Extra)
-            {
-                if (card.Id == CardId.CrusadiaMagius || card.Id == CardId.CrusadiaRegulex || card.Id == CardId.CrusadiaSpatha)
-                {
-                    if (Bot.HasInMonstersZone(CardId.CrusadiaEquimax) || Bot.HasInMonstersZone(CardId.Avramax))
-                        return 0;
-                }
-
-                if (card.Id == CardId.CrusadiaMagius)
-                {
-                    if (Bot.HasInMonstersZone(CardId.CrusadiaMagius)) return 0;
-                    if (Bot.GetMonsters().Any(c => CrusadiaMainMonsters.Contains(c.Id))) return 85;
-                    return 0;
-                }
-
-                if (card.Id == CardId.CrusadiaRegulex)
-                {
-                    if (Bot.HasInMonstersZone(CardId.CrusadiaRegulex)) return 0;
-                    if (Bot.HasInMonstersZone(CardId.CrusadiaMagius) && Bot.GetMonsterCount() >= 2) return 90;
-                    return 0;
-                }
-
-                if (card.Id == CardId.CrusadiaSpatha)
-                {
-                    if (Bot.HasInMonstersZone(CardId.CrusadiaSpatha)) return 0;
-                    if (Bot.HasInMonstersZone(CardId.CrusadiaMagius) && Bot.GetMonsterCount() >= 2) return 88;
-                    return 0;
-                }
-
-                if (card.Id == CardId.CrusadiaEquimax)
-                {
-                    if (Bot.HasInMonstersZone(CardId.CrusadiaEquimax)) return 0;
-                    bool hasMaterialLink = Bot.MonsterZone.Any(c => c != null && (c.Id == CardId.CrusadiaRegulex || c.Id == CardId.CrusadiaSpatha));
-                    if (hasMaterialLink && Bot.GetMonsterCount() >= 2) return 95;
-                    return 0;
-                }
-
-                if (card.Id == CardId.Avramax)
-                {
-                    if (Bot.HasInMonstersZone(CardId.Avramax)) return 0;
-                    if (Bot.HasInMonstersZone(CardId.CrusadiaEquimax) && _objective != TurnObjective.PushLethal) return 75;
-                    return 0;
-                }
-
-                if (card.Id == CardId.BorrelswordDragon)
-                {
-                    if (Bot.GetMonsterCount() >= 3 && _objective == TurnObjective.PushLethal) return 80;
-                    return 0;
-                }
-
-                if (card.Id == CardId.SaryujaSkullDread)
-                {
-                    if (Bot.GetMonsterCount() >= 4) return 70;
-                    return 0;
-                }
-            }
-
-            if (card.Location == CardLocation.Hand)
-            {
-                if (CrusadiaMainMonsters.Contains(card.Id))
-                {
-                    int pointedZones = 0;
-                    for (int i = 0; i < 5; ++i)
-                    {
-                        if (IsZonePointedToByAnyLink(i))
-                            pointedZones |= (1 << i);
-                    }
-                    int targetZone = GetEmptyZones() & pointedZones;
-                    if (targetZone > 0)
-                    {
-                        if (card.Id == CardId.CrusadiaDraco) return 88;
-                        if (card.Id == CardId.CrusadiaMaximus) return 87;
-                        if (card.Id == CardId.CrusadiaArboria) return 84;
-                        if (card.Id == CardId.CrusadiaLeonis) return 82;
-                        if (card.Id == CardId.CrusadiaReclusia) return 80;
-                        return 75;
-                    }
-                }
-
-                if (MekkKnightMonsters.Contains(card.Id))
-                {
-                    if (card.Id == CardId.MekkKnightPurple) return 75;
-                    if (card.Id == CardId.MekkKnightBlue) return 74;
-                    if (card.Id == CardId.MekkKnightIndigo) return 70;
-                    return 60;
-                }
-
-                if (card.Id == CardId.WorldCrown)
-                {
-                    int pointedZones = 0;
-                    for (int i = 0; i < 5; ++i)
-                    {
-                        if (IsZonePointedToByAnyLink(i))
-                            pointedZones |= (1 << i);
-                    }
-                    if ((GetEmptyZones() & pointedZones) > 0) return 72;
-                }
-
-                if (KaijuMonsters.Contains(card.Id))
-                {
-                    if (OpponentThreatEvaluator.HasNegatorOrFloodgate(Enemy)) return 96;
-                    if (_isGoingSecond && Enemy.GetMonsterCount() > 0) return 60;
-                    return 10;
-                }
-            }
-
-            return 0;
-        }
-
-        // ================================================================================================
-        // Helper: Calculate Empty Monster Zones as bitmask
-        // ================================================================================================
-        private int GetEmptyZones()
-        {
-            int zones = 0;
-            for (int i = 0; i < 5; ++i)
-            {
-                if (Bot.MonsterZone[i] == null)
-                    zones |= (1 << i);
-            }
-            return zones;
-        }
-
-        // ================================================================================================
-        // Link Pointer Engine & Zone Logic
-        // ================================================================================================
-        public bool IsZonePointedToByAnyLink(int zone)
-        {
-            var BotMZone = Bot.MonsterZone;
-            var EnemyMZone = Enemy.MonsterZone;
-
-            switch (zone)
-            {
-                case 0:
-                    return (BotMZone[1]?.HasLinkMarker(CardLinkMarker.Left) ?? false) ||
-                           (BotMZone[5]?.HasLinkMarker(CardLinkMarker.BottomLeft) ?? false) ||
-                           (EnemyMZone[6]?.HasLinkMarker(CardLinkMarker.TopRight) ?? false);
-                case 1:
-                    return (BotMZone[0]?.HasLinkMarker(CardLinkMarker.Right) ?? false) ||
-                           (BotMZone[2]?.HasLinkMarker(CardLinkMarker.Left) ?? false) ||
-                           (BotMZone[5]?.HasLinkMarker(CardLinkMarker.Bottom) ?? false) ||
-                           (EnemyMZone[6]?.HasLinkMarker(CardLinkMarker.Top) ?? false);
-                case 2:
-                    return (BotMZone[1]?.HasLinkMarker(CardLinkMarker.Right) ?? false) ||
-                           (BotMZone[3]?.HasLinkMarker(CardLinkMarker.Left) ?? false) ||
-                           (BotMZone[5]?.HasLinkMarker(CardLinkMarker.BottomRight) ?? false) ||
-                           (EnemyMZone[6]?.HasLinkMarker(CardLinkMarker.TopLeft) ?? false) ||
-                           (BotMZone[6]?.HasLinkMarker(CardLinkMarker.BottomLeft) ?? false) ||
-                           (EnemyMZone[5]?.HasLinkMarker(CardLinkMarker.TopRight) ?? false);
-                case 3:
-                    return (BotMZone[2]?.HasLinkMarker(CardLinkMarker.Right) ?? false) ||
-                           (BotMZone[4]?.HasLinkMarker(CardLinkMarker.Left) ?? false) ||
-                           (BotMZone[6]?.HasLinkMarker(CardLinkMarker.Bottom) ?? false) ||
-                           (EnemyMZone[5]?.HasLinkMarker(CardLinkMarker.Top) ?? false);
-                case 4:
-                    return (BotMZone[3]?.HasLinkMarker(CardLinkMarker.Right) ?? false) ||
-                           (BotMZone[6]?.HasLinkMarker(CardLinkMarker.BottomRight) ?? false) ||
-                           (EnemyMZone[5]?.HasLinkMarker(CardLinkMarker.TopLeft) ?? false);
-            }
-            return false;
-        }
-
-        private int GetIdealCrusadiaZone(int available)
-        {
-            var magius = Bot.MonsterZone.FirstOrDefault(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaMagius);
-            var regulex = Bot.MonsterZone.FirstOrDefault(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaRegulex);
-            var spatha = Bot.MonsterZone.FirstOrDefault(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaSpatha);
-            var equimax = Bot.MonsterZone.FirstOrDefault(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaEquimax);
-
-            if (magius != null)
-            {
-                int targetZone = (magius.Sequence == 5) ? 1 : 3;
-                if ((available & (1 << targetZone)) > 0) return 1 << targetZone;
-            }
-
-            if (regulex != null)
-            {
-                int targetZone = (regulex.Sequence == 5) ? 1 : 3;
-                if ((available & (1 << targetZone)) > 0) return 1 << targetZone;
-            }
-
-            if (spatha != null)
-            {
-                int targetZone = (spatha.Sequence == 5) ? 1 : 3;
-                if ((available & (1 << targetZone)) > 0) return 1 << targetZone;
-            }
-
-            if (equimax != null)
-            {
-                int z1 = (equimax.Sequence == 5) ? 0 : 2;
-                int z2 = (equimax.Sequence == 5) ? 2 : 4;
-                if ((available & (1 << z1)) > 0) return 1 << z1;
-                if ((available & (1 << z2)) > 0) return 1 << z2;
-            }
-
-            return 0;
-        }
-
-        public override int OnSelectPlace(long cardId, int player, CardLocation location, int available)
-        {
-            if (player == 1 && location == CardLocation.MonsterZone)
-            {
-                var equimax = Bot.MonsterZone.FirstOrDefault(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaEquimax);
-                if (equimax != null)
-                {
-                    int opponentZones = (equimax.GetLinkedZones() >> 16) & 0x1F;
-                    int intersection = available & opponentZones;
-                    if (intersection > 0)
-                    {
-                        for (int i = 0; i < 5; i++)
-                        {
-                            if ((intersection & (1 << i)) > 0)
-                            {
-                                AI?.Log(LogLevel.Info, $"[KAIJU-ZONE] Placing Kaiju in Equimax pointer zone: opponent zone {i}");
-                                return 1 << i;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    if ((available & (1 << 3)) > 0)
-                    {
-                        AI?.Log(LogLevel.Info, "[KAIJU-ZONE] Placing Kaiju in opponent zone 3 (corresponds to left EMZ pointer)");
-                        return 1 << 3;
-                    }
-                    if ((available & (1 << 1)) > 0)
-                    {
-                        AI?.Log(LogLevel.Info, "[KAIJU-ZONE] Placing Kaiju in opponent zone 1 (corresponds to right EMZ pointer)");
-                        return 1 << 1;
-                    }
-                }
-            }
-
-            if (player == 0 && location == CardLocation.MonsterZone)
-            {
-                if (CrusadiaMainMonsters.Contains((int)cardId))
-                {
-                    int idealZone = GetIdealCrusadiaZone(available);
-                    if (idealZone > 0)
-                    {
-                        AI?.Log(LogLevel.Info, $"[LINK-ZONE] Placing Crusadia {cardId} in ideal pointer zone.");
-                        return idealZone;
-                    }
-
-                    int pointedZones = 0;
-                    for (int i = 0; i < 5; i++)
-                    {
-                        if (IsZonePointedToByAnyLink(i))
-                            pointedZones |= (1 << i);
-                    }
-
-                    int emptyPointed = GetEmptyZones() & pointedZones;
-                    int intersection = available & emptyPointed;
-                    if (intersection > 0)
-                    {
-                        for (int i = 0; i < 5; i++)
-                        {
-                            if ((intersection & (1 << i)) > 0)
-                            {
-                                AI?.Log(LogLevel.Info, $"[LINK-ZONE] Placing Crusadia {cardId} in pointed MMZ {i}");
-                                return 1 << i;
-                            }
-                        }
-                    }
-                }
-
-                if (cardId == CardId.CrusadiaMagius || cardId == CardId.CrusadiaRegulex || 
-                    cardId == CardId.CrusadiaSpatha || cardId == CardId.CrusadiaEquimax || 
-                    cardId == CardId.Avramax || cardId == CardId.SaryujaSkullDread)
-                {
-                    int emzAvailable = available & (Zones.z5 | Zones.z6);
-                    if (emzAvailable > 0)
-                    {
-                        if ((emzAvailable & Zones.z5) > 0) return Zones.z5;
-                        if ((emzAvailable & Zones.z6) > 0) return Zones.z6;
-                    }
-                }
-
-                int mmzAvailable = available & Zones.MainMonsterZones;
-                if (mmzAvailable > 0)
-                {
-                    int[] preferences = { 2, 1, 3, 0, 4 };
-                    foreach (int z in preferences)
-                    {
-                        if ((mmzAvailable & (1 << z)) > 0)
-                            return 1 << z;
-                    }
-                }
-            }
-            return base.OnSelectPlace(cardId, player, location, available);
-        }
-
-        // ================================================================================================
-        // Helper Class: Opponent Threat Evaluator
-        // ================================================================================================
-        public class OpponentThreatEvaluator
-        {
-            public static bool HasNegatorOrFloodgate(ClientField enemy)
-            {
-                foreach (var card in enemy.MonsterZone)
-                {
-                    if (card != null && card.IsFaceup() && !card.IsDisabled())
-                    {
-                        if (card.IsMonsterShouldBeDisabledBeforeItUseEffect() || card.Attack > 3000)
-                            return true;
-                    }
-                }
-                foreach (var card in enemy.SpellZone)
-                {
-                    if (card != null && card.IsFaceup() && !card.IsDisabled())
-                    {
-                        if (card.HasType(CardType.Continuous) || card.HasType(CardType.Field))
-                            return true;
-                    }
-                }
-                return false;
-            }
-
-            public static int CountThreats(ClientField enemy)
-            {
-                int threatCount = 0;
-                foreach (var card in enemy.MonsterZone)
-                {
-                    if (card != null && card.IsFaceup() && card.Attack >= 2500)
-                        threatCount++;
-                }
-                return threatCount;
-            }
-        }
-
-        // ================================================================================================
-        // Helper Class: Detailed OTK Calculator
-        // ================================================================================================
-        public class OTKDamageCalculator
-        {
-            public static bool EvaluateLethal(ClientField bot, ClientField enemy)
-            {
-                int totalPower = 0;
-                bool hasEquimax = bot.MonsterZone.Any(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaEquimax);
-                bool hasMaximus = bot.MonsterZone.Any(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaMaximus);
-
-                if (hasEquimax)
-                {
-                    var equimax = bot.MonsterZone.FirstOrDefault(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaEquimax);
-                    if (equimax != null)
-                    {
-                        int equimaxAtk = equimax.Attack;
-                        foreach (var m in bot.MonsterZone)
-                        {
-                            if (m != null && m.IsFaceup() && m != equimax)
-                            {
-                                equimaxAtk += m.Attack;
-                            }
-                        }
-                        int baseDamage = equimaxAtk;
-                        if (enemy.MonsterZone.Any(m => m != null && m.IsFaceup()))
-                        {
-                            int highestEnemyAtk = enemy.MonsterZone.GetMonsters().Max(m => m.Attack);
-                            baseDamage = equimaxAtk - highestEnemyAtk;
-                        }
-                        if (baseDamage < 0) baseDamage = 0;
-
-                        if (hasMaximus)
-                        {
-                            totalPower += baseDamage * 2;
-                        }
-                        else
-                        {
-                            totalPower += baseDamage;
-                        }
-                    }
-                }
-                else
-                {
-                    totalPower += bot.MonsterZone.GetMonsters().Where(m => m.IsAttack()).Sum(m => m.Attack);
-                }
-
-                return totalPower >= enemy.LifePoints;
-            }
-        }
-
-        // ================================================================================================
-        // TIER 1: Hand Trap handlers
+        // TIER 1 & 2: Handtraps, Negates & Protection
         // ================================================================================================
         private bool AshActivate()
         {
-            AI?.Log(LogLevel.Info, "[HANDTRAP] Ash Blossom activation check...");
-            if (ChainAdvisor.ShouldHoldResponseWithProfile(Card, LastChainCard, OpponentProfile, 
+            if (ChainAdvisor.ShouldHoldResponseWithProfile(Card, LastChainCard, OpponentProfile,
                 Enemy.Hand.Count, Enemy.GetMonsterCount(), Bot.Hand.Count(c => c.IsCode(CardId.AshBlossom, CardId.MaxxC)), false))
             {
-                AI?.Log(LogLevel.Info, "[HANDTRAP] Holding Ash Blossom response based on Advisor.");
                 return false;
             }
             return DefaultAshBlossomAndJoyousSpring();
         }
 
-        private bool MaxxCActivate()
-        {
-            AI?.Log(LogLevel.Info, "[HANDTRAP] Maxx \"C\" activation check...");
-            return DefaultMaxxC();
-        }
-
-        private bool EffectVeilerActivate()
-        {
-            AI?.Log(LogLevel.Info, "[HANDTRAP] Effect Veiler activation check...");
-            return DefaultEffectVeiler();
-        }
-
         private bool LanceaActivate()
         {
-            AI?.Log(LogLevel.Info, "[HANDTRAP] Artifact Lancea activation check...");
-            if (Duel.Player == 1 && (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Main2))
+            return Duel.Player == 1 && (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Main2);
+        }
+
+        private bool EquimaxNegateActivate()
+        {
+            // Equimax quick effect: tribute 1 Crusadia/World Legacy monster it points to, negate 1 face-up card on field
+            if (Card.Location != CardLocation.MonsterZone) return false;
+
+            // Find a monster Equimax points to to tribute (prefer tributing extenders, NOT Equimax itself)
+            var tributeCandidates = Bot.GetMonsters().Where(m => m != null && m != Card && IsEquimaxPointingTo(Card, m)).ToList();
+            if (tributeCandidates.Count == 0) return false;
+
+            // Find high-priority enemy target to negate
+            ClientCard target = Util.GetProblematicEnemyCard();
+            if (target == null && LastChainCard != null && LastChainCard.Controller == 1)
             {
-                DecisionTracer.TraceActivate("LanceaActivate", "Activating Lancea to block opponent's banishing plays.");
+                target = LastChainCard;
+            }
+            if (target == null)
+            {
+                target = Enemy.GetMonsters().FirstOrDefault(m => m.IsFaceup() && !m.IsDisabled() && (CardIntelligence.IsHighThreatChokepoint(m.Id) || m.IsMonsterShouldBeDisabledBeforeItUseEffect()));
+            }
+            if (target == null)
+            {
+                target = Enemy.GetSpells().FirstOrDefault(s => s.IsFaceup() && !s.IsDisabled() && CardIntelligence.IsFloodgate(s.Id));
+            }
+
+            if (target != null && target.IsFaceup() && !target.IsDisabled())
+            {
+                // Select tribute candidate first
+                var tribute = tributeCandidates.OrderBy(c => GetMaterialPriority(c)).First();
+                AI.SelectCard(tribute);
+                AI.SelectNextCard(target);
                 return true;
             }
             return false;
         }
 
+        private bool PowerActivate()
+        {
+            // Crusadia Power: Target 1 Crusadia monster, unaffected by other card effects this turn
+            var target = Bot.MonsterZone.FirstOrDefault(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaEquimax);
+            if (target == null)
+                target = Bot.MonsterZone.FirstOrDefault(c => c != null && c.IsFaceup() && (c.Id == CardId.CrusadiaRegulex || c.Id == CardId.CrusadiaMagius));
+
+            if (target != null)
+            {
+                if (Duel.LastChainPlayer == 1 || Duel.Phase == DuelPhase.Battle)
+                {
+                    AI.SelectCard(target);
+                    return true;
+                }
+            }
+            return false;
+        }
+
         // ================================================================================================
-        // TIER 2: Board Breakers
+        // TIER 4: Board Breakers
         // ================================================================================================
         private bool TwinTwistersActivate()
         {
-            AI?.Log(LogLevel.Info, "[SPELL] Twin Twisters activation check...");
             int enemyBackrow = Enemy.GetSpellCount();
             if (enemyBackrow == 0) return false;
 
-            var discardTargets = new[] { CardId.CrusadiaDraco, CardId.CrusadiaReclusia, CardId.CrusadiaArboria };
-            AI.SelectCard(discardTargets);
+            // Discard priority: Draco / Reclusia / extra Kaiju
+            var discardTarget = Bot.Hand.FirstOrDefault(c => c != null && c != Card &&
+                (c.Id == CardId.CrusadiaDraco || c.Id == CardId.CrusadiaReclusia || c.Id == CardId.CrusadiaArboria));
+            if (discardTarget == null)
+                discardTarget = Bot.Hand.FirstOrDefault(c => c != null && c != Card && KaijuMonsters.Contains(c.Id));
+            if (discardTarget == null)
+                discardTarget = Bot.Hand.FirstOrDefault(c => c != null && c != Card && !AceCardIds.Contains(c.Id));
+
+            if (discardTarget == null) return false;
 
             var targets = Enemy.GetSpells().Where(c => c.IsFaceup() || c.IsFacedown()).ToList();
             if (targets.Count > 0)
             {
+                AI.SelectCard(discardTarget);
                 AI.SelectNextCard(targets);
                 return true;
             }
             return false;
         }
 
-        private bool SlumberActivate()
-        {
-            AI?.Log(LogLevel.Info, "[SPELL] Interrupted Kaiju Slumber activation check...");
-            if (_slumberUsed) return false;
-            if (Enemy.GetMonsterCount() == 0) return false;
-
-            if (Bot.Hand.Any(c => KaijuMonsters.Contains(c.Id)) && OpponentThreatEvaluator.HasNegatorOrFloodgate(Enemy))
-            {
-                AI?.Log(LogLevel.Info, "[SPELL] Holding Interrupted Kaiju Slumber to let Kaiju tribute opponent's negator first.");
-                return false;
-            }
-
-            if (OpponentThreatEvaluator.HasNegatorOrFloodgate(Enemy))
-            {
-                DecisionTracer.TraceActivate("SlumberActivate", "Slumbering to clear opponent threat board");
-                _slumberUsed = true;
-                return true;
-            }
-
-            _slumberUsed = true;
-            return true;
-        }
-
-        private bool RotaActivate()
-        {
-            if (ShouldSkipCombo()) return false;
-            AI?.Log(LogLevel.Info, "[SPELL] ROTA activation check...");
-            return true;
-        }
-
         private bool CosmicCycloneActivate()
         {
-            AI?.Log(LogLevel.Info, "[SPELL] Cosmic Cyclone activation check...");
-            var problematicBackrow = Util.GetProblematicEnemySpell();
-            if (problematicBackrow != null)
+            var problematic = Util.GetProblematicEnemySpell();
+            if (problematic != null)
             {
-                AI.SelectCard(problematicBackrow);
+                AI.SelectCard(problematic);
                 return true;
             }
-            
-            var targets = Enemy.GetSpells().Where(c => c.IsFaceup() || c.IsFacedown()).ToList();
-            if (targets.Count > 0)
+            var target = Enemy.GetSpells().FirstOrDefault(c => c.IsFaceup() || c.IsFacedown());
+            if (target != null)
             {
-                AI.SelectCard(targets[0]);
+                AI.SelectCard(target);
                 return true;
             }
             return false;
@@ -1005,218 +366,347 @@ namespace WindBot.Game.AI.Decks
 
         private bool EvenlyMatchedActivate()
         {
-            AI?.Log(LogLevel.Info, "[TRAP] Evenly Matched activation check...");
             if (Duel.Player == 0 && Duel.Phase == DuelPhase.Battle)
             {
-                int botCount = Bot.MonsterZone.Count(c => c != null) + Bot.SpellZone.Count(c => c != null);
-                int enemyCount = Enemy.MonsterZone.Count(c => c != null) + Enemy.SpellZone.Count(c => c != null);
-                if (enemyCount > botCount + 1)
+                int botCards = Bot.GetMonsterCount() + Bot.GetSpellCount();
+                int enemyCards = Enemy.GetMonsterCount() + Enemy.GetSpellCount();
+                if (enemyCards > botCards + 1)
                 {
-                    DecisionTracer.TraceActivate("EvenlyMatched", "Playing Evenly Matched at end of battle phase.");
                     return true;
                 }
             }
             return false;
         }
 
-        private bool SuccessionActivate()
+        private bool SlumberActivate()
         {
-            if (ShouldSkipCombo()) return false;
-            AI?.Log(LogLevel.Info, "[SPELL] World Legacy Succession activation check...");
-            int pointedZones = 0;
-            for (int i = 0; i < 5; ++i)
-            {
-                if (IsZonePointedToByAnyLink(i))
-                    pointedZones |= (1 << i);
-            }
-            int targetZone = GetEmptyZones() & pointedZones;
-            if (targetZone > 0)
-            {
-                var target = Bot.Graveyard.FirstOrDefault(c => c.Id == CardId.CrusadiaEquimax);
-                if (target == null)
-                    target = Bot.Graveyard.FirstOrDefault(c => CrusadiaMainMonsters.Contains(c.Id));
+            // CRITICAL SELF-HARM PREVENTION:
+            // Only activate Slumber if Bot controls ZERO monsters, and Enemy has monsters!
+            if (_slumberUsed) return false;
+            if (Bot.GetMonsterCount() > 0) return false;
+            if (Enemy.GetMonsterCount() == 0) return false;
 
-                if (target != null)
-                {
-                    AI.SelectCard(target);
-                    AI.SelectPlace(targetZone);
-                    return true;
-                }
-            }
-            return false;
+            _slumberUsed = true;
+            return true;
         }
 
         // ================================================================================================
-        // TIER 3: Kaiju Summon Logic
+        // TIER 5: Kaiju Summon Logic
         // ================================================================================================
         private bool KaijuSummon()
         {
-            AI?.Log(LogLevel.Info, "[KAIJU] Evaluating Kaiju summon...");
             if (!KaijuMonsters.Contains(Card.Id)) return false;
 
+            // If opponent already has a Kaiju, can only summon to our field if Equimax exists or field is empty
             if (Enemy.HasInMonstersZone(KaijuMonsters))
             {
-                bool hasEquimax = Bot.MonsterZone.Any(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaEquimax);
-                if (hasEquimax || Bot.GetMonsterCount() == 0)
-                {
-                    return Bot.GetMonsterCount() < 5;
-                }
-                return false;
+                return Bot.MonsterZone.Any(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaEquimax) && Bot.GetMonsterCount() < 5;
             }
 
-            ClientCard target = null;
-            if (OpponentThreatEvaluator.HasNegatorOrFloodgate(Enemy))
-            {
-                target = Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && !c.IsDisabled() && c.IsMonsterShouldBeDisabledBeforeItUseEffect());
-            }
+            // Target selection for tributing opponent's monster:
+            // 1. Chokepoints / Negators / Floodgates
+            ClientCard target = Enemy.GetMonsters().FirstOrDefault(m => m != null && m.IsFaceup() && !m.IsDisabled() &&
+                (CardIntelligence.IsHighThreatChokepoint(m.Id) || m.IsMonsterShouldBeDisabledBeforeItUseEffect()));
 
+            // 2. Problematic monster
+            if (target == null) target = Util.GetProblematicEnemyMonster();
+
+            // 3. Highest ATK monster
             if (target == null)
             {
-                target = Util.GetProblematicEnemyCard();
-            }
-
-            if (target == null)
-            {
-                target = Enemy.GetMonsters().OrderByDescending(c => c.Attack).FirstOrDefault(c => c.IsFaceup());
+                target = Enemy.GetMonsters().Where(m => m != null && m.IsFaceup()).OrderByDescending(m => m.Attack).FirstOrDefault();
             }
 
             if (target != null)
             {
                 _kaijuTributeTarget = target;
                 AI.SelectCard(target);
-                DecisionTracer.TraceActivate("KaijuSummon", $"Tributing opponent's {target.Name} (ID: {target.Id})");
                 return true;
             }
+
             return false;
         }
 
         // ================================================================================================
-        // TIER 4: Link Climbs (Magius, Regulex, Spatha)
+        // TIER 6 & 7: Search, Triggers & OTK Buffs
         // ================================================================================================
-        private bool MagiusSummon()
+        private bool MagiusActivate()
         {
-            AI?.Log(LogLevel.Info, "[LINK-SUMMON] Magius summon check...");
-            if (Bot.HasInMonstersZone(CardId.CrusadiaMagius)) return false;
-
-            var crusadias = Bot.GetMonsters().Where(c => CrusadiaMainMonsters.Contains(c.Id)).ToList();
-            if (crusadias.Count == 0) return false;
-
-            bool hasExtender = Bot.Hand.Any(c => CrusadiaMainMonsters.Contains(c.Id)) || Bot.Graveyard.Any(c => c.Id == CardId.MonsterReborn);
-            return hasExtender;
+            // Magius searches 1 Crusadia monster
+            return true;
         }
 
-        private bool RegulexSummon()
+        private bool RegulexActivate()
         {
-            AI?.Log(LogLevel.Info, "[LINK-SUMMON] Regulex summon check...");
-            if (Bot.HasInMonstersZone(CardId.CrusadiaRegulex)) return false;
-            
-            bool hasMagius = Bot.MonsterZone.Any(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaMagius);
-            return hasMagius;
+            // Regulex searches 1 Crusadia Spell/Trap
+            return true;
         }
 
-        private bool SpathaSummon()
+        private bool DracoActivate()
         {
-            AI?.Log(LogLevel.Info, "[LINK-SUMMON] Spatha summon check...");
-            if (Bot.HasInMonstersZone(CardId.CrusadiaSpatha)) return false;
-            
-            bool hasMagius = Bot.MonsterZone.Any(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaMagius);
-            return hasMagius;
-        }
+            // Draco retrieves 1 Crusadia monster from GY
+            var target = Bot.Graveyard.FirstOrDefault(c => c.Id == CardId.CrusadiaMaximus);
+            if (target == null) target = Bot.Graveyard.FirstOrDefault(c => CrusadiaMainMonsters.Contains(c.Id) && c.Id != CardId.CrusadiaDraco);
 
-        // ================================================================================================
-        // TIER 5: Generic Utility Extra Deck Summons
-        // ================================================================================================
-        private bool KnightmarePhoenixSummon()
-        {
-            if (IsSpecialSummonBlocked()) return false;
-            if (ShouldSkipLinkSummon()) return false;
-            AI?.Log(LogLevel.Info, "[LINK-SUMMON] Knightmare Phoenix summon check...");
-            return Enemy.GetSpellCount() > 0 && Bot.GetMonsterCount() >= 2;
-        }
-
-        private bool KnightmareCerberusSummon()
-        {
-            if (IsSpecialSummonBlocked()) return false;
-            if (ShouldSkipLinkSummon()) return false;
-            AI?.Log(LogLevel.Info, "[LINK-SUMMON] Knightmare Cerberus summon check...");
-            return Enemy.GetMonsters().Any(c => c.IsFaceup() && c.IsAttack() && c.IsSpecialSummoned) && Bot.GetMonsterCount() >= 2;
-        }
-
-        private bool KnightmareUnicornSummon()
-        {
-            if (IsSpecialSummonBlocked()) return false;
-            if (ShouldSkipLinkSummon()) return false;
-            AI?.Log(LogLevel.Info, "[LINK-SUMMON] Knightmare Unicorn summon check...");
-            return Util.GetProblematicEnemyCard() != null && Bot.GetMonsterCount() >= 3;
-        }
-
-        private bool TrisbaenaSummon()
-        {
-            AI?.Log(LogLevel.Info, "[LINK-SUMMON] Topologic Trisbaena summon check...");
-            return Enemy.GetSpellCount() >= 2 && Bot.GetMonsterCount() >= 3;
-        }
-
-        private bool SaryujaSummon()
-        {
-            AI?.Log(LogLevel.Info, "[LINK-SUMMON] Saryuja Skull Dread summon check...");
-            return Bot.GetMonsterCount() >= 4;
-        }
-
-        // ================================================================================================
-        // TIER 6: Boss Monsters (Equimax, Avramax, Borrelsword)
-        // ================================================================================================
-        private bool EquimaxSummon()
-        {
-            AI?.Log(LogLevel.Info, "[LINK-SUMMON] Equimax summon check...");
-            if (Bot.HasInMonstersZone(CardId.CrusadiaEquimax)) return false;
-            return Bot.MonsterZone.Any(c => c != null && c.IsFaceup() && (c.Id == CardId.CrusadiaRegulex || c.Id == CardId.CrusadiaSpatha));
-        }
-
-        private bool AvramaxSummon()
-        {
-            if (IsSpecialSummonBlocked()) return false;
-            if (ShouldSkipLinkSummon()) return false;
-            AI?.Log(LogLevel.Info, "[LINK-SUMMON] Mekk-Knight Crusadia Avramax summon check...");
-            if (Bot.HasInMonstersZone(CardId.Avramax)) return false;
-
-            bool hasEquimax = Bot.MonsterZone.Any(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaEquimax);
-            return hasEquimax || Enemy.GetMonsters().Any(c => c.Attack > 3000);
-        }
-
-        private bool BorrelswordSummon()
-        {
-            AI?.Log(LogLevel.Info, "[LINK-SUMMON] Borrelsword Dragon summon check...");
-            return Bot.GetMonsterCount() >= 3 && Enemy.GetMonsters().Any(m => m.IsAttack() && m.IsFaceup());
-        }
-
-        // ================================================================================================
-        // TIER 7: Crusadia Special Summons & Main Deck Effects
-        // ================================================================================================
-        private bool CrusadiaHandSpSummon()
-        {
-            if (ShouldSkipCombo()) return false;
-            AI?.Log(LogLevel.Info, $"[EXTENDER-SUMMON] Crusadia {Card.Name}: Evaluating hand SpSummon...");
-            if (Card.Location == CardLocation.Hand)
+            if (target != null)
             {
-                int pointedZones = 0;
-                for (int i = 0; i < 5; ++i)
+                AI.SelectCard(target);
+                return true;
+            }
+            return true;
+        }
+
+        private bool ReclusiaActivate()
+        {
+            // Pop 1 Crusadia card + 1 opponent card
+            if (Card.Location == CardLocation.MonsterZone)
+            {
+                var enemyTarget = Util.GetProblematicEnemyCard() ?? Enemy.GetMonsters().FirstOrDefault(m => m.IsFaceup()) ?? Enemy.GetSpells().FirstOrDefault();
+                if (enemyTarget != null)
                 {
-                    if (IsZonePointedToByAnyLink(i))
-                        pointedZones |= (1 << i);
-                }
-                int targetZone = GetEmptyZones() & pointedZones;
-                if (targetZone > 0)
-                {
-                    AI?.Log(LogLevel.Info, $"[EXTENDER-SUMMON] Special Summoning {Card.Name} to pointed zone.");
+                    AI.SelectCard(Card);
+                    AI.SelectNextCard(enemyTarget);
                     return true;
                 }
             }
             return false;
         }
 
+        private bool MaximusActivate()
+        {
+            // Double battle damage for Equimax!
+            if (Card.Location == CardLocation.MonsterZone)
+            {
+                if (_maximusBuffUsed) return false;
+                var equimax = Bot.MonsterZone.FirstOrDefault(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaEquimax);
+                if (equimax != null)
+                {
+                    AI.SelectCard(equimax);
+                    _maximusBuffUsed = true;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private bool LeonisActivate()
+        {
+            // Piercing damage for Equimax!
+            if (Card.Location == CardLocation.MonsterZone)
+            {
+                if (_leonisBuffUsed) return false;
+                var equimax = Bot.MonsterZone.FirstOrDefault(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaEquimax);
+                if (equimax != null)
+                {
+                    AI.SelectCard(equimax);
+                    _leonisBuffUsed = true;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private bool RevivalActivate()
+        {
+            // Field spell: activate from hand, or activate on field to grant multi-attack to Equimax!
+            if (Card.Location == CardLocation.Hand) return true;
+
+            if (Card.Location == CardLocation.SpellZone && Card.IsFaceup())
+            {
+                if (_revivalUsed) return false;
+                var equimax = Bot.MonsterZone.FirstOrDefault(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaEquimax);
+                if (equimax != null && Enemy.GetMonsterCount() > 0)
+                {
+                    AI.SelectCard(equimax);
+                    _revivalUsed = true;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private bool TestamentActivate()
+        {
+            var equimax = Bot.MonsterZone.FirstOrDefault(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaEquimax);
+            if (equimax != null)
+            {
+                AI.SelectCard(equimax);
+                return true;
+            }
+            return false;
+        }
+
+        // ================================================================================================
+        // TIER 8 & 9: Extenders & Spells
+        // ================================================================================================
+        private bool RotaActivate()
+        {
+            return true; // Searches Arboria
+        }
+
+        private bool SuccessionActivate()
+        {
+            if (!HasEmptyPointedZone()) return false;
+            // Reborn a monster to a zone a link monster points to
+            var link = Bot.MonsterZone.FirstOrDefault(c => c != null && c.IsFaceup() && c.HasType(CardType.Link));
+            if (link == null) return false;
+
+            var target = Bot.Graveyard.FirstOrDefault(c => c.Id == CardId.CrusadiaEquimax)
+                      ?? Bot.Graveyard.FirstOrDefault(c => c.Id == CardId.CrusadiaMaximus)
+                      ?? Bot.Graveyard.FirstOrDefault(c => CrusadiaMainMonsters.Contains(c.Id));
+
+            if (target != null)
+            {
+                AI.SelectCard(target);
+                return true;
+            }
+            return false;
+        }
+
+        private bool MonsterRebornActivate()
+        {
+            var target = Bot.Graveyard.FirstOrDefault(c => c.Id == CardId.CrusadiaEquimax)
+                      ?? Bot.Graveyard.FirstOrDefault(c => c.Id == CardId.Avramax)
+                      ?? Bot.Graveyard.FirstOrDefault(c => CrusadiaMainMonsters.Contains(c.Id))
+                      ?? Enemy.Graveyard.FirstOrDefault(c => c.Attack >= 2500);
+
+            if (target != null)
+            {
+                AI.SelectCard(target);
+                return true;
+            }
+            return false;
+        }
+
+        private bool CrusadiaHandSpSummon()
+        {
+            // Only summon if we have a Link monster pointing to an available zone
+            return HasEmptyPointedZone();
+        }
+
+        private bool MaximusHandSpSummon()
+        {
+            if (!HasEmptyPointedZone()) return false;
+            // If Equimax is on field, ALWAYS summon Maximus under Equimax for OTK!
+            if (Bot.HasInMonstersZone(CardId.CrusadiaEquimax)) return true;
+
+            // If we have other extenders in hand that can be summoned instead under Magius/Regulex, hold Maximus!
+            bool hasOtherExtender = Bot.Hand.Any(c => c != null && (c.Id == CardId.CrusadiaArboria || c.Id == CardId.CrusadiaDraco || c.Id == CardId.CrusadiaLeonis || c.Id == CardId.CrusadiaReclusia || c.Id == CardId.WorldCrown));
+            if (hasOtherExtender) return false;
+
+            // If no other extenders, summon Maximus to keep the climb going
+            return true;
+        }
+
+        private bool WorldCrownSpSummon()
+        {
+            return HasEmptyPointedZone();
+        }
+
+        // ================================================================================================
+        // TIER 10: Link Climbs (Magius -> Regulex -> Equimax -> Avramax)
+        // ================================================================================================
+        private bool MagiusSummon()
+        {
+            if (Bot.HasInMonstersZone(CardId.CrusadiaMagius)) return false;
+            // CRITICAL: NEVER downgrade if we already have a Link-2 or Link-3 Crusadia boss on field!
+            if (Bot.HasInMonstersZone(CardId.CrusadiaRegulex) ||
+                Bot.HasInMonstersZone(CardId.CrusadiaSpatha) ||
+                Bot.HasInMonstersZone(CardId.CrusadiaEquimax) ||
+                Bot.HasInMonstersZone(CardId.Avramax)) return false;
+
+            // Need 1 non-Magius Crusadia on field
+            return Bot.MonsterZone.Any(c => c != null && c.IsFaceup() && CrusadiaMainMonsters.Contains(c.Id) && c.Id != CardId.CrusadiaMagius);
+        }
+
+        private bool RegulexSummon()
+        {
+            if (Bot.HasInMonstersZone(CardId.CrusadiaRegulex)) return false;
+            // CRITICAL: NEVER downgrade if we already have Equimax or Avramax on field!
+            if (Bot.HasInMonstersZone(CardId.CrusadiaEquimax)) return false;
+            if (Bot.HasInMonstersZone(CardId.Avramax)) return false;
+
+            // Requires Magius + 1 effect monster
+            return Bot.HasInMonstersZone(CardId.CrusadiaMagius) && Bot.GetMonsterCount() >= 2;
+        }
+
+        private bool SpathaSummon()
+        {
+            if (Bot.HasInMonstersZone(CardId.CrusadiaSpatha)) return false;
+            if (Bot.HasInMonstersZone(CardId.CrusadiaEquimax)) return false;
+            if (Bot.HasInMonstersZone(CardId.Avramax)) return false;
+
+            // Backup if Regulex is unavailable
+            return !Bot.ExtraDeck.Any(c => c.Id == CardId.CrusadiaRegulex) && Bot.HasInMonstersZone(CardId.CrusadiaMagius) && Bot.GetMonsterCount() >= 2;
+        }
+
+        private bool EquimaxSummon()
+        {
+            if (Bot.HasInMonstersZone(CardId.CrusadiaEquimax)) return false;
+            // Option 1: Regulex/Spatha (Link 2) + 1 monster (total >= 2 monsters)
+            bool hasLink2 = Bot.MonsterZone.Any(c => c != null && c.IsFaceup() && (c.Id == CardId.CrusadiaRegulex || c.Id == CardId.CrusadiaSpatha));
+            if (hasLink2 && Bot.GetMonsterCount() >= 2) return true;
+
+            // Option 2: Any Link monster (e.g. Magius) + 2 effect monsters (total >= 3 monsters)
+            bool hasLink1 = Bot.MonsterZone.Any(c => c != null && c.IsFaceup() && c.HasType(CardType.Link));
+            if (hasLink1 && Bot.GetMonsterCount() >= 3) return true;
+
+            return false;
+        }
+
+        private bool AvramaxSummon()
+        {
+            if (Bot.HasInMonstersZone(CardId.Avramax)) return false;
+            // Summon Avramax if going 1st (control boss) or if Equimax already attacked or if needed for defense
+            if (Duel.Turn <= 1)
+            {
+                return Bot.MonsterZone.Any(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaEquimax) && Bot.GetMonsterCount() >= 2;
+            }
+            return false; // In Turn 2+, prefer staying on Equimax for OTK
+        }
+
+        private bool BorrelswordSummon()
+        {
+            if (Bot.HasInMonstersZone(CardId.BorrelswordDragon)) return false;
+            return !Bot.ExtraDeck.Any(c => c.Id == CardId.CrusadiaEquimax) && Bot.GetMonsterCount() >= 3;
+        }
+
+        private bool KnightmarePhoenixSummon()
+        {
+            return Enemy.GetSpellCount() > 0 && Bot.GetMonsterCount() >= 2 && !Bot.HasInMonstersZone(CardId.CrusadiaEquimax);
+        }
+
+        private bool KnightmareCerberusSummon()
+        {
+            return Enemy.GetMonsters().Any(c => c.IsSpecialSummoned && c.IsFaceup()) && Bot.GetMonsterCount() >= 2 && !Bot.HasInMonstersZone(CardId.CrusadiaEquimax);
+        }
+
+        private bool KnightmareUnicornSummon()
+        {
+            return Util.GetProblematicEnemyCard() != null && Bot.GetMonsterCount() >= 3 && !Bot.HasInMonstersZone(CardId.CrusadiaEquimax);
+        }
+
+        private bool TrisbaenaSummon()
+        {
+            return Enemy.GetSpellCount() >= 2 && Bot.GetMonsterCount() >= 3 && !Bot.HasInMonstersZone(CardId.CrusadiaEquimax);
+        }
+
+        private bool SaryujaSummon()
+        {
+            return Bot.GetMonsterCount() >= 4 && !Bot.HasInMonstersZone(CardId.CrusadiaEquimax);
+        }
+
+        // ================================================================================================
+        // TIER 11 & 12: Mekk-Knights & Starter Normal Summon
+        // ================================================================================================
+        private bool MekkKnightSpSummon()
+        {
+            // Only summon Mekk-Knights if there is a column with 2+ cards
+            return HasColumnWithTwoCards();
+        }
+
         private bool PurpleActivate()
         {
-            AI?.Log(LogLevel.Info, "[MONSTER-EFFECT] Mekk-Knight Purple Nightfall: Checking activation...");
             var target = Bot.GetMonsters().FirstOrDefault(c => MekkKnightMonsters.Contains(c.Id) && c.IsFaceup());
             if (target != null)
             {
@@ -1229,191 +719,27 @@ namespace WindBot.Game.AI.Decks
 
         private bool BlueActivate()
         {
-            AI?.Log(LogLevel.Info, "[MONSTER-EFFECT] Mekk-Knight Blue Sky: Checking activation...");
             AI.SelectCard(new[] { CardId.MekkKnightPurple, CardId.MekkKnightIndigo });
             return true;
         }
 
         private bool IndigoActivate()
         {
-            AI?.Log(LogLevel.Info, "[MONSTER-EFFECT] Mekk-Knight Indigo Eclipse: Checking activation...");
             var target = Bot.GetMonsters().FirstOrDefault(c => c.Id == CardId.MekkKnightIndigo && c.IsFaceup());
             if (target != null)
             {
                 AI.SelectCard(target);
-                int emptyZones = GetEmptyZones();
-                if (emptyZones > 0)
-                {
-                    if ((emptyZones & (1 << 0)) > 0) AI.SelectPlace(1 << 0);
-                    else if ((emptyZones & (1 << 4)) > 0) AI.SelectPlace(1 << 4);
-                    else AI.SelectPlace(emptyZones);
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private bool ReclusiaActivate()
-        {
-            AI?.Log(LogLevel.Info, "[MONSTER-EFFECT] Crusadia Reclusia: Checking activation...");
-            if (Card.Location == CardLocation.MonsterZone)
-            {
-                var enemyTarget = Util.GetProblematicEnemyCard();
-                if (enemyTarget != null)
-                {
-                    AI?.Log(LogLevel.Info, $"[MONSTER-EFFECT] Crusadia Reclusia: Targeting enemy card {enemyTarget.Name} and ourselves for destruction.");
-                    AI.SelectCard(Card);
-                    AI.SelectNextCard(enemyTarget);
-                    return true;
-                }
-                return false;
-            }
-            return false;
-        }
-
-        private bool ArboriaActivate()
-        {
-            return false;
-        }
-
-        private bool LeonisActivate()
-        {
-            AI?.Log(LogLevel.Info, "[MONSTER-EFFECT] Crusadia Leonis: Checking activation...");
-            if (Card.Location == CardLocation.MonsterZone)
-            {
-                if (_leonisUsed) return false;
-
-                bool goingForGame = OTKDamageCalculator.EvaluateLethal(Bot, Enemy);
-                var equimax = Bot.GetMonsters().FirstOrDefault(c => c.Id == CardId.CrusadiaEquimax);
-                if (equimax != null && goingForGame)
-                {
-                    AI?.Log(LogLevel.Info, "[MONSTER-EFFECT] Crusadia Leonis: Granting piercing effect to Equimax.");
-                    AI.SelectCard(equimax);
-                    _leonisUsed = true;
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private bool DracoActivate()
-        {
-            AI?.Log(LogLevel.Info, "[MONSTER-EFFECT] Crusadia Draco: Checking activation...");
-            if (Card.Location == CardLocation.MonsterZone)
-            {
-                var target = Bot.Graveyard.FirstOrDefault(c => CrusadiaMainMonsters.Contains(c.Id) && c.Id != CardId.CrusadiaDraco);
-                if (target != null)
-                {
-                    AI?.Log(LogLevel.Info, $"[MONSTER-EFFECT] Crusadia Draco: Retrieving {target.Name} from Graveyard.");
-                    AI.SelectCard(target);
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private bool MaximusActivate()
-        {
-            AI?.Log(LogLevel.Info, "[MONSTER-EFFECT] Crusadia Maximus: Checking activation...");
-            if (Card.Location == CardLocation.MonsterZone)
-            {
-                if (_maximusUsed) return false;
-
-                bool goingForGame = OTKDamageCalculator.EvaluateLethal(Bot, Enemy);
-                var equimax = Bot.GetMonsters().FirstOrDefault(c => c.Id == CardId.CrusadiaEquimax);
-                if (equimax != null && goingForGame)
-                {
-                    AI?.Log(LogLevel.Info, "[MONSTER-EFFECT] Crusadia Maximus: Granting double battle damage to Equimax.");
-                    AI.SelectCard(equimax);
-                    _maximusUsed = true;
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        // ================================================================================================
-        // TIER 8: Spells
-        // ================================================================================================
-        private bool MonsterRebornActivate()
-        {
-            AI?.Log(LogLevel.Info, "[SPELL] Monster Reborn activation check...");
-            var target = Bot.Graveyard.FirstOrDefault(c => c.Id == CardId.CrusadiaEquimax);
-            if (target != null)
-            {
-                AI.SelectCard(target);
-                return true;
-            }
-
-            var material = Bot.Graveyard.FirstOrDefault(c => CrusadiaMainMonsters.Contains(c.Id));
-            if (material != null)
-            {
-                AI.SelectCard(material);
                 return true;
             }
             return false;
         }
 
-        private bool PowerActivate()
-        {
-            AI?.Log(LogLevel.Info, "[SPELL] Crusadia Power activation check...");
-            if (LastChainCard != null && LastChainCard.Controller == 1)
-            {
-                var target = Bot.GetMonsters().FirstOrDefault(c => AceCardIds.Contains(c.Id));
-                if (target != null)
-                {
-                    AI.SelectCard(target);
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private bool RevivalActivate()
-        {
-            AI?.Log(LogLevel.Info, "[SPELL] Crusadia Revival activation check...");
-            if (Card.Location == CardLocation.Hand) return true;
-
-            if (Card.Location == CardLocation.SpellZone && Card.IsFaceup())
-            {
-                if (_revivalUsed) return false;
-
-                bool goingForGame = OTKDamageCalculator.EvaluateLethal(Bot, Enemy);
-                var equimax = Bot.GetMonsters().FirstOrDefault(c => c.Id == CardId.CrusadiaEquimax);
-                if (equimax != null && goingForGame)
-                {
-                    AI.SelectCard(equimax);
-                    _revivalUsed = true;
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private bool TestamentActivate()
-        {
-            AI?.Log(LogLevel.Info, "[SPELL] Crusadia Testament activation check...");
-            if (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Main2)
-            {
-                var equimax = Bot.GetMonsters().FirstOrDefault(c => c.Id == CardId.CrusadiaEquimax);
-                if (equimax != null)
-                {
-                    AI.SelectCard(equimax);
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        // ================================================================================================
-        // TIER 9: Normal Summon
-        // ================================================================================================
         private bool CrusadiaNormalSummon()
         {
-            AI?.Log(LogLevel.Info, "[SUMMON] Normal Summon Crusadia check...");
             if (!CrusadiaMainMonsters.Contains(Card.Id)) return false;
 
-            if (Bot.Hand.Any(c => c.IsCode(CardId.InterruptedKaijuSlumber)) && !_slumberUsed && Enemy.GetMonsterCount() > 0)
+            // If we have Slumber and opponent has monsters, hold Normal Summon to let Slumber clear first!
+            if (Bot.Hand.Any(c => c.Id == CardId.InterruptedKaijuSlumber) && !_slumberUsed && Enemy.GetMonsterCount() > 0)
             {
                 return false;
             }
@@ -1422,53 +748,206 @@ namespace WindBot.Game.AI.Decks
             return true;
         }
 
+        private bool SpellSetLogic()
+        {
+            // Set Quick-Play / Traps at end of Main 2 or if needed for Mekk-Knight column
+            if (Card.IsCode(CardId.CrusadiaPower, CardId.CalledByTheGrave, CardId.CosmicCyclone))
+            {
+                return Duel.Phase == DuelPhase.Main2 || Duel.Turn <= 1;
+            }
+            return false;
+        }
+
         // ================================================================================================
-        // Card Selection Logic (OnSelectCard) Detailed Rankings
+        // Precise Placement Engine (OnSelectPlace)
+        // ================================================================================================
+        public override int OnSelectPlace(long cardId, int player, CardLocation location, int available)
+        {
+            if (available <= 0) return 0;
+            AI?.Log(LogLevel.Info, $"[SELECT-PLACE-IN] cardId={cardId}, player={player}, loc={location}, available=0x{available:X}");
+
+            // 1. Placing Kaiju on Opponent's Field (player == 1, MonsterZone)
+            if (player == 1 && location == CardLocation.MonsterZone)
+            {
+                var equimax = Bot.MonsterZone.FirstOrDefault(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaEquimax);
+                if (equimax != null)
+                {
+                    // Opponent zone directly opposite to Equimax top pointer:
+                    // If Equimax is in EMZ 5 (left) -> Points to Opponent MMZ 3
+                    // If Equimax is in EMZ 6 (right) -> Points to Opponent MMZ 1
+                    int targetOppZone = (equimax.Sequence == 5) ? 3 : 1;
+                    if ((available & (1 << targetOppZone)) > 0)
+                    {
+                        AI?.Log(LogLevel.Info, $"[SELECT-PLACE-OUT] Kaiju OppZone: {targetOppZone}");
+                        return 1 << targetOppZone;
+                    }
+                }
+                else
+                {
+                    // Default Kaiju placement opposite to EMZ 5 (Opponent MMZ 3)
+                    if ((available & (1 << 3)) > 0) { AI?.Log(LogLevel.Info, "[SELECT-PLACE-OUT] Kaiju default OppZone 3"); return 1 << 3; }
+                    if ((available & (1 << 1)) > 0) { AI?.Log(LogLevel.Info, "[SELECT-PLACE-OUT] Kaiju default OppZone 1"); return 1 << 1; }
+                }
+                int fallbackOpp = base.OnSelectPlace(cardId, player, location, available);
+                AI?.Log(LogLevel.Info, $"[SELECT-PLACE-OUT] Kaiju fallback 0x{fallbackOpp:X}");
+                return fallbackOpp;
+            }
+
+            // 2. Placing Bot's Monsters (player == 0, MonsterZone)
+            if (player == 0 && location == CardLocation.MonsterZone)
+            {
+                // Extra Monster Zone check (Summoning Link Monster from Extra Deck)
+                int emzAvailable = available & (Zones.z5 | Zones.z6);
+                if (emzAvailable > 0)
+                {
+                    // Always prefer EMZ 5 (Left EMZ) so pointer alignments are 100% consistent
+                    if ((emzAvailable & Zones.z5) > 0) { AI?.Log(LogLevel.Info, "[SELECT-PLACE-OUT] EMZ z5 (0x20)"); return Zones.z5; }
+                    if ((emzAvailable & Zones.z6) > 0) { AI?.Log(LogLevel.Info, "[SELECT-PLACE-OUT] EMZ z6 (0x40)"); return Zones.z6; }
+                }
+
+                // If Bot already has Magius / Regulex on field:
+                var magius = Bot.MonsterZone.FirstOrDefault(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaMagius);
+                if (magius != null)
+                {
+                    // Magius points directly DOWN:
+                    // EMZ 5 points to MMZ 1
+                    // EMZ 6 points to MMZ 3
+                    int targetZone = (magius.Sequence == 5) ? 1 : 3;
+                    if ((available & (1 << targetZone)) > 0)
+                    {
+                        AI?.Log(LogLevel.Info, $"[SELECT-PLACE-OUT] Under Magius (Seq={magius.Sequence}) -> MMZ {targetZone}");
+                        return 1 << targetZone;
+                    }
+                }
+
+                var regulex = Bot.MonsterZone.FirstOrDefault(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaRegulex);
+                if (regulex != null)
+                {
+                    int targetZone = (regulex.Sequence == 5) ? 1 : 3;
+                    if ((available & (1 << targetZone)) > 0)
+                    {
+                        AI?.Log(LogLevel.Info, $"[SELECT-PLACE-OUT] Under Regulex (Seq={regulex.Sequence}) -> MMZ {targetZone}");
+                        return 1 << targetZone;
+                    }
+                }
+
+                var equimax = Bot.MonsterZone.FirstOrDefault(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaEquimax);
+                if (equimax != null)
+                {
+                    int zLeft = (equimax.Sequence == 5) ? 0 : 2;
+                    int zRight = (equimax.Sequence == 5) ? 2 : 4;
+
+                    if ((available & (1 << zLeft)) > 0) { AI?.Log(LogLevel.Info, $"[SELECT-PLACE-OUT] Under Equimax -> MMZ {zLeft}"); return 1 << zLeft; }
+                    if ((available & (1 << zRight)) > 0) { AI?.Log(LogLevel.Info, $"[SELECT-PLACE-OUT] Under Equimax -> MMZ {zRight}"); return 1 << zRight; }
+                }
+
+                // If Normal Summoning Starter (no Link monster on field yet):
+                // Place into MMZ 2 (Center) so MMZ 1 (under EMZ 5) and MMZ 3 (under EMZ 6) stay FREE for Link pointers!
+                if ((available & Zones.z2) > 0) { AI?.Log(LogLevel.Info, "[SELECT-PLACE-OUT] Starter MMZ 2"); return Zones.z2; }
+                if ((available & Zones.z0) > 0) { AI?.Log(LogLevel.Info, "[SELECT-PLACE-OUT] MMZ 0"); return Zones.z0; }
+                if ((available & Zones.z4) > 0) { AI?.Log(LogLevel.Info, "[SELECT-PLACE-OUT] MMZ 4"); return Zones.z4; }
+                if ((available & Zones.z1) > 0) { AI?.Log(LogLevel.Info, "[SELECT-PLACE-OUT] MMZ 1"); return Zones.z1; }
+                if ((available & Zones.z3) > 0) { AI?.Log(LogLevel.Info, "[SELECT-PLACE-OUT] MMZ 3"); return Zones.z3; }
+            }
+
+            int defPlace = base.OnSelectPlace(cardId, player, location, available);
+            AI?.Log(LogLevel.Info, $"[SELECT-PLACE-OUT] base.OnSelectPlace 0x{defPlace:X}");
+            return defPlace;
+        }
+
+        // ================================================================================================
+        // Card Selection (OnSelectCard) Handler
         // ================================================================================================
         public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
         {
-            AI?.Log(LogLevel.Info, $"[SELECT-CARD] min={min}, max={max}, hint={hint}");
+            if (cards == null || cards.Count == 0) return base.OnSelectCard(cards, min, max, hint, cancelable);
 
+            // 1. Saved Kaiju Tribute Target
             if (_kaijuTributeTarget != null && cards.Contains(_kaijuTributeTarget))
             {
                 var target = _kaijuTributeTarget;
                 _kaijuTributeTarget = null;
-                AI?.Log(LogLevel.Info, $"[SELECT-CARD] Routing selection to saved Kaiju tribute target: {target.Name} (ID: {target.Id})");
                 return new List<ClientCard> { target };
             }
-            
-            if (hint == 509) // Special Summoning from Deck (Slumber)
-            {
-                bool isSlumber = cards.Any(c => c != null && KaijuMonsters.Contains(c.Id) && c.Location == CardLocation.Deck);
-                if (isSlumber)
-                {
-                    var result = new List<ClientCard>();
-                    var weakest = cards.Where(c => c != null && KaijuMonsters.Contains(c.Id)).OrderBy(c => c.Attack).FirstOrDefault();
-                    var strongest = cards.Where(c => c != null && KaijuMonsters.Contains(c.Id) && c != weakest).OrderByDescending(c => c.Attack).FirstOrDefault();
 
-                    if (weakest != null) result.Add(weakest);
-                    if (strongest != null) result.Add(strongest);
-                    return result;
+            // 2. Searching Crusadia cards (Hint 506 - HINTMSG_ATOHAND or Deck search)
+            if (hint == 506 || hint == 505)
+            {
+                // Magius Search:
+                // MAXIMUS IS THE ABSOLUTE OTK CORE!
+                // Prioritize Maximus FIRST if not already in Hand or MonsterZone!
+                // Only search Draco if Maximus is already secured!
+                if (cards.Any(c => c.Location == CardLocation.Deck && CrusadiaMainMonsters.Contains(c.Id)))
+                {
+                    bool hasMaximus = Bot.Hand.Any(c => c.Id == CardId.CrusadiaMaximus) || Bot.MonsterZone.Any(c => c != null && c.Id == CardId.CrusadiaMaximus);
+                    bool hasDraco = Bot.Hand.Any(c => c.Id == CardId.CrusadiaDraco) || Bot.MonsterZone.Any(c => c != null && c.Id == CardId.CrusadiaDraco);
+
+                    int targetId = !hasMaximus ? CardId.CrusadiaMaximus
+                                 : !hasDraco ? CardId.CrusadiaDraco
+                                 : CardId.CrusadiaArboria;
+
+                    var match = cards.FirstOrDefault(c => c.Id == targetId) ?? cards.FirstOrDefault(c => CrusadiaMainMonsters.Contains(c.Id));
+                    if (match != null) return new List<ClientCard> { match };
+                }
+
+                // Regulex Search:
+                // Prioritize Crusadia Revival (for multi-attack OTK), then Crusadia Power, then Testament
+                if (cards.Any(c => c.Location == CardLocation.Deck && (c.Id == CardId.CrusadiaRevival || c.Id == CardId.CrusadiaPower || c.Id == CardId.CrusadiaTestament)))
+                {
+                    bool hasRevival = Bot.Hand.Any(c => c.Id == CardId.CrusadiaRevival) || Bot.SpellZone.Any(c => c != null && c.Id == CardId.CrusadiaRevival);
+                    int targetSpellId = !hasRevival ? CardId.CrusadiaRevival : CardId.CrusadiaPower;
+
+                    var match = cards.FirstOrDefault(c => c.Id == targetSpellId)
+                             ?? cards.FirstOrDefault(c => c.Id == CardId.CrusadiaRevival || c.Id == CardId.CrusadiaPower || c.Id == CardId.CrusadiaTestament);
+                    if (match != null) return new List<ClientCard> { match };
+                }
+
+                // ROTA Search:
+                if (cards.Any(c => c.Location == CardLocation.Deck && c.Id == CardId.CrusadiaArboria))
+                {
+                    var arboria = cards.FirstOrDefault(c => c.Id == CardId.CrusadiaArboria);
+                    if (arboria != null) return new List<ClientCard> { arboria };
                 }
             }
 
-            if (hint == 506) // Searching Crusadia cards
+            // 3. Draco Retrieval from Graveyard (Hint 505 - HINTMSG_RTOHAND)
+            if (cards.Any(c => c.Location == CardLocation.Grave && CrusadiaMainMonsters.Contains(c.Id)))
             {
-                if (cards.Any(c => c != null && CrusadiaMainMonsters.Contains(c.Id)))
+                var preferred = new[] { CardId.CrusadiaMaximus, CardId.CrusadiaArboria, CardId.CrusadiaLeonis, CardId.CrusadiaReclusia };
+                foreach (int id in preferred)
                 {
-                    var preferred = new[] { CardId.CrusadiaMaximus, CardId.CrusadiaDraco, CardId.CrusadiaArboria, CardId.CrusadiaLeonis, CardId.CrusadiaReclusia };
-                    foreach (int id in preferred)
-                    {
-                        var match = cards.FirstOrDefault(c => c != null && c.Id == id);
-                        if (match != null) return new List<ClientCard> { match };
-                    }
+                    var match = cards.FirstOrDefault(c => c.Id == id);
+                    if (match != null) return new List<ClientCard> { match };
                 }
             }
 
-            if (hint == 533 || hint == 513) // Selection for Link materials
+            // 4. Slumber Summons from Deck (Hint 509 - HINTMSG_SPSUMMON)
+            // One Kaiju to Bot field, one to Enemy field:
+            // Bot gets Gameciel (2200 ATK, turtle) or strongest Kaiju depending on whether it summons to our field first
+            if (hint == 509 && cards.Any(c => c.Location == CardLocation.Deck && KaijuMonsters.Contains(c.Id)))
             {
-                var sorted = cards.Where(c => c != null).OrderBy(c => c.Level).ToList();
-                return sorted.Take(max).ToList();
+                var kaijus = cards.Where(c => KaijuMonsters.Contains(c.Id)).ToList();
+                if (kaijus.Count >= min)
+                {
+                    // If summoning to enemy field: give them the one with LOWER ATK so Equimax can deal more damage, or give them Kumongous/Gameciel
+                    return kaijus.OrderBy(c => c.Attack).Take(min).ToList();
+                }
+            }
+
+            // 5. Link Materials Selection (Hint 533 or 513)
+            if (hint == 533 || hint == 513)
+            {
+                // Never send Equimax or Avramax to grave as link material unless upgrading to Avramax
+                var sorted = cards.OrderBy(c => GetMaterialPriority(c)).Take(max).ToList();
+                return sorted;
+            }
+
+            // 6. Equimax Tribute for Negate (Hint 500 - HINTMSG_RELEASE)
+            if (hint == 500)
+            {
+                // Select an extender in MMZ, NEVER Equimax itself!
+                var tribute = cards.Where(c => c != null && c.Id != CardId.CrusadiaEquimax).OrderBy(c => GetMaterialPriority(c)).FirstOrDefault();
+                if (tribute != null) return new List<ClientCard> { tribute };
             }
 
             return base.OnSelectCard(cards, min, max, hint, cancelable);
@@ -1481,6 +960,11 @@ namespace WindBot.Game.AI.Decks
                 if (positions.Contains(CardPosition.FaceUpAttack))
                     return CardPosition.FaceUpAttack;
             }
+            // Crusadia main deck extenders summon in Defense Position by card effect
+            if (positions.Contains(CardPosition.FaceUpDefence))
+            {
+                return CardPosition.FaceUpDefence;
+            }
             return base.OnSelectPosition(cardId, positions);
         }
 
@@ -1488,8 +972,16 @@ namespace WindBot.Game.AI.Decks
         {
             if (attacker != null && attacker.Id == CardId.CrusadiaEquimax)
             {
+                // Equimax wants to attack the monster it points to (for max damage or piercing)
+                var pointedEnemy = defenders.FirstOrDefault(d => d != null && d.IsFaceup() && IsEquimaxPointingTo(attacker, d));
+                if (pointedEnemy != null)
+                {
+                    return AI.Attack(attacker, pointedEnemy);
+                }
+
+                // Otherwise attack lowest ATK or attack position monster for maximum lethal damage
                 var bestTarget = defenders.Where(d => d != null && d.IsFaceup())
-                                          .OrderByDescending(d => d.Attack)
+                                          .OrderBy(d => d.Attack)
                                           .FirstOrDefault();
                 if (bestTarget != null)
                 {
@@ -1499,64 +991,92 @@ namespace WindBot.Game.AI.Decks
             return base.OnSelectAttackTarget(attacker, defenders);
         }
 
-        private bool SpellSetLogic()
-        {
-            if (Card.IsCode(CardId.CrusadiaPower, CardId.CalledByTheGrave, CardId.CosmicCyclone)) return true;
-            return false;
-        }
-
-        private bool MonsterRepos()
-        {
-            if (Card == null) return false;
-            if (AceCardIds.Contains(Card.Id)) return false;
-            return base.DefaultMonsterRepos();
-        }
-
-        public override bool IsAceCard(ClientCard card)
-        {
-            if (card == null) return false;
-            return AceCardIds.Contains(card.Id) || base.IsAceCard(card);
-        }
-
-        protected override bool IsBoardStrongEnough()
-        {
-            // Equimax on field = primary OTK enabler
-            if (Bot.HasInMonstersZone(CardId.CrusadiaEquimax))
-                return true;
-            // Avramax = defensive boss
-            if (Bot.HasInMonstersZone(CardId.Avramax))
-                return true;
-            // Borrelsword = OTK backup
-            if (Bot.HasInMonstersZone(CardId.BorrelswordDragon))
-                return true;
-            return base.IsBoardStrongEnough();
-        }
-
-        protected override bool ShouldStopExtending()
-        {
-            // Stop once we have Equimax or Avramax
-            if (Bot.HasInMonstersZone(CardId.CrusadiaEquimax)
-                || Bot.HasInMonstersZone(CardId.Avramax)
-                || Bot.HasInMonstersZone(CardId.BorrelswordDragon))
-                return base.ShouldStopExtending();
-            return false;
-        }
-
         public override int GetMaterialPriority(ClientCard c)
         {
             if (c == null) return 999;
-            if (AceCardIds.Contains(c.Id)) return 900;
+            if (c.Id == CardId.CrusadiaEquimax) return 1000;
+            if (c.Id == CardId.Avramax) return 950;
+            if (c.Id == CardId.CrusadiaMaximus) return 800; // Keep Maximus for ATK boost & double damage
+            if (c.Id == CardId.CrusadiaRegulex) return 200;
+            if (c.Id == CardId.CrusadiaMagius) return 100;
             if (CrusadiaMainMonsters.Contains(c.Id)) return 50;
-            if (KaijuMonsters.Contains(c.Id)) return 30;
+            if (c.Id == CardId.WorldCrown) return 40;
             return 100;
         }
 
-        private void LogCombatState()
+        // ================================================================================================
+        // Link Pointer & Zone Verification Helpers
+        // ================================================================================================
+        private bool HasEmptyPointedZone()
         {
-            AI?.Log(LogLevel.Info, $"[STRATEGY] Normal Summoned Crusadia: {_normalSummonedCrusadia}");
-            int botCount = Bot.MonsterZone.Count(c => c != null);
-            int enemyCount = Enemy.MonsterZone.Count(c => c != null);
-            AI?.Log(LogLevel.Info, $"[STRATEGY] Bot Monsters: {botCount}, Enemy Monsters: {enemyCount}");
+            var magius = Bot.MonsterZone.FirstOrDefault(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaMagius);
+            if (magius != null)
+            {
+                int targetZone = (magius.Sequence == 5) ? 1 : 3;
+                if (Bot.MonsterZone[targetZone] == null) return true;
+            }
+
+            var regulex = Bot.MonsterZone.FirstOrDefault(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaRegulex);
+            if (regulex != null)
+            {
+                int targetZone = (regulex.Sequence == 5) ? 1 : 3;
+                if (Bot.MonsterZone[targetZone] == null) return true;
+            }
+
+            var equimax = Bot.MonsterZone.FirstOrDefault(c => c != null && c.IsFaceup() && c.Id == CardId.CrusadiaEquimax);
+            if (equimax != null)
+            {
+                int zLeft = (equimax.Sequence == 5) ? 0 : 2;
+                int zRight = (equimax.Sequence == 5) ? 2 : 4;
+                if (Bot.MonsterZone[zLeft] == null || Bot.MonsterZone[zRight] == null) return true;
+            }
+
+            return false;
+        }
+
+        private bool IsEquimaxPointingTo(ClientCard equimax, ClientCard target)
+        {
+            if (equimax == null || target == null) return false;
+
+            if (target.Controller == 0) // Bot monster
+            {
+                int zLeft = (equimax.Sequence == 5) ? 0 : 2;
+                int zRight = (equimax.Sequence == 5) ? 2 : 4;
+                return target.Sequence == zLeft || target.Sequence == zRight;
+            }
+            else // Enemy monster
+            {
+                int targetOppZone = (equimax.Sequence == 5) ? 3 : 1;
+                return target.Sequence == targetOppZone;
+            }
+        }
+
+        private bool HasColumnWithTwoCards()
+        {
+            // Mekk-Knights summon condition: same column has 2 or more cards
+            for (int col = 0; col < 5; col++)
+            {
+                int count = 0;
+                if (Bot.MonsterZone[col] != null) count++;
+                if (Bot.SpellZone[col] != null) count++;
+                int oppCol = 4 - col;
+                if (Enemy.MonsterZone[oppCol] != null) count++;
+                if (Enemy.SpellZone[oppCol] != null) count++;
+
+                // EMZ columns
+                if (col == 1)
+                {
+                    if (Bot.MonsterZone[5] != null || Enemy.MonsterZone[6] != null) count++;
+                }
+                else if (col == 3)
+                {
+                    if (Bot.MonsterZone[6] != null || Enemy.MonsterZone[5] != null) count++;
+                }
+
+                if (count >= 2 && Bot.MonsterZone[col] == null)
+                    return true;
+            }
+            return false;
         }
     }
 }

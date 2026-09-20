@@ -252,6 +252,38 @@ namespace WindBot.Game.AI.Decks
             : base(ai, duel)
         {
             HeuristicGuard.RegisterAceCards(BossMonsters);
+            ResourcePlan.RegisterAceCards(BossMonsters);
+
+            // ── Combo Router Routes ──
+            ComboRouter.RegisterLine(new ComboRouter.ComboLine
+            {
+                Name = "Marshmao-Cupsy-Elf-Line",
+                RequiredCards = new List<int> { CardId.MarshmaoYummy, CardId.CupsyYummy },
+                Steps = new List<ComboRouter.ComboStep>
+                {
+                    new() { CardId = CardId.MarshmaoYummy, ActionType = ExecutorType.Summon, Description = "Summon Marshmao" },
+                    new() { CardId = CardId.CupsyYummy, ActionType = ExecutorType.SpSummon, Description = "Special Cupsy" },
+                    new() { CardId = CardId.CupsyYummyWay, ActionType = ExecutorType.SpSummon, Description = "Synchro Cupsy Way" },
+                    new() { CardId = CardId.SprightElf, ActionType = ExecutorType.SpSummon, Description = "Link Spright Elf" }
+                },
+                EndBoardScore = 90
+            });
+
+            ComboRouter.RegisterLine(new ComboRouter.ComboLine
+            {
+                Name = "Cooky-Lollipo-Borreload",
+                RequiredCards = new List<int> { CardId.CookyYummy },
+                Steps = new List<ComboRouter.ComboStep>
+                {
+                    new() { CardId = CardId.CookyYummy, ActionType = ExecutorType.Summon, Description = "Summon Cooky" },
+                    new() { CardId = CardId.LollipoYummyWay, ActionType = ExecutorType.SpSummon, Description = "Synchro Lollipo Way" },
+                    new() { CardId = CardId.BorreloadSavageDragon, ActionType = ExecutorType.SpSummon, Description = "Synchro Borreload Savage" }
+                },
+                EndBoardScore = 95
+            });
+
+            BaitPlanner.RegisterComboStarters(CardId.MarshmaoYummy, CardId.CupsyYummy, CardId.CookyYummy, CardId.LollipoYummy);
+            ChainAdvisor.RegisterHighValueTargets(CardId.SprightElf, CardId.BorreloadSavageDragon, CardId.HeraldOfTheArcLight, CardId.CupsyYummyWay);
 
             // ============================================================
             // TIER 1: Hand Traps & Reactive Disruptions (Both Turns)

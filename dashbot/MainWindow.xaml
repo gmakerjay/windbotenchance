@@ -5,64 +5,46 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:dashbot"
         mc:Ignorable="d"
-        Title="YGO Bot Launcher v2.3" Height="700" Width="1040"
+        Title="YGO Bot Launcher" Height="760" Width="1180" MinHeight="680" MinWidth="1020"
         Background="#F4F6F9" TextElement.Foreground="#111111"
         WindowStartupLocation="CenterScreen"
         FontFamily="Segoe UI" FontSize="12"
         Icon="dashbot.ico">
+
     <Window.Resources>
-        <!-- Modern Premium Controls Styling -->
+        <!-- Classic Elegant TextBox -->
         <Style TargetType="TextBox">
             <Setter Property="Background" Value="White"/>
             <Setter Property="Foreground" Value="#111111"/>
-            <Setter Property="BorderBrush" Value="#222222"/>
+            <Setter Property="BorderBrush" Value="#CCCCCC"/>
             <Setter Property="BorderThickness" Value="1.5"/>
-            <Setter Property="Padding" Value="5,4"/>
+            <Setter Property="Padding" Value="8,5"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
-        <Style TargetType="ComboBox">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="Foreground" Value="#111111"/>
-            <Setter Property="BorderBrush" Value="#222222"/>
-            <Setter Property="BorderThickness" Value="1.5"/>
-            <Setter Property="Padding" Value="5,4"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-        </Style>
-
-        <Style TargetType="ComboBoxItem">
-            <Setter Property="Foreground" Value="#111111"/>
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="Padding" Value="4,2"/>
-        </Style>
-
-        <Style TargetType="RadioButton">
-            <Setter Property="Foreground" Value="#111111"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Margin" Value="0,5"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-        </Style>
-
-        <Style TargetType="CheckBox">
-            <Setter Property="Foreground" Value="#111111"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Margin" Value="0,6"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-        </Style>
-
-        <!-- Premium Charcoal Dark Button -->
-        <Style TargetType="Button">
+        <!-- Elegant Charcoal Dark Button (WinForm Classic) -->
+        <Style x:Key="ClassicCharcoalBtn" TargetType="Button">
             <Setter Property="Background" Value="#222222"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderBrush" Value="#222222"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="15,6"/>
+            <Setter Property="Padding" Value="14,6"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -82,7 +64,6 @@
                 </Trigger>
                 <Trigger Property="IsPressed" Value="True">
                     <Setter Property="Background" Value="#111111"/>
-                    <Setter Property="BorderBrush" Value="#111111"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter Property="Background" Value="#CCCCCC"/>
@@ -92,126 +73,402 @@
             </Style.Triggers>
         </Style>
 
-        <Style TargetType="GroupBox">
-            <Setter Property="Foreground" Value="#111111"/>
+        <!-- Secondary White Button -->
+        <Style x:Key="SecondaryWhiteBtn" TargetType="Button">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="#222222"/>
             <Setter Property="BorderBrush" Value="#CCCCCC"/>
             <Setter Property="BorderThickness" Value="1.5"/>
-            <Setter Property="Margin" Value="0,0,0,10"/>
-            <Setter Property="Padding" Value="12"/>
+            <Setter Property="Padding" Value="12,4"/>
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#F1F5F9"/>
+                    <Setter Property="BorderBrush" Value="#999999"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#E2E8F0"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Category Filter Pill RadioButton (Elegant White/Charcoal) -->
+        <Style x:Key="CategoryFilterPill" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="#444444"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#CCCCCC"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
+            <Setter Property="Padding" Value="12,5"/>
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#F8FAFC"/>
+                    <Setter Property="BorderBrush" Value="#999999"/>
+                    <Setter Property="Foreground" Value="#111111"/>
+                </Trigger>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="Background" Value="#222222"/>
+                    <Setter Property="BorderBrush" Value="#222222"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Bot Assignment Toggle RadioButton -->
+        <Style x:Key="BotSelectorPill" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="#555555"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#CCCCCC"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
+            <Setter Property="Padding" Value="12,5"/>
+            <Setter Property="FontSize" Value="11.5"/>
             <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="#111111"/>
+                </Trigger>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="Background" Value="#F1F5F9"/>
+                    <Setter Property="BorderBrush" Value="#0284C7"/>
+                    <Setter Property="Foreground" Value="#0284C7"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- CheckBox -->
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="#111111"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
         </Style>
     </Window.Resources>
 
-    <Grid Margin="15">
+    <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Header (AI clean-up) -->
-        <Border Grid.Row="0" BorderBrush="#CCCCCC" BorderThickness="0,0,0,1.5" Padding="5,0,5,12" Margin="0,0,0,12">
+        <!-- Header Bar (White Elegant Panel) -->
+        <Border Grid.Row="0" Background="White" BorderBrush="#CCCCCC" BorderThickness="1.5" CornerRadius="6" Padding="16,12" Margin="0,0,0,14">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <StackPanel>
-                    <TextBlock Text="YGO Bot Launcher v2.3" FontSize="22" FontWeight="Bold" Foreground="#111111"/>
-                    <TextBlock Text="Standalone client connecting WindBot to EDOPro room" FontSize="11" Foreground="#666666" Margin="0,3,0,0"/>
+
+                <StackPanel VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="YGO Bot Launcher" FontSize="20" FontWeight="Bold" Foreground="#111111"/>
+                        <Border Background="#222222" CornerRadius="3" Padding="6,2" Margin="10,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="EDOPro Suite" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                        </Border>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <TextBlock Text="Standalone client connecting WindBot to EDOPro room" FontSize="11.5" Foreground="#666666"/>
+                        <TextBlock Text=" | " FontSize="11.5" Foreground="#CCCCCC" Margin="6,0"/>
+                        <TextBlock Text="WindBot by IceYgo" FontSize="11.5" FontWeight="SemiBold" Foreground="#0284C7"/>
+                        <TextBlock Text=" | " FontSize="11.5" Foreground="#CCCCCC" Margin="6,0"/>
+                        <TextBlock Text="Custom Deck By Jaynesiz" FontSize="11.5" FontWeight="SemiBold" Foreground="#D97706"/>
+                    </StackPanel>
                 </StackPanel>
+
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal">
-                    <TextBlock Text="WindBot Engine" FontSize="11" Foreground="#666666" Margin="0,0,15,0" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                    <TextBlock x:Name="TxtTime" Text="00:00:00" VerticalAlignment="Center" FontSize="14" Foreground="#111111" FontFamily="Consolas" FontWeight="Bold"/>
+                    <Border Background="#F4F6F9" BorderBrush="#CCCCCC" BorderThickness="1" CornerRadius="4" Padding="12,6" Margin="0,0,10,0">
+                        <TextBlock Text="WindBot Engine" FontSize="11.5" Foreground="#555555" FontWeight="SemiBold"/>
+                    </Border>
+                    <Border Background="#F4F6F9" BorderBrush="#CCCCCC" BorderThickness="1" CornerRadius="4" Padding="12,6">
+                        <TextBlock x:Name="TxtTime" Text="00:00:00" FontSize="13" Foreground="#111111" FontFamily="Consolas" FontWeight="Bold"/>
+                    </Border>
                 </StackPanel>
             </Grid>
         </Border>
 
-        <!-- Main Workspace -->
+        <!-- Main Workspace (2 Columns) -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="15"/>
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="1.4*"/>
+                <ColumnDefinition Width="14"/>
+                <ColumnDefinition Width="1*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Launcher Controls (Left Column) -->
-            <GroupBox Grid.Column="0" Header="Launcher Connection" Margin="0,0,0,0">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" BorderThickness="0" Background="Transparent">
-                    <StackPanel Margin="0,5,0,0">
-                        <TextBlock Text="Target Host IP:" Margin="0,0,0,4" FontWeight="Bold" Foreground="#111111"/>
-                        <TextBox x:Name="TxtHostIp" Text="127.0.0.1" Margin="0,0,0,12"/>
-
-                        <TextBlock Text="Host Port:" Margin="0,0,0,4" FontWeight="Bold" Foreground="#111111"/>
-                        <TextBox x:Name="TxtHostPort" Text="7911" Margin="0,0,0,12"/>
-
-                        <TextBlock Text="Select Deck Profile:" Margin="0,0,0,6" FontWeight="Bold" Foreground="#111111"/>
-                        <RadioButton x:Name="RbLegacy" Content="Windbot Legacy Decks" GroupName="DeckGroup" IsChecked="True" Checked="RbCategory_Checked"/>
-                        <ComboBox x:Name="CbDecksLegacy" Height="28" Margin="15,0,0,10" SelectionChanged="CbDecksLegacy_SelectionChanged"/>
-                        
-                        <RadioButton x:Name="Rb2026" Content="New 2026 Decks" GroupName="DeckGroup" Checked="RbCategory_Checked"/>
-                        <ComboBox x:Name="CbDecks2026" Height="28" Margin="15,0,0,10" SelectionChanged="CbDecks2026_SelectionChanged"/>
-                        
-                        <RadioButton x:Name="RbOther" Content="Other Decks" GroupName="DeckGroup" Checked="RbCategory_Checked"/>
-                        <ComboBox x:Name="CbDecksOther" Height="28" Margin="15,0,0,15" SelectionChanged="CbDecksOther_SelectionChanged"/>
-
-                        <CheckBox x:Name="ChkTwoBots" Content="Spawn 2 Bots (Bot vs Bot)" Margin="0,5,0,12" Click="ChkTwoBots_Click"/>
-
-                        <StackPanel x:Name="OpponentDeckPanel" Visibility="Collapsed" Margin="0,0,0,15">
-                            <TextBlock Text="Select Opponent Deck Profile:" Margin="0,0,0,6" FontWeight="Bold" Foreground="#111111"/>
-                            <RadioButton x:Name="RbOpponentLegacy" Content="Windbot Legacy Decks" GroupName="OpponentDeckGroup" IsChecked="True" Checked="RbOpponentCategory_Checked"/>
-                            <ComboBox x:Name="CbOpponentDecksLegacy" Height="28" Margin="15,0,0,10" SelectionChanged="CbOpponentDecksLegacy_SelectionChanged"/>
-                            
-                            <RadioButton x:Name="RbOpponent2026" Content="New 2026 Decks" GroupName="OpponentDeckGroup" Checked="RbOpponentCategory_Checked"/>
-                            <ComboBox x:Name="CbOpponentDecks2026" Height="28" Margin="15,0,0,10" SelectionChanged="CbOpponentDecks2026_SelectionChanged"/>
-                            
-                            <RadioButton x:Name="RbOpponentOther" Content="Other Decks" GroupName="OpponentDeckGroup" Checked="RbOpponentCategory_Checked"/>
-                            <ComboBox x:Name="CbOpponentDecksOther" Height="28" Margin="15,0,0,12" SelectionChanged="CbOpponentDecksOther_SelectionChanged"/>
-                        </StackPanel>
-
-                        <Button x:Name="BtnConnectAi" Content="Start &amp; Connect Bot to Room" Click="BtnConnectAi_Click" Margin="0,10,0,0" Height="36"/>
-                        
-                        <!-- Quick Tips Box (AI clean-up) -->
-                        <Border BorderBrush="#CCCCCC" BorderThickness="1.5" CornerRadius="4" Padding="12" Margin="0,15,0,0" Background="White">
-                            <StackPanel>
-                                <TextBlock Text="Quick Tips" FontWeight="Bold" Foreground="#111111" Margin="0,0,0,6" FontSize="13"/>
-                                <TextBlock Text="- Single Bot: Connect to EDOPro room" Foreground="#333333" Margin="0,0,0,4" TextWrapping="Wrap"/>
-                                <TextBlock Text="- Two Bots: Auto-duel for training data" Foreground="#333333" Margin="0,0,0,4" TextWrapping="Wrap"/>
-                                <TextBlock Text="- Rule-based logic matches card play rules strictly" Foreground="#333333" TextWrapping="Wrap"/>
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
-                </ScrollViewer>
-            </GroupBox>
-
-            <!-- Console logs (Right Column - Optimized Height & Copying) -->
-            <GroupBox Grid.Column="2" Header="Console Output Logs" Margin="0,0,0,0">
+            <!-- LEFT COLUMN: Deck Explorer (White WinForm Container) -->
+            <Border Grid.Column="0" Background="White" BorderBrush="#CCCCCC" BorderThickness="1.5" CornerRadius="6" Padding="14">
                 <Grid>
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    
-                    <!-- Fixed TextBox layout & formatting for high performance logs copying -->
-                    <TextBox x:Name="TxtConsole" Grid.Row="0" IsReadOnly="True" 
-                             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" 
-                             Background="White" Foreground="Black" FontFamily="Consolas" FontSize="11.5" 
-                             Padding="8" BorderBrush="#222222" BorderThickness="1.5" 
-                             AcceptsReturn="True" TextWrapping="NoWrap"/>
-                    
-                    <Grid Grid.Row="1" Margin="0,10,0,0">
-                        <TextBlock x:Name="TxtConsoleStatus" Text="Ready." VerticalAlignment="Center" Foreground="#111111" FontWeight="SemiBold"/>
-                        <Button x:Name="BtnClearConsole" Content="Clear Logs" HorizontalAlignment="Right" Click="BtnClearConsole_Click" Padding="12,4"/>
+
+                    <!-- Top Bar: Title & Search -->
+                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="Deck Library" FontSize="15" FontWeight="Bold" Foreground="#111111" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TxtDeckTotalCount" Text="(0)" FontSize="12" Foreground="#666666" FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <!-- Search Input -->
+                        <Grid Grid.Column="1" HorizontalAlignment="Right" Width="260">
+                            <TextBox x:Name="TxtSearch" TextChanged="TxtSearch_TextChanged" Padding="8,4" Height="30"/>
+                            <TextBlock x:Name="TxtSearchPlaceholder" Text="Search deck name..." IsHitTestVisible="False"
+                                       Foreground="#888888" Margin="10,6,0,0" VerticalAlignment="Top"/>
+                        </Grid>
                     </Grid>
+
+                    <!-- Category Filter Chips -->
+                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,0,0,10">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="RbCatAll" Content="All Decks" Style="{StaticResource CategoryFilterPill}" IsChecked="True" Checked="RbCat_Checked"/>
+                            <RadioButton x:Name="RbCatModern" Content="Modern" Style="{StaticResource CategoryFilterPill}" Checked="RbCat_Checked"/>
+                            <RadioButton x:Name="RbCatAnime" Content="Anime" Style="{StaticResource CategoryFilterPill}" Checked="RbCat_Checked"/>
+                            <RadioButton x:Name="RbCatLegacy" Content="Legacy" Style="{StaticResource CategoryFilterPill}" Checked="RbCat_Checked"/>
+                            <RadioButton x:Name="RbCatSpecial" Content="Special" Style="{StaticResource CategoryFilterPill}" Checked="RbCat_Checked"/>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- Active Target Bot Switcher -->
+                    <Border Grid.Row="2" x:Name="BotTargetSelectorBar" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1.5" CornerRadius="4" Padding="10,6" Margin="0,0,0,10">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="Deck Target:" Foreground="#555555" FontWeight="Bold" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <RadioButton x:Name="RbAssignBot1" Content="Bot 1 (Player)" Style="{StaticResource BotSelectorPill}" IsChecked="True" Checked="RbAssignBot_Checked"/>
+                                <RadioButton x:Name="RbAssignBot2" Content="Bot 2 (Opponent)" Style="{StaticResource BotSelectorPill}" Checked="RbAssignBot_Checked"/>
+                            </StackPanel>
+                            <TextBlock Text="Click to select | Right-click for Bot 2" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#888888" FontSize="11"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Deck Badges Scroll Grid (WrapPanel) -->
+                    <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl x:Name="DeckItemsHost">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel ItemWidth="290" ItemHeight="46"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="3" CornerRadius="4" Cursor="Hand"
+                                            Background="{Binding CardBackground}"
+                                            BorderBrush="{Binding BorderBrushColor}"
+                                            BorderThickness="{Binding BorderThicknessValue}"
+                                            MouseLeftButtonDown="DeckCard_Click"
+                                            MouseRightButtonDown="DeckCard_RightClick">
+                                        <Grid Margin="10,0,8,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Selection indicator tag -->
+                                            <Border Grid.Column="0" Visibility="{Binding IndicatorVisibility}"
+                                                    Background="{Binding IndicatorBackground}" CornerRadius="3"
+                                                    Padding="5,1" Margin="0,0,8,0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding SelectionIndicator}" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                                            </Border>
+
+                                            <!-- Deck Name -->
+                                            <TextBlock Grid.Column="1" Text="{Binding DisplayName}"
+                                                       Foreground="{Binding TextColor}" FontWeight="SemiBold"
+                                                       FontSize="12" TextTrimming="CharacterEllipsis"
+                                                       VerticalAlignment="Center"/>
+
+                                            <!-- Category Badge Tag -->
+                                            <Border Grid.Column="2" Background="{Binding CategoryTagBg}"
+                                                    CornerRadius="3" Padding="7,2" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding CategoryTagText}" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <!-- Bottom Selected Summary Banner -->
+                    <Border Grid.Row="4" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1.5" CornerRadius="4" Padding="12,8" Margin="0,10,0,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="Bot 1:" Foreground="#0284C7" FontWeight="Bold" FontSize="11.5" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TxtSummaryBot1" Text="None" Foreground="#111111" FontWeight="SemiBold" FontSize="11.5" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" x:Name="SummaryBot2Panel" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                <TextBlock Text="Bot 2:" Foreground="#059669" FontWeight="Bold" FontSize="11.5" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TxtSummaryBot2" Text="None" Foreground="#111111" FontWeight="SemiBold" FontSize="11.5" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
                 </Grid>
-            </GroupBox>
+            </Border>
+
+            <!-- RIGHT COLUMN: Launcher Connection & Logs -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="12"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Connection Settings Card -->
+                <Border Grid.Row="0" Background="White" BorderBrush="#CCCCCC" BorderThickness="1.5" CornerRadius="6" Padding="14">
+                    <StackPanel>
+                        <TextBlock Text="Connection &amp; Launch Settings" FontSize="14" FontWeight="Bold" Foreground="#111111" Margin="0,0,0,10"/>
+
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="10"/>
+                                <ColumnDefinition Width="100"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Target Host IP" FontWeight="Bold" Foreground="#444444" Margin="0,0,0,4" FontSize="11.5"/>
+                                <TextBox x:Name="TxtHostIp" Text="127.0.0.1" Height="30"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Port" FontWeight="Bold" Foreground="#444444" Margin="0,0,0,4" FontSize="11.5"/>
+                                <TextBox x:Name="TxtHostPort" Text="7911" Height="30"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <CheckBox x:Name="ChkTwoBots" Content="Spawn 2 Bots (Bot vs Bot Self-Play)" Margin="0,4,0,12" Click="ChkTwoBots_Click"/>
+
+                        <!-- Matchup Card Preview -->
+                        <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1.5" CornerRadius="4" Padding="12,10" Margin="0,0,0,12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                    <TextBlock Text="BOT 1" FontSize="10" FontWeight="Bold" Foreground="#0284C7"/>
+                                    <TextBlock x:Name="TxtMatchupBot1" Text="Blue-Eyes" FontSize="12.5" FontWeight="Bold" Foreground="#111111" TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+
+                                <Border Grid.Column="1" Background="#E2E8F0" CornerRadius="12" Width="26" Height="26" VerticalAlignment="Center" Margin="6,0">
+                                    <TextBlock Text="VS" FontSize="10" FontWeight="Bold" Foreground="#555555" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+
+                                <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                    <TextBlock Text="BOT 2" FontSize="10" FontWeight="Bold" Foreground="#059669" HorizontalAlignment="Right"/>
+                                    <TextBlock x:Name="TxtMatchupBot2" Text="Dark Magician" FontSize="12.5" FontWeight="Bold" Foreground="#111111" TextTrimming="CharacterEllipsis" HorizontalAlignment="Right"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <Button x:Name="BtnConnectAi" Content="Start &amp; Connect Bot to Room" Style="{StaticResource ClassicCharcoalBtn}" Height="38" Click="BtnConnectAi_Click"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Console Logs Box -->
+                <Border Grid.Row="2" Background="White" BorderBrush="#CCCCCC" BorderThickness="1.5" CornerRadius="6" Padding="14">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Log Header -->
+                        <Grid Grid.Row="0" Margin="0,0,0,8">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="Console Output Logs" FontSize="13" FontWeight="Bold" Foreground="#111111"/>
+                                <TextBlock x:Name="TxtConsoleStatus" Text="Ready." FontSize="11" Foreground="#059669" FontWeight="Bold" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button x:Name="BtnCopyConsole" Content="Copy" Style="{StaticResource SecondaryWhiteBtn}" Padding="10,3" Margin="0,0,6,0" Click="BtnCopyConsole_Click"/>
+                                <Button x:Name="BtnClearConsole" Content="Clear" Style="{StaticResource SecondaryWhiteBtn}" Padding="10,3" Click="BtnClearConsole_Click"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- High performance log output (Clean White Console) -->
+                        <TextBox x:Name="TxtConsole" Grid.Row="1" IsReadOnly="True"
+                                 VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                                 Background="White" Foreground="#111111" FontFamily="Consolas" FontSize="11.5"
+                                 Padding="8" BorderBrush="#CCCCCC" BorderThickness="1.5"
+                                 AcceptsReturn="True" TextWrapping="NoWrap"/>
+
+                        <TextBlock Grid.Row="2" Text="Rule-based ModernExecutor client strictly follows official rules." FontSize="10.5" Foreground="#666666" Margin="0,6,0,0"/>
+                    </Grid>
+                </Border>
+            </Grid>
         </Grid>
 
-        <!-- Footer (AI clean-up) -->
-        <Border Grid.Row="2" BorderBrush="#CCCCCC" BorderThickness="0,1.5,0,0" Padding="5,10,5,0" Margin="0,12,0,0">
+        <!-- Footer Bar -->
+        <Border Grid.Row="2" Background="White" BorderBrush="#CCCCCC" BorderThickness="1.5" CornerRadius="6" Padding="14,8" Margin="0,14,0,0">
             <Grid>
-                <TextBlock Text="YGO Platform v2.3 - Standalone Bot Runner Launcher (dashbot)" FontSize="11" Foreground="#666666" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                <TextBlock Text="Powered by .NET 10" FontSize="11" Foreground="#666666" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="YGO Platform - Standalone Bot Runner Launcher (dashbot)" FontSize="11" Foreground="#555555" FontWeight="SemiBold"/>
+                    <TextBlock Text=" | " FontSize="11" Foreground="#CCCCCC" Margin="6,0"/>
+                    <TextBlock Text="WindBot by IceYgo" FontSize="11" Foreground="#0284C7" FontWeight="Bold"/>
+                    <TextBlock Text=" | " FontSize="11" Foreground="#CCCCCC" Margin="6,0"/>
+                    <TextBlock Text="Custom Deck By Jaynesiz" FontSize="11" Foreground="#D97706" FontWeight="Bold"/>
+                </StackPanel>
+                <TextBlock Text="Powered by .NET 10" FontSize="11" Foreground="#777777" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold"/>
             </Grid>
         </Border>
     </Grid>

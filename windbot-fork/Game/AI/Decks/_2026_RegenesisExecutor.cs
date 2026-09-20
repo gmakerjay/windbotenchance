@@ -971,8 +971,8 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card != null && Card.Id == CardId.RegenesisArchfiend && min == 0 && cards.Count > 0)
             {
-                // Select first card to reveal for summon cost instead of cancelling, avoiding loops
-                return new[] { cards[0] };
+                var bestReveal = cards.FirstOrDefault(c => c.Attack == 2500 || c.Defense == 2500) ?? cards.OrderByDescending(c => c.Attack).First();
+                return new[] { bestReveal };
             }
 
             if (Card != null && Card.Id == CardId.FidraulisHarmonia && hint == 504)

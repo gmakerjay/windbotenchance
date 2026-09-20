@@ -102,6 +102,11 @@ namespace WindBot.Game.AI.Decks
 
         public _2026_StunExecutor(GameAI ai, Duel duel) : base(ai, duel)
         {
+            ResourcePlan.RegisterAceCards(CardId.InspectorBoarder, CardId.BarrierStatueOfTheInferno, CardId.BarrierStatueOfTheTorrent);
+            BaitPlanner.RegisterComboStarters(CardId.PotOfDuality, CardId.NadirServant);
+            ChainAdvisor.RegisterHighValueTargets(CardId.InspectorBoarder, CardId.BarrierStatueOfTheInferno, CardId.BarrierStatueOfTheTorrent);
+            RegisterOptionalFieldRemovalCards(CardId.TheFallenAndTheVirtuous);
+
             // ═══════════════════════════════════════════════════════════════
             //  EXECUTORS PIPELINE (Tiered Priority)
             // ═══════════════════════════════════════════════════════════════

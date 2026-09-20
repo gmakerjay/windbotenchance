@@ -183,6 +183,7 @@ namespace WindBot.Game
             /*int rule = */ packet.ReadByte();
             /*int mode = */ packet.ReadByte();
             int duel_rule = packet.ReadByte();
+            Logger.WriteLine($"[JOIN-GAME-RULE] duel_rule={duel_rule}");
             /*bool nocheck deck =*/ packet.ReadByte();
             /*bool noshuffle deck =*/ packet.ReadByte();
             /*align*/ packet.ReadBytes(3);
@@ -209,6 +210,7 @@ namespace WindBot.Game
             const int DUEL_FSX_MMZONE = 0x4000;
             _ai.Duel.IsNewRule = (duel_flag & DUEL_EMZONE) != 0;
             _ai.Duel.IsNewRule2020 = (duel_flag & DUEL_FSX_MMZONE) != 0;
+            Logger.WriteLine($"[DUEL-FLAG] duel_flag=0x{duel_flag:X8} IsNewRule={_ai.Duel.IsNewRule} IsNewRule2020={_ai.Duel.IsNewRule2020}");
             BinaryWriter deck = GamePacketFactory.Create(CtosMessage.UpdateDeck);
             if (Deck == null)
             {
@@ -1470,7 +1472,9 @@ namespace WindBot.Game
         {
             packet.ReadByte(); // player
             packet.ReadByte(); // min
-            int field = ~packet.ReadInt32();
+            int rawField = packet.ReadInt32();
+            int field = ~rawField;
+            Logger.WriteLine($"[RAW-SELECT-PLACE] raw=0x{rawField:X8} inv=0x{field:X8} hint={_select_hint}");
 
             int player;
             CardLocation location;

@@ -1329,17 +1329,21 @@ namespace WindBot.Game.AI.Decks
         {
             if (IsSpecialSummonBlocked()) return false;
             if (_dominusSparkHandLocked) return false;
-            var materials = Bot.GetMonsters().Where(c => c != null && c.IsFaceup() && c.Attack <= 1000 && !c.IsSpecialSummoned && !c.HasSetcode(0x1b9) && !IsAceCard(c)).ToList();
-            return materials.Count > 0;
+            if (Bot.HasInMonstersZone(CardId.SalamangreatAlmiraj)) return false;
+            var materials = Bot.GetMonsters().Where(c => c != null && c.IsFaceup() && c.Attack <= 1000 && !c.IsSpecialSummoned && !IsAceCard(c)).ToList();
+            if (materials.Count == 0) return false;
+            if (materials.Count == 1 && materials[0].HasSetcode(0x1b9) && !IsMonsterExpendable(materials[0])) return false;
+            return true;
         }
 
         private bool LinkDiscipleSummon()
         {
             if (IsSpecialSummonBlocked()) return false;
-            var materials = Bot.GetMonsters().Where(c => c != null && c.IsFaceup() && !IsAceCard(c)).ToList();
+            if (Bot.HasInMonstersZone(CardId.LinkDisciple)) return false;
+            var materials = Bot.GetMonsters().Where(c => c != null && c.IsFaceup() && c.Level <= 4 && !c.IsExtraCard() && c.HasRace(CardRace.Cyberse) && !IsAceCard(c)).ToList();
             if (materials.Count == 0) return false;
-            if (materials.Count == 1 && materials[0].HasSetcode(0x1b9)) return false;
-            return materials.Count >= 2;
+            if (materials.Count == 1 && !IsMonsterExpendable(materials[0])) return false;
+            return true;
         }
 
         private bool LinkSpiderSummon()

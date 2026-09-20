@@ -1875,13 +1875,12 @@ namespace WindBot.Game.AI
             // Field materials
             if (c.Location == CardLocation.MonsterZone)
             {
+                if (IsAceCard(c)) return 100000;
+                if (_negateMonsters.Contains(c.Id)) return 10000;
                 if (c.HasType(CardType.Token)) return 100;
                 if (c.HasType(CardType.Normal)) return 150;
                 if (c.Attack <= 1000) return 200;
                 if (c.Attack <= 2000) return 300;
-
-                // Protect active boss monsters with disruptions on field!
-                if (_negateMonsters.Contains(c.Id)) return 10000;
                 if (c.IsExtraCard() && c.Attack >= 2500) return 5000;
 
                 return 1000;
@@ -2059,9 +2058,35 @@ namespace WindBot.Game.AI
             return base.OnSelectPosition(cardId, positions);
         }
 
+        /// <summary>Registry of card IDs that have optional field-removal effects.</summary>
+        protected readonly HashSet<int> _optionalFieldRemovalCards = new HashSet<int>
+        {
+            95232014, // Dracotail Pan
+            95232011, // Dracotail Urgula
+            74701381, // Epurrely Plump
+            92487127, // Tensei Ryu-Ge Anva
+            24094258, // Varudras, the Final Bringer of the End Times
+            2526224,  // Fire King High Avatar Kirin
+            91230101, // Cooky Way
+            101402003 // Fisherman Legend of the Sea
+        };
+
+        /// <summary>
+        /// Register card IDs with optional field removal (destroy/banish/bounce)
+        /// so OnSelectYesNo automatically guards against self-targeting when enemy board is empty.
+        /// </summary>
+        public void RegisterOptionalFieldRemovalCards(params int[] cardIds)
+        {
+            if (cardIds != null)
+            {
+                foreach (var id in cardIds)
+                    _optionalFieldRemovalCards.Add(id);
+            }
+        }
+
         /// <summary>
         /// Universal Yes/No prompt safety guard:
-        /// Prevents self-destruction when prompted for optional field removals (destroy/banish)
+        /// Prevents self-destruction when prompted for optional field removals (destroy/banish/bounce)
         /// if the opponent has no valid targets on the field.
         /// </summary>
         public override bool OnSelectYesNo(long desc)
@@ -2086,12 +2111,43 @@ namespace WindBot.Game.AI
 
             // Safeguard 4: Universal empty opponent field trap
             // If enemy has no cards on field, refuse optional removal prompts to avoid destroying own cards
-            if (Enemy.GetMonsterCount() == 0 && Enemy.GetSpellCount() == 0)
+            int enemyMonsters = Enemy.GetMonsterCount();
+            int enemySpells = Enemy.GetSpellCount();
+            int enemyTotal = enemyMonsters + enemySpells;
+
+            if (enemyTotal == 0)
             {
-                long cardIdFromDesc = (desc >> 20);
+                long cardIdFromDesc20 = (desc >> 20);
                 long cardIdFromDesc4 = (desc >> 4);
-                if (cardIdFromDesc == 95232014 || cardIdFromDesc == 95232011 || cardIdFromDesc == 74701381 ||
-                    cardIdFromDesc4 == 95232014 || cardIdFromDesc4 == 95232011 || cardIdFromDesc4 == 74701381)
+                int lastCardId = Card?.Id ?? LastChainCard?.Id ?? 0;
+
+                if (_optionalFieldRemovalCards.Contains((int)cardIdFromDesc20) ||
+                    _optionalFieldRemovalCards.Contains((int)cardIdFromDesc4) ||
+                    _optionalFieldRemovalCards.Contains(lastCardId))
+                {
+                    return false;
+                }
+            }
+
+            // If enemy has no monsters, refuse monster-only destruction prompts
+            if (enemyMonsters == 0)
+            {
+                long cardIdFromDesc20 = (desc >> 20);
+                long cardIdFromDesc4 = (desc >> 4);
+                if (cardIdFromDesc20 == 95232014 || cardIdFromDesc4 == 95232014 || // Pan
+                    cardIdFromDesc20 == 74701381 || cardIdFromDesc4 == 74701381 || // Plump
+                    cardIdFromDesc20 == 92487127 || cardIdFromDesc4 == 92487127)   // Anva
+                {
+                    return false;
+                }
+            }
+
+            // If enemy has no spells, refuse spell-only destruction prompts
+            if (enemySpells == 0)
+            {
+                long cardIdFromDesc20 = (desc >> 20);
+                long cardIdFromDesc4 = (desc >> 4);
+                if (cardIdFromDesc20 == 95232011 || cardIdFromDesc4 == 95232011) // Urgula
                 {
                     return false;
                 }

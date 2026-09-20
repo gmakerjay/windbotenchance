@@ -1194,7 +1194,8 @@ namespace WindBot.Game.AI.Decks
                         var oppBosses = cards.Where(c => c.Controller == 1 && c.Attack >= 2500).ToList();
                         if (oppBosses.Count > 0) return new[] { oppBosses[0] };
                         
-                        return new[] { cards[0] };
+                        var bestCard = cards.OrderByDescending(c => c.Attack).First();
+                        return new[] { bestCard };
                     }
                 }
 

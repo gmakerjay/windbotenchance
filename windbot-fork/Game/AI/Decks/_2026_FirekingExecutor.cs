@@ -155,12 +155,13 @@ namespace WindBot.Game.AI.Decks
                 EndBoardScore = 80
             });
 
-            // โ”€โ”€ Bait Planner โ”€โ”€
+            // —— Bait Planner ——
             BaitPlanner.RegisterComboStarters(CardId.LegendaryFireKingPonix, CardId.FireKingCourtierUlcanix, CardId.FireKingIsland);
             BaitPlanner.RegisterBaitCards(CardId.FossilDig, CardId.FireKingSanctuary);
 
-            // โ”€โ”€ Chain Advisor โ”€โ”€
+            // ── Chain Advisor ──
             ChainAdvisor.RegisterHighValueTargets(CardId.LegendaryFireKingPonix, CardId.FireKingCourtierUlcanix, CardId.FireKingIsland);
+            RegisterOptionalFieldRemovalCards(CardId.FireKingHighAvatarKirin, CardId.FireKingIsland);
 
             // TIER 1: Hand Traps (do not chain to ourselves!)
             AddExecutor(ExecutorType.Activate, CardId.MulcharmyPurulia, MulcharmyEffect);
@@ -301,6 +302,10 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location == CardLocation.Hand)
             {
+                // In opponent's turn: only disrupt if enemy has cards
+                if (Duel.Player == 1 && Enemy.GetMonsterCount() == 0 && Enemy.GetSpellCount() == 0)
+                    return false;
+
                 if (ShouldSkipCombo()) return false;
                 var popTargets = Bot.Hand.Concat(Bot.GetMonsters())
                     .Where(c => c != null && c.HasAttribute(CardAttribute.Fire) && c != Card && (c.Location != CardLocation.MonsterZone || c.IsFaceup()));
@@ -494,6 +499,10 @@ namespace WindBot.Game.AI.Decks
             if (Card.Location == CardLocation.Hand)
             {
                 if (Bot.HasInSpellZone(CardId.FireKingIsland)) return false;
+                // Never replace an existing Island if we control monsters and don't have Sanctuary protection!
+                var currentField = Bot.SpellZone[5];
+                if (currentField != null && currentField.IsCode(CardId.FireKingIsland) && Bot.GetMonsterCount() > 0 && !Bot.HasInSpellZone(CardId.FireKingSanctuary))
+                    return false;
                 return true;
             }
 
@@ -872,6 +881,17 @@ namespace WindBot.Game.AI.Decks
                     return 50;
                 }).ToList();
                 return sorted.Take(max).ToList();
+            }
+
+            // Hint 503: Destroy - if enemy cards are available, ALWAYS prioritize destroying opponent cards!
+            if (hint == 503)
+            {
+                var enemyTargets = cards.Where(c => c != null && c.Controller == 1).ToList();
+                if (enemyTargets.Count > 0)
+                {
+                    var sortedEnemy = enemyTargets.OrderByDescending(c => Scorer != null ? Scorer.ThreatScore(c) : (c.IsMonster() ? c.Attack : 1000)).ToList();
+                    return sortedEnemy.Take(Math.Min(max, sortedEnemy.Count)).ToList();
+                }
             }
 
             // Protect Aces in material/cost card selections (hints: materials, destroy, cost, target, remove, tograve)

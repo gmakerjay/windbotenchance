@@ -227,6 +227,9 @@ namespace WindBot.Game.AI.Decks
             : base(ai, duel)
         {
             HeuristicGuard.RegisterAceCards(BossMonsters);
+            ResourcePlan.RegisterAceCards(BossMonsters);
+            BaitPlanner.RegisterComboStarters(CardId.MyFriendPurrely, CardId.StrayPurrelyStreet, CardId.Purrelyly, CardId.Purrely);
+            ChainAdvisor.RegisterHighValueTargets(CardId.ExpurrelyNoir, CardId.EpurrelyPlump, CardId.EpurrelyHappiness, CardId.MyFriendPurrely);
 
             ComboRouter.RegisterLine(new ComboLine
             {

@@ -1297,11 +1297,11 @@ namespace WindBot.Game.AI.Decks
                     var djehuty = cards.FirstOrDefault(c => c.Id == CardId.DarklordDjehuty);
                     if (djehuty != null && Bot.Hand.Count(c => c != null && c.Id == CardId.DarklordDjehuty) > 1) return new[] { djehuty };
 
-                    var safeDiscards = cards.Where(c => !IsAceCard(c) && !HandTraps.Contains(c.Id) && c.Id != CardId.DarklordDance && c.Id != CardId.BanishmentOfTheDarklords).ToList();
-                    if (safeDiscards.Count > 0) return new[] { safeDiscards[0] };
+                    var safeDiscards = cards.Where(c => !IsAceCard(c) && !HandTraps.Contains(c.Id) && c.Id != CardId.DarklordDance && c.Id != CardId.BanishmentOfTheDarklords).OrderBy(c => c.Attack).ToList();
+                    if (safeDiscards.Count > 0) return new[] { safeDiscards.First() };
 
-                    var nonAces = cards.Where(c => !IsAceCard(c) && c.Id != CardId.DarklordDance).ToList();
-                    if (nonAces.Count > 0) return new[] { nonAces[0] };
+                    var nonAces = cards.Where(c => !IsAceCard(c) && c.Id != CardId.DarklordDance).OrderBy(c => c.Attack).ToList();
+                    if (nonAces.Count > 0) return new[] { nonAces.First() };
                 }
 
                 // ============ Condemned Darklord Search Target ============
@@ -1600,7 +1600,8 @@ namespace WindBot.Game.AI.Decks
                     var sanctified = cards.FirstOrDefault(c => c.Id == CardId.TheSanctifiedDarklord);
                     if (sanctified != null) return new[] { sanctified };
 
-                    return new[] { cards[0] };
+                    var bestFallback = cards.OrderByDescending(c => c.HasType(CardType.Spell | CardType.Trap) ? 100 : c.Attack).First();
+                    return new[] { bestFallback };
                 }
             }
 

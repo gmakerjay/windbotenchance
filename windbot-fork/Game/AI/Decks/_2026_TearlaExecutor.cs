@@ -140,6 +140,39 @@ namespace WindBot.Game.AI.Decks
 
         public _2026_TearlaExecutor(GameAI ai, Duel duel) : base(ai, duel)
         {
+            // ── Combo Router Routes ──
+            ComboRouter.RegisterLine(new ComboRouter.ComboLine
+            {
+                Name = "Reinoheart-Kitkallos-Fusion",
+                RequiredCards = new List<int> { CardId.TearlamentsReinoheart },
+                Steps = new List<ComboRouter.ComboStep>
+                {
+                    new() { CardId = CardId.TearlamentsReinoheart, ActionType = ExecutorType.Summon, Description = "Summon Reinoheart" },
+                    new() { CardId = CardId.TearlamentsReinoheart, ActionType = ExecutorType.Activate, Description = "Reinoheart send Havnis/Scheiren" },
+                    new() { CardId = CardId.TearlamentsKitkallos, ActionType = ExecutorType.SpSummon, Description = "Fusion Kitkallos" },
+                    new() { CardId = CardId.TearlamentsKitkallos, ActionType = ExecutorType.Activate, Description = "Kitkallos search/mill" }
+                },
+                EndBoardScore = 85
+            });
+
+            ComboRouter.RegisterLine(new ComboRouter.ComboLine
+            {
+                Name = "Fiendsmith-Requiem-Sequence",
+                RequiredCards = new List<int> { CardId.FiendsmithEngraver },
+                Steps = new List<ComboRouter.ComboStep>
+                {
+                    new() { CardId = CardId.FiendsmithEngraver, ActionType = ExecutorType.Activate, Description = "Discard Engraver to search Tract" },
+                    new() { CardId = CardId.FiendsmithsTract, ActionType = ExecutorType.Activate, Description = "Tract search Lurrie" },
+                    new() { CardId = CardId.FiendsmithsRequiem, ActionType = ExecutorType.SpSummon, Description = "Link Requiem" },
+                    new() { CardId = CardId.FiendsmithsSequence, ActionType = ExecutorType.SpSummon, Description = "Link Sequence" }
+                },
+                EndBoardScore = 90
+            });
+
+            BaitPlanner.RegisterComboStarters(CardId.TearlamentsReinoheart, CardId.BrilliantFusion, CardId.FiendsmithEngraver, CardId.FiendsmithsTract);
+            ChainAdvisor.RegisterHighValueTargets(CardId.TearlamentsKitkallos, CardId.TearlamentsRulkallos, CardId.TearlamentsKaleidoHeart, CardId.FiendsmithsDesirae);
+            ResourcePlan.RegisterAceCards(CardId.TearlamentsRulkallos, CardId.TearlamentsKaleidoHeart, CardId.FiendsmithsDesirae, CardId.SPLittleKnight, CardId.PilgrimReaper, CardId.KashtiraFenrir);
+
             // ═══════════════════════════════════════════════════════════════
             //  EXECUTORS PIPELINE (Tiered Priority)
             // ═══════════════════════════════════════════════════════════════

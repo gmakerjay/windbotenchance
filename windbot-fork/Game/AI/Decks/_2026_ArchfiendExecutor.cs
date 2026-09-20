@@ -470,7 +470,8 @@ namespace WindBot.Game.AI.Decks
 
             if (Card != null && Card.Id == CardId.RegenesisArchfiend && min == 0 && cards.Count > 0)
             {
-                return new[] { cards[0] };
+                var bestReveal = cards.FirstOrDefault(c => c.Attack == 2500 || c.Defense == 2500) ?? cards.OrderByDescending(c => c.Attack).First();
+                return new[] { bestReveal };
             }
 
             // Material selection hint (protect field Aces)
