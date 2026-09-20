@@ -3,31 +3,32 @@
 // ============================================================================
 // | Card Name                          | Type         | OPT? | HOPT? | Cost    | Effect Summary                                | Activate When                                | NEVER Activate When                         |
 // |------------------------------------|--------------|------|-------|---------|-----------------------------------------------|----------------------------------------------|---------------------------------------------|
-// | Black Chaos                        | Monster L8   | Yes  | Yes   | Shuffle | SS by shuffling Ritual, banish 2 opp cards    | Ritual in hand/GY, opp has cards to banish   | Bot has no Ritual in hand/GY to recycle     |
+// | Dark Magician                      | Normal L7    | No   | No    | None    | 2500 ATK core beatstick / fusion material     | Primary target for Curtain, Timaeus, Secrets  | Never tribute without benefit               |
 // | Dark Magician, Pharaoh's Servant   | Monster L7   | Yes  | Yes   | Reveal  | SS by reveal Spell, Set DM S/T, Quick Duster  | Spell in hand; Quick duster opp backrow >= 1 | No spells in hand; opp backrow = 0          |
-// | Skull Archfiend of Chaos           | Monster L6   | Yes  | Yes   | Shuffle | SS by recycling 3 cards; dump Ritual Spell    | 3+ cards in GY/banish; search Ritual monster | GY/banish < 3                               |
 // | Dark Magician Girl                 | Monster L6   | No   | No    | None    | 2000 ATK + 300 per DM/MoBC in GY              | Material for Timaeus / Dark Magician Destr   | Tributes needed for Ritual                  |
-// | Detonating Kuriboh                 | Monster L1   | Yes  | Yes   | Equip   | Hand Quick: Equip to opp monster & negate     | Opp monster activates on field               | Opp activates in GY/hand                    |
-// | Griffoh                            | Monster L1   | Yes  | Yes   | Discard | Hand Quick: Set Ritual S/T & activate turn    | Discard to Set Mind Shuffle/Box/Hats/Sword   | Already used Griffoh this turn              |
-// | Multiplying Kuriboh!               | Monster L1   | No   | No    | Discard | Hand Quick: Special Summon Kuriboh Tokens     | Opponent Special Summons (prevent OTK)       | Field full (zones = 0)                      |
-// | BLS - Soldier of Light & Darkness  | Ritual L8    | Yes  | Yes   | Tribute | Banish 1 card on SS; +1500 ATK & double atk   | Ritual Summoned via Light & Darkness Ritual  | Opponent has no cards and no battle targets |
+// | Skull Archfiend of Chaos           | Monster L6   | Yes  | Yes   | Shuffle | SS by recycling 3 cards; dump Ritual Spell    | 3+ cards in GY/banish; search Ritual monster | GY/banish < 3                               |
+// | Black Chaos                        | Monster L8   | Yes  | Yes   | Shuffle | SS by shuffling Ritual, banish 2 opp cards    | Ritual in hand/GY, opp has cards to banish   | Bot has no Ritual in hand/GY to recycle     |
 // | Magician of Dark Chaos-Black Chaos | Ritual L8    | Yes  | Yes   | Tribute | Recover Spell from GY on SS; banish FD card   | Ritual Summoned via Light & Darkness Ritual  | GY has 0 Spells                             |
+// | BLS - Soldier of Light & Darkness  | Ritual L8    | Yes  | Yes   | Tribute | Banish 1 card on SS; +1500 ATK & double atk   | Ritual Summoned via Light & Darkness Ritual  | Opponent has no cards and no battle targets |
 // | Illusion of Chaos                  | Ritual L7    | Yes  | Yes   | Reveal  | Reveal -> search Pharaoh's Servant/DM         | In hand; search starter monster              | Already searched this turn                  |
+// | Griffoh                            | Monster L1   | Yes  | Yes   | Discard | Hand Quick: Set Ritual S/T & activate turn    | Discard to Set Mind Shuffle/Box/Hats/Sword   | Already used Griffoh this turn              |
+// | Detonating Kuriboh                 | Monster L1   | Yes  | Yes   | Equip   | Hand Quick: Equip to opp monster & negate     | Opp monster activates on field               | Opp activates in GY/hand                    |
+// | Multiplying Kuriboh!               | Monster L1   | No   | No    | Discard | Hand Quick: Special Summon Kuriboh Tokens     | Opponent Special Summons (prevent OTK)       | Field full (zones = 0)                      |
 // | Pot of Prosperity                  | Spell Normal | Yes  | Yes   | Banish  | Excavate 3/6, add 1, banish ED cards          | Main Phase 1 early starter                   | Hand already has full combo                 |
 // | Pre-Preparation of Rites           | Spell Normal | Yes  | Yes   | None    | Add Light & Darkness Ritual + Ritual monster  | Deck has Ritual Spell & Ritual Monster       | No targets left in deck                     |
 // | Preparation of Rites               | Spell Normal | No   | No    | None    | Add Level 7 or lower Ritual monster + GY Spell| Hand needs Illusion of Chaos                 | No Level <= 7 Ritual in deck                |
-// | Triple Tactics Talent              | Spell Normal | Yes  | Yes   | None    | Draw 2 / Steal monster / Shuffle opp hand     | Opp activated monster eff in Main Phase      | Opp did not activate monster eff in MP      |
-// | Soul Servant                       | Spell Quick  | Yes  | Yes   | Banish  | Place DM card on deck top; banish GY draw    | Set top card or draw cards in Main Phase     | Deck empty or no valid targets              |
-// | Dark Magical Curtain               | Spell Normal | Yes  | Yes   | None    | SS DARK Spellcaster from Dk + search DM S/T   | Bot needs DM/DMG on field                    | Opponent benefits heavily or bot locked     |
-// | Forbidden Crown                    | Spell Quick  | Yes  | Yes   | None    | Unrespondable negate + freeze opp monster     | Opp threat monster on field / combo starter  | Target already negated                      |
-// | Spell Shattering Sword             | Spell Quick  | Yes  | Yes   | None    | Pop all opp face-up Spells OR negate+0 ATK    | Opp has face-up Spells or dangerous monster  | Opp has no targets                          |
-// | The Gaze of Timaeus                | Spell Quick  | Yes  | Yes   | Shuffle | Target DM/DMG on field/GY -> Fusion Summon   | DM/DMG available; SS Dragoon / Chimera       | No valid DM/DMG available                   |
-// | Swords of Concealing Light         | Spell Cont   | No   | No    | None    | Flip all opp monsters face-down Defense       | Opponent has 2+ dangerous face-up monsters   | Opponent has 0 face-up monsters             |
 // | Light and Darkness Ritual          | Spell Ritual | Yes  | Yes   | Tribute | Ritual Summon MoDC or BLS from hand/GY banish | Hand has Ritual boss; GY recursion ready     | No valid tribute / materials                |
-// | Chaos Space                        | Spell Normal | Yes  | Yes   | Discard | Discard Light/Dark -> Add opposite attribute  | Hand has discardable Light/Dark              | No valid target in Deck                     |
+// | Dark Magical Curtain               | Spell Normal | Yes  | Yes   | None    | SS DARK Spellcaster from Dk + search DM S/T   | Bot needs DM/DMG on field                    | Opponent benefits heavily or bot locked     |
+// | The Gaze of Timaeus                | Spell Quick  | Yes  | Yes   | Shuffle | Target DM/DMG on field/GY -> Fusion Summon   | DM/DMG available; SS Dragoon / Chimera       | No valid DM/DMG available                   |
+// | Soul Servant                       | Spell Quick  | Yes  | Yes   | Banish  | Place DM card on deck top; banish GY draw    | Set top card or draw cards in Main Phase     | Deck empty or no valid targets              |
 // | Secrets of Dark Magic              | Spell Quick  | No   | No    | Tribute | Quick Fusion or Ritual using DM/DMG          | During battle / chain to dodge removal       | No valid materials                          |
-// | Chaos Magical Hats                 | Spell Quick  | No   | No    | None    | Defend attack/effect, set 3 S/T as monsters  | Opp activates monster eff or normal S/T      | Bot has no DM/Ritual monster on field       |
+// | Chaos Space                        | Spell Normal | Yes  | Yes   | Discard | Discard Light/Dark -> Add opposite attribute  | Hand has discardable Light/Dark              | No valid target in Deck                     |
+// | Triple Tactics Talent              | Spell Normal | Yes  | Yes   | None    | Draw 2 / Steal monster / Shuffle opp hand     | Opp activated monster eff in Main Phase      | Opp did not activate monster eff in MP      |
+// | Swords of Concealing Light         | Spell Cont   | No   | No    | None    | Flip all opp monsters face-down Defense       | Opponent has 2+ dangerous face-up monsters   | Opponent has 0 face-up monsters             |
+// | Spell Shattering Sword             | Spell Quick  | Yes  | Yes   | None    | Pop all opp face-up Spells OR negate+0 ATK    | Opp has face-up Spells or dangerous monster  | Opp has no targets                          |
+// | Forbidden Crown                    | Spell Quick  | Yes  | Yes   | None    | Unrespondable negate + freeze opp monster     | Opp threat monster on field / combo starter  | Target already negated                      |
 // | Chaos Mystic Box                   | Spell Quick  | No   | No    | Bounce  | Save targeted card, pop 1, SS Ritual boss     | Opp targets bot card; pop opp card           | Opp does not target bot card                |
+// | Chaos Magical Hats                 | Spell Quick  | No   | No    | None    | Defend attack/effect, set 3 S/T as monsters  | Opp activates monster eff or normal S/T      | Bot has no DM/Ritual monster on field       |
 // | Dominus Impulse                    | Trap Normal  | Yes  | Yes   | None    | Handtrap negate of Special Summoning effect   | Opp activates card/eff that special summons  | Opp effect does not special summon          |
 // | Mind Shuffle                       | Trap Cont    | Yes  | Yes   | Discard | Search Ritual monster; bounce L7+ to SS boss | In play / Set; search and dodge removal      | Already used both effects this turn         |
 // | Dark Magic Talisman                | Trap Normal  | No   | No    | 2500 LP | Negate monster eff responding to DM card      | Opp chains monster effect to DM card         | No DM effect being chained                  |
@@ -57,39 +58,40 @@ namespace WindBot.Game.AI.Decks
         public class CardId
         {
             // Main Deck Monsters
-            public const int BlackChaos = 98684220;
+            public const int DarkMagician = 46986414;
             public const int DarkMagicianThePharaohsServant = 88570003;
-            public const int SkullArchfiendOfChaos = 24088928;
             public const int DarkMagicianGirl = 38033122;
-            public const int DetonatingKuriboh = 46789706;
-            public const int Griffoh = 97462632;
-            public const int MultiplyingKuriboh = 14965712;
-            public const int BlackLusterSoldierSoldierOfLightAndDarkness = 70405001;
+            public const int SkullArchfiendOfChaos = 24088928;
+            public const int BlackChaos = 98684220;
             public const int MagicianOfDarkChaosBlackChaos = 44001993;
+            public const int BlackLusterSoldierSoldierOfLightAndDarkness = 70405001;
             public const int IllusionOfChaos = 12266229;
+            public const int Griffoh = 97462632;
+            public const int DetonatingKuriboh = 46789706;
+            public const int MultiplyingKuriboh = 14965712;
 
             // Spells
             public const int PotOfProsperity = 84211599;
             public const int PreparationOfRites = 96729612;
-            public const int TripleTacticsTalent = 25311006;
-            public const int ChaosMagicalHats = 2372506;
-            public const int ChaosMysticBox = 75983808;
-            public const int DarkMagicalCurtain = 41350417;
-            public const int ForbiddenCrown = 98829635;
-            public const int SoulServant = 23020408;
-            public const int SpellShatteringSword_Old = 101402064;
-            public const int SpellShatteringSword = 77456448;
-            public const int TheGazeOfTimaeus = 22283204;
-            public const int SwordsOfConcealingLight = 12923641;
-            public const int LightAndDarknessRitual = 33599853;
             public const int PrePreparationOfRites = 13048472;
+            public const int LightAndDarknessRitual = 33599853;
+            public const int DarkMagicalCurtain = 41350417;
+            public const int TheGazeOfTimaeus = 22283204;
+            public const int SoulServant = 23020408;
             public const int SecretsOfDarkMagic = 59514116;
             public const int ChaosSpace = 99266988;
+            public const int TripleTacticsTalent = 25311006;
+            public const int SwordsOfConcealingLight = 12923641;
+            public const int SpellShatteringSword_Old = 101402064;
+            public const int SpellShatteringSword = 77456448;
+            public const int ForbiddenCrown = 98829635;
+            public const int ChaosMysticBox = 75983808;
+            public const int ChaosMagicalHats = 2372506;
 
             // Traps
-            public const int DarkMagicTalisman = 71440209;
             public const int DominusImpulse = 40366667;
             public const int MindShuffle = 24749710;
+            public const int DarkMagicTalisman = 71440209;
 
             // Extra Deck
             public const int TimaeusTheUnitedMagicalDragon = 85899505;
@@ -107,23 +109,35 @@ namespace WindBot.Game.AI.Decks
             public const int EbonHighMagician = 96471335;
         }
 
+        // State tracking
+        private bool _usedIllusionSearchThisTurn = false;
+        private bool _spellActivatedThisTurn = false;
+        private int _lastSearchedCardId = 0;
+
         public Anime_YugiExecutor(GameAI ai, Duel duel)
             : base(ai, duel)
         {
-            // Register priority rules
             RegisterExecutors();
+        }
+
+        public override void OnNewTurn()
+        {
+            base.OnNewTurn();
+            _usedIllusionSearchThisTurn = false;
+            _spellActivatedThisTurn = false;
+            _lastSearchedCardId = 0;
         }
 
         private void RegisterExecutors()
         {
             // -------------------------------------------------------------
-            // 1. High Priority Handtraps & Counter Disruption (Chain Phase)
+            // 1. High Priority Counters & Quick Interruptions (Chain Phase)
             // -------------------------------------------------------------
+            AddExecutor(ExecutorType.Activate, CardId.RedEyesDarkDragoon, RedEyesDarkDragoonNegateActivate);
+            AddExecutor(ExecutorType.Activate, CardId.DarkCavalry, DarkCavalryNegateActivate);
             AddExecutor(ExecutorType.Activate, CardId.DominusImpulse, DominusImpulseActivate);
             AddExecutor(ExecutorType.Activate, CardId.DarkMagicTalisman, DarkMagicTalismanActivate);
             AddExecutor(ExecutorType.Activate, CardId.DetonatingKuriboh, DetonatingKuribohActivate);
-            AddExecutor(ExecutorType.Activate, CardId.RedEyesDarkDragoon, RedEyesDarkDragoonNegateActivate);
-            AddExecutor(ExecutorType.Activate, CardId.DarkCavalry, DarkCavalryNegateActivate);
             AddExecutor(ExecutorType.Activate, CardId.ForbiddenCrown, ForbiddenCrownActivate);
             AddExecutor(ExecutorType.Activate, CardId.ChaosMysticBox, ChaosMysticBoxActivate);
             AddExecutor(ExecutorType.Activate, CardId.ChaosMagicalHats, ChaosMagicalHatsActivate);
@@ -135,37 +149,38 @@ namespace WindBot.Game.AI.Decks
             // -------------------------------------------------------------
             AddExecutor(ExecutorType.Activate, CardId.SpellShatteringSword_Old, SpellShatteringSwordActivate);
             AddExecutor(ExecutorType.Activate, CardId.SpellShatteringSword, SpellShatteringSwordActivate);
-            AddExecutor(ExecutorType.Activate, CardId.Griffoh, GriffohActivate);
-            AddExecutor(ExecutorType.Activate, CardId.MindShuffle, MindShuffleActivate);
             AddExecutor(ExecutorType.Activate, CardId.DarkMagicianThePharaohsServant, PharaohsServantQuickWipeActivate);
             AddExecutor(ExecutorType.Activate, CardId.IllusionOfChaos, IllusionOfChaosFieldNegateActivate);
 
             // -------------------------------------------------------------
-            // 3. Main Phase 1 Consistency & Search Starters
+            // 3. Main Phase 1 Starters & Search Engine (Top Priority!)
             // -------------------------------------------------------------
-            AddExecutor(ExecutorType.Activate, CardId.PotOfProsperity, PotOfProsperityActivate);
-            AddExecutor(ExecutorType.Activate, CardId.PrePreparationOfRites, PrePreparationOfRitesActivate);
-            AddExecutor(ExecutorType.Activate, CardId.PreparationOfRites, PreparationOfRitesActivate);
             AddExecutor(ExecutorType.Activate, CardId.IllusionOfChaos, IllusionOfChaosHandSearchActivate);
-            AddExecutor(ExecutorType.Activate, CardId.SoulServant, SoulServantActivate);
-            AddExecutor(ExecutorType.Activate, CardId.TripleTacticsTalent, TripleTacticsTalentActivate);
-            AddExecutor(ExecutorType.Activate, CardId.DarkMagicalCurtain, DarkMagicalCurtainActivate);
-            AddExecutor(ExecutorType.Activate, CardId.ChaosSpace, ChaosSpaceActivate);
+            AddExecutor(ExecutorType.Activate, CardId.PreparationOfRites, PreparationOfRitesActivate);
+            AddExecutor(ExecutorType.Activate, CardId.PrePreparationOfRites, PrePreparationOfRitesActivate);
+            AddExecutor(ExecutorType.Activate, CardId.Griffoh, GriffohActivate);
+            AddExecutor(ExecutorType.Activate, CardId.BlackChaos, BlackChaosHandActivate);
+            AddExecutor(ExecutorType.Activate, CardId.MindShuffle, MindShuffleActivate);
 
             // -------------------------------------------------------------
-            // 4. Main Phase Board Breakers & Spells
-            // -------------------------------------------------------------
-            AddExecutor(ExecutorType.Activate, CardId.SwordsOfConcealingLight, SwordsOfConcealingLightActivate);
-
-            // -------------------------------------------------------------
-            // 5. Special Summons & Combos
+            // 4. Special Summons & Combo Extensions
             // -------------------------------------------------------------
             AddExecutor(ExecutorType.Activate, CardId.DarkMagicianThePharaohsServant, PharaohsServantHandSSActivate);
             AddExecutor(ExecutorType.SpSummon, CardId.DarkMagicianOfDestruction, DarkMagicianOfDestructionSummon);
             AddExecutor(ExecutorType.Activate, CardId.DarkMagicianOfDestruction, DarkMagicianOfDestructionEffect);
-            AddExecutor(ExecutorType.Activate, CardId.LightAndDarknessRitual, LightAndDarknessRitualActivate);
             AddExecutor(ExecutorType.Activate, CardId.TheGazeOfTimaeus, TheGazeOfTimaeusActivate);
+            AddExecutor(ExecutorType.Activate, CardId.DarkMagicalCurtain, DarkMagicalCurtainActivate);
+            AddExecutor(ExecutorType.Activate, CardId.LightAndDarknessRitual, LightAndDarknessRitualActivate);
+            AddExecutor(ExecutorType.Activate, CardId.SoulServant, SoulServantActivate);
+            AddExecutor(ExecutorType.Activate, CardId.PotOfProsperity, PotOfProsperityActivate);
             AddExecutor(ExecutorType.Activate, CardId.SecretsOfDarkMagic, SecretsOfDarkMagicActivate);
+            AddExecutor(ExecutorType.Activate, CardId.ChaosSpace, ChaosSpaceActivate);
+            AddExecutor(ExecutorType.Activate, CardId.TripleTacticsTalent, TripleTacticsTalentActivate);
+
+            // -------------------------------------------------------------
+            // 5. Board Breakers & Black Chaos Summons
+            // -------------------------------------------------------------
+            AddExecutor(ExecutorType.Activate, CardId.SwordsOfConcealingLight, SwordsOfConcealingLightActivate);
             AddExecutor(ExecutorType.SpSummon, CardId.BlackChaos, BlackChaosSummon);
             AddExecutor(ExecutorType.Activate, CardId.BlackChaos, BlackChaosEffect);
             AddExecutor(ExecutorType.Activate, CardId.SkullArchfiendOfChaos, SkullArchfiendOfChaosEffect);
@@ -190,14 +205,15 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.SpSummon, CardId.Linkuriboh, LinkuribohSummon);
 
             // -------------------------------------------------------------
-            // 8. Normal Summons & Sets
+            // 8. Normal Summons (Guaranteed active, no impossible tribute locks)
             // -------------------------------------------------------------
             AddExecutor(ExecutorType.Summon, CardId.Griffoh, GriffohSummon);
             AddExecutor(ExecutorType.Summon, CardId.DetonatingKuriboh, DetonatingKuribohSummon);
             AddExecutor(ExecutorType.Summon, CardId.MultiplyingKuriboh, MultiplyingKuribohSummon);
-            AddExecutor(ExecutorType.Summon, CardId.SkullArchfiendOfChaos, SkullArchfiendSummon);
             AddExecutor(ExecutorType.Summon, CardId.DarkMagicianGirl, DarkMagicianGirlSummon);
+            AddExecutor(ExecutorType.Summon, CardId.SkullArchfiendOfChaos, SkullArchfiendSummon);
             AddExecutor(ExecutorType.Summon, CardId.DarkMagicianThePharaohsServant, PharaohsServantNormalSummon);
+            AddExecutor(ExecutorType.Summon, CardId.DarkMagician, DarkMagicianNormalSummon);
 
             // -------------------------------------------------------------
             // 9. Spell & Trap Setting
@@ -212,23 +228,34 @@ namespace WindBot.Game.AI.Decks
         // EXECUTION IMPLEMENTATIONS
         // =================================================================
 
+        private bool RedEyesDarkDragoonNegateActivate()
+        {
+            if (Card.Location != CardLocation.MonsterZone || Card.IsFacedown()) return false;
+            if (Duel.LastChainPlayer != 1) return false;
+            return true;
+        }
+
+        private bool DarkCavalryNegateActivate()
+        {
+            if (Card.Location != CardLocation.MonsterZone || Card.IsFacedown()) return false;
+            if (Duel.LastChainPlayer != 1) return false;
+            return true;
+        }
+
         private bool DominusImpulseActivate()
         {
-            // Negate opponent card/effect that includes Special Summoning
             if (Duel.LastChainPlayer != 1) return false;
             return true;
         }
 
         private bool DarkMagicTalismanActivate()
         {
-            // Negates monster effect activated in response to Dark Magician card
             if (Duel.LastChainPlayer != 1) return false;
             return true;
         }
 
         private bool DetonatingKuribohActivate()
         {
-            // When opponent activates monster effect on field, equip to negate
             if (Duel.LastChainPlayer != 1) return false;
             ClientCard lastChainCard = Util.GetLastChainCard();
             if (lastChainCard != null && lastChainCard.Controller == 1 && lastChainCard.Location == CardLocation.MonsterZone)
@@ -238,30 +265,6 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
-        private bool RedEyesDarkDragoonNegateActivate()
-        {
-            // Discard 1 card to negate activation and destroy
-            if (Card.Location != CardLocation.MonsterZone || Card.IsFacedown()) return false;
-            if (Duel.LastChainPlayer != 1) return false;
-            return true;
-        }
-
-        private bool RedEyesDarkDragoonPopActivate()
-        {
-            // In MP: pop opponent monster and burn
-            if (Card.Location != CardLocation.MonsterZone || Card.IsFacedown()) return false;
-            if (Duel.Phase != DuelPhase.Main1 && Duel.Phase != DuelPhase.Main2) return false;
-            return Enemy.GetMonsters().Any(m => m.IsFaceup());
-        }
-
-        private bool DarkCavalryNegateActivate()
-        {
-            // Negate effect that targets card on field
-            if (Card.Location != CardLocation.MonsterZone || Card.IsFacedown()) return false;
-            if (Duel.LastChainPlayer != 1) return false;
-            return true;
-        }
-
         private bool ForbiddenCrownActivate()
         {
             // Negate and freeze high threat face-up monster
@@ -269,6 +272,7 @@ namespace WindBot.Game.AI.Decks
             if (target != null)
             {
                 AI.SelectCard(target);
+                _spellActivatedThisTurn = true;
                 return true;
             }
             if (Duel.LastChainPlayer == 1)
@@ -277,6 +281,7 @@ namespace WindBot.Game.AI.Decks
                 if (chainCard != null && chainCard.Location == CardLocation.MonsterZone && chainCard.IsFaceup())
                 {
                     AI.SelectCard(chainCard);
+                    _spellActivatedThisTurn = true;
                     return true;
                 }
             }
@@ -285,28 +290,30 @@ namespace WindBot.Game.AI.Decks
 
         private bool ChaosMysticBoxActivate()
         {
-            // Quick-Play: protects targeted card, pops opponent card, SS ritual
             if (Duel.LastChainPlayer != 1) return false;
+            _spellActivatedThisTurn = true;
             return true;
         }
 
         private bool ChaosMagicalHatsActivate()
         {
-            // Disrupts opponent monster effect or normal S/T
             if (Duel.LastChainPlayer != 1) return false;
-            return Bot.GetMonsters().Any(m => m.IsFaceup());
+            if (Bot.GetMonsters().Any(m => m.IsFaceup()))
+            {
+                _spellActivatedThisTurn = true;
+                return true;
+            }
+            return false;
         }
 
         private bool MultiplyingKuribohActivate()
         {
-            // Special Summons defensive tokens on opponent SS
             if (Duel.LastChainPlayer != 1) return false;
             return Bot.GetMonsterCount() < 5;
         }
 
         private bool LinkuribohActivate()
         {
-            // Reduce attacking monster ATK to 0 or revive from GY
             if (Card.Location == CardLocation.MonsterZone)
             {
                 return Duel.Phase == DuelPhase.BattleStart || Duel.Phase == DuelPhase.Battle;
@@ -320,36 +327,102 @@ namespace WindBot.Game.AI.Decks
 
         private bool SpellShatteringSwordActivate()
         {
-            // Option 1: Destroy all face-up Spells opp controls
             if (Enemy.GetSpells().Any(s => s.IsFaceup()))
             {
                 AI.SelectOption(0);
+                _spellActivatedThisTurn = true;
                 return true;
             }
-            // Option 2: Drop opp monster ATK to 0 and negate
             ClientCard oppBoss = Enemy.GetMonsters().FirstOrDefault(m => m.IsFaceup() && (m.Attack >= 2000 || !m.IsDisabled()));
             if (oppBoss != null && (Bot.HasInHand(CardId.LightAndDarknessRitual) || Bot.HasInGraveyard(CardId.LightAndDarknessRitual)))
             {
                 AI.SelectOption(1);
                 AI.SelectCard(oppBoss);
+                _spellActivatedThisTurn = true;
                 return true;
             }
             return false;
         }
 
+        private bool PharaohsServantQuickWipeActivate()
+        {
+            if (Card.Location != CardLocation.MonsterZone || Card.IsFacedown()) return false;
+            if (Enemy.GetSpellCount() == 0) return false;
+            if (!Bot.Hand.Any(c => c.IsSpell() && c.Id != CardId.LightAndDarknessRitual && c.Id != CardId.TheGazeOfTimaeus)) return false;
+            return true;
+        }
+
+        private bool IllusionOfChaosFieldNegateActivate()
+        {
+            if (Card.Location != CardLocation.MonsterZone || Card.IsFacedown()) return false;
+            if (Duel.LastChainPlayer != 1) return false;
+            return Bot.HasInGraveyard(CardId.DarkMagicianThePharaohsServant) || Bot.HasInGraveyard(CardId.DarkMagician);
+        }
+
+        private bool IllusionOfChaosHandSearchActivate()
+        {
+            if (Card.Location != CardLocation.Hand) return false;
+            if (_usedIllusionSearchThisTurn) return false;
+
+            // Search starter: Pharaoh's Servant > Dark Magician > Dark Magician Girl
+            _lastSearchedCardId = CardId.DarkMagicianThePharaohsServant;
+            AI.SelectCard(new[] {
+                CardId.DarkMagicianThePharaohsServant,
+                CardId.DarkMagician,
+                CardId.DarkMagicianGirl
+            });
+            _usedIllusionSearchThisTurn = true;
+            return true;
+        }
+
+        private bool PreparationOfRitesActivate()
+        {
+            if (Card.Location != CardLocation.Hand) return false;
+            AI.SelectCard(CardId.IllusionOfChaos);
+            _spellActivatedThisTurn = true;
+            return true;
+        }
+
+        private bool PrePreparationOfRitesActivate()
+        {
+            if (Card.Location != CardLocation.Hand) return false;
+            AI.SelectCard(new[] {
+                CardId.MagicianOfDarkChaosBlackChaos,
+                CardId.BlackLusterSoldierSoldierOfLightAndDarkness
+            });
+            _spellActivatedThisTurn = true;
+            return true;
+        }
+
         private bool GriffohActivate()
         {
             if (Card.Location != CardLocation.Hand) return false;
-            // Option 2: Set 1 Quick-Play Spell or Trap mentioning Light and Darkness Ritual from Deck!
+            // Option 1: Set 1 Quick-Play Spell or Trap mentioning Light and Darkness Ritual from Deck!
             AI.SelectOption(1);
-            // Preferred Set order: Mind Shuffle, Chaos Mystic Box, Chaos Magical Hats, Spell Shattering Sword
-            AI.SelectCard(new[] {
-                CardId.MindShuffle,
-                CardId.ChaosMysticBox,
-                CardId.ChaosMagicalHats,
-                CardId.SpellShatteringSword_Old,
-                CardId.SpellShatteringSword
-            });
+            // Preferred Set order: Mind Shuffle (if none on field), then defensive Quick-Plays
+            bool hasMindShuffle = Bot.SpellZone.Any(s => s != null && s.Id == CardId.MindShuffle);
+            if (!hasMindShuffle)
+            {
+                AI.SelectCard(CardId.MindShuffle);
+            }
+            else
+            {
+                AI.SelectCard(new[] {
+                    CardId.ChaosMysticBox,
+                    CardId.ChaosMagicalHats,
+                    CardId.SpellShatteringSword_Old,
+                    CardId.SpellShatteringSword
+                });
+            }
+            return true;
+        }
+
+        private bool BlackChaosHandActivate()
+        {
+            if (Card.Location != CardLocation.Hand) return false;
+            // Discard to place Mind Shuffle face-up from deck or GY
+            bool hasMindShuffle = Bot.SpellZone.Any(s => s != null && s.Id == CardId.MindShuffle);
+            if (hasMindShuffle) return false; // Don't discard if Mind Shuffle is already active
             return true;
         }
 
@@ -357,7 +430,7 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location == CardLocation.SpellZone && Card.IsFaceup())
             {
-                // Effect 1: Search monster mentioning Light & Darkness Ritual, discard 1
+                // In MP: Search monster mentioning Light & Darkness Ritual, discard 1
                 AI.SelectCard(new[] {
                     CardId.BlackChaos,
                     CardId.MagicianOfDarkChaosBlackChaos,
@@ -367,138 +440,23 @@ namespace WindBot.Game.AI.Decks
                 });
                 return true;
             }
-            // Activate face-up or chain dodge
             return true;
-        }
-
-        private bool PharaohsServantQuickWipeActivate()
-        {
-            // On field: Discard 1 Spell -> Feather Duster wipe opponent Spells/Traps
-            if (Card.Location != CardLocation.MonsterZone || Card.IsFacedown()) return false;
-            if (Enemy.GetSpellCount() == 0) return false;
-            if (!Bot.Hand.Any(c => c.IsSpell() && c.Id != CardId.LightAndDarknessRitual && c.Id != CardId.TheGazeOfTimaeus)) return false;
-            return true;
-        }
-
-        private bool IllusionOfChaosFieldNegateActivate()
-        {
-            // On field Quick: bounce to hand, SS Dark Magician from GY, negate monster effect
-            if (Card.Location != CardLocation.MonsterZone || Card.IsFacedown()) return false;
-            if (Duel.LastChainPlayer != 1) return false;
-            return Bot.HasInGraveyard(CardId.DarkMagicianThePharaohsServant);
-        }
-
-        private bool PotOfProsperityActivate()
-        {
-            if (Bot.ExtraDeck.Count < 3) return false;
-            // Banish 3 or 6 non-essential Extra Deck cards
-            AI.SelectOption(Bot.ExtraDeck.Count >= 6 ? 1 : 0);
-            AI.SelectCard(new[] {
-                CardId.DarkMagicianOfDestruction,
-                CardId.DarkMagicianOfDestruction,
-                CardId.DayBreakerTheShiningMagicalWarrior,
-                CardId.MagiMagiMagicianGal,
-                CardId.BlackLusterSoldierSoldierOfChaos,
-                CardId.EbonHighMagician
-            });
-            return true;
-        }
-
-        private bool PrePreparationOfRitesActivate()
-        {
-            // Add Light & Darkness Ritual + Ritual monster mentioned on it
-            AI.SelectCard(new[] {
-                CardId.MagicianOfDarkChaosBlackChaos,
-                CardId.BlackLusterSoldierSoldierOfLightAndDarkness
-            });
-            return true;
-        }
-
-        private bool PreparationOfRitesActivate()
-        {
-            // Add Level 7 or lower Ritual (Illusion of Chaos)
-            AI.SelectCard(CardId.IllusionOfChaos);
-            return true;
-        }
-
-        private bool IllusionOfChaosHandSearchActivate()
-        {
-            if (Card.Location != CardLocation.Hand) return false;
-            // Reveal in hand -> Add Dark Magician or non-ritual monster mentioning it
-            AI.SelectCard(CardId.DarkMagicianThePharaohsServant);
-            return true;
-        }
-
-        private bool SoulServantActivate()
-        {
-            if (Card.Location == CardLocation.Hand || (Card.Location == CardLocation.SpellZone && Card.IsFacedown()))
-            {
-                // Place DM card on top of deck
-                AI.SelectCard(new[] {
-                    CardId.TheGazeOfTimaeus,
-                    CardId.DarkMagicianThePharaohsServant,
-                    CardId.SecretsOfDarkMagic,
-                    CardId.DarkMagicalCurtain
-                });
-                return true;
-            }
-            if (Card.Location == CardLocation.Grave)
-            {
-                // Banish from GY to draw
-                return Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Main2;
-            }
-            return false;
-        }
-
-        private bool TripleTacticsTalentActivate()
-        {
-            // If opponent activated monster effect in Main Phase
-            if (Enemy.GetMonsters().Any(m => m.IsFaceup() && m.Attack >= 2500))
-            {
-                AI.SelectOption(1); // Take control of opponent monster
-                return true;
-            }
-            AI.SelectOption(0); // Draw 2 cards
-            return true;
-        }
-
-        private bool DarkMagicalCurtainActivate()
-        {
-            // SS Dark Magician / DMG from deck, search DM S/T
-            AI.SelectCard(CardId.DarkMagicianThePharaohsServant);
-            return true;
-        }
-
-        private bool ChaosSpaceActivate()
-        {
-            if (Card.Location == CardLocation.Hand)
-            {
-                // Discard Light or Dark to add opposite attribute
-                return true;
-            }
-            if (Card.Location == CardLocation.Grave)
-            {
-                // Shuffle banished monster to draw 1
-                return true;
-            }
-            return false;
-        }
-
-        private bool SwordsOfConcealingLightActivate()
-        {
-            // Flips all opponent monsters face-down
-            return Enemy.GetMonsters().Any(m => m.IsFaceup());
         }
 
         private bool PharaohsServantHandSSActivate()
         {
             if (Card.Location != CardLocation.Hand) return false;
-            // Reveal 1 Spell in hand -> SS itself, Set DM Spell/Trap from Deck
-            if (!Bot.Hand.Any(c => c.IsSpell() && c != Card)) return false;
+            // Reveal 1 Spell in hand to Special Summon itself
+            ClientCard spellToReveal = Bot.Hand.FirstOrDefault(c => c.IsSpell() && c != Card);
+            if (spellToReveal == null) return false;
+
+            // Hand reveal target
+            AI.SelectCard(spellToReveal);
+            // Deck set target
             AI.SelectCard(new[] {
                 CardId.TheGazeOfTimaeus,
-                CardId.SecretsOfDarkMagic,
                 CardId.SoulServant,
+                CardId.SecretsOfDarkMagic,
                 CardId.DarkMagicTalisman
             });
             return true;
@@ -506,7 +464,13 @@ namespace WindBot.Game.AI.Decks
 
         private bool DarkMagicianOfDestructionSummon()
         {
-            // Alternative summon by banishing Level 6+ DARK Spellcaster
+            // Alternative summon by banishing Level 6+ DARK Spellcaster during turn a Spell was activated
+            if (!_spellActivatedThisTurn && !Bot.SpellZone.Any(s => s != null) && !Bot.Graveyard.Any(c => c.IsSpell()))
+            {
+                // Verify if any spell was activated
+                if (!_spellActivatedThisTurn) return false;
+            }
+
             ClientCard material = Bot.GetMonsters().FirstOrDefault(m => m.IsFaceup() && m.Level >= 6 && m.HasAttribute(CardAttribute.Dark) && m.HasRace(CardRace.SpellCaster));
             if (material != null)
             {
@@ -518,49 +482,132 @@ namespace WindBot.Game.AI.Decks
 
         private bool DarkMagicianOfDestructionEffect()
         {
-            // On SS: add DM or card mentioning it
+            // On SS: add The Gaze of Timaeus or DM card
             AI.SelectCard(new[] {
                 CardId.TheGazeOfTimaeus,
-                CardId.DarkMagicianThePharaohsServant,
                 CardId.SecretsOfDarkMagic,
-                CardId.SoulServant
+                CardId.SoulServant,
+                CardId.DarkMagicianThePharaohsServant,
+                CardId.DarkMagician
             });
-            return true;
-        }
-
-        private bool LightAndDarknessRitualActivate()
-        {
-            // Ritual Summon Magician of Dark Chaos or BLS Soldier of Light & Darkness
-            AI.SelectCard(new[] {
-                CardId.MagicianOfDarkChaosBlackChaos,
-                CardId.BlackLusterSoldierSoldierOfLightAndDarkness
-            });
-            // Select Griffoh or lowest level monsters as tribute / banish
             return true;
         }
 
         private bool TheGazeOfTimaeusActivate()
         {
             // Target DM/DMG on field or GY -> Fusion Summon Dragoon or Dragon Knight
+            bool hasTarget = Bot.GetMonsters().Concat(Bot.Graveyard).Any(m => m.IsFaceup() || m.Location == CardLocation.Grave &&
+                (m.Id == CardId.DarkMagicianThePharaohsServant || m.Id == CardId.DarkMagician || m.Id == CardId.DarkMagicianGirl || m.Id == CardId.DarkMagicianOfDestruction));
+            if (!hasTarget) return false;
+
             AI.SelectCard(new[] {
+                CardId.DarkMagicianOfDestruction,
                 CardId.DarkMagicianThePharaohsServant,
-                CardId.DarkMagicianGirl,
-                CardId.DarkMagicianOfDestruction
+                CardId.DarkMagician,
+                CardId.DarkMagicianGirl
             });
-            // Fusion priority: Dragoon > Dark Magician the Dragon Knight > Master of Chaos > Dark Cavalry
+
+            // Extra Deck priority: Dragoon > Dragon Knight > Master of Chaos > Chimera > Cavalry
+            bool hasDragoon = Bot.GetMonsters().Any(m => m.IsFaceup() && m.Id == CardId.RedEyesDarkDragoon);
+            if (!hasDragoon)
+            {
+                AI.SelectCard(CardId.RedEyesDarkDragoon);
+            }
+            else
+            {
+                AI.SelectCard(new[] {
+                    CardId.DarkMagicianTheDragonKnight,
+                    CardId.MasterOfChaos,
+                    CardId.GuardianChimera,
+                    CardId.DarkCavalry,
+                    CardId.TheDarkMagicians
+                });
+            }
+
+            _spellActivatedThisTurn = true;
+            return true;
+        }
+
+        private bool DarkMagicalCurtainActivate()
+        {
+            // Special Summons DARK Spellcaster (prioritize original Dark Magician for search!)
             AI.SelectCard(new[] {
-                CardId.RedEyesDarkDragoon,
-                CardId.DarkMagicianTheDragonKnight,
-                CardId.MasterOfChaos,
-                CardId.DarkCavalry,
-                CardId.TheDarkMagicians
+                CardId.DarkMagician,
+                CardId.DarkMagicianThePharaohsServant,
+                CardId.DarkMagicianGirl
             });
+            _spellActivatedThisTurn = true;
+            return true;
+        }
+
+        private bool LightAndDarknessRitualActivate()
+        {
+            if (Card.Location == CardLocation.Hand)
+            {
+                // Hand Ritual Summon
+                AI.SelectCard(new[] {
+                    CardId.MagicianOfDarkChaosBlackChaos,
+                    CardId.BlackLusterSoldierSoldierOfLightAndDarkness
+                });
+                _spellActivatedThisTurn = true;
+                return true;
+            }
+            if (Card.Location == CardLocation.Grave)
+            {
+                // GY recovery: return itself + 1 card mentioning Light & Darkness Ritual
+                AI.SelectCard(new[] {
+                    CardId.MindShuffle,
+                    CardId.Griffoh,
+                    CardId.SkullArchfiendOfChaos
+                });
+                return true;
+            }
+            return false;
+        }
+
+        private bool SoulServantActivate()
+        {
+            if (Card.Location == CardLocation.Hand || (Card.Location == CardLocation.SpellZone && Card.IsFacedown()))
+            {
+                // Place DM card on top of deck
+                AI.SelectCard(new[] {
+                    CardId.TheGazeOfTimaeus,
+                    CardId.DarkMagicianThePharaohsServant,
+                    CardId.DarkMagician,
+                    CardId.SecretsOfDarkMagic,
+                    CardId.DarkMagicalCurtain
+                });
+                _spellActivatedThisTurn = true;
+                return true;
+            }
+            if (Card.Location == CardLocation.Grave)
+            {
+                // Draw cards equal to DM/DMG in field/GY
+                int dmCount = Bot.GetMonsters().Concat(Bot.Graveyard).Count(m => m.Id == CardId.DarkMagician || m.Id == CardId.DarkMagicianGirl || m.Id == CardId.DarkMagicianThePharaohsServant || m.Id == CardId.DarkMagicianOfDestruction);
+                return dmCount > 0 && (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Main2);
+            }
+            return false;
+        }
+
+        private bool PotOfProsperityActivate()
+        {
+            if (Bot.ExtraDeck.Count < 3) return false;
+            // Banish 3 or 6 non-essential Extra Deck cards
+            AI.SelectOption(Bot.ExtraDeck.Count >= 6 ? 1 : 0);
+            AI.SelectCard(new[] {
+                CardId.EbonHighMagician,
+                CardId.MagiMagiMagicianGal,
+                CardId.DayBreakerTheShiningMagicalWarrior,
+                CardId.BlackLusterSoldierSoldierOfChaos,
+                CardId.DarkMagicianOfDestruction,
+                CardId.DarkCavalry
+            });
+            _spellActivatedThisTurn = true;
             return true;
         }
 
         private bool SecretsOfDarkMagicActivate()
         {
-            // Fusion or Ritual summon using DM / DMG
             AI.SelectOption(0); // Fusion Summon
             AI.SelectCard(new[] {
                 CardId.RedEyesDarkDragoon,
@@ -568,12 +615,43 @@ namespace WindBot.Game.AI.Decks
                 CardId.MasterOfChaos,
                 CardId.TheDarkMagicians
             });
+            _spellActivatedThisTurn = true;
             return true;
+        }
+
+        private bool ChaosSpaceActivate()
+        {
+            _spellActivatedThisTurn = true;
+            return true;
+        }
+
+        private bool TripleTacticsTalentActivate()
+        {
+            if (Enemy.GetMonsters().Any(m => m.IsFaceup() && m.Attack >= 2500))
+            {
+                AI.SelectOption(1); // Steal monster
+            }
+            else
+            {
+                AI.SelectOption(0); // Draw 2
+            }
+            _spellActivatedThisTurn = true;
+            return true;
+        }
+
+        private bool SwordsOfConcealingLightActivate()
+        {
+            if (Enemy.GetMonsters().Any(m => m.IsFaceup()))
+            {
+                _spellActivatedThisTurn = true;
+                return true;
+            }
+            return false;
         }
 
         private bool BlackChaosSummon()
         {
-            // Special Summon by shuffling Ritual Monster from hand or GY into deck
+            // Shuffles 1 Spellcaster/Warrior Ritual monster from GY or Hand
             ClientCard ritualInGrave = Bot.Graveyard.FirstOrDefault(c => c.HasType(CardType.Ritual) && (c.HasRace(CardRace.SpellCaster) || c.HasRace(CardRace.Warrior)));
             if (ritualInGrave != null)
             {
@@ -591,14 +669,9 @@ namespace WindBot.Game.AI.Decks
 
         private bool BlackChaosEffect()
         {
-            if (Card.Location == CardLocation.Hand)
+            if (Card.Location == CardLocation.MonsterZone && Card.IsFaceup())
             {
-                // Discard to place Mind Shuffle face-up on field
-                return true;
-            }
-            if (Card.Location == CardLocation.MonsterZone)
-            {
-                // Ignition: Banish 2 cards opponent controls!
+                // Non-targeting double banish!
                 if (Enemy.GetMonsterCount() + Enemy.GetSpellCount() > 0)
                 {
                     List<ClientCard> targets = Enemy.GetMonsters().Where(m => m.IsFaceup()).OrderByDescending(m => m.Attack).Concat(Enemy.GetSpells()).ToList();
@@ -632,6 +705,13 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
+        private bool RedEyesDarkDragoonPopActivate()
+        {
+            if (Card.Location != CardLocation.MonsterZone || Card.IsFacedown()) return false;
+            if (Duel.Phase != DuelPhase.Main1 && Duel.Phase != DuelPhase.Main2) return false;
+            return Enemy.GetMonsters().Any(m => m.IsFaceup());
+        }
+
         private bool MagicianOfDarkChaosEffect()
         {
             if (Card.Location != CardLocation.MonsterZone || Card.IsFacedown()) return false;
@@ -656,50 +736,33 @@ namespace WindBot.Game.AI.Decks
         private bool BLSSoldierOfLightAndDarknessEffect()
         {
             if (Card.Location != CardLocation.MonsterZone || Card.IsFacedown()) return false;
-            // On SS: banish 1 card opponent controls
             ClientCard target = Enemy.GetMonsters().OrderByDescending(m => m.Attack).FirstOrDefault() ?? Enemy.GetSpells().FirstOrDefault();
             if (target != null)
             {
                 AI.SelectCard(target);
                 return true;
             }
-            // Battle destroy: +1500 ATK and second attack
             return true;
         }
 
         private bool MasterOfChaosEffect()
         {
             if (Card.Location != CardLocation.MonsterZone || Card.IsFacedown()) return false;
-            // On SS: revive Light or Dark monster from GY
             AI.SelectCard(new[] {
                 CardId.RedEyesDarkDragoon,
                 CardId.MagicianOfDarkChaosBlackChaos,
                 CardId.BlackLusterSoldierSoldierOfLightAndDarkness,
-                CardId.DarkMagicianThePharaohsServant
+                CardId.DarkMagicianThePharaohsServant,
+                CardId.DarkMagician
             });
-            // Tribute Light + Dark to banish all opponent monsters
-            if (Enemy.GetMonsterCount() >= 2)
-            {
-                return true;
-            }
             return true;
         }
 
-        private bool GuardianChimeraEffect()
-        {
-            // Draws cards and destroys opponent cards on summon
-            return true;
-        }
-
-        private bool TheDarkMagiciansEffect()
-        {
-            // Draws card and sets Quick-Play/Trap
-            return true;
-        }
+        private bool GuardianChimeraEffect() => true;
+        private bool TheDarkMagiciansEffect() => true;
 
         private bool TimaeusDragonEffect()
         {
-            // Sets DM spell that can be activated this turn
             AI.SelectCard(new[] {
                 CardId.TheGazeOfTimaeus,
                 CardId.SecretsOfDarkMagic,
@@ -710,7 +773,6 @@ namespace WindBot.Game.AI.Decks
 
         private bool MagiMagiMagicianGalActivate()
         {
-            // Steals opponent monster or summons from opp GY
             AI.SelectOption(0);
             ClientCard oppMonster = Enemy.GetMonsters().OrderByDescending(m => m.Attack).FirstOrDefault(m => m.IsFaceup());
             if (oppMonster != null)
@@ -723,7 +785,6 @@ namespace WindBot.Game.AI.Decks
 
         private bool DayBreakerActivate()
         {
-            // Remove 2 counters to pop card
             ClientCard target = Enemy.GetMonsters().OrderByDescending(m => m.Attack).FirstOrDefault() ?? Enemy.GetSpells().FirstOrDefault();
             if (target != null)
             {
@@ -735,7 +796,6 @@ namespace WindBot.Game.AI.Decks
 
         private bool BLSSoldierOfChaosActivate()
         {
-            // On battle destroy: banish 1 card on field or +1500 ATK
             AI.SelectOption(2); // Banish 1 card on field
             ClientCard target = Enemy.GetMonsters().OrderByDescending(m => m.Attack).FirstOrDefault() ?? Enemy.GetSpells().FirstOrDefault();
             if (target != null)
@@ -747,7 +807,6 @@ namespace WindBot.Game.AI.Decks
 
         private bool LinkuribohSummon()
         {
-            // Link Summon Linkuriboh using Level 1 Kuriboh/Griffoh
             return Bot.GetMonsters().Any(m => m.Level == 1 && m.Id != CardId.Linkuriboh);
         }
 
@@ -766,24 +825,71 @@ namespace WindBot.Game.AI.Decks
             return Bot.GetMonsterCount() == 0;
         }
 
-        private bool SkullArchfiendSummon()
-        {
-            return Bot.GetMonsterCount() == 0;
-        }
-
         private bool DarkMagicianGirlSummon()
         {
-            return Bot.GetMonsterCount() == 0;
+            // Level 6 tribute summon: requires 1 tribute on field
+            if (Bot.GetMonsterCount() == 0) return false;
+            // Tribute weak tokens or level 1 monsters
+            ClientCard tribute = Bot.GetMonsters().FirstOrDefault(m => m.Level == 1 || m.Attack < 1500);
+            if (tribute != null)
+            {
+                AI.SelectCard(tribute);
+                return true;
+            }
+            return false;
+        }
+
+        private bool SkullArchfiendSummon()
+        {
+            // Level 6 tribute summon: requires 1 tribute on field
+            if (Bot.GetMonsterCount() == 0) return false;
+            ClientCard tribute = Bot.GetMonsters().FirstOrDefault(m => m.Level == 1 || m.Attack < 1500);
+            if (tribute != null)
+            {
+                AI.SelectCard(tribute);
+                return true;
+            }
+            return false;
         }
 
         private bool PharaohsServantNormalSummon()
         {
-            return Bot.GetMonsterCount() == 0;
+            // Level 7 tribute summon: requires 2 tributes
+            if (Bot.GetMonsterCount() < 2) return false;
+            List<ClientCard> tributes = Bot.GetMonsters().Where(m => m.Attack < 2000).Take(2).ToList();
+            if (tributes.Count == 2)
+            {
+                AI.SelectCard(tributes);
+                return true;
+            }
+            return false;
+        }
+
+        private bool DarkMagicianNormalSummon()
+        {
+            // Level 7 tribute summon: requires 2 tributes
+            if (Bot.GetMonsterCount() < 2) return false;
+            List<ClientCard> tributes = Bot.GetMonsters().Where(m => m.Attack < 2000).Take(2).ToList();
+            if (tributes.Count == 2)
+            {
+                AI.SelectCard(tributes);
+                return true;
+            }
+            return false;
         }
 
         private bool SpellSetStrategy()
         {
+            // Set Traps in MP2 or keep 1 Dominus in hand as handtrap
+            if (Card.Id == CardId.DominusImpulse)
+            {
+                // If we have multiple Dominus Impulse in hand, set 1, keep 1 in hand
+                int countInHand = Bot.Hand.Count(c => c.Id == CardId.DominusImpulse);
+                return countInHand > 1 || Duel.Phase == DuelPhase.Main2;
+            }
+
             if (Card.IsTrap()) return true;
+
             if (Card.IsSpell() && Card.HasType(CardType.QuickPlay))
             {
                 // Set Quick-Plays in Main 2 before ending turn if not activated
@@ -794,22 +900,111 @@ namespace WindBot.Game.AI.Decks
 
         private bool RepositionStrategy()
         {
-            // Keep defensive tokens or low ATK monsters in Defense position
-            if (Card.Attack < 1500 && Card.IsAttack())
-            {
-                return true;
-            }
-            // Switch strong monsters to Attack
-            if (Card.Attack >= 2000 && Card.IsDefense())
-            {
-                return true;
-            }
+            if (Card.Attack < 1500 && Card.IsAttack()) return true;
+            if (Card.Attack >= 2000 && Card.IsDefense()) return true;
             return false;
         }
 
+        // =================================================================
+        // INTELLIGENT HOOK OVERRIDES (OnSelectCard, OnSelectOption, OnSelectYesNo)
+        // =================================================================
+
         public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
         {
+            // -------------------------------------------------------------
+            // Case 1: Illusion of Chaos - placing 1 card from hand on top of deck
+            // -------------------------------------------------------------
+            if (hint == 507 && cards.All(c => c.Location == CardLocation.Hand))
+            {
+                // NEVER place back the card we just searched or critical starters!
+                // Prioritize: duplicate spells > high level bricks > unused traps
+                ClientCard toReturn = cards
+                    .Where(c => c.Id != _lastSearchedCardId && c.Id != CardId.TheGazeOfTimaeus && c.Id != CardId.DarkMagicianThePharaohsServant)
+                    .OrderByDescending(c =>
+                    {
+                        if (c.Id == CardId.DarkMagicalCurtain && Bot.Hand.Count(x => x.Id == CardId.DarkMagicalCurtain) > 1) return 100;
+                        if (c.Id == CardId.DominusImpulse && Bot.Hand.Count(x => x.Id == CardId.DominusImpulse) > 1) return 90;
+                        if (c.Id == CardId.SwordsOfConcealingLight) return 80;
+                        if (c.Id == CardId.MindShuffle) return 70;
+                        if (c.Id == CardId.ChaosSpace) return 60;
+                        if (c.Id == CardId.BlackChaos && !Bot.Hand.Any(x => x.HasType(CardType.Ritual))) return 50;
+                        return 10;
+                    })
+                    .FirstOrDefault();
+
+                if (toReturn != null)
+                {
+                    return new[] { toReturn };
+                }
+            }
+
+            // -------------------------------------------------------------
+            // Case 2: Pharaoh's Servant - revealing 1 Spell in hand
+            // -------------------------------------------------------------
+            if (hint == 526 && cards.All(c => c.Location == CardLocation.Hand && c.IsSpell()))
+            {
+                // Pick disposable spell to reveal
+                ClientCard toReveal = cards.OrderByDescending(c =>
+                {
+                    if (c.Id == CardId.SoulServant) return 100;
+                    if (c.Id == CardId.PrePreparationOfRites) return 90;
+                    if (c.Id == CardId.PreparationOfRites) return 80;
+                    if (c.Id == CardId.TheGazeOfTimaeus) return 70;
+                    if (c.Id == CardId.DarkMagicalCurtain) return 60;
+                    if (c.Id == CardId.ForbiddenCrown) return 50;
+                    if (c.Id == CardId.SwordsOfConcealingLight) return 40;
+                    return 10;
+                }).FirstOrDefault();
+
+                if (toReveal != null)
+                {
+                    return new[] { toReveal };
+                }
+            }
+
+            // -------------------------------------------------------------
+            // Case 3: Pot of Prosperity - excavated cards selection
+            // -------------------------------------------------------------
+            if (cards.Count > 1 && cards.All(c => c.Location == CardLocation.Deck))
+            {
+                int[] excavationPriority = new[] {
+                    CardId.PrePreparationOfRites,
+                    CardId.PreparationOfRites,
+                    CardId.IllusionOfChaos,
+                    CardId.TheGazeOfTimaeus,
+                    CardId.Griffoh,
+                    CardId.DarkMagicianThePharaohsServant,
+                    CardId.DarkMagician,
+                    CardId.DarkMagicalCurtain,
+                    CardId.SoulServant,
+                    CardId.LightAndDarknessRitual,
+                    CardId.ForbiddenCrown,
+                    CardId.DominusImpulse
+                };
+
+                foreach (int targetId in excavationPriority)
+                {
+                    ClientCard match = cards.FirstOrDefault(c => c.Id == targetId);
+                    if (match != null)
+                    {
+                        return new[] { match };
+                    }
+                }
+            }
+
             return base.OnSelectCard(cards, min, max, hint, cancelable);
+        }
+
+        public override bool OnSelectYesNo(long desc)
+        {
+            // Always accept Dark Magical Curtain Special Summon and search
+            long cardIdFromDesc4 = (desc >> 4);
+            if (cardIdFromDesc4 == CardId.DarkMagicalCurtain)
+            {
+                return true;
+            }
+
+            return base.OnSelectYesNo(desc);
         }
     }
 }

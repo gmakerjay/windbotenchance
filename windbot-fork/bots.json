@@ -1731,5 +1731,59 @@
     "masterRules": [
       5
     ]
+  },
+  {
+    "name": "Anime_Bruno",
+    "deck": "Anime_Bruno",
+    "dialog": "default",
+    "difficulty": 3,
+    "masterRules": [
+      5
+    ]
+  },
+  {
+    "name": "Anime_Shark",
+    "deck": "Anime_Shark",
+    "dialog": "default",
+    "difficulty": 3,
+    "masterRules": [
+      5
+    ]
+  },
+  {
+    "name": "Anime_BlueAngel",
+    "deck": "Anime_BlueAngel",
+    "dialog": "default",
+    "difficulty": 3,
+    "masterRules": [
+      5
+    ]
+  },
+  {
+    "name": "Anime_Crow",
+    "deck": "Anime_Crow",
+    "dialog": "default",
+    "difficulty": 3,
+    "masterRules": [
+      5
+    ]
+  },
+  {
+    "name": "Anime_Gong",
+    "deck": "Anime_Gong",
+    "dialog": "default",
+    "difficulty": 3,
+    "masterRules": [
+      5
+    ]
+  },
+  {
+    "name": "Anime_Pegasus",
+    "deck": "Anime_Pegasus",
+    "dialog": "default",
+    "difficulty": 3,
+    "masterRules": [
+      5
+    ]
   }
 ]

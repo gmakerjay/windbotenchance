@@ -1,5 +1,94 @@
 # Progress Log: 2026_Branded, 2026_DarkTime, 2026_Runick, 2026_RyuGe, 2026_AFS, 2026_Spright, GOD-01, Demise, 2026_Darklord, 2026_DarkWorld, 2026_Hecahand & Anime ModernExecutors
 
+## 0.010. Anime_Pegasus (Pegasus) S:P Little Knight Audit & Self-Targeting Removal Fix (2026-09-20)
+- **Problem Statement**:
+  - The user observed "pegasus ดีดการ์ดตัวเองลงหลุมหรอ" (Why does Pegasus send his own cards to GY?) and requested "ดู log ล่าสุดเกี่ยวกับการกระทำของ SP knight" (Analyze recent logs regarding S:P Little Knight's actions).
+- **Log Analysis & Root Cause Findings (`WindBot/logs/Blue_Angel_vs_Pegasus_25690920_123602` & `123537`)**:
+  1. **Comic Hand Waste on S:P Link Summon (Turn 2)**:
+     - Pegasus activated `Comic Hand` (33453260) to take control of Blue Angel's `Trickstar Lilybell` (98700941) and Normal Summoned `Toon Cyber Dragon` (83629030).
+     - Because `SPLittleKnightSpSummon()` returned `true` unconditionally, the bot sacrificed both the stolen monster and `Toon Cyber Dragon` as Link materials to summon `S:P Little Knight` (29301450).
+     - As a result, the stolen monster left the field, sending `Comic Hand` straight to the GY ("ดีดลงหลุม"), destroying Pegasus's own advantage and replacing high-ATK direct attackers under `Toon Kingdom` with a 1600 ATK link monster.
+  2. **S:P Little Knight Quick Effect Dodge (Turn 3 & Turn 5)**:
+     - On Turn 3 (12:36:16) and Turn 5 (12:36:17), Blue Angel activated monster effects. `SPLittleKnightActivate` responded with Quick Effect (Effect 2: target 2 face-up monsters including 1 bot controls to banish until End Phase).
+     - The bot correctly targeted Blue Angel's monster (`98700941` / `37683441`) and itself (`29301450`), causing both to fly out of the field temporarily until the End Phase.
+  3. **Toon Black Luster Soldier Self-Banish Bug (Turn 2 in 123537)**:
+     - In the earlier duel, `Toon Black Luster Soldier` activated its once-per-turn banish effect (`hint=503`).
+     - In `OnSelectCard()`, the bot unconditionally matched `preferred` cards containing `ToonBlackLusterSoldier`.
+     - Because hint type wasn't checked, the bot selected **its own Toon BLS as the target to banish**, removing its own boss monsters twice!
+- **Architectural Fixes in `Anime_PegasusExecutor.cs`**:
+  - **`SPLittleKnightSpSummon` Hard Guards**: Added strict conditions:
+    - NEVER Link Summon S:P if Pegasus controls any monster equipped with `Comic Hand`.
+    - NEVER sacrifice high-ATK Toons under `Toon Kingdom` in Main Phase 1 (preserves direct attack win condition).
+    - Only Link Summon S:P in Main Phase 2 as an end-board piece or in Main Phase 1 if opponent has high threats and bot has small non-Toon bodies.
+  - **`OnSelectCard` Hint-Specific Segregation**:
+    - Restricted `preferred` search list solely to Deck searches (`hint == 506` / `HINTMSG_ATOHAND` or all cards located in Deck).
+    - For removal hints (`hint == 503` / `HINTMSG_REMOVE`, `hint == 502` / `HINTMSG_DESTROY`, `hint == 504` / `HINTMSG_TOGRAVE`), bot strictly prioritizes enemy cards (`c.Controller == 1`) and never targets friendly cards.
+  - **`ComicHandActivate` Target Validation**: Requires face-up opponent monsters (`Controller == 1`) that are not tokens and not already equipped with `Comic Hand`.
+  - **`SPLittleKnightActivate` Dual-Branch Handling**:
+    - Quick Effect dodge: targets highest-ATK opponent monster + S:P itself only when opponent activates effects.
+    - On-Summon banish: targets highest-ATK enemy monster, enemy backrow, or opponent GY monster.
+  - **Extra Deck Safeguards**: Added guards to `BigEyeSpSummon`, `RelinquishedAnimaSpSummon`, and `HopeHarbingerSpSummon` to avoid throwing away Toon direct lethal push.
+- **Build & Exclusive Deployment**:
+  - Compiled with 0 errors via `BUILD_AND_DEPLOY.ps1`; deployed new `WindBot.dll`, `ExecutorBase.dll`, `core.dll`, `bots.json`, and deck assets to `C:\Users\admin\Documents\EdoGame\`.
+
+## 0.009. Anime_Yugi (Yugi Muto) AI Freeze Fix & Deck Optimization (2026-09-20)
+- **Problem Statement**: The user reported "เด็ค yugi muto ไม่ยอมเล่นการ์ด" (Yugi Muto deck refuses to play cards / freezes / passes turns doing nothing).
+- **Root Causes Identified from Duel Logs (`WindBot/logs/Yugi_Muto_vs_Shark_...`)**:
+  1. **Impossible Tribute Condition Bug**: In `Anime_YugiExecutor.cs`, Normal/Tribute summons for `DarkMagicianGirl`, `SkullArchfiendOfChaos`, and `PharaohsServant` had condition `return Bot.GetMonsterCount() == 0;`. Because Level 6 & 7 monsters require 1-2 tributes, they could NEVER be summoned when the board had monsters, and the game engine couldn't offer them when the board was empty, locking the bot out of normal summons 100% of the time.
+  2. **Searcher Self-Sabotage in `OnSelectCard`**: When `Illusion of Chaos` activated its hand search, `OnSelectCard` lacked priority handling and frequently selected the searched `Pharaoh's Servant` to put immediately back on top of the deck!
+  3. **Starter Starvation & Severe Deck Bricks**: The original 46-card `Anime_Yugi.ydk` had only 1 copy of `Dark Magician, the Pharaoh's Servant` and 0 copies of original `Dark Magician`. As a result, 3x `Dark Magical Curtain` frequently had zero targets in Deck and failed to trigger its search; 3x `Preparation of Rites` bricked because there was only 1 Level <= 7 Ritual in the deck; and 3x `Pre-Preparation of Rites` bricked because there were only 2 Ritual monsters total.
+  4. **Pot of Prosperity Sabotage**: `PotOfProsperityActivate` was banishing all 3 copies of `Dark Magician of Destruction`, severing the bot's primary Extra Deck route into `Red-Eyes Dark Dragoon`.
+  5. **Handtrap Exposure**: `SpellSetStrategy` was setting `Dominus Impulse` face-down immediately on Turn 1, exposing it to removal instead of keeping it in hand as an active handtrap.
+- **Architectural Solutions & Fixes**:
+  - **`Anime_Yugi.ydk` Optimization**: Rebalanced main deck to 45 cards: added 2x original `Dark Magician` (46986414) enabling full search trigger on `Dark Magical Curtain`, increased `Pharaoh's Servant` to 2x, `Illusion of Chaos` to 2x, and `Magician of Dark Chaos` to 2x so all searchers (`Pre-Prep`, `Prep`, `Curtain`, `Soul Servant`) remain live throughout the match.
+  - **`Anime_YugiExecutor.cs` Overhaul**:
+    - Rewrote `OnSelectCard` with intelligent rules: never returns searched starters with `Illusion of Chaos`; intelligently reveals disposable spells for `Pharaoh's Servant`; picks top starters from `Pot of Prosperity` excavations.
+    - Fixed all summon methods: `DarkMagicianGirlSummon` and `SkullArchfiendSummon` now properly check `Bot.GetMonsterCount() > 0` for 1-tribute lines.
+    - Restructured priority pipeline so Turn 1 starters (`Illusion of Chaos` -> `Preparation of Rites` -> `Pre-Prep` -> `Griffoh` -> `Black Chaos` discard -> `Pharaoh's Servant` SS -> `Dark Magician of Destruction` -> `The Gaze of Timaeus` into `Red-Eyes Dark Dragoon`) activate sequentially without bottlenecking.
+    - Updated `Pot of Prosperity` banish list to preserve core fusion bosses (`Dragoon`, `Dragon Knight`, `Master of Chaos`, and `Dark Magician of Destruction`).
+  - **Compilation & Exclusive Deployment**: Rebuilt with 0 errors via `BUILD_AND_DEPLOY.ps1`; deployed to `C:\Users\admin\Documents\EdoGame\`. Synchronized `Anime_Yugi.ydk` to both `WindBot/Decks/` and `deck/`.
+
+## 0.008. Elite Anime 5-Deck Expansion (2026-09-20)
+- **Concept & Request**: Developed, ported, and deployed 5 elite rule-based anime executors representing 5 distinct Yu-Gi-Oh! eras (ZEXAL, VRAINS, 5D's, ARC-V, DM) with 100% verified real cards, deterministic starters, and lethal disruptions:
+  1. **`Anime_Shark` (Reginald Kastle / Nash — Water Xyz & Armored Xyz)**:
+     - Deck: 40 Main / 15 Extra (`Anime_Shark.ydk`).
+     - Engine: `Buzzsaw Shark` (1-card Rank 3-5 Xyz), `Lantern Shark`, `Crystal Shark`, `Armored Shark`.
+     - Bosses & Disruptions: `N.As.H. Knight` (Non-targeting absorption of enemy monster), `CXyz N.As.Ch. Knight` (immune to monster effects), `Full Armored Crystalzero Lancer` (Quick Effect negates all face-up opponent monsters on field), `Number C101: Silent Honor DARK` (absorbs Special Summoned monsters and floats with HP gain), `Virtue Stream` (pops 2 cards).
+  2. **`Anime_BlueAngel` (Skye Zaizen / Blue Angel — Trickstar Burn & Hand Control)**:
+     - Deck: 41 Main / 15 Extra (`Anime_BlueAngel.ydk`).
+     - Engine: `Trickstar Candina` (searches any Trickstar), `Trickstar Light Stage` (searches, locks backrow, adds burn), `Trickstar Aqua Angel`, `Trickstar Hoody`.
+     - Bosses & Disruptions: `Trickstar Reincarnation` (banishes opponent's entire hand and forces redraw, triggering massive burn with `Trickstar Lycoris`), `Trickstar Corobane` (Honest handtrap doubling ATK during damage calculation), `Trickstar Bella Madonna` (Link-4 2800 ATK tower completely unaffected by activated card effects + burns 500 per Trickstar in GY every turn).
+  3. **`Anime_Crow` (Crow Hogan — Blackwing Synchro Swarm & Burn)**:
+     - Deck: 40 Main / 15 Extra (`Anime_Crow.ydk`).
+     - Engine: `Blackwing - Sudri the Phantom Glimmer` (searches Blackwing card + spawns tokens), `Blackwing - Simoon the Poison Wind` (sets Black Whirlwind from Deck for extra NS), `Blackwing - Shamal the Sandstorm`, `Blackwing - Zephyros the Elite`.
+     - Bosses & Disruptions: `Blackbird Close` (Counter Trap activatable from hand: negates monster effect, destroys it, and cheats out `Black-Winged Dragon`), `Blackwing Full Armor Master` (3000 ATK tower immune to all effects + steals enemy monsters with Wedge Counters), `Black-Winged Assault Dragon` (3200 ATK, burns 700 every time opponent activates monster effect + quick field nuke), `Raikiri` (board wipe), `Hawk Joe` (resurrects Level 5+ Winged Beasts).
+  4. **`Anime_Gong` (Gong Strong / Noboru Gongenzaka — Superheavy Samurai Steadfast)**:
+     - Deck: 40 Main (100% monsters, 0 Spells/Traps) / 15 Extra (`Anime_Gong.ydk`).
+     - Engine: `Superheavy Samurai Motorbike` (discards to search any SHS), `Superheavy Samurai Prodigy Wakaushi` (1-card scale setup + Special Summon), `Monk Big Benkei` (searches Soul monsters), `Soulpiercer` (non-OPT search on GY send).
+     - Bosses & Disruptions: `Superheavy Samurai Brave Masurawo` (4000 DEF, draws up to 3 cards when opponent activates S/T, battles in DEF), `Baronne de Fleur` (Omni-negate + pop), `Warlord Susanowo` (3800 DEF, Quick Effect steals Spell/Trap from opponent's GY), `Ninja Sarutobi` (Quick pop S/T + 500 burn), `Soulbuster Gauntlet` (doubles DEF in damage calc up to 9600 DEF!), `Flutist` (GY target negation), `Gigagloves` (drops direct attack to 0 and draws).
+  5. **`Anime_Pegasus` (Maximillion Pegasus — Modern Toon Kingdom Control)**:
+     - Deck: 40 Main / 15 Extra (`Anime_Pegasus.ydk`).
+     - Engine: `Toon Bookmark` (searches Toon Kingdom + GY protection), `Toon Table of Contents` (searches any Toon card), `Toon Kingdom` (blanket targeting and destruction immunity for all Toons).
+     - Bosses & Disruptions: `Toon Terror` (Omni-Negate Counter Trap), `Toon Briefcase` (spins enemy summon into Deck), `Comic Hand` (steals any enemy monster and makes it attack directly), `Toon Black Luster Soldier` (3000 ATK direct attack + banishes 1 card face-up every turn), `Toon Dark Magician` (swarms and searches), `Relinquished Anima` (steals pointed monster), `Number 11: Big Eye` (permanently takes control of enemy monster), `Hope Harbinger` (Spell negate).
+- **Compilation & Exclusive Deployment**: All 5 C# executors compiled with 0 errors; deployed via `BUILD_AND_DEPLOY.ps1` directly to `C:\Users\admin\Documents\EdoGame\`. All 5 decks registered in `bots.json` under the **Anime** and **Other Decks** categories in DashBot Launcher.
+
+## 0.007. New Anime Series Rule-Based ModernExecutor: Anime_Bruno (2026-09-20)
+- **Source & Concept**: Ported from YGOPRODeck Anime category (`Bruno / Antinomy: ultimate deck`). Features Bruno / Antinomy's modern T.G. (Tech Genus) Accel and Delta Accel Synchro engine with 100% deterministic combo routes, multiple high-stat bosses, and lethal disruptions.
+- **Deck Composition (`Anime_Bruno.ydk`)**:
+  - Main Deck (40 cards): 3x T.G. Rocket Salamander, 3x T.G. Screw Serpent, 3x T.G. Warwolf, 2x T.G. Striker, 2x T.G. Tank Grub, 2x T.G. Gear Zombie, 2x T.G. Booster Raptor, 1x T.G. Drill Fish, 1x T.G. Rush Rhino, 3x Ash Blossom & Joyous Spring, 3x Infinite Impermanence, 3x T.G. All Clear, 3x T.G. Limiter Removal, 2x Bonfire, 1x One for One, 2x Called by the Grave, 1x Harpie's Feather Duster, 3x T.G. Close.
+  - Extra Deck (15 cards): 1x T.G. Trident Launcher, 2x T.G. Mighty Striker, 1x T.G. Over Dragonar, 1x T.G. Star Guardian, 1x T.G. Hyper Librarian, 1x T.G. Wonder Magician, 1x T.G. Recipro Dragonfly, 1x T.G. Power Gladiator, 1x T.G. Blade Blaster, 1x Shooting Star Dragon T.G. EX, 2x T.G. Glaive Blaster, 2x T.G. Halberd Cannon.
+- **Architecture & Intelligent Executor (`Anime_BrunoExecutor.cs`)**:
+  - **Deterministic Starter Engine**: 1-Card starter via `T.G. Rocket Salamander` (tributes self to Special Summon `Screw Serpent` from Deck; `Screw Serpent` on summon revives `Rocket Salamander` from GY; synchros into `T.G. Over Dragonar`). Also fully searchable via 2x `Bonfire` and 1x `One for One`.
+  - **T.G. Over Dragonar Mass Revival**: Level 5 Dragon Synchro resurrects any number of T.G. monsters from GY upon Synchro Summon, forming an unstoppable swarm of materials for higher climbing.
+  - **T.G. Mighty Striker & All Clear**: Level 2 Synchro Tuner searches `T.G. All Clear` (grants additional Normal Summon and pops cards to search) or `T.G. Close`; foolishes on sent to GY.
+  - **Lethal End Board & Disruptions**:
+    - `T.G. Glaive Blaster` (4000 ATK Delta Accel Synchro): Quick Effect banishes monsters Special Summoned from the Extra Deck (up to 2-3 times/turn) + triggers to steal any face-up banished monster onto our field ignoring summon conditions.
+    - `T.G. Halberd Cannon` (4000 ATK Delta Accel Synchro): Negates any opponent monster summon (Summon Negate) and destroys it + floats on send.
+    - `T.G. Close` (In-archetype Counter Trap): Omni-negates Monster effects, Spells, or Traps while controlling a Machine T.G., and automatically re-sets itself from GY when a Synchro monster is banished.
+    - `Shooting Star Dragon T.G. EX` (3300 ATK Accel Synchro): Negates effects targeting friendly monsters by banishing a Tuner from GY + negates attacks.
+  - **Heuristics & Target Selection**: Overrode `OnSelectCard` and `OnSelectYesNo` with smart priority ordering (Screw Serpent, Rocket Salamander, Close, All Clear, Warwolf) to prevent accidental self-disruption or miss-timing.
+- **Bot Registration & Deployment**: Registered as `Anime_Bruno` in `bots.json` under the **Anime** and **Other Decks** categories; compiled and deployed exclusively to `C:\Users\admin\Documents\EdoGame\` via `BUILD_AND_DEPLOY.ps1`.
+
 ## 0.006. DashBot Launcher Frontend Revamp (2026-09-20)
 - **Concept & Request**: Redesigned DashBot Launcher UI according to user requirements: removed all version numbers (`v2.3`, `2026_`), implemented a tournament-style Pill Card Grid deck selector (without card art), categorized decks (`All`, `Modern`, `Anime`, `Legacy`, `Special`), added real-time live search, added credits (`By EDO Team | Custom Deck By Jaynesiz`), and eliminated all emojis.
 - **Architecture & UI Updates (`dashbot/MainWindow.xaml`, `dashbot/MainWindow.xaml.cs`)**:
