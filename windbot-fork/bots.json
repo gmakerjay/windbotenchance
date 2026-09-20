@@ -1785,5 +1785,32 @@
     "masterRules": [
       5
     ]
+  },
+  {
+    "name": "_2026_Tenpai",
+    "deck": "_2026_Tenpai",
+    "dialog": "default",
+    "difficulty": 3,
+    "masterRules": [
+      5
+    ]
+  },
+  {
+    "name": "_2026_VoicelessVoice",
+    "deck": "_2026_VoicelessVoice",
+    "dialog": "default",
+    "difficulty": 3,
+    "masterRules": [
+      5
+    ]
+  },
+  {
+    "name": "_2026_Centurion",
+    "deck": "_2026_Centurion",
+    "dialog": "default",
+    "difficulty": 3,
+    "masterRules": [
+      5
+    ]
   }
 ]
