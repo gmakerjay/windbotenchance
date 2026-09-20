@@ -1,5 +1,5 @@
 // ============================================================================
-// CARD AUDIT — _2026_Tenpai (Tenpai Dragon — The Ultimate Going-Second OTK God)
+// CARD AUDIT — Tenpai (Tenpai Dragon — The Ultimate Going-Second OTK God)
 // ============================================================================
 // | Card Name                          | Type         | OPT? | HOPT? | Cost    | Effect Summary                                | Activate When                                | NEVER Activate When                         |
 // |------------------------------------|--------------|------|-------|---------|-----------------------------------------------|----------------------------------------------|---------------------------------------------|
@@ -27,8 +27,8 @@ using YGOSharp.OCGWrapper.Enums;
 
 namespace WindBot.Game.AI.Decks
 {
-    [Deck("_2026_Tenpai", "_2026_Tenpai")]
-    public class _2026_TenpaiExecutor : ModernExecutor
+    [Deck("Tenpai", "Tenpai")]
+    public class TenpaiExecutor : ModernExecutor
     {
         public class CardId
         {
@@ -57,16 +57,16 @@ namespace WindBot.Game.AI.Decks
             public const int SangenpaiTranscendentDragion = 18969888;
             public const int TridentDragion = 39402797;
             public const int MoonlightRoseDragon = 33698022;
-            public const int KuibeltTheBladeDragon = 97093867;
-            public const int BystialDisPater = 24857466;
-            public const int BaronneDeFleur = 84815190;
+            public const int KuibeltTheBladeDragon = 87837090;
+            public const int BystialDisPater = 27572350;
+            public const int HiSpeedroidChanbara = 42110604;
             public const int Garura = 11765832;
-            public const int Mudragon = 42110604;
-            public const int EarthGolem = 73491419;
+            public const int Mudragon = 54757758;
+            public const int EarthGolem = 62111090;
             public const int StarvingVenom = 41209827;
         }
 
-        public _2026_TenpaiExecutor(GameAI ai, Duel duel)
+        public TenpaiExecutor(GameAI ai, Duel duel)
             : base(ai, duel)
         {
             RegisterComboLines();
@@ -166,8 +166,8 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.SpSummon, CardId.SangenpaiBidentDragion, BidentDragionSpSummon);
             AddExecutor(ExecutorType.Activate, CardId.SangenpaiBidentDragion, BidentDragionEffect);
 
-            AddExecutor(ExecutorType.SpSummon, CardId.BaronneDeFleur, BaronneSpSummon);
-            AddExecutor(ExecutorType.Activate, CardId.BaronneDeFleur, BaronneEffect);
+            AddExecutor(ExecutorType.SpSummon, CardId.HiSpeedroidChanbara, BaronneSpSummon);
+            AddExecutor(ExecutorType.Activate, CardId.HiSpeedroidChanbara, BaronneEffect);
 
             AddExecutor(ExecutorType.SpSummon, CardId.BystialDisPater, DisPaterSpSummon);
             AddExecutor(ExecutorType.Activate, CardId.BystialDisPater, DisPaterEffect);

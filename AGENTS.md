@@ -109,3 +109,8 @@ powershell -ExecutionPolicy Bypass -File .\BUILD_AND_DEPLOY.ps1
 7. **ห้ามรัน Headless Simulation อัตโนมัติ**:
    - รอคำสั่ง "Text Duel" (หรือ "จำลองดวล") จากผู้ใช้เท่านั้น
 8. **ห้าม Deploy นอกโฟลเดอร์ `C:\Users\admin\Documents\EdoGame\` เด็ดขาด**
+9. **ห้ามใช้คำนำหน้าปีหรือเวอร์ชัน (เช่น `2026_` หรือ `_2026_`) ในชื่อเด็ค/ชื่อ Bot เด็ดขาด**:
+   - ให้ใช้ชื่อเด็คที่สะอาด กระชับ เช่น `Tenpai`, `Centurion`, `VoicelessVoice`
+   - การจัดหมวดหมู่ (Modern, Anime, Legacy, Special) ให้จัดการผ่านระบบหมวดหมู่ใน DashBot Launcher (`MainWindow.xaml.cs`) แทนการนำชื่อปีมาตั้งนำหน้าไฟล์
+10. **ห้ามใส่การ์ดที่ ID ผิดจาก `cards.cdb` หรือการ์ดที่ผิด Banlist เด็ดขาด**:
+   - ต้องตรวจสอบ Card ID และข้อจำกัดจำนวนใบกับ `cards.cdb` และ `0TCG.lflist.conf` / `OCG.lflist.conf` ทุกครั้งก่อนจัดเด็ค ป้องกันข้อผิดพลาด `ERRMSG_DECKERROR` (ทำให้บอทเข้าห้องไม่ได้ / โดนเซิร์ฟเวอร์เตะออกทันที)

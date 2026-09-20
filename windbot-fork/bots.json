@@ -1787,29 +1787,32 @@
     ]
   },
   {
-    "name": "_2026_Tenpai",
-    "deck": "_2026_Tenpai",
+    "name": "Tenpai",
+    "deck": "Tenpai",
     "dialog": "default",
     "difficulty": 3,
     "masterRules": [
+      4,
       5
     ]
   },
   {
-    "name": "_2026_VoicelessVoice",
-    "deck": "_2026_VoicelessVoice",
+    "name": "VoicelessVoice",
+    "deck": "VoicelessVoice",
     "dialog": "default",
     "difficulty": 3,
     "masterRules": [
+      4,
       5
     ]
   },
   {
-    "name": "_2026_Centurion",
-    "deck": "_2026_Centurion",
+    "name": "Centurion",
+    "deck": "Centurion",
     "dialog": "default",
     "difficulty": 3,
     "masterRules": [
+      4,
       5
     ]
   }

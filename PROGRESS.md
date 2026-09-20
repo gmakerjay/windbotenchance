@@ -1,5 +1,44 @@
 # Progress Log: 2026_Branded, 2026_DarkTime, 2026_Runick, 2026_RyuGe, 2026_AFS, 2026_Spright, GOD-01, Demise, 2026_Darklord, 2026_DarkWorld, 2026_Hecahand & Anime ModernExecutors
 
+## 0.012. Modern Meta 3-Deck Revamp: Zero-Prefix Naming, Room-Join DeckError Fixes & DashBot Modern Categorization (2026-09-20)
+- **User Directives**:
+  1. "ชุดที่ทำให้สามเด็คล่าสุดปรับปรุงใหม่ให้บอทเข้าห้องได้ก่อนเลยครับ" (Fix the 3 latest decks so the bot can enter the room first!).
+  2. "ไม่ต้องใช้ชื่อนำหน้า 2026 หรืออะไรแล้วครับ ต่อไปนี้แค่จัดหมวดจำไว้ด้วย" (No need to use prefix 2026 or anything anymore. From now on, just categorize them, remember this too!).
+- **Root Cause Analysis (Why Bots Failed to Enter Room)**:
+  - From WindBot client logs (`client__2026_Tenpai_...log` & `client__2026_Centurion_...log`):
+    - `[OnErrorMsg] Received error message code: 2` (ERRMSG_DECKERROR)
+    - `DeckError Details: flag=4, code=73491419` (flag 4 = UNKNOWN CARD in `cards.cdb`)
+    - `DeckError Details: flag=6, code=...` (flag 6 / 1 = BANLIST / FORBIDDEN CARD VIOLATION)
+  - Card ID verification against `cards.cdb` revealed mismatched / hallucinated card IDs:
+    - Earth Golem was `73491419` (real ID: `62111090`)
+    - Bonfire was `67332219` (real ID: `85106525`)
+    - TY-PHON was `12470404` (real ID: `93039339`)
+    - Mudragon was `42110604` (real ID: `54757758`)
+    - Kuibelt was `97093867` (real ID: `87837090`)
+    - Bystial Dis Pater was `24857466` (real ID: `27572350`)
+    - Preparation of Rites was `44155002` (real ID: `96729612`)
+    - Dyna Mondo was `54447022` (was Soul Charge, banned!) (real ID: `73898890`)
+    - Bagooska was `2625939` (real ID: `90590303`)
+  - Banlist check against default room banlist `0TCG.lflist.conf` (`2026.05 TCG`):
+    - `Baronne de Fleur`, `Abyss Dweller`, `Herald of the Arc Light` are Forbidden (0).
+    - `Sangen Summoning`, `Sangen Kaimen`, `Tenpai Dragon Chundra`, `Bonfire`, `Pot of Prosperity`, and `Called by the Grave` are Limited (1).
+- **Comprehensive Fixes & Re-Architecture**:
+  1. **Clean Naming Policy (No `2026_` Prefix)**:
+     - Renamed all 3 decks and executors: `Tenpai`, `Centurion`, `VoicelessVoice`.
+     - Purged all old `_2026_*.ydk` and `_2026_*Executor.cs` files.
+     - Registered clean bot names in `bots.json`.
+  2. **100% Validated Deck Construction**:
+     - Queried and verified all card IDs against `cards.cdb`.
+     - Rebalanced all 3 main decks (exactly 40 cards) and extra decks (exactly 15 cards) to have **0 Banlist Violations** against `0TCG.lflist.conf`.
+  3. **DashBot Modern Categorization**:
+     - Updated `dashbot/MainWindow.xaml.cs` with `ModernArchetypes` hashset to classify `Tenpai`, `VoicelessVoice`, `Centurion`, and other modern meta decks under **Modern** category without relying on prefix strings.
+     - Added clean display name mappings ("Tenpai Dragon", "Voiceless Voice", "Centur-Ion").
+  4. **Compilation & Deployment**:
+     - Built and deployed all components via `BUILD_AND_DEPLOY.ps1` with 0 errors directly to `C:\Users\admin\Documents\EdoGame\`.
+     - Verified WindBot CLI initialization for `Tenpai`, `Centurion`, and `VoicelessVoice` (0 deck errors, connects cleanly).
+  5. **Policy & Guidelines Update**:
+     - Updated `AGENTS.md` and `.agents/skills/yugioh-executor/SKILL.md` with strict rules against version prefixes and unverified card IDs.
+
 ## 0.011. Elite Tournament Meta 3-Deck Porting: Tenpai, Voiceless Voice & Centur-Ion (2026-09-20)
 - **Concept & Request**: Analyzed latest tournament meta data from YGOPRODeck and developed 3 premier Tier 1 meta executors based 100% on real cards from `cards.cdb`, designed with master-level ("Hard ที่สุด") deterministic combo pipelines:
   1. **`_2026_Tenpai` (Tenpai Dragon — Going-Second OTK God)**:

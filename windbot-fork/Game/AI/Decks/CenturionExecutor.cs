@@ -1,5 +1,5 @@
 // ============================================================================
-// CARD AUDIT — _2026_Centurion (Centur-Ion — Tier 1 Cosmic Blazar Synchro 12 Juggernaut)
+// CARD AUDIT — Centurion (Centur-Ion — Tier 1 Cosmic Blazar Synchro 12 Juggernaut)
 // ============================================================================
 // | Card Name                          | Type         | OPT? | HOPT? | Cost    | Effect Summary                                | Activate When                                | NEVER Activate When                         |
 // |------------------------------------|--------------|------|-------|---------|-----------------------------------------------|----------------------------------------------|---------------------------------------------|
@@ -28,8 +28,8 @@ using YGOSharp.OCGWrapper.Enums;
 
 namespace WindBot.Game.AI.Decks
 {
-    [Deck("_2026_Centurion", "_2026_Centurion")]
-    public class _2026_CenturionExecutor : ModernExecutor
+    [Deck("Centurion", "Centurion")]
+    public class CenturionExecutor : ModernExecutor
     {
         public class CardId
         {
@@ -45,8 +45,8 @@ namespace WindBot.Game.AI.Decks
             public const int WakeUpCenturIon = 92907248;
             public const int CenturIonTrueAwakening = 77543769;
             public const int CenturIonPhalanx = 40155014;
-            public const int Terraforming = 40318957;
-            public const int Bonfire = 67332219;
+            public const int Terraforming = 73628505;
+            public const int Bonfire = 85106525;
             public const int PotOfProsperity = 84211599;
             public const int CosmicCyclone = 8267140;
             public const int CalledByTheGrave = 24224830;
@@ -66,10 +66,11 @@ namespace WindBot.Game.AI.Decks
             public const int KnightmarePhoenix = 2857636;
             public const int KnightmareUnicorn = 38342335;
             public const int AccesscodeTalker = 86066372;
-            public const int TyPhon = 12470404;
+            public const int TyPhon = 93039339;
+            public const int BystialDisPater = 27572350;
         }
 
-        public _2026_CenturionExecutor(GameAI ai, Duel duel)
+        public CenturionExecutor(GameAI ai, Duel duel)
             : base(ai, duel)
         {
             RegisterComboLines();

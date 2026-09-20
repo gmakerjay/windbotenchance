@@ -294,6 +294,17 @@ namespace dashbot
             };
         }
 
+        private static readonly HashSet<string> ModernArchetypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Tenpai", "VoicelessVoice", "Centurion", "CenturIon",
+            "Branded", "Purrely", "Yummy", "RyuGe", "Runick", "Spright",
+            "SnakeEye", "FireKing", "Tearla", "Tearlaments", "Kashtira", "Labrynth",
+            "VanquishSoul", "Unchained", "RescueAce", "Horus", "Memento",
+            "WhiteForest", "Fiendsmith", "Azamina", "Maliss", "Raika",
+            "Yubel", "Chimera", "GoblinBiker", "GoldPride", "Mikanko",
+            "SuperHeavySamurai", "Mathmech", "Cyberse", "Synchron", "Exosister"
+        };
+
         private static DeckItem ParseDeckItem(string originalName)
         {
             string cleanName = originalName;
@@ -301,7 +312,7 @@ namespace dashbot
             string tagText;
             string tagBg;
 
-            if (originalName.StartsWith("2026_") || originalName.StartsWith("Expert_2026_") || originalName.StartsWith("Neural_2026_"))
+            if (originalName.StartsWith("2026_") || originalName.StartsWith("Expert_2026_") || originalName.StartsWith("Neural_2026_") || ModernArchetypes.Contains(cleanName))
             {
                 category = "Modern";
                 tagText = "Modern";
@@ -354,6 +365,9 @@ namespace dashbot
         {
             var overrides = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
+                { "Tenpai", "Tenpai Dragon" },
+                { "VoicelessVoice", "Voiceless Voice" },
+                { "Centurion", "Centur-Ion" },
                 { "JackAtlas", "Jack Atlas" },
                 { "Yugi", "Yugi Muto" },
                 { "Yusei", "Yusei Fudo" },

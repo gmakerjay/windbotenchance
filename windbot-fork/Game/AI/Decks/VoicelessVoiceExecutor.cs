@@ -1,5 +1,5 @@
 // ============================================================================
-// CARD AUDIT — _2026_VoicelessVoice (Voiceless Voice — Untargetable Ritual Omni-Negate Control)
+// CARD AUDIT — VoicelessVoice (Voiceless Voice — Untargetable Ritual Omni-Negate Control)
 // ============================================================================
 // | Card Name                          | Type         | OPT? | HOPT? | Cost    | Effect Summary                                | Activate When                                | NEVER Activate When                         |
 // |------------------------------------|--------------|------|-------|---------|-----------------------------------------------|----------------------------------------------|---------------------------------------------|
@@ -26,8 +26,8 @@ using YGOSharp.OCGWrapper.Enums;
 
 namespace WindBot.Game.AI.Decks
 {
-    [Deck("_2026_VoicelessVoice", "_2026_VoicelessVoice")]
-    public class _2026_VoicelessVoiceExecutor : ModernExecutor
+    [Deck("VoicelessVoice", "VoicelessVoice")]
+    public class VoicelessVoiceExecutor : ModernExecutor
     {
         public class CardId
         {
@@ -46,7 +46,7 @@ namespace WindBot.Game.AI.Decks
             public const int BlessingOfTheVoicelessVoice = 39114494;
             public const int RadianceOfTheVoicelessVoice = 86310763;
             public const int PrePreparationOfRites = 13048472;
-            public const int PreparationOfRites = 44155002;
+            public const int PreparationOfRites = 96729612;
             public const int PotOfProsperity = 84211599;
             public const int CalledByTheGrave = 24224830;
             public const int AshBlossom = 14558127;
@@ -56,19 +56,22 @@ namespace WindBot.Game.AI.Decks
             public const int HeraldOfTheArcLight = 79606837;
             public const int ElderEntityNtss = 80532587;
             public const int BaronneDeFleur = 84815190;
-            public const int DynaMondo = 54447022;
+            public const int DynaMondo = 73898890;
             public const int SPLittleKnight = 29301450;
             public const int KnightmarePhoenix = 2857636;
             public const int KnightmareUnicorn = 38342335;
             public const int AccesscodeTalker = 86066372;
             public const int RelinquishedAnima = 94259633;
-            public const int Bagooska = 2625939;
+            public const int Bagooska = 90590303;
             public const int AbyssDweller = 21044178;
             public const int IPMasquerena = 65741786;
-            public const int TyPhon = 12470404;
+            public const int TyPhon = 93039339;
+            public const int TriBrigadeBucephalus = 10019086;
+            public const int MereologicAggregator = 9940036;
+            public const int Garura = 11765832;
         }
 
-        public _2026_VoicelessVoiceExecutor(GameAI ai, Duel duel)
+        public VoicelessVoiceExecutor(GameAI ai, Duel duel)
             : base(ai, duel)
         {
             RegisterComboLines();
