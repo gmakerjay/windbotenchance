@@ -2,7 +2,7 @@ using System;
 
 namespace WindBot.Game.AI
 {
-    [AttributeUsage(AttributeTargets.Class)]
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
     public class DeckAttribute : Attribute
     {
         public string Name { get; private set; }

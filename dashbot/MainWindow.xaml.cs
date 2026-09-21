@@ -316,8 +316,9 @@ namespace dashbot
                 "Modern" => 1,
                 "Anime" => 2,
                 "Legacy" => 3,
-                "Special" => 4,
-                _ => 5
+                "GOAT" => 4,
+                "Special" => 5,
+                _ => 6
             };
         }
 
@@ -330,7 +331,8 @@ namespace dashbot
             "VanquishSoul", "Unchained", "RescueAce", "Horus", "Memento",
             "WhiteForest", "Fiendsmith", "Azamina", "Maliss", "Raika",
             "Yubel", "Chimera", "GoblinBiker", "GoldPride", "Mikanko",
-            "SuperHeavySamurai", "Mathmech", "Cyberse", "Synchron", "Exosister"
+            "SuperHeavySamurai", "Mathmech", "Cyberse", "Synchron", "Exosister",
+            "SacrBeatsMach", "ScarbeatMach", "SacredBeats", "Machina"
         };
 
         private static DeckItem ParseDeckItem(string originalName)
@@ -365,7 +367,7 @@ namespace dashbot
             }
             else if (originalName.StartsWith("GOAT_"))
             {
-                category = "Special";
+                category = "GOAT";
                 tagText = "GOAT";
                 tagBg = "#047857"; // Emerald Green
                 cleanName = cleanName.Substring(5);
@@ -442,7 +444,10 @@ namespace dashbot
                 { "PureWinds", "Pure Winds" },
                 { "OldSchool", "Old School" },
                 { "Timethief", "Time Thief" },
-                { "ToadallyAwesome", "Toadally Awesome" }
+                { "ToadallyAwesome", "Toadally Awesome" },
+                { "SacrBeatsMach", "Sacred Beasts Machina (FTK)" },
+                { "ScarbeatMach", "Sacred Beasts Machina (FTK)" },
+                { "SacredBeats", "Sacred Beasts" }
             };
 
             if (overrides.TryGetValue(name, out var customName))
@@ -613,6 +618,7 @@ namespace dashbot
             else if (RbCatModern?.IsChecked == true) _currentCategory = "Modern";
             else if (RbCatAnime?.IsChecked == true) _currentCategory = "Anime";
             else if (RbCatLegacy?.IsChecked == true) _currentCategory = "Legacy";
+            else if (RbCatGoat?.IsChecked == true) _currentCategory = "GOAT";
             else if (RbCatSpecial?.IsChecked == true) _currentCategory = "Special";
 
             ApplyFilter();

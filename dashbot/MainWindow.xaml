@@ -265,6 +265,7 @@
                             <RadioButton x:Name="RbCatModern" Content="Modern" Style="{StaticResource CategoryFilterPill}" Checked="RbCat_Checked"/>
                             <RadioButton x:Name="RbCatAnime" Content="Anime" Style="{StaticResource CategoryFilterPill}" Checked="RbCat_Checked"/>
                             <RadioButton x:Name="RbCatLegacy" Content="Legacy" Style="{StaticResource CategoryFilterPill}" Checked="RbCat_Checked"/>
+                            <RadioButton x:Name="RbCatGoat" Content="GOAT" Style="{StaticResource CategoryFilterPill}" Checked="RbCat_Checked"/>
                             <RadioButton x:Name="RbCatSpecial" Content="Special" Style="{StaticResource CategoryFilterPill}" Checked="RbCat_Checked"/>
                         </StackPanel>
                     </ScrollViewer>

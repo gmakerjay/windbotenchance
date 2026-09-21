@@ -56,6 +56,10 @@ namespace WindBot.Game.AI.Decks
     // ====================================================================================================
 
     [Deck("SacrBeatsMach", "SacrBeatsMach", "Modern")]
+    [Deck("ScarbeatMach", "SacrBeatsMach", "Modern")]
+    [Deck("scarbeatmach", "SacrBeatsMach", "Modern")]
+    [Deck("2026_SacrBeatsMach", "SacrBeatsMach", "Modern")]
+    [Deck("2026_ScarbeatMach", "SacrBeatsMach", "Modern")]
     public class _2026_SacrBeatsMachExecutor : ModernExecutor
     {
         public class CardId
