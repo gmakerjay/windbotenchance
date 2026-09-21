@@ -153,6 +153,24 @@ if (Test-Path $sourceCdb) {
     Write-OK "Deployed cards.cdb to WindBot"
 }
 
+# Deploy Thai Language Translation files (cards.delta.cdb & prerelease)
+$sourceThaiDir = Join-Path $ScriptDir "config\languages\Thai"
+if (Test-Path $sourceThaiDir) {
+    $targetThaiDir = Join-Path $TargetDir "config\languages\Thai"
+    if (!(Test-Path $targetThaiDir)) { New-Item -ItemType Directory -Path $targetThaiDir -Force | Out-Null }
+    Copy-Item (Join-Path $sourceThaiDir "*") $targetThaiDir -Recurse -Force
+    Write-OK "Deployed Thai localization databases to config\languages\Thai"
+}
+
+# Deploy Custom / Patched Scripts
+$sourceScriptDir = Join-Path $ScriptDir "script"
+if (Test-Path $sourceScriptDir) {
+    $targetScriptDir = Join-Path $TargetDir "script"
+    if (!(Test-Path $targetScriptDir)) { New-Item -ItemType Directory -Path $targetScriptDir -Force | Out-Null }
+    Copy-Item (Join-Path $sourceScriptDir "*") $targetScriptDir -Recurse -Force
+    Write-OK "Deployed custom/patched Lua scripts to script\"
+}
+
 # Deploy DashBot
 Copy-Item "$DashBotOutput\*" "$TargetDir\" -Recurse -Force
 Write-OK "Deployed DashBot Launcher"
