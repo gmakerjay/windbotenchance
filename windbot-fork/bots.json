@@ -1,5 +1,29 @@
 [
   {
+    "name": "AFS",
+    "deck": "AFS",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "Azamina Fiendsmith Snake-Eye",
+    "deck": "AFS",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "Azamina Fiendsmith",
+    "deck": "AFS",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "2026_AFS",
+    "deck": "2026_AFS",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
     "name": "PhantomKnight",
     "deck": "PhantomKnight",
     "difficulty": 3,

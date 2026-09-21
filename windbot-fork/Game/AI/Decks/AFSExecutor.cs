@@ -9,6 +9,11 @@ using YGOSharp.OCGWrapper.Enums;
 namespace WindBot.Game.AI.Decks
 {
     [Deck("AFS", "AFS")]
+    [Deck("2026_AFS", "2026_AFS")]
+    [Deck("Azamina Fiendsmith Snake-Eye", "AFS")]
+    [Deck("Azamina Fiendsmith", "AFS")]
+    [Deck("Azamina", "AFS")]
+    [Deck("Fiendsmith", "AFS")]
     public class AFSExecutor : ModernExecutor
     {
         public class CardId
@@ -23,6 +28,7 @@ namespace WindBot.Game.AI.Decks
             public const int WantedSeekerOfSinfulSpoils = 80845034;
             public const int DivineTempleOfTheSnakeEye = 53639887;
             public const int Bonfire = 85106525;
+            public const int OriginalSinfulSpoils = 89023486;
 
             // Azamina Engine
             public const int DeceptionOfTheSinfulSpoils = 66328392;
@@ -41,6 +47,7 @@ namespace WindBot.Game.AI.Decks
             public const int FiendsmithsLacrima = 46640168;
             public const int FiendsmithsAgnumday = 32991300;
             public const int DDDWaveHighKingCaesar = 79559912;
+            public const int MoonOfTheClosedHeaven = 71818935;
 
             // Extra Deck Bosses & Staples
             public const int PrometheanPrincess = 2772337;
@@ -53,13 +60,24 @@ namespace WindBot.Game.AI.Decks
             public const int AccesscodeTalker = 86066372;
 
             // Handtraps & Staples
+            public const int MaxxC = 23434538;
             public const int AshBlossom = 14558127;
             public const int GhostBelle = 73642296;
             public const int MulcharmyFuwalos = 42141493;
+            public const int MulcharmyPurulia = 84192580;
             public const int NibiruThePrimalBeing = 27204311;
             public const int CalledByTheGrave = 24224830;
             public const int CrossoutDesignator = 65681983;
             public const int InfiniteImpermanence = 10045474;
+            public const int ForbiddenDroplet = 24299458;
+            public const int DarkRulerNoMore = 54693926;
+            public const int LightningStorm = 14532163;
+            public const int HarpiesFeatherDuster = 18144507;
+            public const int EvenlyMatched = 15693423;
+            public const int BystialDruiswurm = 6637331;
+            public const int BystialMagnamhut = 33854624;
+            public const int SolemnStrike = 40605147;
+            public const int DimensionalBarrier = 83326048;
         }
 
         private const long HINT_SELECT_DESTROY = 502;
@@ -161,17 +179,29 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.Activate, CardId.PrometheanPrincess, PrometheanPrincessGYQuickEffect);
             AddExecutor(ExecutorType.Activate, CardId.SPLittleKnight, SPLittleKnightQuickEffect);
             AddExecutor(ExecutorType.Activate, CardId.IPMasquerena, IPMasquerenaEffect);
+            AddExecutor(ExecutorType.Activate, CardId.MaxxC, MaxxCEffect);
             AddExecutor(ExecutorType.Activate, CardId.AshBlossom, AshBlossomEffect);
             AddExecutor(ExecutorType.Activate, CardId.GhostBelle, GhostBelleEffect);
             AddExecutor(ExecutorType.Activate, CardId.MulcharmyFuwalos, MulcharmyFuwalosEffect);
+            AddExecutor(ExecutorType.Activate, CardId.MulcharmyPurulia, MulcharmyPuruliaEffect);
             AddExecutor(ExecutorType.Activate, CardId.NibiruThePrimalBeing, NibiruEffect);
             AddExecutor(ExecutorType.Activate, CardId.CalledByTheGrave, CalledByTheGraveEffect);
             AddExecutor(ExecutorType.Activate, CardId.CrossoutDesignator, CrossoutDesignatorEffect);
+            AddExecutor(ExecutorType.Activate, CardId.ForbiddenDroplet, ForbiddenDropletEffect);
             AddExecutor(ExecutorType.Activate, CardId.InfiniteImpermanence, DefaultInfiniteImpermanence);
+            AddExecutor(ExecutorType.Activate, CardId.SolemnStrike, DefaultSolemnStrike);
+            AddExecutor(ExecutorType.Activate, CardId.DimensionalBarrier, DimensionalBarrierEffect);
+            AddExecutor(ExecutorType.Activate, CardId.BystialDruiswurm, BystialSpecialSummon);
+            AddExecutor(ExecutorType.Activate, CardId.BystialMagnamhut, BystialSpecialSummon);
+            AddExecutor(ExecutorType.Activate, CardId.DarkRulerNoMore, DarkRulerNoMoreEffect);
+            AddExecutor(ExecutorType.Activate, CardId.LightningStorm, LightningStormEffect);
+            AddExecutor(ExecutorType.Activate, CardId.HarpiesFeatherDuster, HarpiesFeatherDusterEffect);
+            AddExecutor(ExecutorType.Activate, CardId.EvenlyMatched, EvenlyMatchedEffect);
 
             // ── Tier 1: Primary Starters (Bonfire / WANTED / Ash / Engraver / Tract) ──
             AddExecutor(ExecutorType.Activate, CardId.WantedSeekerOfSinfulSpoils, WantedEffect);
             AddExecutor(ExecutorType.Activate, CardId.Bonfire, BonfireEffect);
+            AddExecutor(ExecutorType.Activate, CardId.OriginalSinfulSpoils, OriginalSinfulSpoilsEffect);
 
             AddExecutor(ExecutorType.Activate, CardId.FiendsmithEngraver, EngraverEffect);
             AddExecutor(ExecutorType.Activate, CardId.FiendsmithsTract, TractEffect);
@@ -194,6 +224,7 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.Activate, CardId.AzaminaMuRcielago, MuRcielagoSearchEffect);
 
             // ── Tier 3: Fiendsmith Engine Loop ──
+            AddExecutor(ExecutorType.SpSummon, CardId.MoonOfTheClosedHeaven, MoonOfTheClosedHeavenSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.FiendsmithsRequiem, RequiemSummon);
             AddExecutor(ExecutorType.Activate, CardId.FiendsmithsRequiem, RequiemEffect);
             AddExecutor(ExecutorType.Summon, CardId.LacrimaTheCrimsonTears, LacrimaSummon);
@@ -229,9 +260,12 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.Activate, CardId.AccesscodeTalker, AccesscodeTalkerEffect);
 
             // ── Tier 7: Backrow Setting ──
+            AddExecutor(ExecutorType.SpellSet, CardId.ForbiddenDroplet, SpellSetInMain2);
             AddExecutor(ExecutorType.SpellSet, CardId.InfiniteImpermanence, SpellSetInMain2);
             AddExecutor(ExecutorType.SpellSet, CardId.CalledByTheGrave, SpellSetInMain2);
             AddExecutor(ExecutorType.SpellSet, CardId.CrossoutDesignator, SpellSetInMain2);
+            AddExecutor(ExecutorType.SpellSet, CardId.SolemnStrike, SpellSetInMain2);
+            AddExecutor(ExecutorType.SpellSet, CardId.DimensionalBarrier, SpellSetInMain2);
 
             // ── Tier 8: Position Reposition ──
             AddExecutor(ExecutorType.Repos, MonsterReposOverride);
@@ -264,7 +298,7 @@ namespace WindBot.Game.AI.Decks
             return Duel.Phase == DuelPhase.Main2 || (Duel.Phase == DuelPhase.Main1 && Duel.Turn == 1);
         }
 
-        private bool IsAceCard(ClientCard card)
+        public override bool IsAceCard(ClientCard card)
         {
             if (card == null) return false;
             return card.Id == CardId.DDDWaveHighKingCaesar
@@ -341,15 +375,27 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
+        private bool MaxxCEffect()
+        {
+            if (Duel.Player == 1)
+            {
+                if (Duel.CurrentChain != null && Duel.CurrentChain.Any(c => c != null && c.Controller == 0 && c.Id == CardId.MaxxC)) return false;
+                return DefaultMaxxC();
+            }
+            return false;
+        }
+
         private bool AshBlossomEffect()
         {
             if (Duel.LastChainPlayer != 1) return false;
+            if (Duel.CurrentChain != null && Duel.CurrentChain.Any(c => c != null && c.Controller == 0 && c.Id == CardId.AshBlossom)) return false;
             return DefaultAshBlossomAndJoyousSpring();
         }
 
         private bool GhostBelleEffect()
         {
             if (Duel.LastChainPlayer != 1) return false;
+            if (Duel.CurrentChain != null && Duel.CurrentChain.Any(c => c != null && c.Controller == 0 && c.Id == CardId.GhostBelle)) return false;
             return DefaultGhostBelleAndHauntedMansion();
         }
 
@@ -357,6 +403,17 @@ namespace WindBot.Game.AI.Decks
         {
             if (Duel.Player == 1 && (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Main2))
             {
+                if (Duel.CurrentChain != null && Duel.CurrentChain.Any(c => c != null && c.Controller == 0 && c.Id == CardId.MulcharmyFuwalos)) return false;
+                return Bot.GetMonsterCount() == 0 && Bot.Hand.Contains(Card);
+            }
+            return false;
+        }
+
+        private bool MulcharmyPuruliaEffect()
+        {
+            if (Duel.Player == 1 && (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Main2))
+            {
+                if (Duel.CurrentChain != null && Duel.CurrentChain.Any(c => c != null && c.Controller == 0 && c.Id == CardId.MulcharmyPurulia)) return false;
                 return Bot.GetMonsterCount() == 0 && Bot.Hand.Contains(Card);
             }
             return false;
@@ -370,13 +427,134 @@ namespace WindBot.Game.AI.Decks
         private bool CalledByTheGraveEffect()
         {
             if (Duel.LastChainPlayer != 1) return false;
+            if (Duel.CurrentChain != null && Duel.CurrentChain.Any(c => c != null && c.Controller == 0 && c.Id == CardId.CalledByTheGrave)) return false;
             return DefaultCalledByTheGrave();
         }
 
         private bool CrossoutDesignatorEffect()
         {
             if (Duel.LastChainPlayer != 1) return false;
+            if (Duel.CurrentChain != null && Duel.CurrentChain.Any(c => c != null && c.Controller == 0 && c.Id == CardId.CrossoutDesignator)) return false;
             return DefaultCrossoutDesignator();
+        }
+
+        private bool ForbiddenDropletEffect()
+        {
+            if (Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsDisabled()))
+            {
+                var sendFodder = Bot.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup() && (c.Id == CardId.DivineTempleOfTheSnakeEye || c.Id == CardId.DeceptionOfTheSinfulSpoils))
+                              ?? Bot.Hand.FirstOrDefault(c => c != null && c != Card && (c.Id == CardId.FabledLurrie || c.Id == CardId.SnakeEyesPoplar))
+                              ?? Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && !IsAceCard(c));
+                if (sendFodder != null)
+                {
+                    var oppTarget = Enemy.GetMonsters().OrderByDescending(c => c.Attack).FirstOrDefault(c => c != null && c.IsFaceup() && !c.IsDisabled());
+                    if (oppTarget != null)
+                    {
+                        AI.SelectCard(sendFodder);
+                        AI.SelectNextCard(oppTarget);
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private bool DarkRulerNoMoreEffect()
+        {
+            if (Duel.Player == 0 && Duel.Phase == DuelPhase.Main1 && Enemy.GetMonsterCount() > 0)
+            {
+                return Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsDisabled());
+            }
+            return false;
+        }
+
+        private bool LightningStormEffect()
+        {
+            if (Duel.Player == 0 && (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Main2))
+            {
+                if (Bot.GetMonsters().Any(c => c != null && c.IsFaceup()) || Bot.GetSpells().Any(c => c != null && c.IsFaceup()))
+                    return false;
+                if (Enemy.GetSpellCount() >= 2)
+                {
+                    AI.SelectOption(1);
+                    return true;
+                }
+                if (Enemy.GetMonsters().Any(c => c != null && c.IsAttack()))
+                {
+                    AI.SelectOption(0);
+                    return true;
+                }
+                if (Enemy.GetSpellCount() > 0)
+                {
+                    AI.SelectOption(1);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private bool HarpiesFeatherDusterEffect()
+        {
+            return Enemy.GetSpellCount() > 0;
+        }
+
+        private bool EvenlyMatchedEffect()
+        {
+            if (Duel.Phase == DuelPhase.Battle)
+            {
+                int botTotal = Bot.GetMonsterCount() + Bot.GetSpellCount();
+                int enemyTotal = Enemy.GetMonsterCount() + Enemy.GetSpellCount();
+                return enemyTotal > botTotal + 1;
+            }
+            return false;
+        }
+
+        private bool DimensionalBarrierEffect()
+        {
+            if (Duel.Player == 1)
+            {
+                AI.SelectOption(3); // Declare Xyz
+                return true;
+            }
+            return false;
+        }
+
+        private bool BystialSpecialSummon()
+        {
+            if (Card.Location == CardLocation.Hand)
+            {
+                var target = Enemy.Graveyard.FirstOrDefault(c => c != null && (c.Attribute == (int)CardAttribute.Light || c.Attribute == (int)CardAttribute.Dark))
+                          ?? Bot.Graveyard.FirstOrDefault(c => c != null && (c.Attribute == (int)CardAttribute.Light || c.Attribute == (int)CardAttribute.Dark) && !IsAceCard(c));
+                if (target != null)
+                {
+                    AI.SelectCard(target);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private bool OriginalSinfulSpoilsEffect()
+        {
+            var sendTarget = Bot.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup() && (c.Id == CardId.DivineTempleOfTheSnakeEye || c.Id == CardId.SnakeEyesPoplar || c.Id == CardId.DeceptionOfTheSinfulSpoils))
+                          ?? Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && !IsAceCard(c) && c.Id != CardId.SnakeEyeAsh)
+                          ?? Bot.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup());
+            if (sendTarget != null)
+            {
+                AI.SelectCard(sendTarget);
+                AI.SelectNextCard(CardId.SnakeEyeAsh, CardId.SnakeEyesPoplar, CardId.SnakeEyeOak);
+                return true;
+            }
+            return false;
+        }
+
+        private bool MoonOfTheClosedHeavenSummon()
+        {
+            if (_requiemUsed) return false;
+            if (Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.Attribute == (int)CardAttribute.Light && c.Race == (int)CardRace.Fiend))
+                return false;
+            int mats = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && !c.HasType(CardType.Token) && !IsAceCard(c));
+            return mats >= 2;
         }
 
         private bool WantedEffect()
@@ -487,7 +665,7 @@ namespace WindBot.Game.AI.Decks
                 if (!_snakeEyesPoplarSearchUsed)
                 {
                     _snakeEyesPoplarSearchUsed = true;
-                    AI.SelectCard(CardId.DivineTempleOfTheSnakeEye);
+                    AI.SelectCard(CardId.DivineTempleOfTheSnakeEye, CardId.OriginalSinfulSpoils);
                     return true;
                 }
             }
@@ -520,7 +698,7 @@ namespace WindBot.Game.AI.Decks
         {
             if (_diabellstarSetUsed) return false;
             _diabellstarSetUsed = true;
-            AI.SelectCard(CardId.DeceptionOfTheSinfulSpoils);
+            AI.SelectCard(CardId.DeceptionOfTheSinfulSpoils, CardId.OriginalSinfulSpoils, CardId.WantedSeekerOfSinfulSpoils);
             return true;
         }
 
@@ -793,14 +971,34 @@ namespace WindBot.Game.AI.Decks
 
         public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
         {
-            // Removal hints: ONLY target opponent cards
-            if (hint == HINT_SELECT_DESTROY || hint == HINT_SELECT_REMOVE || hint == HINT_SELECT_TOGRAVE)
+            // Removal hints: ONLY target opponent cards (Rule 1)
+            if (hint == HINT_SELECT_DESTROY || hint == HINT_SELECT_REMOVE)
             {
                 var enemyCards = cards.Where(c => c != null && c.Controller == 1).ToList();
                 if (enemyCards.Count >= min)
                 {
                     var sorted = enemyCards.OrderByDescending(c => c.Attack).ToList();
                     return Util.CheckSelectCount(sorted, cards, min, max);
+                }
+            }
+
+            // Original Sinful Spoils send cost and special summon target
+            if (LastChainCard != null && LastChainCard.Id == CardId.OriginalSinfulSpoils)
+            {
+                if (hint == HINT_SELECT_TOGRAVE)
+                {
+                    return SelectPreferredCard(cards, min, max,
+                        CardId.SnakeEyesPoplar,
+                        CardId.DivineTempleOfTheSnakeEye,
+                        CardId.DeceptionOfTheSinfulSpoils,
+                        CardId.Linkuriboh);
+                }
+                if (hint == HINT_SELECT_SPSUMMON || hint == 0)
+                {
+                    return SelectPreferredCard(cards, min, max,
+                        CardId.SnakeEyeAsh,
+                        CardId.SnakeEyesPoplar,
+                        CardId.SnakeEyeOak);
                 }
             }
 
@@ -921,6 +1119,13 @@ namespace WindBot.Game.AI.Decks
                 if (enemyEmpty || Card.Defense < Card.Attack) return true;
             }
             return false;
+        }
+
+        public override bool? OnSelectEffectYn(ClientCard card, long desc)
+        {
+            if (card != null && card.Controller == 1)
+                return false;
+            return base.OnSelectEffectYn(card, desc);
         }
 
         // ═══════════════════════════════════════════════════════════════

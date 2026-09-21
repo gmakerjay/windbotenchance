@@ -1,5 +1,44 @@
 # Progress Log: Central Core Architecture & Universal Heuristics Overhaul, MagistusFairy ModernExecutor Refactor, PhantomKnight ModernExecutor
 
+## 0.033. Azamina Fiendsmith Snake-Eye & Exosister Lua Error Resolution (2026-09-21)
+
+### Overview
+- **Issue Reported by User**:
+  1. "azamina fiendsmith เล่นผิดเด็คครับปรับปรุงด้วย" (Bot ran Exosister cards instead of Azamina Fiendsmith when Azamina Fiendsmith Snake-Eye was chosen).
+  2. "แล้วก็มี lua error" (Script error: `c52335937.lua:104: Attempting to access deleted object` / `utility.lua:2894`).
+- **Root Causes Identified**:
+  1. **Lua Script Deallocated Group**: `c52335937.lua` (`Exosister Betrayal`) line 39 created `local g = Group.CreateGroup()` stored in effect LabelObject without calling `g:KeepAlive()`. The C++ OCGCore freed the group on phase/turn changes, causing any subsequent call to `g:Clear()` or `g:Merge()` or filtering in `utility.lua:2894` to throw `Attempting to access deleted object`.
+  2. **Wrong Deck Fallback in WindBot**: The DashBot UI passed `Deck="2026_AFS"`. `AFSExecutor.cs` was only annotated with `[Deck("AFS", "AFS")]` and `bots.json` lacked AFS. Because `NormalizeDeckName("2026_AFS")` ("2026afs") did not match `"afs"`, `DecksManager.Instantiate` failed to find a match and fell back to: `Deck not found, loading random: 2026_Exosister`. The bot was literally forced to pilot random Exosister, which then searched and activated `Exosister Betrayal (52335937)`, triggering the Lua crash!
+- **Exclusive Deploy Target**: `C:\Users\admin\Documents\EdoGame\`
+
+### Enhancements & Fixes
+1. **Lua Script `c52335937.lua` (`Exosister Betrayal`)**:
+   - Added `g:KeepAlive()` immediately after `Group.CreateGroup()`.
+   - Added null/validity guards in `s.regop` and `s.rmtg` to re-instantiate with `KeepAlive()` if ever lost.
+   - Synchronized across all 3 repository locations (`script/c52335937.lua`, `script/official/c52335937.lua`, and `repositories/official-scripts/official/c52335937.lua`).
+2. **`DecksManager.cs` Prefix Stripping & Robust Matching**:
+   - Implemented `StripPrefix`: strips prefixes (`2026`, `ai`, `expert2026`, `goat`, `anime`) so requests like `2026_AFS` or `AFS` seamlessly resolve to each other.
+   - 3-pass lookup: Exact normalized match -> Prefix-stripped match -> Substring contains match.
+   - Disk deck preservation: checks if the exact requested deck file exists in `Decks/` (e.g. `2026_AFS.ydk`) and preserves it on the executor instead of overwriting with the default attribute file name.
+3. **`AFSExecutor.cs` Aliases & `bots.json` Registration**:
+   - Added attributes: `[Deck("AFS", "AFS")]`, `[Deck("2026_AFS", "2026_AFS")]`, `[Deck("Azamina Fiendsmith Snake-Eye", "AFS")]`, `[Deck("Azamina Fiendsmith", "AFS")]`, `[Deck("Azamina", "AFS")]`, `[Deck("Fiendsmith", "AFS")]`.
+   - Registered `AFS`, `Azamina Fiendsmith Snake-Eye`, `Azamina Fiendsmith`, and `2026_AFS` in `bots.json`.
+4. **Curated Recipe Synchronization (`2026_AFS.ydk` & `AFS.ydk`)**:
+   - Synchronized player's curated 40-card + 15-extra deck list to `windbot-fork/Decks/` and runtime folders.
+5. **Major Strategic Expansion in `AFSExecutor.cs`**:
+   - Added support for `Original Sinful Spoils - Snake-Eye` (`89023486`) send costs and Level 1 FIRE summons.
+   - Added `'Moon of the Closed Heaven'` (`71818935`) Link-2 bridge to `Fiendsmith's Requiem`.
+   - Added `Maxx "C"` (`23434538`), `Mulcharmy Purulia` (`84192580`), `Forbidden Droplet` (`24299458`), `Dark Ruler No More` (`54693926`), `Lightning Storm` (`14532163`), `Harpie's Feather Duster` (`18144507`), `Evenly Matched` (`15693423`), `Bystials`, `Solemn Strike`, and `Dimensional Barrier`.
+   - Implemented Rule 1 separation in `OnSelectCard` (removal vs send costs) and Rule 14 opponent prompt decline in `OnSelectEffectYn`.
+   - Added duplicate handtrap prevention guards across chains.
+
+### Build & Verification
+- **Compilation**: `BUILD_AND_DEPLOY.ps1` compiled with 0 errors.
+- **Verification**: Tested `dotnet WindBot.dll Deck=2026_AFS`, `Deck=AFS`, and `Deck="Azamina Fiendsmith Snake-Eye"` — all successfully logged `Deck found, loading ...` and loaded `AFSExecutor` with 0 failures!
+- **Deployment**: Exclusively deployed to `C:\Users\admin\Documents\EdoGame\`.
+
+---
+
 ## 0.032. Central Core Architecture & Universal Heuristics Overhaul (2026-09-21)
 
 ### Overview
