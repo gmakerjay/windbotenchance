@@ -265,7 +265,10 @@ namespace dashbot
                     {
                         string originalName = Path.GetFileNameWithoutExtension(file);
                         var item = ParseDeckItem(originalName);
-                        _allDecks.Add(item);
+                        if (!_allDecks.Any(d => d.DisplayName.Equals(item.DisplayName, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            _allDecks.Add(item);
+                        }
                     }
                 }
             }
