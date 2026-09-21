@@ -1,4 +1,74 @@
-# Progress Log: SacrBeatsMach (FTK & ModernExecutor), Fidraulis Harmonia Lua Fix, 2026_Puppet Bugfix & WCParisKewlTune Refactor, WCParisKewlTune, 2026_Kwtune (Refactor), Anime_JoeyWheeler (Refactor), Anime_JoeyWheeler, Anime_Yugi, 2026_Purrely, 2026_Yummy, 2026_Tearla, GOD-01, Yubel2, 2026_Branded, 2026_DarkTime, 2026_Runick, 2026_RyuGe, 2026_AFS, 2026_Spright, GOD-01, Demise, 2026_Darklord, 2026_DarkWorld & 2026_Hecahand ModernExecutors
+# Progress Log: SacrBeatsMach Competitive Overhaul, Game Deck Cleanup & DashBot Cosmic Background, DashBot Category Segregation & SacrBeatsMach Alias Fix, SacrBeatsMach (FTK & ModernExecutor), Fidraulis Harmonia Lua Fix, 2026_Puppet Bugfix & WCParisKewlTune Refactor, WCParisKewlTune, 2026_Kwtune (Refactor), Anime_JoeyWheeler (Refactor), Anime_JoeyWheeler, Anime_Yugi, 2026_Purrely, 2026_Yummy, 2026_Tearla, GOD-01, Yubel2, 2026_Branded, 2026_DarkTime, 2026_Runick, 2026_RyuGe, 2026_AFS, 2026_Spright, GOD-01, Demise, 2026_Darklord, 2026_DarkWorld & 2026_Hecahand ModernExecutors
+
+## SacrBeatsMach: Competitive Overhaul, Engine Optimization & 4-Deck Benchmark Tournament (2026-09-21)
+
+### Overview
+- **Deck**: `SacrBeatsMach.ydk` & alias `ScarbeatMach.ydk` (42 Main Deck, 15 Extra Deck, 15 Side Deck)
+- **Problem Statement**:
+  - Original 53-card deck suffered from consistency issues and anti-synergy:
+    1. `Cannon Soldier MK-2` (14702066) caused catastrophic `MSG_RETRY` / `SelectUnselect` crashes when required tributes had no valid targets except boss monsters. In addition, it constantly tributed 4000/5000 ATK boss monsters for only 1500 burn, losing the AI its board advantage.
+    2. `Machina Unclaspare` (45674286) locked Special Summons strictly into Machine-type monsters for the rest of the turn, completely locking out `Fallen Paradise`, `Hamon`, `Raviel`, `Uria`, and `The Chaotic Phantasmal Sacred Beasts`.
+    3. `Yomagna the Fire Phantom` (17350692) required convoluted trigger conditions that rarely resolved.
+    4. Deck lacked top-tier unconditional board breakers and consistent Rank 10 extension.
+- **Key Improvements**:
+  1. **Decklist Optimization (Streamlined to 42 Cards)**:
+     - Removed: `Cannon Soldier MK-2` x3, `Machina Unclaspare` x2, `Yomagna the Fire Phantom` x2.
+     - Added: `Harpie's Feather Duster` x1, `Raigeki` x1, `Machina Fortress` x1 (2 total, allows discarding `Machina Ruinforce` without Machine type locks), `Heavy Freight Train Derricrane` x1 (2 total, free Rank 10 extension and targeted pop upon detaching).
+  2. **Rule-Based ModernExecutor Refactor (`_2026_SacrBeatsMachExecutor.cs`)**:
+     - **Bulletproof Min Counts in `OnSelectCard`**: Guarded Hint 500, 501, 502, 504, 505, 506, 508, 509, 513, 549, 575 to strictly guarantee `result.Count >= min`, eliminating all `Got MSG_RETRY. Last message is SelectUnselect` OCG core desyncs.
+     - **Ace Protection Guard**: Hardened `IsAceOrKeyMonster()` to strictly safeguard `TheChaoticPhantasmalSacredBeasts`, `Armityle`, `Varudras`, `GustavMax`, `GustavRocket`, `SuperDora`, `Liebe`, `MachinaRuinforce`, `MachinaFortress`, `SuperBESMetalSlave`, `Hamon`, `Raviel`, and `Uria` against being tributed or destroyed as cost.
+     - **Metal Slave Suicide Guard**: `ShouldMetalSlaveQuickPop` only targets itself if opponent controls `Eternal Soul` (instant board wipe) or if targeted by opponent removal; otherwise, strictly destroys another B.E.S. monster (`BESBlasterCannonCore`).
+     - **Turn 2 Board Breaking & OTK Line**: Prioritizes `Harpie's Feather Duster` / `Raigeki` / `Twin Twisters` -> Rank 10 Train Burn (`Gustav Max` 2000 burn) -> `Superdreadnought Rail Cannon Juggernaut Liebe` (6000 ATK, multiple attacks).
+  3. **Benchmark Tournament Audit (4 Legacy Decks, 40 Duels Total)**:
+     - **vs DarkMagician**: 5 Wins - 5 Losses (50.0% Win Rate) | 10/10 OK, 0 Violations, 0 Crashes
+     - **vs Altergeist**: 6 Wins - 4 Losses (60.0% Win Rate) | 10/10 OK, 0 Violations, 0 Crashes
+     - **vs ABC**: 2 Wins - 8 Losses (20.0% Win Rate) | 10/10 OK, 0 Violations, 0 Crashes
+     - **vs BlueEyes**: 8 Wins - 2 Losses (80.0% Win Rate) | 10/10 OK, 0 Violations, 0 Crashes
+     - **Overall Total**: 21 Wins - 19 Losses (**52.5% Win Rate**), 40/40 (100%) Duels completed with Status: OK and 0 Rule Violations.
+  4. **Build & Exclusive Deployment**:
+     - Successfully built and deployed all binaries and deck files exclusively to `C:\Users\admin\Documents\EdoGame\`.
+
+---
+
+## Game Deck Directory Cleanup & DashBot Cosmic Background (2026-09-21)
+
+### Overview
+- **Game Deck Directory Cleanup (`EdoGame\deck\`)**:
+  - Problem: `BUILD_AND_DEPLOY.ps1` previously copied all bot decks into the player's game directory `EdoGame\deck\`, flooding the in-game deck editor with 140+ decks.
+  - Solution:
+    1. Backed up all 144 files to `C:\Users\admin\Documents\EdoGame\deck_bot_backup\`.
+    2. Deleted all 143 bot `.ydk` files from `C:\Users\admin\Documents\EdoGame\deck\`, leaving the player's deck folder clean.
+    3. Preserved all bot decks strictly in `C:\Users\admin\Documents\EdoGame\WindBot\Decks\` and `src\YGO_SOURCE_CLEAN\windbot-fork\Decks\`.
+    4. Modified `BUILD_AND_DEPLOY.ps1` so it no longer deploys bot decks to `EdoGame\deck\`.
+- **DashBot Background Enhancement**:
+  - Problem: User requested `images (1).jpg` to be set as a subtle background for the DashBot program.
+  - Solution:
+    1. Upscaled `Docs/images (1).jpg` using Lanczos filter into high-res `dashbot/bg.jpg`.
+    2. Integrated `bg.jpg` into `dashbot.csproj` as an embedded Resource and Deployment file.
+    3. Updated `MainWindow.xaml`: added subtle cosmic background layer (`Opacity="0.22"`), radial ambient vignette tint, and converted panels to frosted glass (`#F8FFFFFF`) with elegant drop shadows.
+- **Build, Deployment & Git**:
+  - Built and deployed exclusively to `C:\Users\admin\Documents\EdoGame\`.
+  - Pushed commit `1259599` to `origin/main`.
+
+---
+
+## DashBot Category Segregation & Deck Alias Fallback Resolution (2026-09-21)
+
+### Overview
+- **Issue 1 (EvilTwin Selection Bug)**:
+  - When selecting `ScarbeatMach` in DashBot, WindBot launched and defaulted to `2026_EvilTwin`.
+  - Root Cause: DashBot requested `ScarbeatMach`, but `_2026_SacrBeatsMachExecutor.cs` was registered only as `[Deck("SacrBeatsMach", ...)]`. In `DecksManager.cs`, `NormalizeDeckName` did not match `"scarbeatmach"` to `"sacrbeatsmach"`, triggering the fallback random loop `do { infos = _list[_rand.Next(_list.Count)]; } while (infos.Level != "Normal");` which randomly selected `2026_EvilTwin`.
+  - Fix: Updated `DeckAttribute.cs` to `[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]` and registered multiple aliases: `SacrBeatsMach`, `ScarbeatMach`, `scarbeatmach`, `2026_SacrBeatsMach`, `2026_ScarbeatMach`.
+- **Issue 2 (DashBot Categories - GOAT Mixed with Special)**:
+  - In `MainWindow.xaml.cs`, `GOAT_*` decks were hardcoded with `category = "Special"`, and `MainWindow.xaml` lacked a GOAT category pill.
+  - Fix:
+    1. Added `RbCatGoat` category filter pill in `MainWindow.xaml`.
+    2. Organized category ordering: `All Decks` -> `Modern` -> `Anime` -> `Legacy` -> `GOAT` -> `Special`.
+    3. Isolated `GOAT_*` decks into `Category = "GOAT"`, `tagText = "GOAT"`, `tagBg = "#047857"`.
+    4. Registered `SacrBeatsMach` / `ScarbeatMach` / `SacredBeats` in `ModernArchetypes` and added display name override `"Sacred Beasts Machina (FTK)"`.
+- **Build & Deployment**: Built and deployed to `C:\Users\admin\Documents\EdoGame\`. Committed and pushed to `main` (`8d6cbd5`).
+
+---
 
 ## SacrBeatsMach (Sacred Beasts Machina Trains FTK): ModernExecutor, Thai Localization, Image Ingestion & Engine Audit (2026-09-21)
 
