@@ -21,7 +21,9 @@ namespace WindBot.Game.AI
             42009836,  // Fossil Dyna (alt)
             7902349,   // Jowgen the Spiritualist
             15397015,  // Inspect Boarder
-            19261966,  // El Shaddoll Winda (1 SS per turn)
+            94977269,  // El Shaddoll Winda (1 SS per turn)
+            94977270,  // El Shaddoll Winda (alt)
+            19261966,  // El Shaddoll Anoyatyllis (no SpSummon from hand/GY by Spells/Traps)
             78193831,  // Vanity's Fiend
             47084486,  // Majesty's Fiend
             67922702,  // Archlord Kristya
@@ -29,10 +31,12 @@ namespace WindBot.Game.AI
             14212200,  // Amano-Iwato
             71564252,  // Thunder King Rai-Oh
             15291624,  // Thunder Dragon Colossus
-            26273196,  // Number 41: Bagooska the Terribly Tired Tapir
-            85359414,  // Number 41: Bagooska (alt)
+            90590303,  // Number 41: Bagooska the Terribly Tired Tapir
+            90590304,  // Number 41: Bagooska (alt)
+            26273196,  // Legacy fallback
+            85359414,  // Legacy fallback
             3717252,   // Koa'ki Meiru Drago
-            94977269,  // Naturia Exterio
+            99916754,  // Naturia Exterio
             33198837,  // Naturia Beast
             72634965,  // Denko Sekka
             59509952,  // Lose 1 Turn (monster)
@@ -158,6 +162,18 @@ namespace WindBot.Game.AI
             5318639,   // Mystical Space Typhoon
             8267140,   // Cosmic Cyclone
             35269904,  // Cosmic Cyclone (alt)
+            // Modern Meta Engines (Snake-Eye / Fiendsmith / Generic Staples)
+            85106525,  // Bonfire
+            80845034,  // WANTED: Seeker of Sinful Spoils
+            89023486,  // Original Sinful Spoils - Snake-Eye
+            9674034,   // Snake-Eye Ash
+            90241276,  // Snake-Eyes Poplar
+            2772337,   // Promethean Princess, Bestower of Flames
+            60764609,  // Fiendsmith Engraver
+            98567237,  // Fiendsmith's Tract
+            49867899,  // Fiendsmith's Sequence
+            29301450,  // S:P Little Knight
+            29301451,  // S:P Little Knight (alt)
         };
 
         // ═══════════════════════════════════════════════════════════════
@@ -190,6 +206,7 @@ namespace WindBot.Game.AI
             89264428,  // Dominus Purge
             62015408,  // Ghost Reaper & Winter Cherries
             38814750,  // PSY-Framegear Gamma
+            91800273,  // Dimension Shifter
         };
 
         // ═══════════════════════════════════════════════════════════════

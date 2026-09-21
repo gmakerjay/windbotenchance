@@ -114,3 +114,11 @@ powershell -ExecutionPolicy Bypass -File .\BUILD_AND_DEPLOY.ps1
    - การจัดหมวดหมู่ (Modern, Anime, Legacy, Special) ให้จัดการผ่านระบบหมวดหมู่ใน DashBot Launcher (`MainWindow.xaml.cs`) แทนการนำชื่อปีมาตั้งนำหน้าไฟล์
 10. **ห้ามใส่การ์ดที่ ID ผิดจาก `cards.cdb` หรือการ์ดที่ผิด Banlist เด็ดขาด**:
    - ต้องตรวจสอบ Card ID และข้อจำกัดจำนวนใบกับ `cards.cdb` และ `0TCG.lflist.conf` / `OCG.lflist.conf` ทุกครั้งก่อนจัดเด็ค ป้องกันข้อผิดพลาด `ERRMSG_DECKERROR` (ทำให้บอทเข้าห้องไม่ได้ / โดนเซิร์ฟเวอร์เตะออกทันที)
+11. **ห้ามนำมอนสเตอร์ Fusion / Synchro / Xyz ลง Extra Monster Zone (EMZ) โดยไม่จำเป็น**:
+   - ต้องรักษา EMZ ไว้สำหรับ Link Monster เสมอตาม Master Rule 5 เพื่อไม่ให้ Extra Monster Zone ตัน ขัดขวางคอมโบ Link
+12. **ห้ามอัญเชิญ Number 41: Bagooska ในสภาพ FaceUpAttack เด็ดขาด**:
+   - Bagooska ต้องอัญเชิญในสภาพ **FaceUpDefence** เสมอ เพื่อให้เอฟเฟกต์ฟลัดเกตสนามทำงานต่อเนื่อง (หากตั้งโจมตีจะไม่มีเอฟเฟกต์ฟลัดเกตและถูกตีตายฟรี)
+13. **ห้าม Chain Handtrap หรือ Negate ซ้ำซ้อนในเชนเดียวกัน**:
+   - ห้ามโยน Ash Blossom, Maxx "C", Droll & Lock Bird, หรือ Negate ใบเดิมซ้ำในเชนเดียวกันโดยเด็ดขาด
+14. **ห้ามตอบรับ (Accept) เอฟเฟกต์ทางเลือกของการ์ดฝ่ายตรงข้ามโดยไม่ตั้งใจ**:
+   - ใน `OnSelectEffectYn` หากเป็นการ์ดของฝ่ายตรงข้าม (`card.Controller == 1`) ต้องปฏิเสธ (false) เป็นค่าเริ่มต้นเสมอ เพื่อป้องกันการหลงกลติดกับดักหรือเสียเปรียบฟรี

@@ -144,21 +144,53 @@ WindBot ได้รับการปฏิรูป Core กลางเพื
 - **Column-Safe `OnSelectPlace()`**: หลีกเลี่ยงการวางการ์ดในคอลัมน์ที่มี Continuous Spell/Trap หรือเสี่ยงต่อ Infinite Impermanence
 
 ### 5.3 Comprehensive Hint Table (`ModernExecutor.cs`)
+OCGCore Hint Constants ที่ถูกต้อง และพฤติกรรมการตัดสินใจของ AI:
 | Hint ID | Constant | Meaning & AI Behavior |
 |---|---|---|
 | **500** | `HINTMSG_RELEASE` | บูชายัญ: เลือกลำดับ Fodder/Token ก่อน ห้ามสังเวย Ace |
 | **501** | `HINTMSG_DISCARD` | ทิ้งการ์ด: ทิ้งใบที่ได้ผลในสุสาน หรือของซ้ำ ป้องกัน Starter |
-| **502** | `HINTMSG_DESTROY` | ทำลาย: เล็งเป้า Threat/Floodgate ของศัตรูตาม ThreatScore |
-| **503 / 504** | `HINTMSG_REMOVE` | แบน: กำจัดตัวอันตรายสูงสุด ข้ามมอนสเตอร์ที่กันการตกเป็นเป้า |
-| **505** | `HINTMSG_ATOHAND / RTOHAND` | เสิร์ชขึ้นมือ หรือเด้งการ์ดขึ้นมือศัตรู |
-| **506** | `HINTMSG_TODECK` | สับ/ส่งกลับเด็ค (Spin removal) |
-| **507** | `HINTMSG_EQUIP` | สวมใส่การ์ด: เล็งเป้าหมายมอนสเตอร์ที่เหมาะสม |
-| **508** | `HINTMSG_TOGRAVE` | ส่งลงสุสาน: ส่งชิ้นส่วนคอมโบ/การ์ดทริกเกอร์ |
+| **502** | `HINTMSG_DESTROY` | ทำลาย: เล็งเป้า Threat/Floodgate ของศัตรู (`c.Controller == 1`) ตาม ThreatScore |
+| **503** | `HINTMSG_REMOVE` | รีมูฟ/แบน: กำจัดตัวอันตรายสูงสุดของศัตรู (`c.Controller == 1`) ข้ามมอนสเตอร์ที่กันการตกเป็นเป้า |
+| **504** | `HINTMSG_TOGRAVE` | ส่งลงสุสาน: ส่งชิ้นส่วนคอมโบ/การ์ดทริกเกอร์ หรือส่งการ์ดศัตรูลงสุสาน |
+| **505** | `HINTMSG_RTOHAND` | เด้งการ์ดขึ้นมือ: เล็งตัวเอซ/ตัวปัญหาของศัตรู (`c.Controller == 1`) |
+| **506** | `HINTMSG_ATOHAND` | ค้นหาจากเด็คขึ้นมือ (Search): เลือก Ace, Handtraps, Chokepoints และการ์ด Starter ก่อนเสมอ |
+| **507** | `HINTMSG_TODECK` | สับ/ส่งกลับเด็ค (Spin removal): เล็งเป้าการ์ดสำคัญของศัตรู |
 | **509** | `HINTMSG_SPSUMMON` | อัญเชิญพิเศษ: เลือก Ace/Negate/Extra Deck สูงสุด |
-| **512** | `HINTMSG_SMATERIAL` | วัตถุดิบ Synchro: ปกป้องบอส เรียงจาก Tuner/ตัวเล็กขึ้นไป |
-| **513 / 519**| `HINTMSG_XMATERIAL` | วัตถุดิบ Xyz: ปลดหรือเลือกวัตถุดิบที่ไม่ใช่บอสหลัก |
-| **518** | `HINTMSG_POSCHANGE` | ปรับสถานะการตั้ง |
-| **552 / 572**| `HINTMSG_DISABLE / NEGATE` | เล็ง Negate/ขัดขวางการ์ดสำคัญ |
+| **510** | `HINTMSG_DISCARD` | ทิ้งการ์ดจากมือ |
+| **512** | `HINTMSG_FMATERIAL` | วัตถุดิบ Fusion: ป้องกัน Ace บนสนาม เลือกลำดับ Fodder |
+| **513** | `HINTMSG_SMATERIAL` | วัตถุดิบ Synchro: ปกป้องบอส เรียงจาก Tuner/ตัวเล็กขึ้นไป |
+| **514** | `HINTMSG_XMATERIAL` | วัตถุดิบ Xyz: ปลดหรือเลือกวัตถุดิบที่ไม่ใช่บอสหลัก |
+| **515** | `HINTMSG_POSCHANGE` | ปรับสถานะการตั้ง |
+| **516** | `HINTMSG_RELEASE` | สังเวย/บูชายัญ |
+| **551 / 552** | `HINTMSG_DISABLE` | เล็ง Negate/ขัดขวางการ์ดสำคัญของศัตรู |
+| **572 / 575** | `HINTMSG_NEGATE` | เล็ง Negate เอฟเฟกต์การ์ดสำคัญของศัตรู |
+
+### 5.4 Central Core Universal Heuristics & Guard Standards (สถาปัตยกรรมคอร์กลาง)
+
+ทุก Executor ที่พัฒนาขึ้น จะได้รับประโยชน์จากกลไกกลางเหล่านี้โดยอัตโนมัติ:
+
+1. **Master Rule 5 EMZ Preservation (`Executor.cs`)**:
+   - การเลือกลง Extra Monster Zone (`0x20`) อัตโนมัติถูกจำกัดไว้ให้เฉพาะ **Link monsters** และหน้าหงาย Pendulum จาก Extra Deck เท่านั้น
+   - มอนสเตอร์ Fusion, Synchro, และ Xyz จะถูกนำไปลง Main Monster Zones (MMZ) เพื่อเปิดทางให้ Link คอมโบดำเนินต่อได้โดยไม่ติดขัด
+   - หลีกเลี่ยงคอลัมน์ 1 และ 3 เมื่อฝ่ายตรงข้ามมีหรืออาจเรียก `Relinquished Anima`
+2. **Universal Bagooska Defense Safeguard (`ModernExecutor.cs`)**:
+   - `Number 41: Bagooska the Terribly Tired Tapir` (IDs `90590303, 90590304`) จะถูกบังคับลงสนามใน **FaceUpDefence** เสมอ เพื่อให้เอฟเฟกต์ฟลัดเกตสนามทำงานต่อเนื่อง
+   - มอนสเตอร์ Link บังคับ `FaceUpAttack` เสมอ (ไม่สามารถตั้งรับได้)
+   - มอนสเตอร์พลังโจมตีต่ำ (Handtraps, มอนสเตอร์ 0 ATK, มอนสเตอร์ที่มี DEF > ATK และ ATK < 1800) จะเลือกลงใน **FaceUpDefence** เพื่อความปลอดภัย
+3. **Universal Duplicate Handtrap & Negate Prevention (`GameAI.cs` & `ModernExecutor.cs`)**:
+   - ระบบป้องกันบอทเปิดใช้งาน Handtrap หรือ Negate ซ้ำซ้อนในเชนเดียวกัน (เช่น โยน Ash ซ้อน Ash หรือ Maxx "C" ซ้อน Maxx "C")
+   - `DefaultMaxxC` และ `DefaultDrollAndLockBird` ติดตามผลการใช้งานผ่าน `resolvedEffectIdList` ป้องกันการเปิดใช้การ์ดใบที่สองในเทิร์นเดียวกัน
+4. **Lethal & Archetype Direct Attack Prioritization (`DefaultExecutor.cs`)**:
+   - หากมอนสเตอร์สามารถโจมตีตรงได้ และพลังโจมตีถึง LP คู่แข่ง (`attacker.Attack >= Enemy.LifePoints`) AI จะสั่ง **โจมตีตรงเพื่อชนะเกมทันที** โดยไม่เสียเวลาตีมอนสเตอร์ตั้งรับตัวเล็ก
+   - มอนสเตอร์สายโจมตีตรงเพื่อทริกเกอร์เอฟเฟกต์ (เช่น `Sky Striker Ace - Hayate` ส่งเวทลงสุสาน หรือมอนสเตอร์สาย Toon) จะเลือกโจมตีตรงเป็นลำดับแรกเมื่อศัตรูไม่มีฟลัดเกต
+5. **Active Intervention Guard (`HeuristicGuard.SanitizeSelection`)**:
+   - `HeuristicGuard` ตรวจจับและสกัดกั้นคำสั่งเลือกเป้าหมายที่ผิดพลาด หาก Executor สั่งทำลายหรือเนเกตการ์ดฝั่งเรา ระบบจะบังคับสลับเป้าหมายไปที่การ์ดอันตรายสูงสุดของศัตรูจาก `CardIntelligence` ทันที การันตี **0 Self-Harm Violations**
+6. **Hostile Opponent Prompt Safeguard (`GameAI.cs`)**:
+   - ใน `OnSelectEffectYn`: คำถามกดใช้เอฟเฟกต์ที่อยู่นอกเหนือ Executor หากเป็นการ์ดของฝ่ายตรงข้าม (`card.Controller == 1`) จะ **ตอบปฏิเสธ (false) เป็นค่าเริ่มต้น** ป้องกันการติดกับดักหรือเสียทรัพยากรฟรี
+7. **Option Bitshift Standard (`ModernExecutor.cs`)**:
+   - การอ่านรหัส Option ของ OCGCore ต้องใช้ `option >> 4` (ไม่ใช่ `>> 20`) เพื่อให้การเลือกโหมดของการ์ด เช่น `Triple Tactics Talent`, `Pot of Prosperity`, `Medius the Pure` ทำงานได้อย่างถูกต้อง
+8. **Modern Meta Chokepoints Database (`CardIntelligence.cs`)**:
+   - รวบรวม Chokepoints และ Starters ระดับเมต้า: `Bonfire`, `WANTED`, `Snake-Eye Ash`, `Snake-Eyes Poplar`, `Promethean Princess`, `Fiendsmith Engraver`, `Fiendsmith's Tract`, `Fiendsmith's Sequence`, `S:P Little Knight`, และ `Dimension Shifter`
 
 ---
 

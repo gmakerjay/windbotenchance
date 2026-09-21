@@ -52,9 +52,23 @@ namespace WindBot.Game.AI.DecisionEngine
             if (card == null) return 0;
 
             // 1. Check Hard Floodgates (Highest priority threat)
-            if (HardFloodgates.Contains(card.Id) && card.IsFaceup() && !card.IsDisabled())
+            if ((HardFloodgates.Contains(card.Id) || CardIntelligence.IsFloodgateMonster(card.Id) || CardIntelligence.IsFloodgateSpellTrap(card.Id))
+                && card.IsFaceup() && !card.IsDisabled())
             {
                 return 100.0;
+            }
+
+            // 1.5. Check Known Negators & Disruptions
+            if ((CardIntelligence.IsKnownNegator(card.Id) || CardIntelligence.IsKnownNegator(card.GetNonAltartCode()))
+                && card.IsFaceup() && !card.IsDisabled())
+            {
+                return 98.0;
+            }
+
+            // 1.8. Check High-Threat Chokepoints
+            if (CardIntelligence.IsHighThreatChokepoint(card.Id) || CardIntelligence.IsHighThreatChokepoint(card.GetNonAltartCode()))
+            {
+                return 92.0;
             }
 
             // 2. Check known high resource swing cards

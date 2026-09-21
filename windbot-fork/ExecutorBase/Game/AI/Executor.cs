@@ -260,8 +260,8 @@ namespace WindBot.Game.AI
                 var ourCards = validCards.Where(c => c.Controller == 0).ToList();
 
                 // ── Case 1: Enemy Target Selection (Destroy, Banish, Return to hand/deck, Target, Negate, Attack Target) ──
-                // Hints: 502 (DESTROY), 504 (REMOVE/BANISH), 505 (RTOHAND), 506 (TODECK), 519 (CONTROL), 549 (ATTACK), 551 (TARGET), 552 (DISABLE), 572 (NEGATE), 575 (FACEUP)
-                if (hint == 502 || hint == 504 || hint == 505 || hint == 506 || hint == 519 ||
+                // Hints: 502 (DESTROY), 503 (REMOVE/BANISH), 504 (TOGRAVE), 505 (RTOHAND), 507 (TODECK), 519 (CONTROL), 549 (ATTACK), 551 (TARGET), 552 (DISABLE), 572 (NEGATE), 575 (FACEUP)
+                if (hint == 502 || hint == 503 || hint == 504 || hint == 505 || hint == 507 || hint == 519 ||
                     hint == 549 || hint == 551 || hint == 552 || hint == 572 || hint == 575)
                 {
                     if (enemyCards.Count >= min)
@@ -274,8 +274,8 @@ namespace WindBot.Game.AI
                 }
 
                 // ── Case 2: Sacrifice / Cost Selection from our side (Tribute, Discard, Send to GY, Materials) ──
-                // Hints: 500 (RELEASE), 501 (DISCARD), 508 (TOGRAVE), 511-513 (MATERIALS), 533 (LMATERIAL)
-                if (hint == 500 || hint == 501 || hint == 508 || hint == 511 || hint == 512 || hint == 513 || hint == 533)
+                // Hints: 500 (RELEASE), 501 (DISCARD), 504 (TOGRAVE), 508 (SUMMON/TOGRAVE), 511-513 (MATERIALS), 533 (LMATERIAL)
+                if (hint == 500 || hint == 501 || (hint == 504 && enemyCards.Count == 0) || hint == 508 || hint == 511 || hint == 512 || hint == 513 || hint == 533)
                 {
                     if (ourCards.Count >= min)
                     {
@@ -290,17 +290,20 @@ namespace WindBot.Game.AI
                     }
                 }
 
-                // ── Case 3: Positive Selection for our side (Special Summon, Add to Hand, Equip) ──
-                // Hints: 509 (SPSUMMON), 507 (EQUIP), or Search where only our cards exist
-                if (hint == 509 || hint == 507 || (hint == 505 && enemyCards.Count == 0))
+                // ── Case 3: Positive Selection for our side (Special Summon, Add to Hand, Search, Equip) ──
+                // Hints: 506 (ATOHAND / SEARCH), 509 (SPSUMMON), or bounce where only our cards exist
+                if (hint == 506 || hint == 509 || (hint == 505 && enemyCards.Count == 0))
                 {
                     if (ourCards.Count >= min)
                     {
                         var sorted = ourCards.OrderByDescending(c => {
                             int value = 0;
                             if (IsAceCard(c)) value += 10000;
+                            if (CardIntelligence.IsHandtrap(c.Id) || CardIntelligence.IsHandtrap(c.GetNonAltartCode())) value += 8000;
+                            if (CardIntelligence.IsHighThreatChokepoint(c.Id) || CardIntelligence.IsHighThreatChokepoint(c.GetNonAltartCode())) value += 7000;
                             if (c.IsExtraCard()) value += 5000;
                             if (c.HasType(CardType.Monster)) value += 1000 + c.Attack;
+                            if (c.HasType(CardType.Spell)) value += 2000;
                             return value;
                         }).ToList();
                         return sorted.Take(Math.Min(max, sorted.Count)).ToList();
@@ -563,22 +566,30 @@ namespace WindBot.Game.AI
                 {
                     // Extra Monster Zone check: z5 (0x20), z6 (0x40)
                     NamedCard card = NamedCard.Get((int)cardId);
-                    bool isExtra = card != null && card.IsExtraCard();
+                    bool isLink = card != null && card.HasType(CardType.Link);
+                    bool isPendulumFromExtra = card != null && card.HasType(CardType.Pendulum) && (available & 0x60) > 0;
 
-                    if (isExtra && (available & 0x60) > 0)
+                    // MR5 Rule: ONLY Link monsters (and face-up Pendulum from Extra Deck) SHOULD prioritize the Extra Monster Zone!
+                    // Fusion, Synchro, and Xyz MUST PREFER Main Monster Zones (leaving the EMZ free for subsequent Link summons).
+                    if ((isLink || isPendulumFromExtra) && (available & 0x60) > 0)
                     {
                         if ((available & 0x20) > 0) return 0x20;
                         if ((available & 0x40) > 0) return 0x40;
                     }
 
                     // Main Monster Zones (z0..z4):
-                    // Prefer z2 (center=0x4) or edges (z0=0x1, z4=0x10) over columns directly under EMZ (z1=0x2, z3=0x8)
+                    // Safety check against Relinquished Anima (which targets z1=0x2 and z3=0x8 directly opposite to EMZs):
+                    // MMZ Preference: z2 (center=0x4) -> z0 (far left=0x1) -> z4 (far right=0x10) -> z1 (0x2) -> z3 (0x8)
                     int[] mmzPreference = { 0x4, 0x1, 0x10, 0x2, 0x8 };
                     foreach (int z in mmzPreference)
                     {
                         if ((available & z) > 0)
                             return z;
                     }
+
+                    // Fallback to EMZ if all MMZs are full and EMZ is available (e.g. for Fusion/Synchro/Xyz)
+                    if ((available & 0x20) > 0) return 0x20;
+                    if ((available & 0x40) > 0) return 0x40;
                 }
             }
             catch { /* Guard against any engine-level anomaly */ }

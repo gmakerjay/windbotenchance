@@ -308,10 +308,11 @@ namespace WindBot.Game
         public IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
         {
             Executor?.Scorer?.ClearCache();
-            // Local helper: validate selection via HeuristicGuard before returning
+            // Local helper: validate & sanitize selection via HeuristicGuard before returning
             IList<ClientCard> ValidateAndReturn(IList<ClientCard> sel, string source)
             {
                 try { Log(LogLevel.Info, $"[DEBUG-DECISION] OnSelectCard -> Selected ({source}): " + string.Join(", ", sel.Select(c => c == null ? "null" : $"{c.Id}"))); } catch {}
+                try { sel = WindBot.HeuristicGuard.SanitizeSelection(sel, cards, min, max, hint, cancelable, Duel.Turn, Duel.Fields[0], Duel.Fields[1]); } catch {}
                 try { WindBot.HeuristicGuard.ValidateSelection(sel, hint, Duel.Turn, Duel.Fields[0], Duel.Fields[1]); } catch {}
                 return sel;
             }
@@ -450,6 +451,14 @@ namespace WindBot.Game
                     ClientCard card = cards[i];
                     if (ShouldExecute(exec, card, ExecutorType.Activate, descs[i]))
                     {
+                        // Universal Safety: If this is a once-per-turn handtrap or response,
+                        // ensure we didn't already chain the identical card in this exact chain
+                        if (CardIntelligence.IsHandtrap(card.Id) && Duel.CurrentChain != null &&
+                            Duel.CurrentChain.Any(c => c != null && c.Controller == 0 && (c.Id == card.Id || c.GetNonAltartCode() == card.GetNonAltartCode())))
+                        {
+                            continue;
+                        }
+
                         _dialogs.SendChaining(card.Name);
                         return i;
                     }
@@ -529,6 +538,13 @@ namespace WindBot.Game
                 }
             }
             if (hasExecutor)
+                return false;
+
+            // Universal Safeguard:
+            // If the card prompting the question is an OPPONENT card (card.Controller == 1),
+            // unhandled optional prompts are dangerous traps/penalties/opponent requests.
+            // Decline opponent-initiated effects by default unless explicitly registered.
+            if (card != null && card.Controller == 1)
                 return false;
 
             // [FIX MAJOR-2] Default to YES for optional effects.

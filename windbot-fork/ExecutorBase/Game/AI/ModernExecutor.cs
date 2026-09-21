@@ -687,12 +687,29 @@ namespace WindBot.Game.AI
             return 0;
         }
 
+        /// <summary>
+        /// Modern default: All modern decks choose Going First unless explicitly configured otherwise.
+        /// </summary>
+        public override bool OnSelectHand()
+        {
+            return !_isGoingSecond;
+        }
+
         public override int OnSelectOption(IList<long> options)
         {
+            if (options == null || options.Count == 0) return base.OnSelectOption(options);
+
             for (int i = 0; i < options.Count; i++)
             {
-                long cardId = options[i] >> 20;
-                long optIndex = options[i] & 0xfffff;
+                // OCGCore encodes options as (cardId << 4) | optIndex; support legacy (cardId << 20) as fallback.
+                long cardId = options[i] >> 4;
+                long optIndex = options[i] & 0xf;
+
+                if (cardId == 0)
+                {
+                    cardId = options[i] >> 20;
+                    optIndex = options[i] & 0xfffff;
+                }
 
                 if (cardId == 0 && LastChainCard != null)
                 {
@@ -710,19 +727,20 @@ namespace WindBot.Game.AI
                 // Option index 1 is banish 6 cards (Option index 0 is banish 3).
                 if (cardId == 84211599)
                 {
-                    if (optIndex == 1) return i;
+                    if (optIndex == 1 && Bot.ExtraDeck.Count >= 10) return i;
+                    if (optIndex == 0) return i;
                 }
 
                 // 3. Triple Tactics Talent (25311006)
                 if (cardId == 25311006)
                 {
-                    // Draw 2 (optIndex 0) is great if we have 3 or fewer cards in hand
+                    // Draw 2 (optIndex 0) is great if hand count is low or standard
                     if (optIndex == 0 && Bot.Hand.Count <= 4)
                     {
                         return i;
                     }
-                    // Take control (optIndex 1) is great if going second and enemy has a monster
-                    if (optIndex == 1 && _isGoingSecond && Enemy.GetMonsterCount() > 0)
+                    // Take control (optIndex 1) is great if enemy has monsters
+                    if (optIndex == 1 && Enemy.GetMonsterCount() > 0 && (_isGoingSecond || Enemy.MonsterZone.Any(m => m != null && m.Attack >= 2500)))
                     {
                         return i;
                     }
@@ -731,6 +749,7 @@ namespace WindBot.Game.AI
                     {
                         return i;
                     }
+                    if (optIndex == 0) return i;
                 }
 
                 // 4. True Light (62089826)
@@ -747,6 +766,23 @@ namespace WindBot.Game.AI
                 if (cardId == 44335251)
                 {
                     if (optIndex == 0) return i;
+                }
+
+                // 6. Medius the Pure (19000840)
+                // Option index 1 is Special Summon from deck/hand; Option index 0 is Search.
+                if (cardId == 19000840)
+                {
+                    if (optIndex == 1 && Bot.GetMonsterCount() < 5) return i;
+                    if (optIndex == 0) return i;
+                }
+
+                // 7. The Fallen & The Virtuous (100459023 / 70088809)
+                // Option 0: Destroy 1 face-up card; Option 1: Special Summon from GY.
+                if (cardId == 100459023 || cardId == 70088809)
+                {
+                    bool oppHasFaceup = Enemy.GetMonsters().Any(c => c != null && c.IsFaceup()) || Enemy.GetSpells().Any(c => c != null && c.IsFaceup());
+                    if (optIndex == 0 && oppHasFaceup) return i;
+                    if (optIndex == 1) return i;
                 }
             }
 
@@ -1695,6 +1731,13 @@ namespace WindBot.Game.AI
             if (Duel.LastChainPlayer != 1)
                 return false;
 
+            // Universal Safeguard: Prevent duplicate handtrap activations in the same chain
+            if (Card != null && Duel.CurrentChain != null &&
+                Duel.CurrentChain.Any(c => c != null && c.Controller == 0 && (c.Id == Card.Id || c.GetNonAltartCode() == Card.GetNonAltartCode())))
+            {
+                return false;
+            }
+
             var targetCard = Util.GetLastChainCard();
             if (targetCard == null)
                 return true; // No info → chain as fallback
@@ -1702,13 +1745,16 @@ namespace WindBot.Game.AI
             int interactiveCount = ChainAdvisor.CountInteractiveCards(Bot);
             int opponentSummons = Brain?.OpponentSummonCount ?? 0; // This tracks opponent summons during their turn
 
+            bool isChokepoint = CardIntelligence.IsHighThreatChokepoint(targetCard.Id)
+                || CardIntelligence.IsHighThreatChokepoint(targetCard.GetNonAltartCode());
+
             bool shouldHold = ChainAdvisor.ShouldHoldResponse(
                 ourCard: Card,
                 targetCard: targetCard,
                 opponentHandCount: Enemy.Hand.Count,
                 opponentSummonCount: opponentSummons,
                 ourInteractiveCount: interactiveCount,
-                isChokepoint: false // Deck executors can override with chokepoint check
+                isChokepoint: isChokepoint
             );
 
             if (shouldHold)
@@ -1741,7 +1787,12 @@ namespace WindBot.Game.AI
             if (targetCard == null)
                 return true;
 
-            bool isChokepoint = chokepointIds != null && chokepointIds.Contains(targetCard.Id);
+            bool isChokepoint = CardIntelligence.IsHighThreatChokepoint(targetCard.Id)
+                || CardIntelligence.IsHighThreatChokepoint(targetCard.GetNonAltartCode());
+            if (!isChokepoint && chokepointIds != null && chokepointIds.Length > 0)
+            {
+                isChokepoint = chokepointIds.Contains(targetCard.Id) || chokepointIds.Contains(targetCard.GetNonAltartCode());
+            }
             int interactiveCount = ChainAdvisor.CountInteractiveCards(Bot);
 
             bool shouldHold = ChainAdvisor.ShouldHoldResponse(
@@ -1821,8 +1872,10 @@ namespace WindBot.Game.AI
             int score = 0;
 
             // High-threat floodgates and omni-negates
-            if (_negateMonsters.Contains(c.Id)) score += 10000;
-            if (_spSummonBlockMonsters.Contains(c.Id)) score += 9500;
+            if (_negateMonsters.Contains(c.Id) || CardIntelligence.IsKnownNegator(c.Id) || CardIntelligence.IsKnownNegator(c.GetNonAltartCode())) score += 10000;
+            if (_spSummonBlockMonsters.Contains(c.Id) || CardIntelligence.IsFloodgateMonster(c.Id)) score += 9500;
+            if (CardIntelligence.IsFloodgateSpellTrap(c.Id)) score += 9500;
+            if (CardIntelligence.IsHighThreatChokepoint(c.Id) || CardIntelligence.IsHighThreatChokepoint(c.GetNonAltartCode())) score += 8000;
 
             if (c.IsSpell() || c.IsTrap())
             {
@@ -1858,10 +1911,12 @@ namespace WindBot.Game.AI
             if (c.HasType(CardType.Normal)) return -500;
 
             // Handtraps & Key Starters are extremely valuable
-            if (c.IsCode(14558127, 14558128, 23434538, 10045474, 94145021, 97268402, 63845230, 42141493, 84192580))
+            if (CardIntelligence.IsHandtrap(c.Id) || CardIntelligence.IsHandtrap(c.GetNonAltartCode()))
                 cost += 8000;
-            if (_negateMonsters.Contains(c.Id))
+            if (_negateMonsters.Contains(c.Id) || CardIntelligence.IsKnownNegator(c.Id) || CardIntelligence.IsKnownNegator(c.GetNonAltartCode()))
                 cost += 10000;
+            if (IsAceCard(c))
+                cost += 15000;
 
             // Prefer discarding duplicates if we have more than 1 copy in hand
             if (Bot.Hand.Count(h => h != null && h.Id == c.Id) > 1)
@@ -1922,11 +1977,11 @@ namespace WindBot.Game.AI
             const long HINTMSG_RELEASE = 500;
             const long HINTMSG_DISCARD = 501;
             const long HINTMSG_DESTROY = 502;
-            const long HINTMSG_REMOVE = 504;
+            const long HINTMSG_REMOVE = 503;
+            const long HINTMSG_TOGRAVE = 504;
             const long HINTMSG_RTOHAND = 505;
-            const long HINTMSG_TODECK = 506;
-            const long HINTMSG_EQUIP = 507;
-            const long HINTMSG_TOGRAVE = 508;
+            const long HINTMSG_ATOHAND = 506;
+            const long HINTMSG_TODECK = 507;
             const long HINTMSG_SPSUMMON = 509;
             const long HINTMSG_CONTROL = 519;
             const long HINTMSG_POSCHANGE = 518;
@@ -1939,9 +1994,9 @@ namespace WindBot.Game.AI
             var ourCards = cards.Where(c => c != null && c.Controller == 0).ToList();
 
             // ── 1. Removal & Disruption against Enemy Cards ──
-            if (hint == HINTMSG_DESTROY || hint == HINTMSG_REMOVE || hint == HINTMSG_RTOHAND ||
-                hint == HINTMSG_TODECK || hint == HINTMSG_CONTROL || hint == HINTMSG_TARGET ||
-                hint == HINTMSG_DISABLE || hint == HINTMSG_NEGATE || hint == HINTMSG_FACEUP)
+            if (hint == HINTMSG_DESTROY || hint == HINTMSG_REMOVE || hint == 504 /* old remove alias */ ||
+                hint == HINTMSG_RTOHAND || hint == HINTMSG_TODECK || hint == HINTMSG_CONTROL ||
+                hint == HINTMSG_TARGET || hint == HINTMSG_DISABLE || hint == HINTMSG_NEGATE || hint == HINTMSG_FACEUP)
             {
                 if (enemyCards.Count >= min)
                 {
@@ -1952,8 +2007,8 @@ namespace WindBot.Game.AI
                 }
             }
 
-            // ── 2. Discard / Send to GY / Tribute / Material from our Hand or Field ──
-            if (hint == HINTMSG_DISCARD || hint == HINTMSG_TOGRAVE || hint == HINTMSG_RELEASE)
+            // ── 2. Discard / Send to GY / Tribute / Cost from our Hand or Field ──
+            if (hint == HINTMSG_DISCARD || hint == HINTMSG_RELEASE || (hint == HINTMSG_TOGRAVE && enemyCards.Count == 0))
             {
                 if (ourCards.Count >= min)
                 {
@@ -1971,7 +2026,7 @@ namespace WindBot.Game.AI
                         int score = 0;
                         if (IsAceCard(c)) score += 10000;
                         if (c.IsExtraCard()) score += 5000;
-                        if (_negateMonsters.Contains(c.Id)) score += 8000;
+                        if (_negateMonsters.Contains(c.Id) || CardIntelligence.IsKnownNegator(c.Id) || CardIntelligence.IsKnownNegator(c.GetNonAltartCode())) score += 8000;
                         score += c.Attack;
                         return score;
                     }).ToList();
@@ -1979,14 +2034,15 @@ namespace WindBot.Game.AI
                 }
             }
 
-            // ── 4. Add to Hand / Search (When only our cards are available) ──
-            if (hint == HINTMSG_RTOHAND && enemyCards.Count == 0 && ourCards.Count >= min)
+            // ── 4. Add to Hand / Search (Deck to Hand 506, or GY bounce 505) ──
+            if ((hint == HINTMSG_ATOHAND || (hint == HINTMSG_RTOHAND && enemyCards.Count == 0)) && ourCards.Count >= min)
             {
                 var sorted = ourCards.OrderByDescending(c => {
                     int score = 0;
                     if (IsAceCard(c)) score += 8000;
                     // Handtraps
-                    if (c.IsCode(14558127, 14558128, 23434538, 10045474, 94145021, 97268402, 63845230, 42141493, 84192580)) score += 6000;
+                    if (CardIntelligence.IsHandtrap(c.Id) || CardIntelligence.IsHandtrap(c.GetNonAltartCode())) score += 6000;
+                    if (CardIntelligence.IsHighThreatChokepoint(c.Id) || CardIntelligence.IsHighThreatChokepoint(c.GetNonAltartCode())) score += 5000;
                     if (c.HasType(CardType.Monster)) score += 3000 + c.Attack;
                     if (c.HasType(CardType.Spell)) score += 2000;
                     return score;
@@ -2007,7 +2063,7 @@ namespace WindBot.Game.AI
             }
 
             // ── 6. Equip Card ──
-            if (hint == HINTMSG_EQUIP)
+            if (hint == 507 /* HINTMSG_EQUIP */)
             {
                 if (ourCards.Count >= min)
                 {
@@ -2052,22 +2108,35 @@ namespace WindBot.Game.AI
             if (cardId == 27204312 && positions.Contains(CardPosition.FaceUpDefence))
                 return CardPosition.FaceUpDefence;
 
+            // Universal Safeguard: Number 41: Bagooska the Terribly Tired Tapir (90590303, 90590304)
+            // MUST be summoned in Defense Position to activate its continuous floodgate effect!
+            if ((cardId == 90590303 || cardId == 90590304 || cardId == 26273196 || cardId == 85359414) && positions.Contains(CardPosition.FaceUpDefence))
+                return CardPosition.FaceUpDefence;
+
             var card = YGOSharp.OCGWrapper.NamedCard.Get(cardId);
             if (card == null) return base.OnSelectPosition(cardId, positions);
+
+            // Link monsters can NEVER be placed in Defense Position
+            if (card.HasType(CardType.Link))
+                return CardPosition.FaceUpAttack;
 
             bool isExtraDeck = card.IsExtraCard();
             int atk = card.Attack;
             int def = card.Defense;
 
+            // Defense-oriented Extra Deck / Main Deck monsters (high DEF / low ATK) → DEF position
+            if (def > atk && atk < 1800 && positions.Contains(CardPosition.FaceUpDefence))
+                return CardPosition.FaceUpDefence;
+
             // Extra Deck monsters / high ATK → ATK position
-            if (isExtraDeck || atk >= 2000)
+            if ((isExtraDeck && atk >= 1800) || atk >= 2000)
             {
                 if (positions.Contains(CardPosition.FaceUpAttack))
                     return CardPosition.FaceUpAttack;
             }
 
-            // Low ATK / hand traps / combo enablers → DEF position
-            if (def > 0 && positions.Contains(CardPosition.FaceUpDefence))
+            // Low ATK / hand traps / combo enablers / 0 ATK → DEF position
+            if (def >= 0 && positions.Contains(CardPosition.FaceUpDefence))
                 return CardPosition.FaceUpDefence;
 
             return base.OnSelectPosition(cardId, positions);

@@ -83,7 +83,8 @@ namespace WindBot.Game.AI
             public const int DeckLockdown = 34507039;
             public const int Mistake = 10833828;
             public const int DoomZDestruction = 28546905;
-            public const int Number41BagooskatheTerriblyTiredTapir = 26273196;
+            public const int Number41BagooskatheTerriblyTiredTapir = 90590303;
+            public const int Number41BagooskatheTerriblyTiredTapirAlt = 90590304;
             public const int LightningStorm = 14532163;
             public const int DiabellzeOfTheOriginalSin = 43262273;
             public const int PotOfExtravagance = 49238328;
@@ -137,6 +138,22 @@ namespace WindBot.Game.AI
                     return score;
                 })
                 .ToList();
+
+            // 1. Lethal Direct Attack Priority: If attacker can attack directly and its ATK deals lethal damage to enemy LP, GO FOR GAME!
+            if (attacker.CanDirectAttack && attacker.Attack >= Enemy.LifePoints)
+            {
+                return AI.Attack(attacker, null);
+            }
+
+            // 2. Direct Attacker Priority (e.g. Sky Striker Hayate triggers search on direct attack, Toons under Toon Kingdom)
+            // If enemy has no urgent floodgates or negators, prioritize direct attack!
+            if (attacker.CanDirectAttack && (attacker.Id == 8491308 || attacker.Id == 25862681 || attacker.HasSetcode(0x62)))
+            {
+                if (!sortedDefenders.Any(d => CardIntelligence.IsFloodgateMonster(d.Id) || CardIntelligence.IsKnownNegator(d.Id)))
+                {
+                    return AI.Attack(attacker, null);
+                }
+            }
 
             foreach (ClientCard defender in sortedDefenders)
             {
@@ -315,6 +332,15 @@ namespace WindBot.Game.AI
             ChainInfo currentChain = Duel.GetCurrentSolvingChainInfo();
             if (currentChain != null && !Duel.IsCurrentSolvingChainNegated())
             {
+                if (currentChain.ActivatePlayer == 0)
+                {
+                    if (currentChain.ActivateId > 0)
+                        resolvedEffectIdList.Add(currentChain.ActivateId);
+                    if (currentChain.ActivateAlias > 0)
+                        resolvedEffectIdList.Add(currentChain.ActivateAlias);
+                    if (currentChain.RelatedCard != null)
+                        resolvedEffectIdList.Add(currentChain.RelatedCard.GetNonAltartCode());
+                }
                 if (currentChain.IsActivateCode(_CardId.LockBird))
                 {
                     resolvedEffectIdList.Add(_CardId.LockBird);
@@ -554,7 +580,24 @@ namespace WindBot.Game.AI
         /// </summary>
         protected bool DefaultMaxxC()
         {
-            return Duel.Player == 1;
+            if (Duel.Player != 1) return false;
+            // Prevent activating Maxx "C" if Droll & Lock Bird is active or Maxx "C" was already resolved by us this turn
+            if (resolvedEffectIdList.Contains(_CardId.MaxxC) || resolvedEffectIdList.Contains(_CardId.LockBird))
+                return false;
+            // Prevent chaining duplicate Maxx "C" in the same chain
+            if (Util.ChainContainsCard(_CardId.MaxxC))
+                return false;
+            return true;
+        }
+        /// <summary>
+        /// Standard Droll & Lock Bird response
+        /// </summary>
+        protected bool DefaultDrollAndLockBird()
+        {
+            if (Duel.Player == 0) return false;
+            if (resolvedEffectIdList.Contains(_CardId.LockBird)) return false;
+            if (Util.ChainContainsCard(_CardId.LockBird)) return false;
+            return Duel.LastChainPlayer == 1;
         }
         /// <summary>
         /// Always disable opponent's effect except some cards like UpstartGoblin
@@ -862,9 +905,20 @@ namespace WindBot.Game.AI
 
         /// <summary>
         /// Set traps only and avoid block the activation of other cards.
+        /// Protects handtraps from being set face-down in MP1.
         /// </summary>
         protected bool DefaultSpellSet()
         {
+            if (Card == null) return false;
+
+            // Universal Safeguard: Never set handtraps face-down (especially in MP1)
+            if (CardIntelligence.IsHandtrap(Card.Id) || CardIntelligence.IsHandtrap(Card.GetNonAltartCode()))
+                return false;
+
+            // Cards with empty-field hand activation conditions must stay in hand
+            if (Card.IsCode(10045474, 40366667, 6325660, 89264428, 23002292))
+                return false;
+
             return (Card.IsTrap() || Card.HasType(CardType.QuickPlay)) && Bot.GetSpellCountWithoutField() < 4;
         }
 
@@ -1578,7 +1632,7 @@ namespace WindBot.Game.AI
         protected bool DefaultCheckWhetherNumber41IsActive()
         {
             return Bot.MonsterZone.Concat(Enemy.MonsterZone).Any(card =>
-                card != null && card.IsFaceup() && card.IsCode(_CardId.Number41BagooskatheTerriblyTiredTapir)
+                card != null && card.IsFaceup() && (card.IsCode(_CardId.Number41BagooskatheTerriblyTiredTapir, _CardId.Number41BagooskatheTerriblyTiredTapirAlt) || card.Id == 26273196 || card.Id == 85359414)
                 && card.IsDefense() && !card.IsDisabled());
         }
 

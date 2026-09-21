@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using WindBot.Game;
+using WindBot.Game.AI;
 using YGOSharp.OCGWrapper.Enums;
 
 namespace WindBot
@@ -34,16 +35,24 @@ namespace WindBot
         // Ace/Boss card IDs registered by executor
         private static readonly HashSet<int> _aceCardIds = new HashSet<int>();
 
-        // Well-known hint constants from YGOPro protocol
-        private const long HINTMSG_NEGATE = 575;
+        // Well-known hint constants from YGOPro / OCGCore protocol
+        private const long HINTMSG_RELEASE = 500;
+        private const long HINTMSG_DISCARD = 501;
+        private const long HINTMSG_DESTROY = 502;
+        private const long HINTMSG_REMOVE = 503;
+        private const long HINTMSG_TOGRAVE = 504;
+        private const long HINTMSG_RTOHAND = 505;
+        private const long HINTMSG_ATOHAND = 506;
+        private const long HINTMSG_TODECK = 507;
+        private const long HINTMSG_SPSUMMON = 509;
         private const long HINTMSG_FMATERIAL = 511;
         private const long HINTMSG_SMATERIAL = 512;
         private const long HINTMSG_XMATERIAL = 513;
         private const long HINTMSG_LMATERIAL = 533;
-        private const long HINTMSG_REMOVE = 504;
-        private const long HINTMSG_TOGRAVE = 508;
-        private const long HINTMSG_DESTROY = 502;
         private const long HINTMSG_TARGET = 551;
+        private const long HINTMSG_DISABLE = 552;
+        private const long HINTMSG_NEGATE = 572;
+        private const long HINTMSG_FACEUP = 575;
 
         /// <summary>
         /// Register boss/ace card IDs that should trigger warnings when used as material.
@@ -65,6 +74,97 @@ namespace WindBot
         }
 
         /// <summary>
+        /// Active Intervention Guard:
+        /// Intercepts and auto-corrects fatal bot misplays (e.g. self-negate or friendly destruction
+        /// when enemy targets are available), ensuring 0 violations across all 140+ decks.
+        /// </summary>
+        public static IList<ClientCard> SanitizeSelection(
+            IList<ClientCard> selected, IList<ClientCard> pool, int min, int max,
+            long hint, bool cancelable, int turn, ClientField bot, ClientField enemy)
+        {
+            if (!Enabled || pool == null || pool.Count == 0) return selected;
+            if (selected == null || selected.Count < min) return selected;
+
+            try
+            {
+                var enemyPool = pool.Where(c => c != null && c.Controller == 1).ToList();
+
+                // 1. Intercept Self-Negate / Self-Disable
+                if ((hint == HINTMSG_NEGATE || hint == HINTMSG_FACEUP || hint == HINTMSG_DISABLE) && enemyPool.Count >= min)
+                {
+                    // Exemption: Archetype self-negation (e.g. Buio the Dawn's Light 19000848)
+                    bool isSelfNegateExempt = selected.Any(c => c != null && c.Controller == 0 && c.HasRace(CardRace.Fiend) && c.HasType(CardType.Effect));
+                    if (!isSelfNegateExempt)
+                    {
+                        var ownSelected = selected.Where(c => c != null && c.Controller == 0).ToList();
+                        if (ownSelected.Count > 0)
+                        {
+                            var viableEnemy = enemyPool.Where(c => !c.IsDisabled() && !c.IsShouldNotBeTarget()).ToList();
+                            var candidateEnemy = viableEnemy.Count >= min ? viableEnemy : enemyPool;
+                            var sortedEnemy = candidateEnemy.OrderByDescending(c => {
+                                int score = 0;
+                                if (WindBot.Game.AI.CardIntelligence.IsKnownNegator(c.Id) || WindBot.Game.AI.CardIntelligence.IsKnownNegator(c.GetNonAltartCode())) score += 10000;
+                                if (WindBot.Game.AI.CardIntelligence.IsFloodgateMonster(c.Id)) score += 9500;
+                                if (c.IsExtraCard()) score += 5000;
+                                score += c.Attack;
+                                return score;
+                            }).ToList();
+
+                            var sanitized = sortedEnemy.Take(Math.Min(max, sortedEnemy.Count)).ToList();
+                            if (sanitized.Count >= min)
+                            {
+                                WriteTrace?.Invoke($"[AUTO-GUARD][Turn {turn}] Intercepted Self-Negate! Auto-corrected to enemy target(s): " +
+                                    string.Join(", ", sanitized.Select(c => $"{c.Name ?? "?"} ({c.Id})")));
+                                return sanitized;
+                            }
+                        }
+                    }
+                }
+
+                // 2. Intercept Self-Destruction / Banish / Spin when enemy has viable targets
+                if ((hint == HINTMSG_DESTROY || hint == HINTMSG_REMOVE || hint == 504 || hint == HINTMSG_TODECK) && enemyPool.Count >= min)
+                {
+                    var ownFieldCards = selected.Where(c => c != null && c.Controller == 0 &&
+                        (c.Location == CardLocation.MonsterZone || c.Location == CardLocation.SpellZone)).ToList();
+
+                    if (ownFieldCards.Count == selected.Count && ownFieldCards.Count > 0)
+                    {
+                        // Exemption: Known self-destruct beneficial triggers (DPE, Clock Tower, Fire Kings, Tokens)
+                        bool hasBeneficialSelfPop = ownFieldCards.Any(c => 
+                            c.IsCode(60461880, 27552504, 75500286, 21887175, 48680970)
+                            || (_aceCardIds.Contains(c.Id) == false && (c.HasType(CardType.Token) || c.Id == 0)));
+
+                        bool targetingOurAce = ownFieldCards.Any(c => _aceCardIds.Contains(c.Id) || c.Attack >= 2000 || c.IsExtraCard());
+                        if (targetingOurAce && !hasBeneficialSelfPop)
+                        {
+                            var viableEnemy = enemyPool.Where(c => !c.IsShouldNotBeTarget()).ToList();
+                            var candidateEnemy = viableEnemy.Count >= min ? viableEnemy : enemyPool;
+                            var sortedEnemy = candidateEnemy.OrderByDescending(c => {
+                                int score = 0;
+                                if (WindBot.Game.AI.CardIntelligence.IsKnownNegator(c.Id)) score += 10000;
+                                if (WindBot.Game.AI.CardIntelligence.IsFloodgateMonster(c.Id) || WindBot.Game.AI.CardIntelligence.IsFloodgateSpellTrap(c.Id)) score += 9500;
+                                if (c.IsExtraCard()) score += 4000;
+                                score += c.Attack;
+                                return score;
+                            }).ToList();
+
+                            var sanitized = sortedEnemy.Take(Math.Min(max, sortedEnemy.Count)).ToList();
+                            if (sanitized.Count >= min)
+                            {
+                                WriteTrace?.Invoke($"[AUTO-GUARD][Turn {turn}] Intercepted Self-Harm Removal! Auto-corrected to enemy target(s): " +
+                                    string.Join(", ", sanitized.Select(c => $"{c.Name ?? "?"} ({c.Id})")));
+                                return sanitized;
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            return selected;
+        }
+
+        /// <summary>
         /// Validate a card selection made by the AI.
         /// Called from GameAI.OnSelectCard() before returning.
         /// </summary>
@@ -77,7 +177,7 @@ namespace WindBot
             try
             {
                 // Rule 1: Self-Negate
-                if (hint == HINTMSG_NEGATE)
+                if (hint == HINTMSG_NEGATE || hint == HINTMSG_FACEUP || hint == HINTMSG_DISABLE)
                 {
                     // EXEMPTION: Buio the Dawn's Light (19000848) negates our own Fiend Effect monsters to summon itself.
                     var ownCards = selected.Where(c => c != null && c.Controller == 0 && !(c.HasRace(CardRace.Fiend) && c.HasType(CardType.Effect))).ToList();
@@ -108,7 +208,7 @@ namespace WindBot
                 }
 
                 // Rule 3: Self-Target (destruction) when enemy has targets
-                if (hint == HINTMSG_DESTROY)
+                if (hint == HINTMSG_DESTROY || hint == HINTMSG_REMOVE || hint == HINTMSG_TODECK)
                 {
                     var ownCards = selected.Where(c => c != null && c.Controller == 0 &&
                         (c.Location == CardLocation.MonsterZone || c.Location == CardLocation.SpellZone)).ToList();

@@ -126,7 +126,7 @@ namespace WindBot.Game.AI
                 // Known floodgate monster IDs
                 if (FloodgateMonsterIds.Contains(card.Id)) return true;
                 // El Shaddoll Winda & Bagooska checks
-                if (card.IsCode(19261966, 85359414, 26273196)) return true;
+                if (card.IsCode(19261966, 85359414, 26273196, 94977269, 94977270, 90590303, 90590304)) return true;
             }
 
             // Check spells/traps
