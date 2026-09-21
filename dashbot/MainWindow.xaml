@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:dashbot"
         mc:Ignorable="d"
         Title="YGO Bot Launcher" Height="760" Width="1180" MinHeight="680" MinWidth="1020"
-        Background="#F4F6F9" TextElement.Foreground="#111111"
+        Background="#080D1A" TextElement.Foreground="#111111"
         WindowStartupLocation="CenterScreen"
         FontFamily="Segoe UI" FontSize="12"
         Icon="dashbot.ico">
@@ -177,15 +177,34 @@
         </Style>
     </Window.Resources>
 
-    <Grid Margin="16">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <Grid>
+        <!-- Faded Cosmic Background Layer -->
+        <Image Source="bg.jpg" Stretch="UniformToFill" Opacity="0.22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
-        <!-- Header Bar (White Elegant Panel) -->
-        <Border Grid.Row="0" Background="White" BorderBrush="#CCCCCC" BorderThickness="1.5" CornerRadius="6" Padding="16,12" Margin="0,0,0,14">
+        <!-- Ambient Vignette Tint Overlay -->
+        <Border>
+            <Border.Background>
+                <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.85" RadiusY="0.85">
+                    <GradientStop Color="#00080D1A" Offset="0.0"/>
+                    <GradientStop Color="#40080D1A" Offset="0.75"/>
+                    <GradientStop Color="#85050812" Offset="1.0"/>
+                </RadialGradientBrush>
+            </Border.Background>
+        </Border>
+
+        <!-- Main Workspace (Layered Above Background) -->
+        <Grid Margin="16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header Bar (White Elegant Panel) -->
+            <Border Grid.Row="0" Background="#F8FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1.5" CornerRadius="6" Padding="16,12" Margin="0,0,0,14">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="12" ShadowDepth="2" Direction="270" Color="#000000" Opacity="0.18"/>
+                </Border.Effect>
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -228,7 +247,10 @@
             </Grid.ColumnDefinitions>
 
             <!-- LEFT COLUMN: Deck Explorer (White WinForm Container) -->
-            <Border Grid.Column="0" Background="White" BorderBrush="#CCCCCC" BorderThickness="1.5" CornerRadius="6" Padding="14">
+            <Border Grid.Column="0" Background="#F8FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1.5" CornerRadius="6" Padding="14">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="14" ShadowDepth="3" Direction="270" Color="#000000" Opacity="0.18"/>
+                </Border.Effect>
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -361,7 +383,10 @@
                 </Grid.RowDefinitions>
 
                 <!-- Connection Settings Card -->
-                <Border Grid.Row="0" Background="White" BorderBrush="#CCCCCC" BorderThickness="1.5" CornerRadius="6" Padding="14">
+                <Border Grid.Row="0" Background="#F8FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1.5" CornerRadius="6" Padding="14">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="12" ShadowDepth="2" Direction="270" Color="#000000" Opacity="0.18"/>
+                    </Border.Effect>
                     <StackPanel>
                         <TextBlock Text="Connection &amp; Launch Settings" FontSize="14" FontWeight="Bold" Foreground="#111111" Margin="0,0,0,10"/>
 
@@ -428,7 +453,10 @@
                 </Border>
 
                 <!-- Console Logs Box -->
-                <Border Grid.Row="2" Background="White" BorderBrush="#CCCCCC" BorderThickness="1.5" CornerRadius="6" Padding="14">
+                <Border Grid.Row="2" Background="#F8FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1.5" CornerRadius="6" Padding="14">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="12" ShadowDepth="2" Direction="270" Color="#000000" Opacity="0.18"/>
+                    </Border.Effect>
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -462,7 +490,10 @@
         </Grid>
 
         <!-- Footer Bar -->
-        <Border Grid.Row="2" Background="White" BorderBrush="#CCCCCC" BorderThickness="1.5" CornerRadius="6" Padding="14,8" Margin="0,14,0,0">
+        <Border Grid.Row="2" Background="#F8FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1.5" CornerRadius="6" Padding="14,8" Margin="0,14,0,0">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="10" ShadowDepth="2" Direction="270" Color="#000000" Opacity="0.18"/>
+            </Border.Effect>
             <Grid>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="YGO Platform - Standalone Bot Runner Launcher (dashbot)" FontSize="11" Foreground="#555555" FontWeight="SemiBold"/>
@@ -474,5 +505,6 @@
                 <TextBlock Text="Powered by .NET 10" FontSize="11" Foreground="#777777" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold"/>
             </Grid>
         </Border>
+    </Grid>
     </Grid>
 </Window>

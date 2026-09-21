@@ -11,6 +11,13 @@
 
   <ItemGroup>
     <Resource Include="dashbot.ico" />
+    <Resource Include="bg.jpg" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="bg.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>

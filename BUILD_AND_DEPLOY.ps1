@@ -137,11 +137,10 @@ foreach ($f in $windbotFiles) {
     }
 }
 
-# Deploy Decks & Dialogs
+# Deploy Decks & Dialogs (Exclusively to WindBot directory - preserve player's deck\ folder)
 Copy-Item (Join-Path $PublishOutput "Decks\*") (Join-Path $TargetDir "WindBot\Decks\") -Recurse -Force
 Copy-Item (Join-Path $PublishOutput "Dialogs\*") (Join-Path $TargetDir "WindBot\Dialogs\") -Recurse -Force
-Copy-Item (Join-Path $ScriptDir "windbot-fork\Decks\*") (Join-Path $TargetDir "deck\") -Recurse -Force
-Write-OK "Deployed Decks & Dialogs"
+Write-OK "Deployed Decks & Dialogs to WindBot"
 
 # Deploy cards.cdb (Ensure full custom/prerelease cards are available for WindBot and EdoGame)
 $sourceCdb = Join-Path $ScriptDir "windbot-fork\cards.cdb"
