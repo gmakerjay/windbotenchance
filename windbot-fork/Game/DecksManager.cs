@@ -129,35 +129,6 @@ namespace WindBot.Game
                 Logger.WriteLine("Deck not found, loading random: " + infos.Deck);
             }
 
-            // Pre-initialize dataset builders ONLY for the active executor type (Expert OR Neural)
-            // โ€” prevents 0-byte ghost files from opponent/non-logging bots
-            try
-            {
-                string cleanDeckName = deck;
-                bool isExpertDeck = false;
-                bool isNeuralDeck = false;
-                if (cleanDeckName != null)
-                {
-                    if (cleanDeckName.StartsWith("Expert_"))
-                    {
-                        cleanDeckName = cleanDeckName.Substring("Expert_".Length);
-                        isExpertDeck = true;
-                    }
-                    else if (cleanDeckName.StartsWith("Neural_"))
-                    {
-                        cleanDeckName = cleanDeckName.Substring("Neural_".Length);
-                        isNeuralDeck = true;
-                    }
-
-                    // [REMOVED-AI-TRAINING] Expert/Neural dataset loggers removed — rule-based only
-                    // if (isExpertDeck || isNeuralDeck) { ... }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.WriteErrorLine("[DecksManager] Failed to pre-initialize dataset directory: " + ex.Message);
-            }
-
             Executor executor = (Executor)Activator.CreateInstance(infos.Type, ai, duel);
             executor.Deck = infos.Deck;
             return executor;
