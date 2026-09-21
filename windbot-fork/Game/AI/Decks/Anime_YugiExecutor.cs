@@ -906,45 +906,278 @@ namespace WindBot.Game.AI.Decks
         }
 
         // =================================================================
-        // INTELLIGENT HOOK OVERRIDES (OnSelectCard, OnSelectOption, OnSelectYesNo)
+        // INTELLIGENT HOOK OVERRIDES (OnSelectCard, OnSelectOption, OnSelectPosition, OnSelectYesNo)
+        // Strictly adheres to SKILL.md v10.0 Section 7.3 Hint Table
         // =================================================================
 
-        public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
+        public override int OnSelectOption(IList<long> options)
         {
-            // -------------------------------------------------------------
-            // Case 1: Illusion of Chaos - placing 1 card from hand on top of deck
-            // -------------------------------------------------------------
-            if (hint == 507 && cards.All(c => c.Location == CardLocation.Hand))
-            {
-                // NEVER place back the card we just searched or critical starters!
-                // Prioritize: duplicate spells > high level bricks > unused traps
-                ClientCard toReturn = cards
-                    .Where(c => c.Id != _lastSearchedCardId && c.Id != CardId.TheGazeOfTimaeus && c.Id != CardId.DarkMagicianThePharaohsServant)
-                    .OrderByDescending(c =>
-                    {
-                        if (c.Id == CardId.DarkMagicalCurtain && Bot.Hand.Count(x => x.Id == CardId.DarkMagicalCurtain) > 1) return 100;
-                        if (c.Id == CardId.DominusImpulse && Bot.Hand.Count(x => x.Id == CardId.DominusImpulse) > 1) return 90;
-                        if (c.Id == CardId.SwordsOfConcealingLight) return 80;
-                        if (c.Id == CardId.MindShuffle) return 70;
-                        if (c.Id == CardId.ChaosSpace) return 60;
-                        if (c.Id == CardId.BlackChaos && !Bot.Hand.Any(x => x.HasType(CardType.Ritual))) return 50;
-                        return 10;
-                    })
-                    .FirstOrDefault();
+            if (options == null || options.Count == 0) return 0;
 
-                if (toReturn != null)
+            for (int i = 0; i < options.Count; i++)
+            {
+                long cardId = options[i] >> 4;
+                if (cardId == 0 && Card != null) cardId = Card.Id;
+                long optIndex = options[i] & 0xf;
+
+                // 1. Spell Shattering Sword (77456448 / 101402064)
+                // Option 0: Destroy all face-up Spells opp controls
+                // Option 1: Reveal Light and Darkness Ritual, negate monster + ATK to 0
+                if (cardId == CardId.SpellShatteringSword || cardId == CardId.SpellShatteringSword_Old)
                 {
-                    return new[] { toReturn };
+                    bool hasOppFaceupSpells = Enemy.GetSpells().Any(s => s != null && s.IsFaceup());
+                    if (hasOppFaceupSpells && optIndex == 0)
+                    {
+                        DecisionTracer.Trace("OnSelectOption", $"Spell Shattering Sword: Option {optIndex} (Wipe face-up Spells)");
+                        return i;
+                    }
+                    if (!hasOppFaceupSpells && optIndex == 1)
+                    {
+                        DecisionTracer.Trace("OnSelectOption", $"Spell Shattering Sword: Option {optIndex} (Negate monster & ATK 0)");
+                        return i;
+                    }
+                }
+
+                // 2. Dark Magician, the Pharaoh's Servant (88570003)
+                // Option 0: Destroy all monsters opponent controls
+                // Option 1: Destroy all Spells/Traps opponent controls
+                if (cardId == CardId.DarkMagicianThePharaohsServant)
+                {
+                    if (Enemy.GetMonsterCount() > 0 && optIndex == 0)
+                    {
+                        DecisionTracer.Trace("OnSelectOption", $"Pharaoh's Servant: Option {optIndex} (Wipe all opponent monsters)");
+                        return i;
+                    }
+                    if (Enemy.GetMonsterCount() == 0 && Enemy.GetSpellCount() > 0 && optIndex == 1)
+                    {
+                        DecisionTracer.Trace("OnSelectOption", $"Pharaoh's Servant: Option {optIndex} (Wipe all opponent Spells/Traps)");
+                        return i;
+                    }
+                }
+
+                // 3. Master of Chaos (85059922)
+                // Option 0: Banish all monsters opponent controls
+                // Option 1: Add 1 Spell from GY to hand
+                if (cardId == CardId.MasterOfChaos)
+                {
+                    if (Enemy.GetMonsterCount() > 0 && optIndex == 0)
+                    {
+                        DecisionTracer.Trace("OnSelectOption", $"Master of Chaos: Option {optIndex} (Banish all monsters)");
+                        return i;
+                    }
+                    if (optIndex == 1)
+                    {
+                        DecisionTracer.Trace("OnSelectOption", $"Master of Chaos: Option {optIndex} (Add Spell from GY)");
+                        return i;
+                    }
+                }
+
+                // 4. Mind Shuffle (24749710)
+                // Option 0: Return card from GY to deck
+                // Option 1: Shuffle hand into deck and draw
+                if (cardId == CardId.MindShuffle)
+                {
+                    if (optIndex == 0)
+                    {
+                        DecisionTracer.Trace("OnSelectOption", $"Mind Shuffle: Option {optIndex} (Recycle from GY)");
+                        return i;
+                    }
+                }
+
+                // 5. Triple Tactics Talent (25311006)
+                // Option 0: Draw 2
+                // Option 1: Take control of 1 monster
+                // Option 2: Look at opponent's hand & shuffle 1
+                if (cardId == CardId.TripleTacticsTalent)
+                {
+                    bool hasHighAtkMonster = Enemy.GetMonsters().Any(m => m != null && m.IsFaceup() && m.Attack >= 2500);
+                    if (hasHighAtkMonster && optIndex == 1)
+                    {
+                        DecisionTracer.Trace("OnSelectOption", $"Triple Tactics Talent: Option {optIndex} (Take control of high ATK monster)");
+                        return i;
+                    }
+                    if (optIndex == 0)
+                    {
+                        DecisionTracer.Trace("OnSelectOption", $"Triple Tactics Talent: Option {optIndex} (Draw 2 cards)");
+                        return i;
+                    }
+                }
+
+                // 6. Griffoh (97462632)
+                // Option 0: Add Ritual Spell to hand
+                // Option 1: Set 1 Quick-Play Spell or Trap from deck
+                if (cardId == CardId.Griffoh)
+                {
+                    bool hasRitualSpell = Bot.Hand.Concat(Bot.Graveyard).Any(c => c != null && c.Id == CardId.LightAndDarknessRitual);
+                    if (!hasRitualSpell && optIndex == 0)
+                    {
+                        DecisionTracer.Trace("OnSelectOption", $"Griffoh: Option {optIndex} (Add Ritual Spell to hand)");
+                        return i;
+                    }
+                    if (optIndex == 1)
+                    {
+                        DecisionTracer.Trace("OnSelectOption", $"Griffoh: Option {optIndex} (Set Quick-Play/Trap from deck)");
+                        return i;
+                    }
+                }
+
+                // 7. Pot of Prosperity (84211599)
+                // Option 0: Banish 3
+                // Option 1: Banish 6
+                if (cardId == CardId.PotOfProsperity)
+                {
+                    if (Bot.ExtraDeck.Count >= 6 && optIndex == 1) return i;
+                    if (optIndex == 0) return i;
+                }
+
+                // 8. Secrets of Dark Magic (59514116)
+                // Option 0: Fusion Summon
+                // Option 1: Ritual Summon
+                if (cardId == CardId.SecretsOfDarkMagic)
+                {
+                    if (optIndex == 0) return i;
+                }
+
+                // 9. Black Luster Soldier - Soldier of Chaos (49202162)
+                // Option 0: Gain 1500 ATK
+                // Option 1: Double Attack next turn
+                // Option 2: Banish 1 card on the field
+                if (cardId == CardId.BlackLusterSoldierSoldierOfChaos)
+                {
+                    if (Enemy.GetMonsterCount() + Enemy.GetSpellCount() > 0 && optIndex == 2) return i;
+                    if (optIndex == 0) return i;
+                }
+
+                // 10. Magi Magi ☆ Magician Gal (10000030)
+                // Option 0: Take control of 1 monster
+                // Option 1: Special Summon 1 monster from opponent's GY
+                if (cardId == CardId.MagiMagiMagicianGal)
+                {
+                    if (Enemy.GetMonsterCount() > 0 && optIndex == 0) return i;
+                    if (optIndex == 1) return i;
                 }
             }
 
-            // -------------------------------------------------------------
-            // Case 2: Pharaoh's Servant - revealing 1 Spell in hand
-            // -------------------------------------------------------------
-            if (hint == 526 && cards.All(c => c.Location == CardLocation.Hand && c.IsSpell()))
+            return base.OnSelectOption(options);
+        }
+
+        public override CardPosition OnSelectPosition(int cardId, IList<CardPosition> positions)
+        {
+            // Low ATK / utility monsters -> FaceUpDefence (Stat-Aware)
+            if (cardId == CardId.Griffoh || cardId == CardId.DetonatingKuriboh ||
+                cardId == CardId.MultiplyingKuriboh || cardId == CardId.Linkuriboh)
             {
-                // Pick disposable spell to reveal
-                ClientCard toReveal = cards.OrderByDescending(c =>
+                if (positions.Contains(CardPosition.FaceUpDefence))
+                    return CardPosition.FaceUpDefence;
+            }
+
+            // High ATK beaters / Ace monsters -> FaceUpAttack
+            if (cardId == CardId.RedEyesDarkDragoon || cardId == CardId.MasterOfChaos ||
+                cardId == CardId.DarkMagicianTheDragonKnight || cardId == CardId.GuardianChimera ||
+                cardId == CardId.DarkMagicianOfDestruction || cardId == CardId.DarkCavalry ||
+                cardId == CardId.BlackChaos || cardId == CardId.BlackLusterSoldierSoldierOfLightAndDarkness ||
+                cardId == CardId.BlackLusterSoldierSoldierOfChaos || cardId == CardId.DarkMagician ||
+                cardId == CardId.DarkMagicianThePharaohsServant || cardId == CardId.DarkMagicianGirl)
+            {
+                if (positions.Contains(CardPosition.FaceUpAttack))
+                    return CardPosition.FaceUpAttack;
+            }
+
+            return base.OnSelectPosition(cardId, positions);
+        }
+
+        public override int GetMaterialPriority(ClientCard c)
+        {
+            if (c == null) return 999;
+            // Tokens first
+            if (c.HasType(CardType.Token)) return 0;
+            // Level 1 Kuribohs / Griffoh
+            if (c.Level == 1) return 10;
+            // Monsters in Graveyard
+            if (c.Location == CardLocation.Grave)
+            {
+                if (c.Id == CardId.DarkMagician) return 30;
+                return 20;
+            }
+            // Monsters in Hand
+            if (c.Location == CardLocation.Hand)
+            {
+                if (c.Id == CardId.DarkMagicianGirl) return 40;
+                if (c.Id == CardId.DarkMagician) return 50;
+                return 45;
+            }
+            // Protect Bosses on field
+            if (c.Id == CardId.RedEyesDarkDragoon || c.Id == CardId.MasterOfChaos ||
+                c.Id == CardId.DarkMagicianTheDragonKnight || c.Id == CardId.GuardianChimera)
+                return 999;
+            if (c.Id == CardId.DarkMagicianOfDestruction || c.Id == CardId.DarkCavalry)
+                return 900;
+            if (c.Id == CardId.DarkMagicianThePharaohsServant || c.Id == CardId.DarkMagician)
+                return 800;
+
+            return 100;
+        }
+
+        public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
+        {
+            if (cards == null || cards.Count == 0)
+                return base.OnSelectCard(cards, min, max, hint, cancelable);
+
+            // Hint 500: HINTMSG_RELEASE (Tribute fodder/tokens first, never sacrifice Ace)
+            if (hint == 500)
+            {
+                var sorted = cards.OrderBy(c => c.Controller == 1 ? 0 : GetMaterialPriority(c)).ToList();
+                return sorted.Take(max).ToList();
+            }
+
+            // Hint 501: HINTMSG_DISCARD (Discard GY triggers or duplicates, protect starters)
+            if (hint == 501)
+            {
+                // Discard Light and Darkness Ritual (has GY effect to recover itself + another card!)
+                var ritual = cards.FirstOrDefault(c => c != null && c.Id == CardId.LightAndDarknessRitual);
+                if (ritual != null) return new List<ClientCard> { ritual };
+
+                var duplicateDM = cards.Where(c => c != null && (c.Id == CardId.DarkMagician || c.Id == CardId.DarkMagicianThePharaohsServant)).ToList();
+                if (duplicateDM.Count > 1) return new List<ClientCard> { duplicateDM[0] };
+
+                var sorted = cards.OrderBy(c => GetMaterialPriority(c)).ToList();
+                return sorted.Take(max).ToList();
+            }
+
+            // Hint 502: HINTMSG_DESTROY (Destroy highest threat, skip destruction immune)
+            if (hint == 502)
+            {
+                var enemyTargets = cards.Where(c => c != null && c.Controller == 1).ToList();
+                if (enemyTargets.Count > 0)
+                {
+                    var validTargets = enemyTargets.Where(c => !IsDestructionImmune(c)).ToList();
+                    var pool = validTargets.Count > 0 ? validTargets : enemyTargets;
+                    var sorted = pool.OrderByDescending(c => GetCardThreatScore(c)).ToList();
+                    return sorted.Take(max).ToList();
+                }
+            }
+
+            // Hint 504 / 503: HINTMSG_REMOVE (Banish highest threat, skip target-immune)
+            if (hint == 504 || hint == 503)
+            {
+                var enemyTargets = cards.Where(c => c != null && c.Controller == 1).ToList();
+                if (enemyTargets.Count > 0)
+                {
+                    var validTargets = enemyTargets.Where(c => IsViableEffectTarget(c)).ToList();
+                    var pool = validTargets.Count > 0 ? validTargets : enemyTargets;
+                    var sorted = pool.OrderByDescending(c => GetCardThreatScore(c)).ToList();
+                    return sorted.Take(max).ToList();
+                }
+
+                // Self banish costs (Soul Servant in GY, Black Chaos in GY)
+                var soulServantGY = cards.FirstOrDefault(c => c != null && c.Location == CardLocation.Grave && c.Id == CardId.SoulServant);
+                if (soulServantGY != null) return new List<ClientCard> { soulServantGY };
+            }
+
+            // Case: Pharaoh's Servant - revealing 1 Spell in hand (Hint 526)
+            if (hint == 526 && cards.All(c => c != null && c.Location == CardLocation.Hand && c.IsSpell()))
+            {
+                var toReveal = cards.OrderByDescending(c =>
                 {
                     if (c.Id == CardId.SoulServant) return 100;
                     if (c.Id == CardId.PrePreparationOfRites) return 90;
@@ -956,18 +1189,44 @@ namespace WindBot.Game.AI.Decks
                     return 10;
                 }).FirstOrDefault();
 
-                if (toReveal != null)
-                {
-                    return new[] { toReveal };
-                }
+                if (toReveal != null) return new List<ClientCard> { toReveal };
             }
 
-            // -------------------------------------------------------------
-            // Case 3: Pot of Prosperity - excavated cards selection
-            // -------------------------------------------------------------
-            if (cards.Count > 1 && cards.All(c => c.Location == CardLocation.Deck))
+            // Hint 505: HINTMSG_ATOHAND / RTOHAND (Search to hand or bounce enemy threat)
+            // Hint 506: HINTMSG_TODECK (Spin to deck or recycle GY materials / Illusion of Chaos place on top)
+            if (hint == 505 || hint == 506 || cards.Any(c => c != null && c.Location == CardLocation.Deck))
             {
-                int[] excavationPriority = new[] {
+                // Sub-case: Illusion of Chaos - placing 1 card from hand on top of deck
+                if (cards.All(c => c != null && c.Location == CardLocation.Hand))
+                {
+                    var toReturn = cards
+                        .Where(c => c.Id != _lastSearchedCardId && c.Id != CardId.TheGazeOfTimaeus && c.Id != CardId.DarkMagicianThePharaohsServant)
+                        .OrderByDescending(c =>
+                        {
+                            if (c.Id == CardId.DarkMagicalCurtain && Bot.Hand.Count(x => x.Id == CardId.DarkMagicalCurtain) > 1) return 100;
+                            if (c.Id == CardId.DominusImpulse && Bot.Hand.Count(x => x.Id == CardId.DominusImpulse) > 1) return 90;
+                            if (c.Id == CardId.SwordsOfConcealingLight) return 80;
+                            if (c.Id == CardId.MindShuffle) return 70;
+                            if (c.Id == CardId.ChaosSpace) return 60;
+                            if (c.Id == CardId.BlackChaos && !Bot.Hand.Any(x => x.HasType(CardType.Ritual))) return 50;
+                            return 10;
+                        })
+                        .FirstOrDefault();
+
+                    if (toReturn != null) return new List<ClientCard> { toReturn };
+                }
+
+                // If bouncing or spinning enemy cards:
+                var enemyCards = cards.Where(c => c != null && c.Controller == 1).ToList();
+                if (enemyCards.Count > 0)
+                {
+                    var sorted = enemyCards.OrderByDescending(c => GetCardThreatScore(c)).ToList();
+                    return sorted.Take(max).ToList();
+                }
+
+                // Search priority
+                var searchPriority = new List<int>
+                {
                     CardId.PrePreparationOfRites,
                     CardId.PreparationOfRites,
                     CardId.IllusionOfChaos,
@@ -975,6 +1234,7 @@ namespace WindBot.Game.AI.Decks
                     CardId.Griffoh,
                     CardId.DarkMagicianThePharaohsServant,
                     CardId.DarkMagician,
+                    CardId.SecretsOfDarkMagic,
                     CardId.DarkMagicalCurtain,
                     CardId.SoulServant,
                     CardId.LightAndDarknessRitual,
@@ -982,14 +1242,95 @@ namespace WindBot.Game.AI.Decks
                     CardId.DominusImpulse
                 };
 
-                foreach (int targetId in excavationPriority)
+                foreach (int sid in searchPriority)
                 {
-                    ClientCard match = cards.FirstOrDefault(c => c.Id == targetId);
-                    if (match != null)
-                    {
-                        return new[] { match };
-                    }
+                    var match = cards.FirstOrDefault(c => c != null && c.Id == sid);
+                    if (match != null) return new List<ClientCard> { match };
                 }
+            }
+
+            // Hint 507: HINTMSG_EQUIP (Equip to best boss monster)
+            if (hint == 507)
+            {
+                var bosses = cards.Where(c => c != null && c.Controller == 0 && c.IsFaceup()).OrderByDescending(c => c.Attack).ToList();
+                if (bosses.Count > 0) return bosses.Take(max).ToList();
+            }
+
+            // Hint 508: HINTMSG_TOGRAVE (Send combo extenders / triggers to GY)
+            if (hint == 508)
+            {
+                var dumpPriority = new[]
+                {
+                    CardId.LightAndDarknessRitual,
+                    CardId.SoulServant,
+                    CardId.DarkMagician,
+                    CardId.DarkMagicianGirl,
+                    CardId.Griffoh
+                };
+
+                foreach (int did in dumpPriority)
+                {
+                    var match = cards.FirstOrDefault(c => c != null && c.Id == did);
+                    if (match != null) return new List<ClientCard> { match };
+                }
+            }
+
+            // Hint 509: HINTMSG_SPSUMMON (Special Summon Ace / Negator / Key Extender)
+            if (hint == 509)
+            {
+                var preferred = new[]
+                {
+                    CardId.RedEyesDarkDragoon,
+                    CardId.MasterOfChaos,
+                    CardId.DarkMagicianTheDragonKnight,
+                    CardId.GuardianChimera,
+                    CardId.DarkMagicianOfDestruction,
+                    CardId.DarkCavalry,
+                    CardId.DarkMagicianThePharaohsServant,
+                    CardId.DarkMagician,
+                    CardId.DarkMagicianGirl
+                };
+
+                foreach (int pid in preferred)
+                {
+                    var match = cards.FirstOrDefault(c => c != null && c.Id == pid);
+                    if (match != null) return new List<ClientCard> { match };
+                }
+            }
+
+            // Hint 518: HINTMSG_POSCHANGE (Stat-Aware position change)
+            if (hint == 518)
+            {
+                var sorted = cards.OrderBy(c => c.Attack > c.Defense ? 0 : 1).ToList();
+                return sorted.Take(max).ToList();
+            }
+
+            // Hint 519: HINTMSG_XMATERIAL (Detach non-Ace / fodder materials first)
+            if (hint == 519)
+            {
+                var sorted = cards.OrderBy(c => GetMaterialPriority(c)).ToList();
+                return sorted.Take(max).ToList();
+            }
+
+            // Hint 552 / 572: HINTMSG_DISABLE / NEGATE (Target key chokepoint or negator)
+            if (hint == 552 || hint == 572)
+            {
+                var enemyTargets = cards.Where(c => c != null && c.Controller == 1).ToList();
+                if (enemyTargets.Count > 0)
+                {
+                    var sorted = enemyTargets.OrderByDescending(c =>
+                        CardIntelligence.IsHighThreatChokepoint(c.Id) ? 1000 :
+                        CardIntelligence.IsKnownNegator(c.Id) ? 900 :
+                        GetCardThreatScore(c)).ToList();
+                    return sorted.Take(max).ToList();
+                }
+            }
+
+            // Hint 511 / 513 / 533: Fusion, Ritual, Release materials
+            if (hint == 511 || hint == 513 || hint == 533)
+            {
+                var sorted = cards.OrderBy(c => c.Controller == 1 ? 0 : GetMaterialPriority(c)).ToList();
+                return sorted.Take(max).ToList();
             }
 
             return base.OnSelectCard(cards, min, max, hint, cancelable);

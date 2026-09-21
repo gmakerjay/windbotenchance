@@ -135,6 +135,8 @@ namespace WindBot.Game.AI.Decks
         private bool _sprightElfReviveUsed = false;
         private bool _borreloadNegateUsed = false;
         private bool _surpriseUsed = false;
+        private int _surpriseOurBounceCount = 0;
+        private int _surpriseOppBounceCount = 0;
         private int _handTrapsUsedThisTurn = 0;
 
         public override bool IsAceCard(ClientCard card)
@@ -257,27 +259,34 @@ namespace WindBot.Game.AI.Decks
             // ── Combo Router Routes ──
             ComboRouter.RegisterLine(new ComboRouter.ComboLine
             {
-                Name = "Marshmao-Cupsy-Elf-Line",
-                RequiredCards = new List<int> { CardId.MarshmaoYummy, CardId.CupsyYummy },
+                Name = "Yummy-Snatchy-CupsyWay-Elf-Line",
+                RequiredCards = new List<int> { CardId.MarshmaoYummy },
                 Steps = new List<ComboRouter.ComboStep>
                 {
                     new() { CardId = CardId.MarshmaoYummy, ActionType = ExecutorType.Summon, Description = "Summon Marshmao" },
-                    new() { CardId = CardId.CupsyYummy, ActionType = ExecutorType.SpSummon, Description = "Special Cupsy" },
+                    new() { CardId = CardId.YummySnatchy, ActionType = ExecutorType.SpSummon, Description = "Link Yummy Snatchy" },
+                    new() { CardId = CardId.YummySnatchy, ActionType = ExecutorType.Activate, Description = "Place Mignon" },
+                    new() { CardId = CardId.YummyusmentMignon, ActionType = ExecutorType.Activate, Description = "Revive Marshmao" },
                     new() { CardId = CardId.CupsyYummyWay, ActionType = ExecutorType.SpSummon, Description = "Synchro Cupsy Way" },
+                    new() { CardId = CardId.CupsyYummyWay, ActionType = ExecutorType.Activate, Description = "Search 2 Yummies" },
                     new() { CardId = CardId.SprightElf, ActionType = ExecutorType.SpSummon, Description = "Link Spright Elf" }
                 },
-                EndBoardScore = 90
+                EndBoardScore = 95
             });
 
             ComboRouter.RegisterLine(new ComboRouter.ComboLine
             {
-                Name = "Cooky-Lollipo-Borreload",
-                RequiredCards = new List<int> { CardId.CookyYummy },
+                Name = "Cupsy-Snatchy-CupsyWay-Elf-Line",
+                RequiredCards = new List<int> { CardId.CupsyYummy },
                 Steps = new List<ComboRouter.ComboStep>
                 {
-                    new() { CardId = CardId.CookyYummy, ActionType = ExecutorType.Summon, Description = "Summon Cooky" },
-                    new() { CardId = CardId.LollipoYummyWay, ActionType = ExecutorType.SpSummon, Description = "Synchro Lollipo Way" },
-                    new() { CardId = CardId.BorreloadSavageDragon, ActionType = ExecutorType.SpSummon, Description = "Synchro Borreload Savage" }
+                    new() { CardId = CardId.CupsyYummy, ActionType = ExecutorType.Summon, Description = "Summon Cupsy" },
+                    new() { CardId = CardId.YummySnatchy, ActionType = ExecutorType.SpSummon, Description = "Link Yummy Snatchy" },
+                    new() { CardId = CardId.YummySnatchy, ActionType = ExecutorType.Activate, Description = "Place Mignon" },
+                    new() { CardId = CardId.YummyusmentMignon, ActionType = ExecutorType.Activate, Description = "Revive Cupsy" },
+                    new() { CardId = CardId.CupsyYummyWay, ActionType = ExecutorType.SpSummon, Description = "Synchro Cupsy Way" },
+                    new() { CardId = CardId.CupsyYummyWay, ActionType = ExecutorType.Activate, Description = "Search 2 Yummies" },
+                    new() { CardId = CardId.SprightElf, ActionType = ExecutorType.SpSummon, Description = "Link Spright Elf" }
                 },
                 EndBoardScore = 95
             });
@@ -378,8 +387,9 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.SpSummon, CardId.CrystronHalqifibrax, LinkSpSummonCheck);
             AddExecutor(ExecutorType.SpSummon, CardId.LinkSpider, LinkSpiderSpSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.Linkuriboh, LinkuribohSpSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.SalamangreatAlmiraj, LinkSpSummonCheck);
-            AddExecutor(ExecutorType.SpSummon, CardId.SkyStrikerAceKagari, LinkSpSummonCheck);
+            AddExecutor(ExecutorType.SpSummon, CardId.SalamangreatAlmiraj, AlmirajSpSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.SkyStrikerAceKagari, KagariSpSummon);
+            AddExecutor(ExecutorType.Activate, CardId.SkyStrikerAceKagari, KagariEffect);
 
             // ============================================================
             // TIER 9: Setting Traps & Cleanup
@@ -420,6 +430,8 @@ namespace WindBot.Game.AI.Decks
             _sprightElfReviveUsed = false;
             _borreloadNegateUsed = false;
             _surpriseUsed = false;
+            _surpriseOurBounceCount = 0;
+            _surpriseOppBounceCount = 0;
             _handTrapsUsedThisTurn = 0;
         }
 
@@ -1112,31 +1124,26 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location != CardLocation.MonsterZone) return false;
 
-            // Opponent's Turn: Quick Tag-Out (Wait for opponent to commit / chain, or Main Phase with targets)
+            // Opponent's Turn: Quick Tag-Out (EVENT_CHAINING, rp == 1 - tp)
+            // Can ONLY activate in response to opponent's effect
             if (Duel.Player == 1)
             {
-                // Must have Yummy monsters in GY to summon!
+                if (Duel.LastChainPlayer != 1) return false;
                 if (!Bot.Graveyard.Any(c => c != null && YummyMonsters.Contains(c.Id) && c.IsCanRevive()))
                     return false;
 
                 var chainCard = Util.GetLastChainCard();
                 bool isHarmless = chainCard != null && (chainCard.IsCode(70368879) || chainCard.IsCode(49238328));
-                bool opponentHasMonsters = Enemy.GetMonsterCount() > 0;
-                bool isChaining = Duel.LastChainPlayer == 1 && !isHarmless;
-                bool isMainOrBattle = Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Battle || Duel.Phase == DuelPhase.Main2;
+                if (isHarmless) return false;
 
-                if ((opponentHasMonsters && isMainOrBattle) || isChaining)
-                {
-                    AI.SelectCard(new[] {
-                        CardId.CookyYummy,     // Destroy 1 monster
-                        CardId.LollipoYummy,   // Banish 1 GY card
-                        CardId.MarshmaoYummy,  // Place Acroquey / Surprise
-                        CardId.CupsyYummy      // Draw 1
-                    });
-                    DecisionTracer.TraceActivate("CupsyYummyWay", "Tagging out to SS 2 Yummies from GY!");
-                    return true;
-                }
-                return false;
+                AI.SelectCard(new[] {
+                    CardId.CookyYummy,     // Destroys 1 monster when SS by Synchro!
+                    CardId.LollipoYummy,   // Banishes 1 GY card when SS by Synchro!
+                    CardId.MarshmaoYummy,  // Places S/T
+                    CardId.CupsyYummy      // Draws 1
+                });
+                DecisionTracer.TraceActivate("CupsyYummyWay", "Tagging out to SS 2 Yummies from GY in response to opponent!");
+                return true;
             }
 
             // Our Turn: Search 2 DISTINCT Yummies and discard 1
@@ -1154,27 +1161,27 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location != CardLocation.MonsterZone) return false;
 
+            // Opponent's Turn: Quick Tag-Out (EVENT_CHAINING, rp == 1 - tp)
             if (Duel.Player == 1)
             {
-                if (!Bot.Graveyard.Any(c => c != null && YummyMonsters.Contains(c.Id) && c.IsCanRevive()))
-                    return false;
-
-                var chainCard = Util.GetLastChainCard();
-                bool isHarmless = chainCard != null && (chainCard.IsCode(70368879) || chainCard.IsCode(49238328));
-                bool opponentHasMonsters = Enemy.GetMonsterCount() > 0;
-                bool isChaining = Duel.LastChainPlayer == 1 && !isHarmless;
-                bool isMainOrBattle = Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Battle || Duel.Phase == DuelPhase.Main2;
-
-                if ((opponentHasMonsters && isMainOrBattle) || isChaining)
+                if (Duel.LastChainPlayer == 1)
                 {
-                    AI.SelectCard(new[] {
-                        CardId.CookyYummy,
-                        CardId.LollipoYummy,
-                        CardId.MarshmaoYummy,
-                        CardId.CupsyYummy
-                    });
-                    DecisionTracer.TraceActivate("CookyYummyWay", "Tagging out to SS 2 Yummies from GY!");
-                    return true;
+                    if (!Bot.Graveyard.Any(c => c != null && YummyMonsters.Contains(c.Id) && c.IsCanRevive()))
+                        return false;
+
+                    var chainCard = Util.GetLastChainCard();
+                    bool isHarmless = chainCard != null && (chainCard.IsCode(70368879) || chainCard.IsCode(49238328));
+                    if (!isHarmless)
+                    {
+                        AI.SelectCard(new[] {
+                            CardId.CookyYummy,
+                            CardId.LollipoYummy,
+                            CardId.MarshmaoYummy,
+                            CardId.CupsyYummy
+                        });
+                        DecisionTracer.TraceActivate("CookyYummyWay", "Tagging out to SS 2 Yummies from GY!");
+                        return true;
+                    }
                 }
                 return false;
             }
@@ -1202,7 +1209,9 @@ namespace WindBot.Game.AI.Decks
 
             if (Duel.Player == 1)
             {
-                AI.SelectCard(new[] { CardId.CookyYummy, CardId.LollipoYummy, CardId.MarshmaoYummy });
+                if (Duel.LastChainPlayer != 1) return false;
+                AI.SelectCard(new[] { CardId.CookyYummy, CardId.LollipoYummy, CardId.MarshmaoYummy, CardId.CupsyYummy });
+                DecisionTracer.TraceActivate("LollipoYummyWay", "Tagging out to SS 2 Yummies from GY!");
                 return true;
             }
 
@@ -1287,9 +1296,22 @@ namespace WindBot.Game.AI.Decks
             bool hasLinkInGY = Bot.Graveyard.Any(c => c != null && c.HasType(CardType.Link));
             if (!hasLinkInGY) return false;
 
-            bool hasTuner = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.HasType(CardType.Tuner) && !c.IsCode(CardId.BorreloadSavageDragon, CardId.HeraldOfTheArcLight));
-            bool hasNonTuner = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.HasType(CardType.Tuner) && !c.IsCode(CardId.BorreloadSavageDragon, CardId.HeraldOfTheArcLight));
-            return hasTuner && hasNonTuner;
+            var tuners = Bot.GetMonsters().Where(c => c != null && c.IsFaceup() && c.HasType(CardType.Tuner) && !IsAceCard(c)).ToList();
+            var nonTuners = Bot.GetMonsters().Where(c => c != null && c.IsFaceup() && !c.HasType(CardType.Tuner) && !IsAceCard(c)).ToList();
+
+            foreach (var t in tuners)
+            {
+                foreach (var nt in nonTuners)
+                {
+                    if (t.Level > 0 && nt.Level > 0 && t.Level + nt.Level == 8)
+                    {
+                        AI.SelectCard(new[] { t, nt });
+                        DecisionTracer.TraceActivate("BorreloadSpSummon", $"Synchro Borreload Savage using {t.Name} (Lv{t.Level}) + {nt.Name} (Lv{nt.Level})");
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         private bool BorreloadSavageEffect()
@@ -1325,9 +1347,23 @@ namespace WindBot.Game.AI.Decks
         {
             if (IsSpecialSummonBlocked()) return false;
             if (ShouldStopExtending()) return false;
-            bool hasTuner = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.HasType(CardType.Tuner) && !c.IsCode(CardId.BorreloadSavageDragon, CardId.HeraldOfTheArcLight));
-            bool hasNonTuner = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.HasType(CardType.Tuner) && !c.IsCode(CardId.BorreloadSavageDragon, CardId.HeraldOfTheArcLight));
-            return hasTuner && hasNonTuner;
+
+            var tuners = Bot.GetMonsters().Where(c => c != null && c.IsFaceup() && c.HasType(CardType.Tuner) && !IsAceCard(c)).ToList();
+            var nonTuners = Bot.GetMonsters().Where(c => c != null && c.IsFaceup() && !c.HasType(CardType.Tuner) && !IsAceCard(c)).ToList();
+
+            foreach (var t in tuners)
+            {
+                foreach (var nt in nonTuners)
+                {
+                    if (t.Level > 0 && nt.Level > 0 && t.Level + nt.Level == 4)
+                    {
+                        AI.SelectCard(new[] { t, nt });
+                        DecisionTracer.TraceActivate("HeraldSpSummon", $"Synchro Herald of the Arc Light using {t.Name} (Lv{t.Level}) + {nt.Name} (Lv{nt.Level})");
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         private bool HeraldOfTheArcLightEffect()
@@ -1432,6 +1468,8 @@ namespace WindBot.Game.AI.Decks
                     if (selectedOurBeasts.Count == 2 && selectedOpp.Count == 2)
                     {
                         _surpriseUsed = true;
+                        _surpriseOurBounceCount = 0;
+                        _surpriseOppBounceCount = 0;
                         AI.SelectOption(0);
                         // Prompt 1 selects our 2 LIGHT Beasts, Prompt 2 selects opponent's 2 cards!
                         AI.SelectCard(selectedOurBeasts.Concat(selectedOpp).ToList());
@@ -1483,7 +1521,12 @@ namespace WindBot.Game.AI.Decks
             if (IsSpecialSummonBlocked()) return false;
             if (ShouldSkipLinkSummon()) return false;
             var normalToken = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.HasType(CardType.Normal));
-            return normalToken != null;
+            if (normalToken != null)
+            {
+                AI.SelectCard(normalToken);
+                return true;
+            }
+            return false;
         }
 
         private bool LinkuribohSpSummon()
@@ -1491,7 +1534,69 @@ namespace WindBot.Game.AI.Decks
             if (IsSpecialSummonBlocked()) return false;
             if (ShouldSkipLinkSummon()) return false;
             var level1 = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.Level == 1 && !IsAceCard(c) && !YummyMonsters.Contains(c.Id));
-            return level1 != null;
+            if (level1 != null)
+            {
+                AI.SelectCard(level1);
+                return true;
+            }
+            return false;
+        }
+
+        private bool AlmirajSpSummon()
+        {
+            if (IsSpecialSummonBlocked()) return false;
+            if (ShouldSkipLinkSummon()) return false;
+            if (HasLink1OnField()) return false;
+
+            // Prioritize Sangan (searches when sent to GY!)
+            var sangan = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(CardId.Sangan) && !c.IsSpecialSummoned);
+            if (sangan != null)
+            {
+                AI.SelectCard(sangan);
+                DecisionTracer.TraceActivate("AlmirajSpSummon", "Link Summoning Almiraj using Sangan");
+                return true;
+            }
+
+            var normalSummonedLowAtk = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() &&
+                !IsAceCard(c) && c.Attack <= 1000 && !c.IsSpecialSummoned &&
+                !c.HasType(CardType.Link));
+
+            if (normalSummonedLowAtk != null && !Bot.HasInMonstersZone(CardId.YummySnatchy))
+            {
+                AI.SelectCard(normalSummonedLowAtk);
+                DecisionTracer.TraceActivate("AlmirajSpSummon", $"Link Summoning Almiraj using {normalSummonedLowAtk.Name}");
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool KagariSpSummon()
+        {
+            if (IsSpecialSummonBlocked()) return false;
+            if (ShouldSkipLinkSummon()) return false;
+
+            var token = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && (c.IsCode(52340445) || c.IsCode(26077387)));
+            if (token != null)
+            {
+                AI.SelectCard(token);
+                DecisionTracer.TraceActivate("KagariSpSummon", "Link Summoning Kagari using Sky Striker token");
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool KagariEffect()
+        {
+            if (Card.Location != CardLocation.MonsterZone) return false;
+            var drones = Bot.Graveyard.FirstOrDefault(c => c != null && c.IsCode(CardId.SkyStrikerMechaHornetDrones));
+            if (drones != null)
+            {
+                AI.SelectCard(drones);
+                return true;
+            }
+            return true;
         }
 
         private bool LinkSpSummonCheck()
@@ -1559,14 +1664,61 @@ namespace WindBot.Game.AI.Decks
                 if (card.IsCode(CardId.CupsyYummyWay, CardId.LollipoYummyWay)) return true;
                 if (card.IsCode(CardId.CookyYummyWay))
                 {
-                    // ONLY activate Book of Moon effect if opponent has face-up monsters to flip!
-                    // Otherwise it flips our own monsters face down!
-                    return Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsShouldNotBeTarget());
+                    // Effect 0: Book of Moon on summon - only activate if opponent has face-up monsters to flip
+                    if (desc == Util.GetStringId(CardId.CookyYummyWay, 0))
+                    {
+                        return Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsShouldNotBeTarget());
+                    }
+                    // Effect 1: Tag-Out quick effect - tag out when opponent acts if we have GY targets
+                    if (desc == Util.GetStringId(CardId.CookyYummyWay, 1))
+                    {
+                        return Duel.LastChainPlayer == 1 && Bot.Graveyard.Any(c => c != null && YummyMonsters.Contains(c.Id) && c.IsCanRevive());
+                    }
+                    return true;
                 }
                 if (card.IsCode(CardId.MarshmaoYummy, CardId.CupsyYummy, CardId.CookyYummy, CardId.LollipoYummy)) return true;
-                if (card.IsCode(CardId.MartialMetalMarcher, CardId.CupidPitch, CardId.HeraldOfTheArcLight)) return true;
+                if (card.IsCode(CardId.MartialMetalMarcher, CardId.CupidPitch, CardId.HeraldOfTheArcLight, CardId.SkyStrikerAceKagari)) return true;
             }
             return base.OnSelectEffectYn(card, desc);
+        }
+
+        public override int OnSelectOption(IList<long> options)
+        {
+            if (Card != null)
+            {
+                // Cooky Yummy when SS by Synchro:
+                // Option 0: -1000 ATK (Stringid 2)
+                // Option 1: Destroy that monster (Stringid 3)
+                long cookyDestroy = Util.GetStringId(CardId.CookyYummy, 3);
+                if (Card.IsCode(CardId.CookyYummy) && options.Contains(cookyDestroy))
+                {
+                    DecisionTracer.Trace("OnSelectOption", "Cooky Yummy: Selecting option to destroy target!");
+                    return options.IndexOf(cookyDestroy);
+                }
+
+                // Yummy Surprise: Stringid 1: Bounce 2 beasts + 2 opp cards; Stringid 2: SS 1 Yummy
+                long surpriseBounce = Util.GetStringId(CardId.YummySurprise, 1);
+                long surpriseSp = Util.GetStringId(CardId.YummySurprise, 2);
+
+                if (Card.IsCode(CardId.YummySurprise))
+                {
+                    if (options.Contains(surpriseBounce))
+                    {
+                        int ourBeasts = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && c.HasAttribute(CardAttribute.Light) && c.HasRace(CardRace.Beast));
+                        int oppCards = Enemy.GetMonsterCount() + Enemy.GetSpellCount();
+                        if (ourBeasts >= 2 && oppCards >= 2 && Duel.Player == 1)
+                        {
+                            return options.IndexOf(surpriseBounce);
+                        }
+                    }
+                    if (options.Contains(surpriseSp))
+                    {
+                        return options.IndexOf(surpriseSp);
+                    }
+                }
+            }
+
+            return base.OnSelectOption(options);
         }
 
         // ============================================================
@@ -1745,18 +1897,28 @@ namespace WindBot.Game.AI.Decks
                 if (cards.All(c => c.Controller == 1))
                     return oppCards.Take(max).ToList();
 
-                // Yummy Surprise requires exactly 2 our beasts + 2 opponent cards!
-                if (max == 4)
+                // Mixed candidates: If prompted in a single call with max >= 4
+                if (max >= 4 && min >= 4)
                 {
                     var doubleBounce = ourCards.Take(2).Concat(oppCards.Take(2)).ToList();
                     if (doubleBounce.Count >= min) return doubleBounce;
                 }
 
-                var combined = new List<ClientCard>();
-                combined.AddRange(ourCards.Take(2));
-                combined.AddRange(oppCards.Take(2));
-                if (combined.Count >= min)
-                    return combined.Take(max).ToList();
+                // When prompted iteratively in aux.SelectUnselectGroup (max == 1):
+                // Strictly alternate between our cards (2 max) and opponent cards (2 max)
+                if (_surpriseOurBounceCount < 2 && ourCards.Count > 0)
+                {
+                    _surpriseOurBounceCount++;
+                    return ourCards.Take(max).ToList();
+                }
+                else if (_surpriseOppBounceCount < 2 && oppCards.Count > 0)
+                {
+                    _surpriseOppBounceCount++;
+                    return oppCards.Take(max).ToList();
+                }
+
+                var fallbackBounce = ourCards.Concat(oppCards).ToList();
+                return fallbackBounce.Take(max).ToList();
             }
 
             // HINTMSG_DESTROY = 502 (Cooky pop monster target)

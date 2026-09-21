@@ -1,47 +1,16 @@
 // ============================================================================
-// CARD AUDIT — YUBEL-FIENDSMITH (Yubel2)
-// ============================================================================
-// | Card Name              | Type       | OPT? | Cost        | Effect Summary                         | Activate When                     | NEVER When                           |
-// |------------------------|------------|------|-------------|----------------------------------------|-----------------------------------|--------------------------------------|
-// | Yubel                  | Monster    | No   | None        | Battle damage reflection, float on dest| Battle Phase block, float trigger | Tribute material without win-con     |
-// | Yubel - Terror Incarn. | Monster    | No   | None        | End Phase board wipe, float on leave   | Disrupt opponent field            | If we have cards we need on board    |
-// | Yubel - Ult. Nightmare | Monster    | No   | None        | Destroy battle target + reflect damage | Battle Phase pressure             | -                                    |
-// | Spirit of Yubel        | Monster    | HOPT | None        | SS on attack, set Yubel spell/trap     | Opponent attack, deck search      | Already used opt effect              |
-// | Samsara D Lotus        | Monster    | HOPT | Tribute self| Tribute to SS Yubel monster from deck  | Setup turn, starter play          | Special Summon is blocked            |
-// | Nightmare Throne       | Field Spell| HOPT | None        | Search 0 ATK/DEF Fiend, float on leave | Combo starter, recovery play       | Already active                       |
-// | Nightmare Pain         | Cont. Spell| HOPT | Destroy Dark| Destroy Dark to search mentioning Yubel| Setup turn, search combo piece    | No Dark monster in hand/field        |
-// | Gruesome Grave Squirm. | Monster    | HOPT | None        | SS self, destroy own Yubel to revive   | Extend combo, trigger Yubel float  | No Yubel to destroy or GY empty      |
-// | Opening of Spirit Gates| Cont. Spell| HOPT | Discard 1   | Search Beckoning, revive 0 ATK/DEF Fiend| Setup turn, starter/extender      | Hand is empty                        |
-// | Dark Beckoning Beast   | Monster    | HOPT | None        | Search Gates, extra 0 ATK/DEF NS       | Extra summon, setup               | Already normal summoned              |
-// | Fiendsmith Engraver    | Monster    | HOPT | Discard self| Search Tract, SS itself by sending Fiend| Light Fiend setup, combo starter  | No Light Fiends to send              |
-// | Fiendsmith's Tract     | Spell      | HOPT | Discard 1   | Search Light Fiend, GY fusion summon   | Setup turn, Fiendsmith engine     | Hand is empty                        |
-// | Lacrima Crimson Tears  | Monster    | HOPT | None        | Send Fiendsmith card, quick GY revive  | Starter, opponent turn disruption | -                                    |
-// | Fabled Lurrie          | Monster    | No   | None        | SS itself when discarded to GY         | Discard fodder for Tract/Gates     | Already on field                     |
-// | Yubel Loving Defender  | Fusion     | -    | None        | Burn damage, banish battle targets     | Clearing opponent board, lethal   | No opponent monsters to fuse         |
-// | Neos Kluger            | Fusion     | -    | None        | Reflect damage, float into Neos        | Battle Phase protection, lethal   | -                                    |
-// ============================================================================
-// ACE CARDS:
-//   Primary: Yubel - The Loving Defender Forever (47172959) — Board wipe + massive burn
-//   Secondary: Elemental HERO Neos Kluger (90307498) — Battle float
-//   Engine Ace: Yubel (78371393) / Spirit of Yubel (90829280) — Main loops
-// COMBO STARTERS:
-//   1. Samsara D Lotus (62318994) — SS Spirit of Yubel
-//   2. Nightmare Throne (93729896) — Search Samsara or Spirit
-//   3. Dark Beckoning Beast (81034083) / Opening of the Spirit Gates (80312545) — Sacred Beast loop
-//   4. Fiendsmith Engraver (60764609) — Fiendsmith Fusion plays
-// WIN CONDITION: Reflection damage via Nightmare Pain + Yubel, or Loving Defender OTK
-// GOING 1ST END BOARD: Yubel - Terror Incarnate + Samsara Lotus loop + Eternal Favorite
-// GOING 2ND GAMEPLAN: Super Poly / Loving Defender contact fusion -> direct attack reflection
-// CHOKEPOINTS: Samsara Lotus negated / Special Summon blocked
+// Yubel2Executor.cs — YugiohTH Rule-Based ModernExecutor (Yubel-Fiendsmith-SacredBeast)
+// Architecture: ModernExecutor v10.0 (O(1) Central Intelligence, ComboRouter, Hint Tables)
+// Strategy: Nightmare Pain Reflection OTK + Samsara Lotus Negate + Loving Defender Board Wipe
 // ============================================================================
 
-using YGOSharp.OCGWrapper.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using WindBot;
 using WindBot.Game;
 using WindBot.Game.AI;
+using YGOSharp.OCGWrapper.Enums;
 
 namespace WindBot.Game.AI.Decks
 {
@@ -50,7 +19,7 @@ namespace WindBot.Game.AI.Decks
     {
         public class CardId
         {
-            // Yubel Main Deck
+            // --- Yubel Archetype ---
             public const int ElementalHERONeos = 89943723;
             public const int YubelTheUltimateNightmare = 31764700;
             public const int YubelTerrorIncarnate = 4779091;
@@ -59,67 +28,56 @@ namespace WindBot.Game.AI.Decks
             public const int GeistgrinderGolem = 26913989;
             public const int GruesomeGraveSquirmer = 24215921;
             public const int SamsaraDLotus = 62318994;
+            public const int NightmarePain = 65261141;
+            public const int NightmareThrone = 93729896;
+            public const int EternalFavorite = 87532344;
+            public const int YubelTheLovingDefenderForever = 47172959;
+            public const int ElementalHERONeosKluger = 90307498;
 
-            // Fiendsmith Main Deck
+            // --- Fiendsmith Engine ---
             public const int FiendsmithEngraver = 60764609;
             public const int LacrimaTheCrimsonTears = 28803166;
             public const int FabledLurrie = 97651498;
-
-            // Sacred Beast Engine
-            public const int DarkBeckoningBeast = 81034083;
-
-            // Spells & Traps
-            public const int NightmarePain = 65261141;
-            public const int OpeningOfTheSpiritGates = 80312545;
-            public const int NightmareThrone = 93729896;
-            public const int DarkHole = 53129443;
             public const int FiendsmithsTract = 98567237;
+            public const int FiendsmithsDesirae = 82135803;
+            public const int FiendsmithsLacrima = 46640168;
+
+            // --- Sacred Beast Engine ---
+            public const int DarkBeckoningBeast = 81034083;
+            public const int OpeningOfTheSpiritGates = 80312545;
+
+            // --- Board Breakers, Fusions & Spells ---
+            public const int DarkHole = 53129443;
             public const int FusionDeployment = 6498706;
             public const int MutinyInTheSky = 71593652;
             public const int FinalBringerOfTheEndTimes = 54261514;
             public const int ForbiddenDroplet = 24299458;
             public const int SuperPolymerization = 48130397;
-            public const int EternalFavorite = 87532344;
 
-            // Extra Deck
-            public const int YubelTheLovingDefenderForever = 47172959;
-            public const int ElementalHERONeosKluger = 90307498;
-            public const int FiendsmithsDesirae = 82135803;
+            // --- Extra Deck Bosses & Utilities ---
             public const int LuceTheDusksDark = 45409943;
             public const int StarvingVenomFusionDragon = 41209827;
-            public const int FiendsmithsLacrima = 46640168;
             public const int AerialEater = 28143384;
             public const int TheDukeOfDemise = 45445571;
             public const int GaruraWingsOfResonantLife = 11765832;
             public const int ChaosAngel = 22850702;
             public const int SuperdreadnoughtRailCannonSuperDora = 49032236;
             public const int SuperdreadnoughtRailCannonGustavMax = 56910167;
-
-            // Side Deck / Custom
-            public const int FiendsmithKyrie = 26434972;
-            public const int FiendsmithsSanct = 35552985;
-            public const int FiendsmithInParadise = 99989863;
-            public const int TorrentialTribute = 53582587;
-            
-            // Generic Staples
-            public const int AshBlossom = 14558127;
-            public const int MaxxC = 23434538;
-            public const int EffectVeiler = 97268402;
-            public const int CalledByTheGrave = 24224830;
         }
 
-        // List of Ace Cards that shouldn't be casually used as Fusion/Link/Synchro materials
+        // Ace cards that must never be casually sacrificed or used as generic material
         private static readonly int[] AceCardIds = {
             CardId.YubelTheLovingDefenderForever,
             CardId.ElementalHERONeosKluger,
-            CardId.FiendsmithsDesirae,
-            CardId.LuceTheDusksDark,
             CardId.YubelTerrorIncarnate,
             CardId.YubelTheUltimateNightmare,
-            CardId.Yubel
+            CardId.Yubel,
+            CardId.ChaosAngel,
+            CardId.SuperdreadnoughtRailCannonGustavMax,
+            CardId.SuperdreadnoughtRailCannonSuperDora
         };
 
-        // Yubel monster IDs for floating/reflective checks
+        // Yubel family cards for floating, reflection, and material checks
         private static readonly int[] YubelMonsters = {
             CardId.Yubel,
             CardId.SpiritOfYubel,
@@ -128,12 +86,11 @@ namespace WindBot.Game.AI.Decks
             CardId.YubelTheLovingDefenderForever
         };
 
-        // Once per turn flags to prevent infinite loops and optimize resource usage
+        // Once-per-turn activation guards
         private bool _throneUsed = false;
         private bool _painUsed = false;
         private bool _samsaraUsed = false;
         private bool _squirmerHandUsed = false;
-        private bool _squirmerFieldUsed = false;
         private bool _squirmerGraveUsed = false;
         private bool _gatesHandUsed = false;
         private bool _gatesFieldUsed = false;
@@ -143,153 +100,182 @@ namespace WindBot.Game.AI.Decks
         private bool _tractHandUsed = false;
         private bool _tractGraveUsed = false;
         private bool _favoriteUsed = false;
+        private bool _deploymentUsed = false;
+        private bool _mutinyUsed = false;
+        private bool _finalBringerUsed = false;
+        private bool _geistgrinderHandUsed = false;
+
+        private int GetFreeMonsterZoneCount()
+        {
+            int count = 0;
+            for (int i = 0; i < 5; ++i)
+            {
+                if (Bot.MonsterZone[i] == null) count++;
+            }
+            return count;
+        }
 
         public Yubel2Executor(GameAI ai, Duel duel) : base(ai, duel)
         {
-            // 1. Register Ace Cards to prevent the bot from using them blindly
+            // 1. Central Resource & Ace Protections
             ResourcePlan.RegisterAceCards(AceCardIds);
+            HeuristicGuard.RegisterAceCards(AceCardIds);
 
-            // 2. Setup Combo Line Routes using ComboRouter
-            // Plan A: Main Yubel setup loop
+            // 2. Combo Router Registrations
+            // Route A: Primary Yubel Engine (Lotus / Throne -> Spirit of Yubel -> Pain -> Yubel + Lotus loop)
             ComboRouter.RegisterLine(new ComboRouter.ComboLine
             {
-                Name = "Yubel-Throne-Pain",
-                RequiredCards = new List<int> { CardId.NightmareThrone, CardId.SamsaraDLotus },
-                FallbackLineName = "Beckoning-Beast-Lotus",
+                Name = "Yubel-Main-Lotus-Loop",
+                RequiredCards = new List<int> { CardId.SamsaraDLotus },
+                FallbackLineName = "Sacred-Beast-Setup",
                 Steps = new List<ComboRouter.ComboStep>
                 {
-                    new() { CardId = CardId.NightmareThrone, ActionType = ExecutorType.Activate, Description = "Search Samsara/Spirit" },
                     new() { CardId = CardId.SamsaraDLotus, ActionType = ExecutorType.Summon, Description = "Summon Samsara Lotus" },
-                    new() { CardId = CardId.SamsaraDLotus, ActionType = ExecutorType.Activate, Description = "Tribute Samsara to SS Spirit of Yubel" },
-                    new() { CardId = CardId.SpiritOfYubel, ActionType = ExecutorType.Activate, Description = "Set Nightmare Pain" }
+                    new() { CardId = CardId.SamsaraDLotus, ActionType = ExecutorType.Activate, Description = "Tribute Lotus to SS Spirit of Yubel" },
+                    new() { CardId = CardId.SpiritOfYubel, ActionType = ExecutorType.Activate, Description = "Set Nightmare Pain directly" },
+                    new() { CardId = CardId.NightmarePain, ActionType = ExecutorType.Activate, Description = "Destroy Spirit to search Squirmer/Favorite & float into Yubel" }
+                },
+                EndBoardScore = 95
+            });
+
+            // Route B: Sacred Beast Searcher Setup (Dark Beckoning Beast -> Gates -> Lotus extra summon)
+            ComboRouter.RegisterLine(new ComboRouter.ComboLine
+            {
+                Name = "Sacred-Beast-Setup",
+                RequiredCards = new List<int> { CardId.DarkBeckoningBeast },
+                FallbackLineName = "Fiendsmith-Engraver-Line",
+                Steps = new List<ComboRouter.ComboStep>
+                {
+                    new() { CardId = CardId.DarkBeckoningBeast, ActionType = ExecutorType.Summon, Description = "NS Beckoning, search Gates" },
+                    new() { CardId = CardId.OpeningOfTheSpiritGates, ActionType = ExecutorType.Activate, Description = "Activate Gates, search Lotus" },
+                    new() { CardId = CardId.SamsaraDLotus, ActionType = ExecutorType.Summon, Description = "Extra NS Samsara Lotus" }
                 },
                 EndBoardScore = 90
             });
 
-            // Plan B: Sacred Beast engine setup
+            // Route C: Fiendsmith Extender Line
             ComboRouter.RegisterLine(new ComboRouter.ComboLine
             {
-                Name = "Beckoning-Beast-Lotus",
-                RequiredCards = new List<int> { CardId.DarkBeckoningBeast, CardId.OpeningOfTheSpiritGates },
-                FallbackLineName = "Fiendsmith-Engraver-Fallback",
-                Steps = new List<ComboRouter.ComboStep>
-                {
-                    new() { CardId = CardId.OpeningOfTheSpiritGates, ActionType = ExecutorType.Activate, Description = "Search Beckoning Beast" },
-                    new() { CardId = CardId.DarkBeckoningBeast, ActionType = ExecutorType.Summon, Description = "Summon Beckoning, search Gates/Lotus" },
-                    new() { CardId = CardId.SamsaraDLotus, ActionType = ExecutorType.Summon, Description = "Use extra Normal Summon for Lotus" }
-                },
-                EndBoardScore = 75
-            });
-
-            // Plan C: Fiendsmith setup when Yubel engine is blocked or negated
-            ComboRouter.RegisterLine(new ComboRouter.ComboLine
-            {
-                Name = "Fiendsmith-Engraver-Fallback",
+                Name = "Fiendsmith-Engraver-Line",
                 RequiredCards = new List<int> { CardId.FiendsmithEngraver },
                 Steps = new List<ComboRouter.ComboStep>
                 {
                     new() { CardId = CardId.FiendsmithEngraver, ActionType = ExecutorType.Activate, Description = "Discard Engraver to search Tract" },
                     new() { CardId = CardId.FiendsmithsTract, ActionType = ExecutorType.Activate, Description = "Search Lurrie, discard to SS Lurrie" }
                 },
-                EndBoardScore = 60,
+                EndBoardScore = 70,
                 Condition = () => Bot.Hand.Any(c => c != null && c.Id == CardId.FiendsmithEngraver)
             });
 
-            // 3. Register Starter and Bait Cards
-            BaitPlanner.RegisterComboStarters(CardId.NightmareThrone, CardId.SamsaraDLotus, CardId.OpeningOfTheSpiritGates, CardId.DarkBeckoningBeast);
-            BaitPlanner.RegisterBaitCards(CardId.DarkHole, CardId.ForbiddenDroplet);
+            // Route D: Geistgrinder Golem Reflection OTK
+            ComboRouter.RegisterLine(new ComboRouter.ComboLine
+            {
+                Name = "Geistgrinder-Reflection-OTK",
+                RequiredCards = new List<int> { CardId.GeistgrinderGolem, CardId.NightmarePain },
+                Steps = new List<ComboRouter.ComboStep>
+                {
+                    new() { CardId = CardId.NightmarePain, ActionType = ExecutorType.Activate, Description = "Activate Nightmare Pain for reflection damage" },
+                    new() { CardId = CardId.GeistgrinderGolem, ActionType = ExecutorType.Activate, Description = "Give 3000 ATK Golem to enemy, SS Yubel to our field" }
+                },
+                EndBoardScore = 100,
+                Condition = () => Bot.Hand.Any(c => c != null && c.Id == CardId.GeistgrinderGolem) &&
+                                  Bot.Hand.Concat(Bot.GetMonsters()).Any(c => c != null && YubelMonsters.Contains(c.Id))
+            });
+
+            // 3. Register Starters & Baits
+            BaitPlanner.RegisterComboStarters(CardId.NightmareThrone, CardId.SamsaraDLotus, CardId.DarkBeckoningBeast, CardId.OpeningOfTheSpiritGates);
+            BaitPlanner.RegisterBaitCards(CardId.DarkHole, CardId.ForbiddenDroplet, CardId.FusionDeployment);
             ChainAdvisor.RegisterHighValueTargets(CardId.NightmarePain, CardId.OpeningOfTheSpiritGates, CardId.NightmareThrone, CardId.SamsaraDLotus);
 
-            // ==========================================
-            // TIER 1: Hand Traps & Protection
-            // ==========================================
-            AddExecutor(ExecutorType.Activate, CardId.AshBlossom, AshActivate);
-            AddExecutor(ExecutorType.Activate, CardId.MaxxC, MaxxCActivate);
-            AddExecutor(ExecutorType.Activate, CardId.EffectVeiler, VeilerActivate);
-            AddExecutor(ExecutorType.Activate, CardId.CalledByTheGrave, DefaultCalledByTheGrave);
-
-            // ==========================================
-            // TIER 2: Quick Effects & Board Disruptions
-            // ==========================================
-            AddExecutor(ExecutorType.Activate, CardId.FiendsmithsDesirae, DesiraeNegate);
+            // ========================================================================
+            // TIER 1: Quick-Play Spells & Interruption Traps (Highest Priority)
+            // ========================================================================
             AddExecutor(ExecutorType.Activate, CardId.SuperPolymerization, SuperPolymerizationActivate);
             AddExecutor(ExecutorType.Activate, CardId.ForbiddenDroplet, DropletActivate);
             AddExecutor(ExecutorType.Activate, CardId.EternalFavorite, EternalFavoriteActivate);
+            AddExecutor(ExecutorType.Activate, CardId.FinalBringerOfTheEndTimes, FinalBringerActivate);
 
-            // ==========================================
-            // TIER 3: Field Spells & Main Combo Starters
-            // ==========================================
+            // ========================================================================
+            // TIER 2: Opponent Turn Disruptions (Samsara Negate & Quick Effects)
+            // ========================================================================
+            AddExecutor(ExecutorType.Activate, CardId.SamsaraDLotus, LotusOpponentNegateActivate);
+            AddExecutor(ExecutorType.Activate, CardId.SpiritOfYubel, SpiritOfYubelAttackResponse);
+            AddExecutor(ExecutorType.Activate, CardId.LacrimaTheCrimsonTears, LacrimaGraveQuickActivate);
+
+            // ========================================================================
+            // TIER 3: Field Spells & Main Combo Starters (Turn 1 / Main Phase)
+            // ========================================================================
             AddExecutor(ExecutorType.Activate, CardId.NightmareThrone, ThroneActivate);
             AddExecutor(ExecutorType.Activate, CardId.OpeningOfTheSpiritGates, GatesActivate);
+            AddExecutor(ExecutorType.Activate, CardId.NightmarePain, NightmarePainActivate);
             AddExecutor(ExecutorType.Activate, CardId.FusionDeployment, FusionDeploymentActivate);
 
-            // ==========================================
-            // TIER 4: Yubel Engine Core Activations
-            // ==========================================
-            AddExecutor(ExecutorType.Activate, CardId.SamsaraDLotus, LotusActivate);
-            AddExecutor(ExecutorType.Activate, CardId.NightmarePain, NightmarePainActivate);
+            // ========================================================================
+            // TIER 4: Yubel Engine Core Plays & Floats
+            // ========================================================================
+            AddExecutor(ExecutorType.Activate, CardId.SamsaraDLotus, LotusMainPhaseActivate);
             AddExecutor(ExecutorType.Activate, CardId.GruesomeGraveSquirmer, GraveSquirmerActivate);
-            AddExecutor(ExecutorType.Activate, CardId.SpiritOfYubel, SpiritOfYubelActivate);
+            AddExecutor(ExecutorType.Activate, CardId.SpiritOfYubel, SpiritOfYubelOnSummonOrFloatActivate);
             AddExecutor(ExecutorType.Activate, CardId.Yubel, YubelFloatActivate);
             AddExecutor(ExecutorType.Activate, CardId.YubelTerrorIncarnate, YubelTerrorActivate);
 
-            // ==========================================
-            // TIER 5: Fiendsmith Engine core plays
-            // ==========================================
+            // ========================================================================
+            // TIER 5: Fiendsmith & Board Breaker Spells
+            // ========================================================================
             AddExecutor(ExecutorType.Activate, CardId.FiendsmithEngraver, EngraverActivate);
             AddExecutor(ExecutorType.Activate, CardId.FiendsmithsTract, TractActivate);
-            AddExecutor(ExecutorType.Activate, CardId.LacrimaTheCrimsonTears, LacrimaActivate);
+            AddExecutor(ExecutorType.Activate, CardId.LacrimaTheCrimsonTears, LacrimaOnSummonActivate);
+            AddExecutor(ExecutorType.Activate, CardId.DarkHole, DarkHoleActivate);
             AddExecutor(ExecutorType.Activate, CardId.MutinyInTheSky, MutinyActivate);
-            AddExecutor(ExecutorType.Activate, CardId.FinalBringerOfTheEndTimes, FinalBringerActivate);
 
-            // ==========================================
+            // ========================================================================
             // TIER 6: Normal Summons & Extra Summons
-            // ==========================================
+            // ========================================================================
             AddExecutor(ExecutorType.Summon, CardId.DarkBeckoningBeast, BeckoningBeastSummon);
             AddExecutor(ExecutorType.Summon, CardId.SamsaraDLotus, LotusSummon);
-            AddExecutor(ExecutorType.Summon, CardId.GruesomeGraveSquirmer, GenericSummon);
-            AddExecutor(ExecutorType.MonsterSet, CardId.SpiritOfYubel, () => Util.IsTurn1OrMain2());
+            AddExecutor(ExecutorType.Summon, CardId.GruesomeGraveSquirmer, GenericNormalSummon);
+            AddExecutor(ExecutorType.Summon, CardId.LacrimaTheCrimsonTears, GenericNormalSummon);
 
-            // ==========================================
-            // TIER 7: Special Summons (Link/Fusion/Xyz)
-            // ==========================================
+            // ========================================================================
+            // TIER 7: Special Summons (Contact Fusion, Extra Deck, Geistgrinder)
+            // ========================================================================
+            AddExecutor(ExecutorType.Activate, CardId.GeistgrinderGolem, GeistgrinderActivate);
             AddExecutor(ExecutorType.SpSummon, CardId.YubelTheLovingDefenderForever, LovingDefenderSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.ElementalHERONeosKluger, NeosKlugerSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.FiendsmithsDesirae, DesiraeSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.ChaosAngel, ChaosAngelSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.LuceTheDusksDark, LuceContactSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.FiendsmithsLacrima, LacrimaSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.AerialEater, AerialEaterSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.TheDukeOfDemise, DukeOfDemiseSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.StarvingVenomFusionDragon, SuperPolymerizationActivate);
-            AddExecutor(ExecutorType.SpSummon, CardId.GaruraWingsOfResonantLife, SuperPolymerizationActivate);
-            AddExecutor(ExecutorType.SpSummon, CardId.ChaosAngel, ChaosAngelSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.SuperdreadnoughtRailCannonGustavMax, XyzRank10Summon);
-            AddExecutor(ExecutorType.SpSummon, CardId.SuperdreadnoughtRailCannonSuperDora, XyzRank10Summon);
+            AddExecutor(ExecutorType.SpSummon, CardId.ElementalHERONeosKluger, NeosKlugerSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.SuperdreadnoughtRailCannonGustavMax, GustavMaxSummon);
+            AddExecutor(ExecutorType.Activate, CardId.SuperdreadnoughtRailCannonGustavMax, GustavMaxBurnActivate);
+            AddExecutor(ExecutorType.SpSummon, CardId.SuperdreadnoughtRailCannonSuperDora, SuperDoraSummon);
+            AddExecutor(ExecutorType.Activate, CardId.SuperdreadnoughtRailCannonSuperDora, SuperDoraProtectActivate);
 
-            // ==========================================
-            // TIER 8: Sets & Pass Strategy
-            // ==========================================
+            // ========================================================================
+            // TIER 8: End Phase Loops & Safe Spell/Trap Sets
+            // ========================================================================
+            AddExecutor(ExecutorType.Activate, CardId.SamsaraDLotus, LotusEndPhaseReviveActivate);
             AddExecutor(ExecutorType.SpellSet, CardId.SuperPolymerization, () => Util.IsTurn1OrMain2());
             AddExecutor(ExecutorType.SpellSet, CardId.EternalFavorite, () => Util.IsTurn1OrMain2());
+            AddExecutor(ExecutorType.SpellSet, CardId.ForbiddenDroplet, () => Util.IsTurn1OrMain2());
             AddExecutor(ExecutorType.SpellSet, CardId.FinalBringerOfTheEndTimes, () => Util.IsTurn1OrMain2());
             AddExecutor(ExecutorType.Repos, MonsterRepos);
         }
 
         public override bool OnSelectHand()
         {
-            // Yubel performs best going first to establish the destruction loop and set disruptions
+            // Yubel excels going first to establish Lotus negate, Nightmare Pain, and Eternal Favorite
             return true;
         }
 
         public override void OnNewTurn()
         {
             base.OnNewTurn();
-            _isGoingSecond = (Duel.Turn > 1);
             _throneUsed = false;
             _painUsed = false;
             _samsaraUsed = false;
             _squirmerHandUsed = false;
-            _squirmerFieldUsed = false;
             _squirmerGraveUsed = false;
             _gatesHandUsed = false;
             _gatesFieldUsed = false;
@@ -299,42 +285,10 @@ namespace WindBot.Game.AI.Decks
             _tractHandUsed = false;
             _tractGraveUsed = false;
             _favoriteUsed = false;
-        }
-
-        public override bool ShouldAllowSpSummon(ClientCard card)
-        {
-            if (!base.ShouldAllowSpSummon(card)) return false;
-            if (card == null) return true;
-
-            // Extra Deck monsters that might consume our precious Yubel forms as materials
-            if (card.HasType(CardType.Link | CardType.Xyz | CardType.Synchro))
-            {
-                var activeAces = Bot.GetMonsters().Where(c => c != null && c.IsFaceup() && IsAceCard(c)).ToList();
-                if (activeAces.Count > 0)
-                {
-                    bool allowed = false;
-                    foreach (var mat in activeAces)
-                    {
-                        var res = ResourcePlan.EvaluateAceUsage(
-                            card: mat,
-                            hasLethalIfUsed: CanDealLethal(),
-                            isOnlyAnswerToThreat: OpponentHasActiveNegator(),
-                            haveAlternateWinCon: Bot.Hand.Any(c => c != null && c.Id == CardId.OpeningOfTheSpiritGates)
-                        );
-                        if (res.allowed)
-                        {
-                            allowed = true;
-                            break;
-                        }
-                    }
-                    if (!allowed)
-                    {
-                        DecisionTracer.TraceSkip("ShouldAllowSpSummon", $"Summoning {card.Name} is not safe (would consume Ace card(s))");
-                        return false;
-                    }
-                }
-            }
-            return true;
+            _deploymentUsed = false;
+            _mutinyUsed = false;
+            _finalBringerUsed = false;
+            _geistgrinderHandUsed = false;
         }
 
         public override void OnChaining(int player, ClientCard card)
@@ -348,7 +302,6 @@ namespace WindBot.Game.AI.Decks
                 if (card.Id == CardId.GruesomeGraveSquirmer)
                 {
                     if (card.Location == CardLocation.Hand) _squirmerHandUsed = true;
-                    if (card.Location == CardLocation.MonsterZone) _squirmerFieldUsed = true;
                     if (card.Location == CardLocation.Grave) _squirmerGraveUsed = true;
                 }
                 if (card.Id == CardId.OpeningOfTheSpiritGates)
@@ -368,6 +321,9 @@ namespace WindBot.Game.AI.Decks
                     if (card.Location == CardLocation.Grave) _tractGraveUsed = true;
                 }
                 if (card.Id == CardId.EternalFavorite) _favoriteUsed = true;
+                if (card.Id == CardId.FusionDeployment) _deploymentUsed = true;
+                if (card.Id == CardId.MutinyInTheSky) _mutinyUsed = true;
+                if (card.Id == CardId.FinalBringerOfTheEndTimes) _finalBringerUsed = true;
             }
         }
 
@@ -380,116 +336,131 @@ namespace WindBot.Game.AI.Decks
         public override int GetMaterialPriority(ClientCard c)
         {
             if (c == null) return 999;
-            if (IsAceCard(c)) return 900;
-            if (c.Id == CardId.ElementalHERONeos) return 850;
-            if (c.Id == CardId.FabledLurrie) return 100; // Easiest material
+            if (IsAceCard(c)) return 950;
+            if (c.Id == CardId.ElementalHERONeos) return 800;
+            if (c.Id == CardId.FabledLurrie) return 100;
             if (c.Id == CardId.DarkBeckoningBeast) return 200;
-            if (c.Id == CardId.SamsaraDLotus) return 300;
-            if (c.Id == CardId.GruesomeGraveSquirmer) return 400;
+            if (c.Id == CardId.LacrimaTheCrimsonTears) return 250;
+            if (c.Id == CardId.GruesomeGraveSquirmer) return 300;
+            if (c.Id == CardId.SamsaraDLotus) return 350;
             return 500;
+        }
+
+        private bool HasLethalOnBoard()
+        {
+            if (Enemy.LifePoints <= 0) return true;
+            bool hasPain = Bot.GetSpells().Any(c => c != null && c.IsFaceup() && c.Id == CardId.NightmarePain);
+            if (hasPain)
+            {
+                // Under Nightmare Pain, any Yubel monster attacking an enemy monster deals that enemy's ATK as damage to opponent!
+                int totalReflectDamage = 0;
+                var enemyAtkMonsters = Enemy.GetMonsters().Where(m => m != null && m.IsFaceup() && m.IsAttack()).OrderByDescending(m => m.Attack).ToList();
+                var yubelAttackers = Bot.GetMonsters().Where(m => m != null && m.IsFaceup() && YubelMonsters.Contains(m.Id)).ToList();
+
+                if (enemyAtkMonsters.Count > 0 && yubelAttackers.Count > 0)
+                {
+                    for (int i = 0; i < yubelAttackers.Count; i++)
+                    {
+                        var enemyTarget = enemyAtkMonsters[Math.Min(i, enemyAtkMonsters.Count - 1)];
+                        totalReflectDamage += enemyTarget.Attack;
+                        if (yubelAttackers[i].Id == CardId.YubelTheLovingDefenderForever)
+                        {
+                            totalReflectDamage += enemyTarget.Attack; // Loving Defender deals double damage (battle + burn)
+                        }
+                    }
+                    if (totalReflectDamage >= Enemy.LifePoints) return true;
+                }
+            }
+
+            int directAtk = Bot.GetMonsters().Where(m => m != null && m.IsFaceup() && m.IsAttack()).Sum(m => m.Attack);
+            if (Enemy.GetMonsterCount() == 0 && directAtk >= Enemy.LifePoints) return true;
+            return false;
         }
 
         protected override bool IsBoardStrongEnough()
         {
-            // We have a solid Yubel loop or a fusion boss
-            if (Bot.HasInMonstersZone(CardId.YubelTheLovingDefenderForever) || Bot.HasInMonstersZone(CardId.FiendsmithsDesirae))
-                return true;
-            if (Bot.HasInMonstersZone(CardId.YubelTerrorIncarnate) && Bot.HasInSpellZone(CardId.NightmarePain))
-                return true;
-            return base.IsBoardStrongEnough();
+            if (HasLethalOnBoard()) return true;
+
+            int score = 0;
+            if (Bot.HasInMonstersZone(CardId.YubelTheLovingDefenderForever)) score += 3;
+            if (Bot.HasInMonstersZone(CardId.YubelTerrorIncarnate)) score += 2;
+            if (Bot.HasInMonstersZone(CardId.Yubel) || Bot.HasInMonstersZone(CardId.SpiritOfYubel)) score += 2;
+            if (Bot.HasInMonstersZone(CardId.SamsaraDLotus)) score += 2;
+            if (Bot.HasInSpellZone(CardId.NightmarePain)) score += 2;
+            if (Bot.GetSpells().Any(c => c != null && (c.IsFacedown() || c.IsFaceup()) && c.Id == CardId.EternalFavorite)) score += 2;
+            if (Bot.GetSpells().Any(c => c != null && c.IsFacedown() && c.Id == CardId.SuperPolymerization)) score += 2;
+            if (Bot.HasInMonstersZone(CardId.ChaosAngel)) score += 2;
+
+            return score >= 5;
         }
 
-        // ==========================================
-        // HAND TRAP LOGIC
-        // ==========================================
-
-        private bool AshActivate()
+        protected override bool ShouldStopExtending()
         {
-            if (!SmartHandTrapChain()) return false;
-            if (LastChainCard != null && LastChainCard.Controller == 0) return false;
-            return DefaultAshBlossomAndJoyousSpring();
+            if (HasLethalOnBoard()) return true;
+            if (IsBoardStrongEnough() && !IsInGrindGame()) return true;
+            return base.ShouldStopExtending();
         }
 
-        private bool MaxxCActivate()
+        public override bool ShouldAllowSpSummon(ClientCard card)
         {
-            if (!SmartHandTrapChain()) return false;
-            if (LastChainCard != null && LastChainCard.Controller == 0) return false;
-            if (Duel.Player != 1) return false; // Only use on opponent's turn
+            if (!base.ShouldAllowSpSummon(card)) return false;
+            if (card == null) return true;
+
+            // Prevent Xyz summons (Gustav Max / Dora) from casually consuming Yubel / Spirit / Loving Defender unless for lethal
+            if (card.HasType(CardType.Xyz))
+            {
+                if (Enemy.LifePoints > 2000 && !HasLethalOnBoard())
+                {
+                    return false;
+                }
+            }
             return true;
         }
 
-        private bool VeilerActivate()
-        {
-            if (Duel.Player != 1) return false;
-            if (Duel.Phase != DuelPhase.Main1 && Duel.Phase != DuelPhase.Main2) return false;
-            if (LastChainCard != null && LastChainCard.Controller == 0) return false;
-            return true;
-        }
-
-        // ==========================================
-        // QUICK EFFECTS & DISRUPTIONS
-        // ==========================================
-
-        private bool DesiraeNegate()
-        {
-            // Bypasses ShouldSkipCombo() because negations are critical to disrupt opponent plays
-            if (Card.Location != CardLocation.MonsterZone || Card.IsDisabled()) return false;
-            if (LastChainCard == null || LastChainCard.Controller == 0) return false;
-
-            // Desirae negates face-up cards on field. Prioritize the card that is currently activating an effect!
-            ClientCard target = null;
-            if (LastChainCard.Location == CardLocation.MonsterZone && LastChainCard.IsFaceup() && !IsTargetImmune(LastChainCard))
-            {
-                target = LastChainCard;
-            }
-
-            if (target == null)
-            {
-                target = Enemy.GetMonsters()
-                    .Where(c => c != null && c.IsFaceup() && c.HasType(CardType.Effect) && !IsTargetImmune(c))
-                    .OrderByDescending(c => c.Attack)
-                    .FirstOrDefault();
-            }
-
-            if (target != null)
-            {
-                AI.SelectCard(target);
-                DecisionTracer.TraceActivate("DesiraeNegate", $"Negating enemy {target.Name}");
-                return true;
-            }
-            return false;
-        }
+        // ========================================================================
+        // TIER 1 & 2: QUICK-PLAY SPELLS, TRAPS & INTERRUPTIONS
+        // ========================================================================
 
         private bool SuperPolymerizationActivate()
         {
             if (IsSpecialSummonBlocked()) return false;
             if (LastChainCard != null && LastChainCard.Controller == 0) return false;
 
-            // We look to fuse away the opponent's board.
-            // Loving Defender can absorb all effect monsters on the field!
-            int enemyEffectMonsters = Enemy.GetMonsters().Count(c => c != null && c.IsFaceup() && c.IsMonster() && !c.HasType(CardType.Normal));
-            bool hasYubelOnField = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && YubelMonsters.Contains(c.Id));
+            // Scenario 1: Loving Defender Forever (1 Yubel monster + 1+ effect monsters on field)
+            bool hasYubel = Bot.GetMonsters().Concat(Enemy.GetMonsters()).Any(c => c != null && c.IsFaceup() && YubelMonsters.Contains(c.Id));
+            int effectMonsters = Bot.GetMonsters().Concat(Enemy.GetMonsters()).Count(c => c != null && c.IsFaceup() && c.HasType(CardType.Effect));
+            int enemyEffectMonsters = Enemy.GetMonsters().Count(c => c != null && c.IsFaceup() && c.HasType(CardType.Effect));
 
-            if (hasYubelOnField && enemyEffectMonsters >= 1)
+            if (hasYubel && enemyEffectMonsters >= 1 && effectMonsters >= 2)
             {
-                AI.SelectCard(CardId.YubelTheLovingDefenderForever);
-                DecisionTracer.TraceActivate("SuperPolymerizationActivate", "Fusing opponent board into Loving Defender");
+                DecisionTracer.Trace("SuperPolymerizationActivate", "Super Poly into Loving Defender to clear enemy board!");
                 return true;
             }
 
-            // Fallback: Starving Venom (2 Dark monsters)
-            int enemyDarkMonsters = Enemy.GetMonsters().Count(c => c != null && c.IsFaceup() && c.HasAttribute(CardAttribute.Dark));
-            int ourDarkMonsters = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && c.HasAttribute(CardAttribute.Dark));
-            if (enemyDarkMonsters >= 1 && (enemyDarkMonsters + ourDarkMonsters) >= 2)
+            // Scenario 2: Starving Venom (2 DARK monsters on field, except tokens)
+            int darkMonsters = Bot.GetMonsters().Concat(Enemy.GetMonsters())
+                .Count(c => c != null && c.IsFaceup() && c.HasAttribute(CardAttribute.Dark) && !c.HasType(CardType.Token));
+            int enemyDarkMonsters = Enemy.GetMonsters()
+                .Count(c => c != null && c.IsFaceup() && c.HasAttribute(CardAttribute.Dark) && !c.HasType(CardType.Token));
+            if (enemyDarkMonsters >= 1 && darkMonsters >= 2)
             {
-                DecisionTracer.TraceActivate("SuperPolymerizationActivate", "Fusing into Starving Venom");
+                DecisionTracer.Trace("SuperPolymerizationActivate", "Super Poly into Starving Venom");
                 return true;
             }
 
-            // Fallback 2: Garura (2 monsters of same type/attribute with different names)
+            // Scenario 3: Garura (2 monsters with same type/attribute, different names)
             if (Enemy.GetMonsterCount() >= 2)
             {
-                DecisionTracer.TraceActivate("SuperPolymerizationActivate", "Fusing into Garura");
+                DecisionTracer.Trace("SuperPolymerizationActivate", "Super Poly into Garura");
+                return true;
+            }
+
+            // Scenario 4: Fiendsmith's Lacrima (2 LIGHT Fiends)
+            int lightFiends = Bot.GetMonsters().Concat(Enemy.GetMonsters())
+                .Count(c => c != null && c.IsFaceup() && c.HasAttribute(CardAttribute.Light) && c.HasRace(CardRace.Fiend));
+            if (lightFiends >= 2 && Enemy.GetMonsterCount() > 0)
+            {
+                DecisionTracer.Trace("SuperPolymerizationActivate", "Super Poly into Fiendsmith's Lacrima");
                 return true;
             }
 
@@ -498,10 +469,12 @@ namespace WindBot.Game.AI.Decks
 
         private bool DropletActivate()
         {
-            var target = Util.GetProblematicEnemyCard();
-            if (target != null && target.IsMonster())
+            if (LastChainCard != null && LastChainCard.Controller == 0) return false;
+            var problematic = Util.GetProblematicEnemyMonster();
+            if (problematic != null && !problematic.IsDisabled() && IsViableEffectTarget(problematic))
             {
-                AI.SelectCard(target);
+                AI.SelectCard(problematic);
+                DecisionTracer.Trace("DropletActivate", $"Droplet targeting {problematic.Name}");
                 return true;
             }
             return false;
@@ -510,42 +483,121 @@ namespace WindBot.Game.AI.Decks
         private bool EternalFavoriteActivate()
         {
             if (_favoriteUsed) return false;
-            if (Card.IsFacedown() && Duel.Player == 0) return false; // Don't trigger on own turn if set
 
-            // Effect 2: Fusion Summon using either field (requires 1 hand discard as cost)
-            // Priority 1: Wipe opponent board via Fusion
-            bool hasYubelField = Bot.GetMonsters().Concat(Enemy.GetMonsters())
-                .Any(c => c != null && c.IsFaceup() && YubelMonsters.Contains(c.Id));
-            bool hasEnemyEffectMonsters = Enemy.GetMonsters()
-                .Any(c => c != null && c.IsFaceup() && c.HasType(CardType.Effect));
-            bool canFuseFavorite = hasYubelField && hasEnemyEffectMonsters && Bot.Hand.Count > 0 && !IsSpecialSummonBlocked();
+            // If facedown on our turn, do not trigger prematurely
+            if (Card.IsFacedown() && Duel.Player == 0) return false;
 
-            if (canFuseFavorite)
+            bool hasYubelOnField = Bot.GetMonsters().Concat(Enemy.GetMonsters()).Any(c => c != null && c.IsFaceup() && YubelMonsters.Contains(c.Id));
+            int enemyMonsters = Enemy.GetMonsterCount();
+
+            // Mode 1: Fusion Summon (wipe enemy field) when opponent controls monsters and we have discard
+            if (hasYubelOnField && enemyMonsters >= 1 && Bot.Hand.Count > 0 && !IsSpecialSummonBlocked())
             {
                 AI.SelectOption(1);
                 _favoriteUsed = true;
-                DecisionTracer.TraceActivate("EternalFavoriteActivate", "Fusion Summon via Eternal Favorite");
+                DecisionTracer.Trace("EternalFavoriteActivate", "Fusion Summon via Eternal Favorite using enemy monsters!");
                 return true;
             }
 
-            // Effect 1: Revive Yubel from GY/banished
-            bool canRevive = Bot.Graveyard.Concat(Bot.Banished).Any(c => c != null && c.Id == CardId.Yubel);
-            bool hasEmptySlot = Bot.GetMonsterCount() < 5;
-
-            if (canRevive && hasEmptySlot)
+            // Mode 0: Special Summon Yubel from GY or banished
+            bool hasGYBanishYubel = Bot.Graveyard.Concat(Bot.Banished).Any(c => c != null && YubelMonsters.Contains(c.Id));
+            if (hasGYBanishYubel && GetFreeMonsterZoneCount() > 0 && !IsSpecialSummonBlocked())
             {
                 AI.SelectOption(0);
                 _favoriteUsed = true;
-                DecisionTracer.TraceActivate("EternalFavoriteActivate", "Reviving Yubel");
+                DecisionTracer.Trace("EternalFavoriteActivate", "Revive Yubel from GY/Banished via Eternal Favorite");
                 return true;
             }
 
             return false;
         }
 
-        // ==========================================
-        // STARTERS & SETUP CARD LOGIC
-        // ==========================================
+        private bool FinalBringerActivate()
+        {
+            if (_finalBringerUsed) return false;
+
+            // Quick-play: Destroy 1 monster we control and 1 card enemy controls
+            var enemyTarget = Util.GetProblematicEnemyCard();
+            if (enemyTarget == null)
+            {
+                enemyTarget = Enemy.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup() && (c.IsCode(48680970) || c.IsCode(47222536) || c.IsCode(68462976))) // Eternal Soul / Circle / Secret Village
+                           ?? Enemy.GetMonsters().OrderByDescending(c => c.Attack).FirstOrDefault(c => c != null && c.IsFaceup());
+            }
+
+            if (enemyTarget != null)
+            {
+                // Target our Spirit of Yubel or Yubel (they FLOAT when destroyed!)
+                var ourTarget = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.Id == CardId.SpiritOfYubel)
+                             ?? Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.Id == CardId.Yubel)
+                             ?? Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && YubelMonsters.Contains(c.Id));
+
+                if (ourTarget != null)
+                {
+                    AI.SelectCard(ourTarget);
+                    AI.SelectNextCard(enemyTarget);
+                    _finalBringerUsed = true;
+                    DecisionTracer.Trace("FinalBringerActivate", $"Destroy our {ourTarget.Name} (floats!) and enemy {enemyTarget.Name}");
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // ========================================================================
+        // SAMSARA D LOTUS — OPPONENT TURN INTERRUPTION (CRITICAL WIN-CON)
+        // ========================================================================
+
+        private bool LotusOpponentNegateActivate()
+        {
+            // Only triggers on opponent's turn when a monster effect is activated
+            if (Duel.Player != 1) return false;
+            if (Card.Location != CardLocation.MonsterZone || !Card.IsFaceup()) return false;
+
+            ClientCard last = Util.GetLastChainCard();
+            if (last != null && last.Controller == 1 && (last.IsMonster() || last.HasType(CardType.Monster)))
+            {
+                bool controlYubel = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && YubelMonsters.Contains(c.Id) && c != Card);
+                if (controlYubel)
+                {
+                    DecisionTracer.Trace("LotusOpponentNegateActivate", $"Tribute Samsara Lotus to negate/change {last.Name}'s effect into destroying Yubel!");
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private bool SpiritOfYubelAttackResponse()
+        {
+            // Quick effect: SS from hand when opponent declares an attack
+            if (Card.Location == CardLocation.Hand && (Duel.Phase == DuelPhase.BattleStart || Duel.Phase == DuelPhase.Battle))
+            {
+                if (GetFreeMonsterZoneCount() > 0 && !IsSpecialSummonBlocked())
+                {
+                    DecisionTracer.Trace("SpiritOfYubelAttackResponse", "SS Spirit of Yubel from hand upon attack declaration!");
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private bool LacrimaGraveQuickActivate()
+        {
+            // Opponent turn quick effect: shuffle self into deck to revive a Fiendsmith Link (or Fiendsmith monster)
+            if (Duel.Player == 1 && Card.Location == CardLocation.Grave)
+            {
+                bool hasTarget = Bot.Graveyard.Any(c => c != null && (c.Id == CardId.FiendsmithEngraver || c.Id == CardId.FiendsmithsLacrima || c.Id == CardId.FiendsmithsDesirae));
+                if (hasTarget && GetFreeMonsterZoneCount() > 0 && !IsSpecialSummonBlocked())
+                {
+                    DecisionTracer.Trace("LacrimaGraveQuickActivate", "Shuffle Lacrima to revive Fiendsmith monster");
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // ========================================================================
+        // TIER 3: FIELD SPELLS, CONTINUOUS SPELLS & STARTERS
+        // ========================================================================
 
         private bool ThroneActivate()
         {
@@ -553,23 +605,15 @@ namespace WindBot.Game.AI.Decks
             {
                 if (_throneUsed) return false;
                 if (ShouldSkipCombo()) return false;
-                
-                // When activated, we can add 1 Fiend with 0 ATK/DEF from Deck to Hand or destroy it.
-                // We should select either Samsara D Lotus or Spirit of Yubel if we need them.
-                var targetId = Bot.Hand.Any(c => c != null && c.Id == CardId.SamsaraDLotus) 
-                    ? CardId.SpiritOfYubel 
-                    : CardId.SamsaraDLotus;
-                
-                AI.SelectCard(targetId, CardId.SpiritOfYubel, CardId.GruesomeGraveSquirmer, CardId.Yubel);
-                DecisionTracer.TraceActivate("ThroneActivate", "Activate Nightmare Throne field spell from hand");
+                _throneUsed = true;
+                DecisionTracer.Trace("ThroneActivate", "Activate Nightmare Throne from hand");
                 return true;
             }
 
-            if (Card.Location == CardLocation.SpellZone)
+            // Float effect in SpellZone when a Yubel monster leaves field
+            if (Card.Location == CardLocation.SpellZone && Card.IsFaceup())
             {
-                // Trigger float effect when Yubel leaves field
-                AI.SelectCard(CardId.SpiritOfYubel, CardId.SamsaraDLotus, CardId.GruesomeGraveSquirmer, CardId.Yubel);
-                DecisionTracer.TraceActivate("ThroneActivate", "Trigger float effect of Nightmare Throne");
+                DecisionTracer.Trace("ThroneActivate", "Trigger float effect of Nightmare Throne");
                 return true;
             }
 
@@ -581,81 +625,23 @@ namespace WindBot.Game.AI.Decks
             if (Card.Location == CardLocation.Hand)
             {
                 if (_gatesHandUsed) return false;
-                if (ShouldSkipCombo()) return false;
                 if (Bot.HasInSpellZone(CardId.OpeningOfTheSpiritGates)) return false;
+                if (ShouldSkipCombo()) return false;
+                _gatesHandUsed = true;
+                DecisionTracer.Trace("GatesActivate", "Activate Gates from hand, search Beckoning Beast");
                 return true;
             }
 
-            // GY Revive effect: discard 1 to revive a 0 ATK/DEF Fiend
+            // On-field ignition effect: Discard 1 to revive a 0 ATK/DEF Fiend from GY
             if (Card.Location == CardLocation.SpellZone && Card.IsFaceup() && Duel.Player == 0)
             {
                 if (_gatesFieldUsed) return false;
                 bool hasTarget = Bot.Graveyard.Any(c => c != null && c.IsMonster() && c.Attack == 0 && c.Defense == 0);
                 bool hasDiscard = Bot.Hand.Count > 0;
-                if (hasTarget && hasDiscard)
+                if (hasTarget && hasDiscard && GetFreeMonsterZoneCount() > 0 && !IsSpecialSummonBlocked())
                 {
-                    DecisionTracer.TraceActivate("GatesActivate", "Discard to revive 0 ATK/DEF Fiend");
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private bool FusionDeploymentActivate()
-        {
-            if (IsSpecialSummonBlocked()) return false;
-            if (ShouldSkipCombo()) return false;
-
-            // Reveal Elemental HERO Neos Kluger to Special Summon Neos or Yubel from deck/hand
-            bool hasTarget = GetRemainingCount(CardId.ElementalHERONeos) > 0 || GetRemainingCount(CardId.Yubel) > 0;
-            if (!hasTarget) return false;
-
-            // If going first on Turn 1, only summon Yubel if we can sustain it or float it
-            if (Duel.Turn == 1 && Duel.Player == 0)
-            {
-                bool hasTribute = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.Id != CardId.Yubel);
-                bool hasThrone = Bot.HasInSpellZone(CardId.NightmareThrone);
-                if (!hasTribute && !hasThrone)
-                {
-                    return false; // Skip to avoid Yubel self-destroying with no benefit
-                }
-            }
-
-            DecisionTracer.TraceActivate("FusionDeploymentActivate", "SS Neos/Yubel from deck");
-            return true;
-        }
-
-        // ==========================================
-        // YUBEL SYSTEM LOGIC
-        // ==========================================
-
-        private bool LotusActivate()
-        {
-            if (_samsaraUsed) return false;
-            if (IsSpecialSummonBlocked()) return false;
-
-            // Main Phase: tribute itself to SS a Yubel monster from deck
-            if (Card.Location == CardLocation.MonsterZone && Card.IsFaceup() && Duel.Player == 0)
-            {
-                bool hasTarget = GetRemainingCount(CardId.SpiritOfYubel) > 0 || GetRemainingCount(CardId.Yubel) > 0;
-                if (hasTarget)
-                {
-                    AI.SelectCard(CardId.SpiritOfYubel, CardId.Yubel);
-                    _samsaraUsed = true;
-                    DecisionTracer.TraceActivate("LotusActivate", "Tribute Lotus to SS Yubel form");
-                    return true;
-                }
-            }
-
-            // End Phase GY self-revive
-            if (Card.Location == CardLocation.Grave && Duel.Phase == DuelPhase.End && Duel.Player == 0)
-            {
-                bool controlsYubel = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && YubelMonsters.Contains(c.Id));
-                if (controlsYubel)
-                {
-                    _samsaraUsed = true;
-                    DecisionTracer.TraceActivate("LotusActivate", "Revive Lotus from GY in End Phase");
+                    _gatesFieldUsed = true;
+                    DecisionTracer.Trace("GatesActivate", "Discard 1 to revive 0 ATK/DEF Fiend from GY");
                     return true;
                 }
             }
@@ -665,87 +651,116 @@ namespace WindBot.Game.AI.Decks
 
         private bool NightmarePainActivate()
         {
+            // Activate from hand to place face-up in SpellZone
             if (Card.Location == CardLocation.Hand)
             {
                 if (_painUsed) return false;
-                if (ShouldSkipCombo()) return false;
                 if (Bot.HasInSpellZone(CardId.NightmarePain)) return false;
+                _painUsed = true;
+                DecisionTracer.Trace("NightmarePainActivate", "Place Nightmare Pain face-up in SpellZone");
                 return true;
             }
 
-            // Field activation: destroy 1 Dark monster in hand/field to search
+            // On-field ignition effect: Destroy 1 DARK monster in hand/field to search Yubel card
             if (Card.Location == CardLocation.SpellZone && Card.IsFaceup() && Duel.Player == 0)
             {
                 if (_painUsed) return false;
-                
-                var darkMonsters = Bot.Hand.Where(c => c != null && c.HasAttribute(CardAttribute.Dark))
+
+                var darkMonsters = Bot.Hand.Where(c => c != null && c.HasAttribute(CardAttribute.Dark) && c.IsMonster())
                     .Concat(Bot.GetMonsters().Where(c => c != null && c.IsFaceup() && c.HasAttribute(CardAttribute.Dark)))
                     .ToList();
-                
+
                 if (darkMonsters.Count > 0)
                 {
-                    // Pick the best target to destroy: Spirit of Yubel > Squirmer > Samsara > Yubel
-                    var bestTarget = darkMonsters.OrderBy(c => 
+                    // Prioritize destroying Spirit of Yubel (floats immediately!) > Squirmer > Samsara > Yubel
+                    var bestTarget = darkMonsters.OrderBy(c =>
                         c.Id == CardId.SpiritOfYubel ? 0 :
                         c.Id == CardId.GruesomeGraveSquirmer ? 1 :
                         c.Id == CardId.SamsaraDLotus ? 2 :
-                        YubelMonsters.Contains(c.Id) ? 3 : 4
+                        c.Id == CardId.Yubel ? 3 : 4
                     ).FirstOrDefault();
 
                     if (bestTarget != null)
                     {
                         AI.SelectCard(bestTarget);
+                        _painUsed = true;
+                        DecisionTracer.Trace("NightmarePainActivate", $"Destroy {bestTarget.Name} to search Yubel card");
+                        return true;
                     }
-                    
-                    DecisionTracer.TraceActivate("NightmarePainActivate", "Destroy Dark monster to search Yubel card");
-                    return true;
                 }
             }
 
+            return false;
+        }
+
+        private bool FusionDeploymentActivate()
+        {
+            if (_deploymentUsed) return false;
+            if (IsSpecialSummonBlocked()) return false;
+            if (ShouldSkipCombo()) return false;
+
+            // Reveal Neos Kluger to SS Neos or Yubel from Deck
+            bool hasTarget = GetRemainingCount(CardId.ElementalHERONeos) > 0 || GetRemainingCount(CardId.Yubel) > 0;
+            if (hasTarget && GetFreeMonsterZoneCount() > 0)
+            {
+                AI.SelectCard(CardId.ElementalHERONeosKluger);
+                _deploymentUsed = true;
+                DecisionTracer.Trace("FusionDeploymentActivate", "Deploy Neos / Yubel from deck");
+                return true;
+            }
+            return false;
+        }
+
+        // ========================================================================
+        // TIER 4: YUBEL ENGINE CORE PLAYS & FLOATS
+        // ========================================================================
+
+        private bool LotusMainPhaseActivate()
+        {
+            // Main Phase: Tribute self to Special Summon Spirit of Yubel from deck
+            if (Duel.Player == 0 && Card.Location == CardLocation.MonsterZone && Card.IsFaceup())
+            {
+                if (_samsaraUsed) return false;
+                if (IsSpecialSummonBlocked()) return false;
+
+                bool hasTarget = GetRemainingCount(CardId.SpiritOfYubel) > 0 || GetRemainingCount(CardId.Yubel) > 0;
+                if (hasTarget)
+                {
+                    AI.SelectCard(CardId.SpiritOfYubel, CardId.Yubel);
+                    _samsaraUsed = true;
+                    DecisionTracer.Trace("LotusMainPhaseActivate", "Tribute Lotus to SS Spirit of Yubel from Deck");
+                    return true;
+                }
+            }
             return false;
         }
 
         private bool GraveSquirmerActivate()
         {
-            if (ShouldSkipCombo()) return false;
+            if (IsSpecialSummonBlocked()) return false;
 
-            // SS from hand if we control Yubel
-            if (Card.Location == CardLocation.Hand)
+            // Hand Quick Effect: SS self if control a Fiend monster
+            if (Card.Location == CardLocation.Hand && Duel.Player == 0)
             {
                 if (_squirmerHandUsed) return false;
-                bool controlYubel = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && YubelMonsters.Contains(c.Id));
-                if (controlYubel && Bot.MonsterZone.Count(c => c != null) < 5)
+                bool controlFiend = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.HasRace(CardRace.Fiend));
+                if (controlFiend && GetFreeMonsterZoneCount() > 0)
                 {
-                    DecisionTracer.TraceActivate("GraveSquirmerActivate", "SS Squirmer from hand");
+                    _squirmerHandUsed = true;
+                    DecisionTracer.Trace("GraveSquirmerActivate", "SS Gruesome Grave Squirmer from Hand");
                     return true;
                 }
             }
 
-            // Destroy 1 Yubel to revive a 0 ATK/DEF Fiend
-            if (Card.Location == CardLocation.MonsterZone && Card.IsFaceup() && Duel.Player == 0)
-            {
-                if (_squirmerFieldUsed) return false;
-                var yubels = Bot.GetMonsters().Where(c => c != null && c.IsFaceup() && YubelMonsters.Contains(c.Id)).ToList();
-                bool hasGYTarget = Bot.Graveyard.Any(c => c != null && c.IsMonster() && c.Attack == 0 && c.Defense == 0);
-                if (yubels.Count > 0 && hasGYTarget)
-                {
-                    // Prioritize destroying Spirit of Yubel to float
-                    var bestYubel = yubels.OrderBy(c => c.Id == CardId.SpiritOfYubel ? 0 : c.Id == CardId.Yubel ? 1 : 2).FirstOrDefault();
-                    if (bestYubel != null) AI.SelectCard(bestYubel);
-                    
-                    DecisionTracer.TraceActivate("GraveSquirmerActivate", "Destroy Yubel on field to revive 0 ATK/DEF Fiend");
-                    return true;
-                }
-            }
-
-            // GY effect: Banish to SS Yubel from GY/banished
+            // GY effect: Banish self to SS 1 Fiend with 0 ATK/DEF from hand or GY (except Squirmer)
             if (Card.Location == CardLocation.Grave && Duel.Player == 0)
             {
                 if (_squirmerGraveUsed) return false;
-                bool hasTarget = Bot.Graveyard.Concat(Bot.Banished).Any(c => c != null && YubelMonsters.Contains(c.Id) && c != Card);
-                if (hasTarget && !IsSpecialSummonBlocked() && Bot.MonsterZone.Count(c => c != null) < 5)
+                bool hasTarget = Bot.Graveyard.Concat(Bot.Hand).Any(c => c != null && c.IsMonster() && c.Attack == 0 && c.Defense == 0 && c.Id != CardId.GruesomeGraveSquirmer);
+                if (hasTarget && GetFreeMonsterZoneCount() > 0)
                 {
-                    DecisionTracer.TraceActivate("GraveSquirmerActivate", "Banish Squirmer from GY to SS Yubel");
+                    _squirmerGraveUsed = true;
+                    DecisionTracer.Trace("GraveSquirmerActivate", "Banish Squirmer from GY to SS 0 ATK/DEF Fiend");
                     return true;
                 }
             }
@@ -753,30 +768,19 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
-        private bool SpiritOfYubelActivate()
+        private bool SpiritOfYubelOnSummonOrFloatActivate()
         {
-            // Bypasses ShouldSkipCombo() because trigger floating is critical to continue the loop when destroyed
-            // Quick Effect: SS on opponent attack
-            if (Card.Location == CardLocation.Hand && Duel.Player == 1 && Duel.Phase == DuelPhase.Battle)
-            {
-                DecisionTracer.TraceActivate("SpiritOfYubelActivate", "SS Spirit of Yubel on attack");
-                return true;
-            }
-
-            // Search/Set Spell/Trap when SS
+            // On Special Summon: Set Nightmare Pain directly or add to hand
             if (Card.Location == CardLocation.MonsterZone && Card.IsFaceup())
             {
-                bool hasPain = Bot.HasInSpellZone(CardId.NightmarePain) || Bot.Hand.Any(c => c != null && c.Id == CardId.NightmarePain);
-                int targetId = hasPain ? CardId.EternalFavorite : CardId.NightmarePain;
-                AI.SelectCard(targetId, CardId.NightmarePain, CardId.EternalFavorite);
-                DecisionTracer.TraceActivate("SpiritOfYubelActivate", "Set Nightmare Pain or Eternal Favorite");
+                DecisionTracer.Trace("SpiritOfYubelOnSummonOrFloatActivate", "Spirit of Yubel SS trigger: Set/Search Yubel S/T");
                 return true;
             }
 
-            // Float when destroyed (GY or Banished)
+            // If destroyed: Float into Yubel from Hand/Deck/GY/Banished
             if (Card.Location == CardLocation.Grave || Card.Location == CardLocation.Removed)
             {
-                DecisionTracer.TraceActivate("SpiritOfYubelActivate", "Spirit of Yubel destroyed! Float into Yubel");
+                DecisionTracer.Trace("SpiritOfYubelOnSummonOrFloatActivate", "Spirit of Yubel destroyed: Float into Yubel!");
                 return true;
             }
 
@@ -785,11 +789,10 @@ namespace WindBot.Game.AI.Decks
 
         private bool YubelFloatActivate()
         {
-            // Bypasses ShouldSkipCombo() because floating is critical to continue the loop when Yubel is destroyed
-            // Floating when destroyed: summon Terror Incarnate
+            // Yubel destroyed: Float into Terror Incarnate!
             if (Card.Location == CardLocation.Grave || Card.Location == CardLocation.Removed)
             {
-                DecisionTracer.TraceActivate("YubelFloatActivate", "Yubel destroyed! Float into Terror Incarnate");
+                DecisionTracer.Trace("YubelFloatActivate", "Yubel destroyed! Float into Yubel - Terror Incarnate!");
                 return true;
             }
             return false;
@@ -797,45 +800,49 @@ namespace WindBot.Game.AI.Decks
 
         private bool YubelTerrorActivate()
         {
-            // Bypasses ShouldSkipCombo() because floating is critical to continue the loop when Terror Incarnate leaves field
-            // Floating when leaves field: summon Ultimate Nightmare
+            // Terror Incarnate destroyed/leaves: Float into Ultimate Nightmare!
             if (Card.Location == CardLocation.Grave || Card.Location == CardLocation.Removed)
             {
-                DecisionTracer.TraceActivate("YubelTerrorActivate", "Terror Incarnate left! Float into Ultimate Nightmare");
+                DecisionTracer.Trace("YubelTerrorActivate", "Terror Incarnate left! Float into Ultimate Nightmare!");
                 return true;
             }
+
+            // End Phase board wipe: destroy all other monsters on field
+            if (Card.Location == CardLocation.MonsterZone && Card.IsFaceup() && Duel.Phase == DuelPhase.End)
+            {
+                DecisionTracer.Trace("YubelTerrorActivate", "Terror Incarnate End Phase board wipe!");
+                return true;
+            }
+
             return false;
         }
 
-        // ==========================================
-        // FIENDSMITH ENGINE LOGIC
-        // ==========================================
+        // ========================================================================
+        // TIER 5: FIENDSMITH & BOARD BREAKERS
+        // ========================================================================
 
         private bool EngraverActivate()
         {
             if (ShouldSkipCombo()) return false;
 
-            // Discard to search Tract
+            // Hand: Discard to search Tract
             if (Card.Location == CardLocation.Hand)
             {
                 if (_engraverHandUsed) return false;
-                DecisionTracer.TraceActivate("EngraverActivate", "Discard Engraver to search Tract");
+                _engraverHandUsed = true;
+                DecisionTracer.Trace("EngraverActivate", "Discard Engraver to search Fiendsmith's Tract");
                 return true;
             }
 
-            // GY Special Summon: send 1 Light Fiend you control to GY
+            // GY: Shuffle 1 other LIGHT Fiend from GY into Deck -> SS self
             if (Card.Location == CardLocation.Grave && Duel.Player == 0)
             {
                 if (_engraverGraveUsed) return false;
-                var lightFiends = Bot.GetMonsters().Where(c => c != null && c.IsFaceup() && c.HasRace(CardRace.Fiend) && c.HasAttribute(CardAttribute.Light)).ToList();
-                if (lightFiends.Count > 0 && Bot.MonsterZone.Count(c => c != null) < 5)
+                var otherLightFiends = Bot.Graveyard.Where(c => c != null && c.HasRace(CardRace.Fiend) && c.HasAttribute(CardAttribute.Light) && c != Card).ToList();
+                if (otherLightFiends.Count > 0 && GetFreeMonsterZoneCount() > 0 && !IsSpecialSummonBlocked())
                 {
-                    var bestTarget = lightFiends.OrderBy(c => 
-                        c.Id == CardId.FabledLurrie ? 0 : 
-                        c.Id == CardId.LacrimaTheCrimsonTears ? 1 : 2).FirstOrDefault();
-                    if (bestTarget != null) AI.SelectCard(bestTarget);
-
-                    DecisionTracer.TraceActivate("EngraverActivate", "SS Engraver from GY");
+                    _engraverGraveUsed = true;
+                    DecisionTracer.Trace("EngraverActivate", "SS Engraver from GY by recycling LIGHT Fiend");
                     return true;
                 }
             }
@@ -847,23 +854,24 @@ namespace WindBot.Game.AI.Decks
         {
             if (ShouldSkipCombo()) return false;
 
-            // Normal Spell search
+            // Hand: Search LIGHT Fiend (Lurrie), then discard 1
             if (Card.Location == CardLocation.Hand)
             {
                 if (_tractHandUsed) return false;
-                DecisionTracer.TraceActivate("TractActivate", "Search Light Fiend");
+                _tractHandUsed = true;
+                DecisionTracer.Trace("TractActivate", "Search LIGHT Fiend via Tract");
                 return true;
             }
 
-            // GY fusion: banish to fusion summon
+            // GY: Banish to Fusion Summon Fiendsmith Fusion
             if (Card.Location == CardLocation.Grave && Duel.Player == 0)
             {
                 if (_tractGraveUsed) return false;
-                // Banish materials from GY to fuse
-                bool canFuse = Bot.Graveyard.Count(c => c != null && c.HasRace(CardRace.Fiend) && c.HasAttribute(CardAttribute.Light)) >= 2;
+                bool canFuse = Bot.Hand.Concat(Bot.GetMonsters()).Count(c => c != null && c.HasRace(CardRace.Fiend) && c.HasAttribute(CardAttribute.Light)) >= 2;
                 if (canFuse && !IsSpecialSummonBlocked())
                 {
-                    DecisionTracer.TraceActivate("TractActivate", "GY Fusion via Tract");
+                    _tractGraveUsed = true;
+                    DecisionTracer.Trace("TractActivate", "GY Fusion via Fiendsmith's Tract");
                     return true;
                 }
             }
@@ -871,190 +879,127 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
-        private bool LacrimaActivate()
+        private bool LacrimaOnSummonActivate()
         {
             if (Card.Location == CardLocation.MonsterZone && Card.IsFaceup())
             {
-                // Send Fiendsmith card from deck to GY
-                DecisionTracer.TraceActivate("LacrimaActivate", "Send Fiendsmith card from deck");
+                DecisionTracer.Trace("LacrimaOnSummonActivate", "Dump Fiendsmith card from deck to GY");
                 return true;
             }
+            return false;
+        }
 
-            // GY Quick Effect: shuffle back to revive Link monster (opponent's turn)
-            if (Card.Location == CardLocation.Grave && Duel.Player == 1)
+        private bool DarkHoleActivate()
+        {
+            // Dark Hole wipes opponent monsters, while triggering our Yubel floating!
+            int enemyMonsters = Enemy.GetMonsterCount();
+            bool hasYubelOnField = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && (c.Id == CardId.SpiritOfYubel || c.Id == CardId.Yubel));
+
+            if (enemyMonsters >= 2 || (enemyMonsters >= 1 && hasYubelOnField) || (enemyMonsters >= 1 && Util.GetProblematicEnemyMonster() != null))
             {
-                bool hasLinkTarget = Bot.Graveyard.Any(c => c != null && c.HasType(CardType.Link) && c.Name.Contains("Fiendsmith"));
-                if (hasLinkTarget)
-                {
-                    DecisionTracer.TraceActivate("LacrimaActivate", "Revive Link Fiendsmith");
-                    return true;
-                }
+                DecisionTracer.Trace("DarkHoleActivate", "Dark Hole board wipe!");
+                return true;
             }
-
             return false;
         }
 
         private bool MutinyActivate()
         {
-            if (ShouldSkipCombo()) return false;
+            if (_mutinyUsed) return false;
             if (IsSpecialSummonBlocked()) return false;
 
-            // Shuffle materials from GY to fuse
-            bool hasMaterials = Bot.Graveyard.Count(c => c != null && (c.HasRace(CardRace.Fiend) || c.HasRace(CardRace.Fairy))) >= 2;
-            if (hasMaterials)
+            // Shuffles Fiend/Fairy from GY into Deck to Fusion Summon
+            int gyFiendFairy = Bot.Graveyard.Count(c => c != null && (c.HasRace(CardRace.Fiend) || c.HasRace(CardRace.Fairy)));
+            if (gyFiendFairy >= 2 && GetFreeMonsterZoneCount() > 0)
             {
-                DecisionTracer.TraceActivate("MutinyActivate", "Shuffle GY to Fusion Summon");
+                _mutinyUsed = true;
+                DecisionTracer.Trace("MutinyActivate", "Shuffle GY Fiends/Fairies to Fusion Summon");
                 return true;
             }
             return false;
         }
 
-        private bool FinalBringerActivate()
-        {
-            // Destroy 1 monster we control and 1 card enemy controls
-            var target = Util.GetProblematicEnemyCard();
-            if (target != null)
-            {
-                // Destroy one of our Yubel monsters to trigger float
-                var ourTarget = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && YubelMonsters.Contains(c.Id));
-                if (ourTarget != null)
-                {
-                    AI.SelectCard(ourTarget);
-                    AI.SelectNextCard(target);
-                    DecisionTracer.TraceActivate("FinalBringerActivate", $"Destroy our {ourTarget.Name} and enemy {target.Name}");
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        // ==========================================
-        // SUMMON / EXTRA SUMMON CONDITIONS
-        // ==========================================
+        // ========================================================================
+        // TIER 6: NORMAL SUMMONS
+        // ========================================================================
 
         private bool BeckoningBeastSummon()
         {
             if (_beckoningUsed) return false;
-            if (ShouldSkipCombo()) return false;
-
-            // Search Gates on summon
             return true;
         }
 
         private bool LotusSummon()
         {
             if (_samsaraUsed) return false;
-            if (ShouldSkipCombo()) return false;
-
             return true;
         }
 
-        private bool GenericSummon()
+        private bool GenericNormalSummon()
         {
-            if (ShouldSkipCombo()) return false;
-            return true;
+            // Only summon if we have extra summon from Beckoning Beast or no other monsters
+            if (Bot.MonsterZone.Count(c => c != null) == 0) return true;
+            return false;
         }
 
-        // ==========================================
-        // EXTRA DECK SPECIAL SUMMONS
-        // ==========================================
+        // ========================================================================
+        // TIER 7: SPECIAL SUMMONS & GEISTGRINDER OTK
+        // ========================================================================
+
+        private bool GeistgrinderActivate()
+        {
+            if (Card.Location == CardLocation.Hand && Duel.Player == 0)
+            {
+                if (_geistgrinderHandUsed) return false;
+                // Reveal 1 Yubel monster in hand to SS Geistgrinder to opponent's field, SS Yubel to our field
+                bool hasYubelInHand = Bot.Hand.Any(c => c != null && YubelMonsters.Contains(c.Id) && c != Card);
+                if (hasYubelInHand && Enemy.GetMonsterCount() < 5 && GetFreeMonsterZoneCount() > 0 && !IsSpecialSummonBlocked())
+                {
+                    _geistgrinderHandUsed = true;
+                    DecisionTracer.Trace("GeistgrinderActivate", "Give Geistgrinder Golem (3000 ATK) to opponent, SS Yubel to our field!");
+                    return true;
+                }
+            }
+
+            // In GY: When Yubel is Special Summoned, SS Geistgrinder to opponent's field
+            if (Card.Location == CardLocation.Grave)
+            {
+                if (Enemy.GetMonsterCount() < 5 && !IsSpecialSummonBlocked())
+                {
+                    DecisionTracer.Trace("GeistgrinderActivate", "Revive Geistgrinder to enemy field as battle target!");
+                    return true;
+                }
+            }
+
+            return false;
+        }
 
         private bool LovingDefenderSummon()
         {
             if (IsSpecialSummonBlocked()) return false;
 
-            // Fuses 1 Yubel + 1+ effect monsters on the field
+            // Contact Fusion: 1 Yubel + 1+ Effect Monsters on field (send to GY)
             bool hasYubelOnField = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && YubelMonsters.Contains(c.Id));
-            int enemyMonsters = Enemy.GetMonsters().Count(c => c != null && c.IsFaceup() && !c.HasType(CardType.Normal));
+            int enemyEffectMonsters = Enemy.GetMonsters().Count(c => c != null && c.IsFaceup() && c.HasType(CardType.Effect));
 
-            // Summon to wipe the opponent's field or deal lethal burn
-            if (hasYubelOnField && (enemyMonsters >= 2 || CanDealLethal()))
+            // Contact summon if opponent has 2+ effect monsters or to deal game-winning damage!
+            if (hasYubelOnField && (enemyEffectMonsters >= 2 || HasLethalOnBoard() || Enemy.LifePoints <= 3000))
             {
-                DecisionTracer.TraceActivate("LovingDefenderSummon", "Contact fuse field into Loving Defender");
+                DecisionTracer.Trace("LovingDefenderSummon", "Contact Fuse enemy board into Loving Defender Forever!");
                 return true;
             }
             return false;
-        }
-
-        private bool NeosKlugerSummon()
-        {
-            if (IsSpecialSummonBlocked()) return false;
-
-            // Needs Neos + Yubel
-            bool hasNeos = Bot.Hand.Concat(Bot.GetMonsters()).Any(c => c != null && c.Id == CardId.ElementalHERONeos);
-            bool hasYubel = Bot.Hand.Concat(Bot.GetMonsters()).Any(c => c != null && c.Id == CardId.Yubel);
-
-            if (hasNeos && hasYubel)
-            {
-                DecisionTracer.TraceActivate("NeosKlugerSummon", "Fusion Summon Neos Kluger");
-                return true;
-            }
-            return false;
-        }
-
-        private bool LuceContactSummon()
-        {
-            if (IsSpecialSummonBlocked()) return false;
-
-            // Requires 3 Fiend/Fairy in GY, shuffles to deck
-            int count = Bot.Graveyard.Count(c => c != null && (c.HasRace(CardRace.Fiend) || c.HasRace(CardRace.Fairy)));
-            if (count >= 3 && Bot.MonsterZone.Count(c => c != null) < 5)
-            {
-                DecisionTracer.TraceActivate("LuceContactSummon", "Contact summon Luce by shuffling GY");
-                return true;
-            }
-            return false;
-        }
-
-        private bool DesiraeSummon()
-        {
-            if (IsSpecialSummonBlocked()) return false;
-            if (ShouldSkipCombo()) return false;
-            return true; // Always summon boss if possible
-        }
-
-        private bool LacrimaSummon()
-        {
-            if (IsSpecialSummonBlocked()) return false;
-            if (ShouldSkipCombo()) return false;
-            // Extender: make sure we have a target to revive/add in GY
-            bool hasGYTarget = Bot.Graveyard.Any(c => c != null && (c.Id == CardId.FiendsmithEngraver || c.Id == CardId.FiendsmithsTract || c.Id == CardId.LacrimaTheCrimsonTears));
-            return hasGYTarget;
-        }
-
-        private bool AerialEaterSummon()
-        {
-            if (IsSpecialSummonBlocked()) return false;
-            if (ShouldSkipCombo()) return false;
-            // Extender: make sure we have a Fiend target in Deck to dump
-            bool hasDeckTarget = Bot.Deck.Any(c => c != null && (c.Id == CardId.GruesomeGraveSquirmer || c.Id == CardId.SamsaraDLotus || c.Id == CardId.Yubel));
-            return hasDeckTarget;
-        }
-
-        private bool DukeOfDemiseSummon()
-        {
-            if (IsSpecialSummonBlocked()) return false;
-            if (ShouldSkipCombo()) return false;
-            // We only summon Duke of Demise if we need to dump Fiends and cannot make Aerial Eater or Lacrima
-            bool canSummonBetter = (Bot.ExtraDeck.Any(c => c != null && c.Id == CardId.FiendsmithsLacrima && !c.IsDisabled()) && LacrimaSummon()) ||
-                                  (Bot.ExtraDeck.Any(c => c != null && c.Id == CardId.AerialEater && !c.IsDisabled()) && AerialEaterSummon());
-            return !canSummonBetter;
         }
 
         private bool ChaosAngelSummon()
         {
             if (IsSpecialSummonBlocked()) return false;
 
-            // Get all face-up LIGHT/DARK monsters we control
             var monsters = Bot.GetMonsters().Where(c => c != null && c.IsFaceup() && (c.HasAttribute(CardAttribute.Light) || c.HasAttribute(CardAttribute.Dark))).ToList();
             if (monsters.Count < 2) return false;
 
-            // Avoid using Spirit of Yubel or Yubel if possible
-            var safeMonsters = monsters.Where(c => c.Id != CardId.SpiritOfYubel && c.Id != CardId.Yubel).ToList();
-
-            bool canSynchro = false;
-
-            // 1. Pair combinations (Safe only)
+            // Exclude Ace cards
+            var safeMonsters = monsters.Where(c => !IsAceCard(c)).ToList();
             for (int i = 0; i < safeMonsters.Count; i++)
             {
                 for (int j = i + 1; j < safeMonsters.Count; j++)
@@ -1062,238 +1007,483 @@ namespace WindBot.Game.AI.Decks
                     if (safeMonsters[i].Level + safeMonsters[j].Level == 10)
                     {
                         AI.SelectCard(new[] { safeMonsters[i], safeMonsters[j] });
-                        canSynchro = true;
-                        break;
+                        DecisionTracer.Trace("ChaosAngelSummon", "Synchro Summon Chaos Angel (Banish on summon + Double Protection)");
+                        return true;
                     }
                 }
-                if (canSynchro) break;
             }
-
-            if (canSynchro)
-            {
-                DecisionTracer.TraceActivate("ChaosAngelSummon", "Synchro Summon Chaos Angel");
-                return true;
-            }
-
             return false;
         }
 
-        private bool XyzRank10Summon()
+        private bool LuceContactSummon()
         {
             if (IsSpecialSummonBlocked()) return false;
-
-            // Rank 10: 2 Level 10 monsters (Yubel, Spirit of Yubel, Chaos Angel level 10)
-            int level10Count = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && c.Level == 10);
-            if (level10Count >= 2)
+            int count = Bot.Graveyard.Count(c => c != null && (c.HasRace(CardRace.Fiend) || c.HasRace(CardRace.Fairy)));
+            if (count >= 3 && GetFreeMonsterZoneCount() > 0)
             {
-                // ONLY summon if we can deal lethal or win!
-                if (CanDealLethal() || Enemy.LifePoints <= 2000)
+                DecisionTracer.Trace("LuceContactSummon", "Contact Summon Luce (3500 ATK) by shuffling 3 GY Fiend/Fairy");
+                return true;
+            }
+            return false;
+        }
+
+        private bool LacrimaSummon()
+        {
+            if (IsSpecialSummonBlocked()) return false;
+            bool hasGYTarget = Bot.Graveyard.Any(c => c != null && c.HasAttribute(CardAttribute.Light) && c.HasRace(CardRace.Fiend));
+            return hasGYTarget;
+        }
+
+        private bool AerialEaterSummon()
+        {
+            if (IsSpecialSummonBlocked()) return false;
+            return Bot.Deck.Any(c => c != null && c.HasRace(CardRace.Fiend));
+        }
+
+        private bool DukeOfDemiseSummon()
+        {
+            if (IsSpecialSummonBlocked()) return false;
+            return false; // Prefer Aerial Eater or Lacrima
+        }
+
+        private bool NeosKlugerSummon()
+        {
+            if (IsSpecialSummonBlocked()) return false;
+            bool hasNeos = Bot.Hand.Concat(Bot.GetMonsters()).Any(c => c != null && c.Id == CardId.ElementalHERONeos);
+            bool hasYubel = Bot.Hand.Concat(Bot.GetMonsters()).Any(c => c != null && c.Id == CardId.Yubel);
+            return hasNeos && hasYubel;
+        }
+
+        private bool GustavMaxSummon()
+        {
+            if (IsSpecialSummonBlocked()) return false;
+            int level10Count = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && c.Level == 10);
+            if (level10Count >= 2 && (Enemy.LifePoints <= 2000 || HasLethalOnBoard()))
+            {
+                DecisionTracer.Trace("GustavMaxSummon", "Xyz Summon Gustav Max for 2000 lethal burn!");
+                return true;
+            }
+            return false;
+        }
+
+        private bool GustavMaxBurnActivate()
+        {
+            if (Card.Location == CardLocation.MonsterZone && Card.IsFaceup())
+            {
+                DecisionTracer.Trace("GustavMaxBurnActivate", "Detach to burn 2000 LP!");
+                return true;
+            }
+            return false;
+        }
+
+        private bool SuperDoraSummon()
+        {
+            if (IsSpecialSummonBlocked()) return false;
+            int level10Count = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && c.Level == 10);
+            return level10Count >= 2 && HasLethalOnBoard();
+        }
+
+        private bool SuperDoraProtectActivate()
+        {
+            if (Card.Location == CardLocation.MonsterZone && Card.IsFaceup())
+            {
+                var boss = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && IsAceCard(c));
+                if (boss != null) AI.SelectCard(boss);
+                return true;
+            }
+            return false;
+        }
+
+        // ========================================================================
+        // TIER 8: END PHASE SAMSARA LOTUS REVIVE LOOP
+        // ========================================================================
+
+        private bool LotusEndPhaseReviveActivate()
+        {
+            // In our End Phase, if we control Yubel and Lotus is in GY -> SS itself!
+            if (Duel.Player == 0 && Duel.Phase == DuelPhase.End && Card.Location == CardLocation.Grave)
+            {
+                bool controlYubel = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && YubelMonsters.Contains(c.Id));
+                if (controlYubel && GetFreeMonsterZoneCount() > 0 && !IsSpecialSummonBlocked())
                 {
-                    DecisionTracer.TraceActivate("XyzRank10Summon", "Xyz Summon Rank 10 Boss for lethal");
+                    DecisionTracer.Trace("LotusEndPhaseReviveActivate", "Revive Samsara Lotus from GY in End Phase (ready for opponent turn negate!)");
                     return true;
                 }
             }
             return false;
         }
 
-        // ==========================================
-        // CARD SELECTION LOGIC (OnSelectCard)
-        // ==========================================
+        // ========================================================================
+        // OCGCORE 64-BIT OPTION SELECTION OVERRIDE
+        // ========================================================================
 
-        private IList<ClientCard> SelectPreferred(IList<ClientCard> cards, int min, int max, params int[] preferredIds)
+        public override int OnSelectOption(IList<long> options)
         {
-            var result = new List<ClientCard>();
-            foreach (int id in preferredIds)
+            if (options == null || options.Count == 0) return 0;
+
+            for (int i = 0; i < options.Count; i++)
             {
-                var matches = cards.Where(c => c != null && c.Id == id && !result.Contains(c)).ToList();
-                foreach (var m in matches)
+                long cardId = options[i] >> 4;
+                if (cardId == 0 && Card != null) cardId = Card.Id;
+                long optIndex = options[i] & 0xf;
+
+                // 1. Samsara D Lotus (62318994)
+                // Option 0: Add to Hand, Option 1: Special Summon to field
+                if (cardId == CardId.SamsaraDLotus)
                 {
-                    result.Add(m);
-                    if (result.Count >= max) break;
-                }
-                if (result.Count >= max) break;
-            }
-            if (result.Count < min)
-            {
-                foreach (var card in cards)
-                {
-                    if (card != null && !result.Contains(card))
+                    if (optIndex == 1 && GetFreeMonsterZoneCount() > 0 && !IsSpecialSummonBlocked())
                     {
-                        result.Add(card);
-                        if (result.Count >= min) break;
+                        DecisionTracer.Trace("OnSelectOption", $"Samsara Lotus: Option {optIndex} (Special Summon to field)");
+                        return i;
+                    }
+                    if (optIndex == 0) return i;
+                }
+
+                // 2. Spirit of Yubel (90829280)
+                // Option 0: Add to Hand, Option 1: Set directly to field
+                if (cardId == CardId.SpiritOfYubel)
+                {
+                    // Setting directly to field avoids Droll and plays around Imperm
+                    if (optIndex == 1)
+                    {
+                        DecisionTracer.Trace("OnSelectOption", $"Spirit of Yubel: Option {optIndex} (Set directly to field)");
+                        return i;
+                    }
+                    if (optIndex == 0) return i;
+                }
+
+                // 3. Nightmare Throne (93729896)
+                // Activation: Option 0: Add to Hand, Option 1: Destroy from Deck
+                // Float: Option 0: Add to Hand, Option 1: Special Summon
+                if (cardId == CardId.NightmareThrone)
+                {
+                    bool hasLotus = Bot.Hand.Concat(Bot.GetMonsters()).Any(c => c != null && c.Id == CardId.SamsaraDLotus);
+                    if (hasLotus && optIndex == 1)
+                    {
+                        // Destroy Spirit of Yubel from deck to immediately float into Yubel!
+                        DecisionTracer.Trace("OnSelectOption", $"Nightmare Throne: Option {optIndex} (Destroy Spirit of Yubel to float)");
+                        return i;
+                    }
+                    if (!hasLotus && optIndex == 0)
+                    {
+                        DecisionTracer.Trace("OnSelectOption", $"Nightmare Throne: Option {optIndex} (Add Samsara Lotus to hand)");
+                        return i;
+                    }
+                    if (optIndex == 1 && GetFreeMonsterZoneCount() > 0 && !IsSpecialSummonBlocked())
+                        return i;
+                }
+
+                // 4. Eternal Favorite (87532344)
+                // Option 0: Special Summon Yubel, Option 1: Fusion Summon using enemy monsters
+                if (cardId == CardId.EternalFavorite)
+                {
+                    bool hasEnemyMonsters = Enemy.GetMonsterCount() > 0;
+                    if (hasEnemyMonsters && Bot.Hand.Count > 0 && optIndex == 1 && !IsSpecialSummonBlocked())
+                    {
+                        DecisionTracer.Trace("OnSelectOption", $"Eternal Favorite: Option {optIndex} (Fusion Summon using enemy board)");
+                        return i;
+                    }
+                    if (optIndex == 0)
+                    {
+                        DecisionTracer.Trace("OnSelectOption", $"Eternal Favorite: Option {optIndex} (Special Summon Yubel)");
+                        return i;
                     }
                 }
+
+                // 5. Fiendsmith's Lacrima (46640168)
+                // Option 0: Add to Hand, Option 1: Special Summon
+                if (cardId == CardId.FiendsmithsLacrima)
+                {
+                    if (optIndex == 1 && GetFreeMonsterZoneCount() > 0 && !IsSpecialSummonBlocked())
+                        return i;
+                    if (optIndex == 0) return i;
+                }
             }
-            return result;
+
+            return base.OnSelectOption(options);
         }
+
+        // ========================================================================
+        // HINT-SPECIFIC CARD SELECTION (OnSelectCard)
+        // Strictly adheres to Section 7.3 Hint Table
+        // ========================================================================
 
         public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
         {
             if (cards == null || cards.Count == 0)
                 return base.OnSelectCard(cards, min, max, hint, cancelable);
 
-            // 1. Material selection priority (Fusion, Link, Synchro, Xyz)
-            if (hint == 511 || hint == 513 || hint == 533 || hint == 502 || hint == 504)
+            // Hint 500: HINTMSG_RELEASE (Tribute fodder/tokens first, never sacrifice Ace)
+            if (hint == 500)
+            {
+                var sorted = cards.OrderBy(c => c.Controller == 1 ? 0 : GetMaterialPriority(c)).ToList();
+                return sorted.Take(max).ToList();
+            }
+
+            // Hint 501: HINTMSG_DISCARD (Discard GY triggers or duplicates, protect starters)
+            if (hint == 501 || (cards.All(c => c != null && c.Location == CardLocation.Hand) && hint != 502))
+            {
+                var lurrie = cards.FirstOrDefault(c => c != null && c.Id == CardId.FabledLurrie);
+                if (lurrie != null) return new List<ClientCard> { lurrie }; // Triggers self Special Summon!
+
+                var redundantYubels = cards.Where(c => c != null && YubelMonsters.Contains(c.Id)).ToList();
+                if (redundantYubels.Count > 1) return new List<ClientCard> { redundantYubels[0] };
+
+                var engraver = cards.FirstOrDefault(c => c != null && c.Id == CardId.FiendsmithEngraver);
+                if (engraver != null) return new List<ClientCard> { engraver };
+
+                var neos = cards.FirstOrDefault(c => c != null && c.Id == CardId.ElementalHERONeos);
+                if (neos != null) return new List<ClientCard> { neos };
+
+                var sorted = cards.OrderBy(c => GetMaterialPriority(c)).ToList();
+                return sorted.Take(max).ToList();
+            }
+
+            // Hint 502: HINTMSG_DESTROY (Self-pops trigger floats; Enemy-pops target highest threat)
+            if (hint == 502)
+            {
+                // Self destruction (Nightmare Pain / Final Bringer / Throne / Lotus trigger)
+                var friendlyTargets = cards.Where(c => c != null && c.Controller == 0).ToList();
+                if (friendlyTargets.Count > 0)
+                {
+                    // Prioritize destroying Spirit of Yubel (triggers float into Yubel!)
+                    var spirit = friendlyTargets.FirstOrDefault(c => c.Id == CardId.SpiritOfYubel);
+                    if (spirit != null) return new List<ClientCard> { spirit };
+
+                    var yubel = friendlyTargets.FirstOrDefault(c => c.Id == CardId.Yubel);
+                    if (yubel != null) return new List<ClientCard> { yubel };
+
+                    var squirmer = friendlyTargets.FirstOrDefault(c => c.Id == CardId.GruesomeGraveSquirmer);
+                    if (squirmer != null) return new List<ClientCard> { squirmer };
+
+                    var terror = friendlyTargets.FirstOrDefault(c => c.Id == CardId.YubelTerrorIncarnate);
+                    if (terror != null) return new List<ClientCard> { terror };
+                }
+
+                // Enemy destruction (Target highest ThreatScore, avoid destruction immune / cards that want to be destroyed)
+                var enemyTargets = cards.Where(c => c != null && c.Controller == 1).ToList();
+                if (enemyTargets.Count > 0)
+                {
+                    var validTargets = enemyTargets.Where(c => !IsDestructionImmune(c)).ToList();
+                    var pool = validTargets.Count > 0 ? validTargets : enemyTargets;
+                    var sorted = pool.OrderByDescending(c => GetCardThreatScore(c)).ToList();
+                    return sorted.Take(max).ToList();
+                }
+            }
+
+            // Hint 504 / 503: HINTMSG_REMOVE (Banish highest threat, skip target-immune)
+            if (hint == 504 || hint == 503)
+            {
+                var enemyTargets = cards.Where(c => c != null && c.Controller == 1).ToList();
+                if (enemyTargets.Count > 0)
+                {
+                    var validTargets = enemyTargets.Where(c => IsViableEffectTarget(c)).ToList();
+                    var pool = validTargets.Count > 0 ? validTargets : enemyTargets;
+                    var sorted = pool.OrderByDescending(c => GetCardThreatScore(c)).ToList();
+                    return sorted.Take(max).ToList();
+                }
+
+                // Friendly banish costs (Grave Squirmer / Tract in GY)
+                var squirmerGY = cards.FirstOrDefault(c => c != null && c.Location == CardLocation.Grave && c.Id == CardId.GruesomeGraveSquirmer);
+                if (squirmerGY != null) return new List<ClientCard> { squirmerGY };
+
+                var tractGY = cards.FirstOrDefault(c => c != null && c.Location == CardLocation.Grave && c.Id == CardId.FiendsmithsTract);
+                if (tractGY != null) return new List<ClientCard> { tractGY };
+            }
+
+            // Hint 505: HINTMSG_ATOHAND / RTOHAND (Search to hand or bounce enemy threat)
+            // Hint 506: HINTMSG_TODECK (Spin to deck or recycle GY materials)
+            if (hint == 505 || hint == 506 || cards.Any(c => c != null && c.Location == CardLocation.Deck))
+            {
+                // If bouncing or spinning enemy cards:
+                var enemyCards = cards.Where(c => c != null && c.Controller == 1).ToList();
+                if (enemyCards.Count > 0)
+                {
+                    var sorted = enemyCards.OrderByDescending(c => GetCardThreatScore(c)).ToList();
+                    return sorted.Take(max).ToList();
+                }
+
+                // Tract search priority: Lurrie first for free summon
+                if (Card != null && Card.Id == CardId.FiendsmithsTract)
+                {
+                    var lurrie = cards.FirstOrDefault(c => c != null && c.Id == CardId.FabledLurrie);
+                    if (lurrie != null) return new List<ClientCard> { lurrie };
+                }
+
+                bool hasLotus = Bot.Hand.Concat(Bot.GetMonsters()).Any(c => c != null && c.Id == CardId.SamsaraDLotus);
+                bool hasPain = Bot.Hand.Concat(Bot.GetSpells()).Any(c => c != null && c.IsFaceup() && c.Id == CardId.NightmarePain);
+                bool hasBeckoning = Bot.Hand.Concat(Bot.GetMonsters()).Any(c => c != null && c.Id == CardId.DarkBeckoningBeast);
+
+                var searchPriority = new List<int>();
+                if (!hasLotus) searchPriority.Add(CardId.SamsaraDLotus);
+                if (!hasPain) searchPriority.Add(CardId.NightmarePain);
+                if (!hasBeckoning) searchPriority.Add(CardId.DarkBeckoningBeast);
+                searchPriority.Add(CardId.SpiritOfYubel);
+                searchPriority.Add(CardId.GruesomeGraveSquirmer);
+                searchPriority.Add(CardId.EternalFavorite);
+                searchPriority.Add(CardId.Yubel);
+                searchPriority.Add(CardId.FiendsmithEngraver);
+                searchPriority.Add(CardId.OpeningOfTheSpiritGates);
+                searchPriority.Add(CardId.FabledLurrie);
+
+                foreach (int sid in searchPriority)
+                {
+                    var match = cards.FirstOrDefault(c => c != null && c.Id == sid);
+                    if (match != null) return new List<ClientCard> { match };
+                }
+            }
+
+            // Hint 507: HINTMSG_EQUIP (Equip to best boss monster)
+            if (hint == 507)
+            {
+                var bosses = cards.Where(c => c != null && c.Controller == 0 && c.IsFaceup()).OrderByDescending(c => c.Attack).ToList();
+                if (bosses.Count > 0) return bosses.Take(max).ToList();
+            }
+
+            // Hint 508: HINTMSG_TOGRAVE (Send combo extenders / triggers to GY)
+            if (hint == 508)
+            {
+                var dumpPriority = new[] {
+                    CardId.FabledLurrie,
+                    CardId.FiendsmithEngraver,
+                    CardId.LacrimaTheCrimsonTears,
+                    CardId.GruesomeGraveSquirmer,
+                    CardId.FiendsmithsTract
+                };
+
+                foreach (int did in dumpPriority)
+                {
+                    var match = cards.FirstOrDefault(c => c != null && c.Id == did);
+                    if (match != null) return new List<ClientCard> { match };
+                }
+            }
+
+            // Hint 509: HINTMSG_SPSUMMON (Special Summon Ace / Negator / Key Extender)
+            if (hint == 509)
+            {
+                var preferred = new[] {
+                    CardId.SpiritOfYubel,
+                    CardId.YubelTheLovingDefenderForever,
+                    CardId.YubelTerrorIncarnate,
+                    CardId.Yubel,
+                    CardId.SamsaraDLotus,
+                    CardId.FiendsmithEngraver,
+                    CardId.FiendsmithsLacrima,
+                    CardId.GruesomeGraveSquirmer,
+                    CardId.FabledLurrie
+                };
+
+                foreach (int pid in preferred)
+                {
+                    var match = cards.FirstOrDefault(c => c != null && c.Id == pid);
+                    if (match != null) return new List<ClientCard> { match };
+                }
+            }
+
+            // Hint 518: HINTMSG_POSCHANGE (Stat-Aware position change)
+            if (hint == 518)
+            {
+                var sorted = cards.OrderBy(c => c.Attack > c.Defense ? 0 : 1).ToList();
+                return sorted.Take(max).ToList();
+            }
+
+            // Hint 519: HINTMSG_XMATERIAL (Detach non-Ace / fodder materials first)
+            if (hint == 519)
             {
                 var sorted = cards.OrderBy(c => GetMaterialPriority(c)).ToList();
                 return sorted.Take(max).ToList();
             }
 
-            // 2. Search from Deck (any selection where candidate is in Deck)
-            if (cards.Any(c => c != null && c.Location == CardLocation.Deck))
+            // Hint 552 / 572: HINTMSG_DISABLE / NEGATE (Target key chokepoint or negator, not the first card seen)
+            if (hint == 552 || hint == 572)
             {
-                // Custom check for Fiendsmith's Tract search
-                if (Card != null && Card.Id == CardId.FiendsmithsTract)
+                var enemyTargets = cards.Where(c => c != null && c.Controller == 1).ToList();
+                if (enemyTargets.Count > 0)
                 {
-                    bool handHasLurrie = Bot.Hand.Any(c => c != null && c.Id == CardId.FabledLurrie);
-                    if (!handHasLurrie)
-                    {
-                        var lurrie = cards.FirstOrDefault(c => c != null && c.Id == CardId.FabledLurrie);
-                        if (lurrie != null) return new List<ClientCard> { lurrie };
-                    }
-                }
-
-                var preferred = new List<int>();
-                bool hasLotus = Bot.Hand.Concat(Bot.GetMonsters()).Any(c => c != null && c.Id == CardId.SamsaraDLotus);
-                bool hasBeckoning = Bot.Hand.Concat(Bot.GetMonsters()).Any(c => c != null && c.Id == CardId.DarkBeckoningBeast);
-                bool hasPain = Bot.Hand.Concat(Bot.GetSpells()).Any(c => c != null && c.Id == CardId.NightmarePain);
-
-                if (!hasLotus) preferred.Add(CardId.SamsaraDLotus);
-                if (!hasBeckoning) preferred.Add(CardId.DarkBeckoningBeast);
-                preferred.Add(CardId.SpiritOfYubel);
-                preferred.Add(CardId.GruesomeGraveSquirmer);
-                preferred.Add(CardId.Yubel);
-                preferred.Add(CardId.FiendsmithEngraver);
-                preferred.Add(CardId.OpeningOfTheSpiritGates);
-                preferred.Add(CardId.NightmarePain);
-                preferred.Add(CardId.FabledLurrie);
-
-                var result = new List<ClientCard>();
-                foreach (int id in preferred)
-                {
-                    var matches = cards.Where(c => c != null && c.Id == id && !result.Contains(c)).ToList();
-                    foreach (var m in matches)
-                    {
-                        result.Add(m);
-                        if (result.Count >= max) return result;
-                    }
-                }
-
-                // Fallback: select whatever is NOT Terror Incarnate/Ultimate Nightmare/Neos first (prevent hand clogging)
-                var rest = cards.Where(c => c != null && !result.Contains(c))
-                    .OrderBy(c => c.Id == CardId.YubelTerrorIncarnate || c.Id == CardId.YubelTheUltimateNightmare || c.Id == CardId.ElementalHERONeos ? 1 : 0)
-                    .ToList();
-                foreach (var r in rest)
-                {
-                    result.Add(r);
-                    if (result.Count >= max) return result;
-                }
-                return result.Take(max).ToList();
-            }
-
-            // 3. Selection for Destruction (from hand/field)
-            if (Card != null && Card.Id == CardId.NightmarePain)
-            {
-                var targets = cards.Where(c => c != null && (c.Location == CardLocation.Hand || c.Location == CardLocation.MonsterZone))
-                    .OrderBy(c => c.Id == CardId.SpiritOfYubel ? 0 :
-                             c.Id == CardId.Yubel ? 1 :
-                             c.Id == CardId.SamsaraDLotus ? 2 : 3)
-                    .ToList();
-                if (targets.Count > 0)
-                {
-                    return targets.Take(max).ToList();
-                }
-            }
-
-            // 4. Discard cost (Opening of the Spirit Gates or Fiendsmith's Tract)
-            if (cards.Any(c => c != null && c.Location == CardLocation.Hand))
-            {
-                var lurrie = cards.FirstOrDefault(c => c != null && c.Id == CardId.FabledLurrie);
-                if (lurrie != null) return new List<ClientCard> { lurrie };
-
-                var redundantYubels = cards.Where(c => c != null && YubelMonsters.Contains(c.Id)).ToList();
-                if (redundantYubels.Count > 1) return new List<ClientCard> { redundantYubels[0] };
-
-                var neos = cards.FirstOrDefault(c => c != null && c.Id == CardId.ElementalHERONeos);
-                if (neos != null) return new List<ClientCard> { neos };
-
-                // Avoid discarding Hand Traps! Filter them out if possible.
-                var safeToDiscard = cards.Where(c => c != null && 
-                    c.Id != CardId.AshBlossom && c.Id != CardId.MaxxC && 
-                    c.Id != CardId.EffectVeiler && c.Id != CardId.CalledByTheGrave).ToList();
-                
-                if (safeToDiscard.Count > 0)
-                {
-                    var sorted = safeToDiscard.OrderBy(c => GetMaterialPriority(c)).ToList();
+                    var sorted = enemyTargets.OrderByDescending(c => 
+                        CardIntelligence.IsHighThreatChokepoint(c.Id) ? 1000 :
+                        CardIntelligence.IsKnownNegator(c.Id) ? 900 :
+                        GetCardThreatScore(c)).ToList();
                     return sorted.Take(max).ToList();
                 }
-
-                var sortedFallback = cards.OrderBy(c => GetMaterialPriority(c)).ToList();
-                return sortedFallback.Take(max).ToList();
             }
 
-            // 5. Special Poly or Loving Defender target selections
-            if (Card != null && (Card.Id == CardId.SuperPolymerization || Card.Id == CardId.YubelTheLovingDefenderForever))
+            // Hint 511 / 513 / 533: Fusion, Contact Fusion, Ritual, Release materials
+            if (hint == 511 || hint == 513 || hint == 533)
             {
-                var sorted = cards.OrderByDescending(c => c.Controller == 1 ? 100000 + c.Attack : c.Attack).ToList();
+                // Prioritize absorbing opponent monsters for Loving Defender or Super Poly
+                var sorted = cards.OrderBy(c => c.Controller == 1 ? 0 : GetMaterialPriority(c)).ToList();
                 return sorted.Take(max).ToList();
             }
 
             return base.OnSelectCard(cards, min, max, hint, cancelable);
         }
 
+        // ========================================================================
+        // POSITIONING & BATTLE
+        // ========================================================================
+
         public override CardPosition OnSelectPosition(int cardId, IList<CardPosition> positions)
         {
-            // Yubel forms should be in attack position to maximize damage reflection
+            bool hasPain = Bot.GetSpells().Any(c => c != null && c.IsFaceup() && c.Id == CardId.NightmarePain);
+
+            // Yubel forms should be in FaceUpAttack if Nightmare Pain is active to reflect damage!
             if (YubelMonsters.Contains(cardId))
             {
-                if (positions.Contains(CardPosition.FaceUpAttack))
-                    return CardPosition.FaceUpAttack;
+                if (hasPain || cardId == CardId.YubelTheLovingDefenderForever || cardId == CardId.ElementalHERONeosKluger)
+                {
+                    if (positions.Contains(CardPosition.FaceUpAttack))
+                        return CardPosition.FaceUpAttack;
+                }
+                else
+                {
+                    // Otherwise defense is safe
+                    if (positions.Contains(CardPosition.FaceUpDefence))
+                        return CardPosition.FaceUpDefence;
+                }
             }
-            // Fiendsmith or normal monsters in attack
-            if (cardId == CardId.FiendsmithEngraver || cardId == CardId.LacrimaTheCrimsonTears)
+
+            // Low ATK / utility monsters -> FaceUpDefence (Stat-Aware)
+            if (cardId == CardId.SamsaraDLotus || cardId == CardId.DarkBeckoningBeast ||
+                cardId == CardId.FabledLurrie || cardId == CardId.GruesomeGraveSquirmer)
+            {
+                if (positions.Contains(CardPosition.FaceUpDefence))
+                    return CardPosition.FaceUpDefence;
+            }
+
+            // High ATK beaters
+            if (cardId == CardId.ChaosAngel || cardId == CardId.LuceTheDusksDark ||
+                cardId == CardId.FiendsmithEngraver || cardId == CardId.StarvingVenomFusionDragon)
             {
                 if (positions.Contains(CardPosition.FaceUpAttack))
                     return CardPosition.FaceUpAttack;
             }
+
             return base.OnSelectPosition(cardId, positions);
         }
-
-        // ==========================================
-        // MONSTER REPOSITIONING LOGIC (MonsterRepos)
-        // ==========================================
 
         private bool MonsterRepos()
         {
             if (Card == null) return false;
 
-            // Yubel forms repositioning
+            bool hasPain = Bot.GetSpells().Any(c => c != null && c.IsFaceup() && c.Id == CardId.NightmarePain);
+            bool hasEnemyMonstersWithAtk = Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && c.Attack > 0);
+
             if (YubelMonsters.Contains(Card.Id))
             {
-                // If opponent has face-up monsters with ATK, we want to be in Attack position to declare attacks and reflect damage.
-                // Otherwise, if opponent board has no monsters, keep/change to Defense position for safety.
-                bool hasTarget = Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && c.Attack > 0);
-                if (hasTarget)
+                if (hasPain && hasEnemyMonstersWithAtk)
                 {
-                    if (Card.IsDefense()) return true; // Change to Attack
+                    // We want Attack position to declare attacks and reflect damage!
+                    if (Card.IsDefense()) return true;
                     return false;
                 }
-                else
+                else if (!hasEnemyMonstersWithAtk)
                 {
-                    if (Card.IsAttack()) return true; // Change to Defense
-                    return false;
+                    // If no enemy monsters to punch, stay in defense
+                    if (Card.IsAttack() && Card.Attack == 0) return true;
                 }
             }
 
-            bool enemyEmpty = Enemy.GetMonsterCount() == 0;
-            if (Card.IsAttack())
-            {
-                if (!enemyEmpty && !IsSafeToAttack(Card) && IsSafeToDefend(Card)) return true;
-            }
-            else
-            {
-                if (enemyEmpty || IsSafeToAttack(Card)) return true;
-            }
             return false;
         }
 
@@ -1301,39 +1491,22 @@ namespace WindBot.Game.AI.Decks
         {
             if (attacker != null && YubelMonsters.Contains(attacker.Id))
             {
-                // Yubel wants to crash into the highest ATK target!
-                var bestTarget = defenders.Where(d => d != null && d.IsFaceup() && d.IsAttack())
-                                          .OrderByDescending(d => d.Attack)
-                                          .FirstOrDefault();
-                if (bestTarget != null && bestTarget.Attack >= 0)
+                bool hasPain = Bot.GetSpells().Any(c => c != null && c.IsFaceup() && c.Id == CardId.NightmarePain);
+                // If Nightmare Pain is on field, OR if attacker is Loving Defender / Neos Kluger:
+                // Punching higher ATK deals MORE damage to opponent!
+                if (hasPain || attacker.Id == CardId.YubelTheLovingDefenderForever ||
+                    attacker.Id == CardId.YubelTheUltimateNightmare || attacker.Id == CardId.ElementalHERONeosKluger)
                 {
-                    return AI.Attack(attacker, bestTarget);
+                    var bestTarget = defenders.Where(d => d != null && d.IsFaceup() && d.IsAttack())
+                                              .OrderByDescending(d => d.Attack)
+                                              .FirstOrDefault();
+                    if (bestTarget != null && bestTarget.Attack > 0)
+                    {
+                        return AI.Attack(attacker, bestTarget);
+                    }
                 }
             }
             return base.OnSelectAttackTarget(attacker, defenders);
-        }
-
-        private bool IsSafeToAttack(ClientCard attacker)
-        {
-            if (YubelMonsters.Contains(attacker.Id)) return true;
-
-            foreach (ClientCard enemy in Enemy.MonsterZone)
-            {
-                if (enemy == null || !enemy.IsFaceup()) continue;
-                if (enemy.IsAttack() && enemy.Attack > attacker.Attack) return false;
-                if (enemy.IsDefense() && attacker.Attack <= enemy.Defense) return false;
-            }
-            return true;
-        }
-
-        private bool IsSafeToDefend(ClientCard monster)
-        {
-            foreach (ClientCard enemy in Enemy.MonsterZone)
-            {
-                if (enemy == null || !enemy.IsFaceup()) continue;
-                if (enemy.Attack > monster.Defense) return false;
-            }
-            return true;
         }
     }
 }

@@ -925,15 +925,23 @@ namespace WindBot.Game.AI.Decks
             if (!_normalSummonUsed && Bot.Hand.Any(h => h.IsCode(CardId.Purrely, CardId.Purrelyly)))
                 return false;
 
-            // RULE 2: If we have a Rank 2 Purrely on field with < 5 materials: attach and feed!
+            // RULE 2: If we have a Rank 2 Purrely (e.g. Plump) on field with < 5 materials: attach and feed!
             var rank2 = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.Rank == 2 && PurrelyXyz.Contains(c.Id));
             if (rank2 != null && GetOverlayCount(rank2) < 5)
             {
                 return true;
             }
 
-            // RULE 3: If we don't have Noir with 5+ materials, and we have cards to discard, activate to SS Purrely/Purrelyly from Deck!
-            if (Bot.Hand.Count >= 2)
+            // RULE 3: If we have Purrelyly on field and NO Quick-Play in GY, activate one so Purrelyly can target it!
+            if (Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.IsCode(CardId.Purrelyly)) &&
+                !Bot.Graveyard.Any(c => c != null && MemorySpells.Contains(c.Id)))
+            {
+                return true;
+            }
+
+            // RULE 4: If we have NO Purrely monsters on field, activate to SS Purrelyly/Purrely from Deck!
+            bool hasPurrelyMon = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && (c.IsCode(CardId.Purrely, CardId.Purrelyly) || PurrelyXyz.Contains(c.Id)));
+            if (!hasPurrelyMon && Bot.Hand.Count >= 2)
             {
                 return true;
             }
@@ -1360,19 +1368,22 @@ namespace WindBot.Game.AI.Decks
             if (Card.Location != CardLocation.MonsterZone) return false;
 
             // Trigger 1: When a Purrely Quick-Play Spell is activated -> Attach it from field to Plump!
-            // CRITICAL: Only check Trigger 1 during an active chain (Duel.CurrentChain.Count > 0), NEVER in IDLE!
-            if (Duel.CurrentChain.Count > 0 && (ActivateDescription == Util.GetStringId(CardId.EpurrelyPlump, 1) || (Duel.LastChainPlayer == 0 && MemorySpells.Contains(Util.GetLastChainCard()?.Id ?? 0))))
+            if (Duel.CurrentChain.Count > 0)
             {
-                DecisionTracer.TraceActivate("EpurrelyPlump", "Attaching activated Quick-Play Spell to Plump!");
-                return true;
+                var lastCard = Util.GetLastChainCard();
+                if (lastCard != null && lastCard.Controller == 0 && MemorySpells.Contains(lastCard.Id))
+                {
+                    DecisionTracer.TraceActivate("EpurrelyPlump", "Attaching activated Quick-Play Spell to Plump!");
+                    return true;
+                }
             }
 
-            // Effect 0: Ignition / Quick Effect to attach up to 2 Spells/Traps from GYs
-            if (ActivateDescription == Util.GetStringId(CardId.EpurrelyPlump, 0) || ActivateDescription == -1 || Duel.CurrentChain.Count == 0)
+            // Effect 0: Ignition / Quick Effect to attach up to 2 Spells/Traps from GYs (Once per turn!)
+            if (Duel.CurrentChain.Count == 0 || ActivateDescription == Util.GetStringId(CardId.EpurrelyPlump, 0))
             {
                 // If Plump already has 5+ materials, DO NOT activate ignition effect; rank up to Expurrely Noir directly!
                 if (GetOverlayCount(Card) >= 5) return false;
-                if (_plumpAttachCount >= 3) return false;
+                if (_plumpAttachCount >= 1) return false;
 
                 var gySpells = Bot.Graveyard.Concat(Enemy.Graveyard)
                     .Where(c => c != null && (c.IsSpell() || c.IsTrap()))
@@ -1802,11 +1813,50 @@ namespace WindBot.Game.AI.Decks
 
         public override bool OnSelectYesNo(long desc)
         {
-            // Plump optional banish: "Banish 1 monster on the field until the End Phase?"
-            // CRITICAL: NEVER banish! Detaching or risking Plump destroys our 5-mat Noir win con!
+            // 1. Plump optional banish: "Banish 1 monster on the field until the End Phase?"
             if (desc == Util.GetStringId(CardId.EpurrelyPlump, 2))
             {
+                // Banish opponent face-up monster if one exists!
+                return Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsShouldNotBeTarget());
+            }
+
+            // 2. Memory Spells: "Discard 1 card, and if you do, Special Summon 1 Level 1 Purrely from Deck?"
+            // Delicious (index 1), Happy (index 1), Pretty (index 2), Sleepy (index 3)
+            if (desc == Util.GetStringId(CardId.PurrelyDeliciousMemory, 1) ||
+                desc == Util.GetStringId(CardId.PurrelyHappyMemory, 1) ||
+                desc == Util.GetStringId(CardId.PurrelyPrettyMemory, 2) ||
+                desc == Util.GetStringId(CardId.PurrelySleepyMemory, 3))
+            {
+                // If we already control Expurrely Noir: NEVER discard!
+                if (Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.IsCode(CardId.ExpurrelyNoir)))
+                    return false;
+
+                // If we control a Purrely Xyz (e.g. Plump): DO NOT discard! Plump already attaches the spell from field!
+                if (Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && PurrelyXyz.Contains(c.Id)))
+                    return false;
+
+                // If we have NO Purrely monsters on field: Discard only to establish our Starter!
+                bool hasPurrelyMonsterOnField = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && (c.IsCode(CardId.Purrely, CardId.Purrelyly) || PurrelyXyz.Contains(c.Id)));
+                if (!hasPurrelyMonsterOnField)
+                {
+                    return Bot.Hand.Count >= 2;
+                }
+
+                // If we already control Purrely or Purrelyly on field:
+                // Conserve our hand cards so we have spells to reveal/attach!
                 return false;
+            }
+
+            // 3. Epurrely Noir setting Purrely Trap from Deck:
+            if (desc == Util.GetStringId(CardId.EpurrelyNoir, 2))
+            {
+                return Bot.GetRemainingCount(CardId.Purrelyeap, 2) > 0;
+            }
+
+            // 4. Epurrely Beauty changing battle position of opponent monster:
+            if (desc == Util.GetStringId(CardId.EpurrelyBeauty, 2))
+            {
+                return Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && c.IsAttack());
             }
 
             return true;
@@ -1819,6 +1869,69 @@ namespace WindBot.Game.AI.Decks
 
         public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
         {
+            // Hint 526: HINTMSG_CONFIRM (Purrely revealing Quick-Play from hand to Xyz)
+            if (hint == 526)
+            {
+                var qp = cards.Where(c => c != null && MemorySpells.Contains(c.Id))
+                    .OrderBy(c => {
+                        // Plump (Delicious) is #1 priority
+                        if (c.Id == CardId.PurrelyDeliciousMemory && Bot.ExtraDeck.Any(e => e.IsCode(CardId.EpurrelyPlump))) return 1;
+                        if (c.Id == CardId.PurrelySleepyMemory && Bot.ExtraDeck.Any(e => e.IsCode(CardId.EpurrelyNoir))) return 2;
+                        if (c.Id == CardId.PurrelyPrettyMemory && Bot.ExtraDeck.Any(e => e.IsCode(CardId.EpurrelyBeauty))) return 3;
+                        if (c.Id == CardId.PurrelyHappyMemory && Bot.ExtraDeck.Any(e => e.IsCode(CardId.EpurrelyHappiness))) return 4;
+                        return 10;
+                    }).ToList();
+                if (qp.Count > 0) return qp.Take(max).ToList();
+            }
+
+            // Hint 551: HINTMSG_TARGET (Purrelyly targeting GY / Purrelyeap targeting field / Protection targets)
+            if (hint == 551)
+            {
+                // Case A: Purrelyly targeting GY Quick-Play
+                if (cards.All(c => c.Location == CardLocation.Grave && MemorySpells.Contains(c.Id)))
+                {
+                    var bestGY = cards.OrderBy(c => {
+                        if (c.Id == CardId.PurrelyDeliciousMemory && Bot.ExtraDeck.Any(e => e.IsCode(CardId.EpurrelyPlump))) return 1;
+                        if (c.Id == CardId.PurrelySleepyMemory && Bot.ExtraDeck.Any(e => e.IsCode(CardId.EpurrelyNoir))) return 2;
+                        if (c.Id == CardId.PurrelyPrettyMemory && Bot.ExtraDeck.Any(e => e.IsCode(CardId.EpurrelyBeauty))) return 3;
+                        return 4;
+                    }).ToList();
+                    return bestGY.Take(max).ToList();
+                }
+
+                // Case B: Purrelyeap!? targeting friendly Rank 2 Xyz on field
+                if (cards.Any(c => c != null && c.Location == CardLocation.MonsterZone && c.Controller == 0 && c.Rank == 2))
+                {
+                    var bestRank2 = cards.Where(c => c != null && c.Location == CardLocation.MonsterZone && c.Controller == 0 && c.Rank == 2)
+                                         .OrderByDescending(c => GetOverlayCount(c))
+                                         .FirstOrDefault();
+                    if (bestRank2 != null) return new[] { bestRank2 };
+                }
+
+                // Case C: Delicious / Happy Memory targeting a monster for protection:
+                var ourMon = cards.FirstOrDefault(c => c != null && c.Controller == 0 && c.IsFaceup());
+                if (ourMon != null && Bot.BattlingMonster == null && Duel.CurrentChain.Count > 0)
+                {
+                    var lastChain = Util.GetLastChainCard();
+                    if (lastChain != null && lastChain.IsCode(CardId.PurrelyDeliciousMemory, CardId.PurrelyHappyMemory))
+                        return new[] { ourMon };
+                }
+
+                // Case D: General removal / disruption targeting opponent card:
+                var oppTarget = cards.Where(c => c != null && c.Controller == 1 && !c.IsShouldNotBeTarget())
+                    .OrderByDescending(c => {
+                        if (c.IsCode(48680970, 48770333)) return 50000;
+                        if (c.IsSpell() || c.IsTrap()) return c.IsFaceup() ? 20000 : 10000;
+                        if (c.IsMonster())
+                        {
+                            int s = (c.HasType(CardType.Fusion) || c.HasType(CardType.Synchro) || c.HasType(CardType.Xyz) || c.HasType(CardType.Link)) ? 25000 : 15000;
+                            return s + c.Attack;
+                        }
+                        return 0;
+                    }).FirstOrDefault();
+                if (oppTarget != null) return new[] { oppTarget };
+            }
+
             // ONLY select a Rank 2 on FIELD if explicitly resolving Purrelyeap OR performing an Xyz overlay!
             if (min == 1 && (hint == 513 || Util.GetLastChainCard()?.Id == CardId.Purrelyeap) &&
                 cards.Any(c => c != null && c.Location == CardLocation.MonsterZone && c.Controller == 0 && c.Rank == 2))

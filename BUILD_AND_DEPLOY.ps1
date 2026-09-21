@@ -148,10 +148,8 @@ $sourceCdb = Join-Path $ScriptDir "windbot-fork\cards.cdb"
 if (Test-Path $sourceCdb) {
     Copy-Item $sourceCdb (Join-Path $TargetDir "WindBot\cards.cdb") -Force
     $targetRootCdb = Join-Path $TargetDir "cards.cdb"
-    if ((Test-Path $targetRootCdb) -and (Get-Item $targetRootCdb).Length -lt 10000000) {
-        Copy-Item $sourceCdb $targetRootCdb -Force
-        Write-OK "Updated root cards.cdb with full prerelease/custom card database"
-    }
+    Copy-Item $sourceCdb $targetRootCdb -Force
+    Write-OK "Updated root cards.cdb with full prerelease/custom card database"
     Write-OK "Deployed cards.cdb to WindBot"
 }
 
