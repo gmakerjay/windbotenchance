@@ -325,7 +325,7 @@ namespace dashbot
         {
             "AFS", "ArtMage",
             "Tenpai", "VoicelessVoice", "Centurion", "CenturIon",
-            "Branded", "Purrely", "Yummy", "RyuGe", "Runick", "Spright",
+            "Branded", "Purrely", "Yummy", "RyuGe", "Runick", "Spright", "WCParisKewlTune", "Kwtune", "KewlTune",
             "SnakeEye", "FireKing", "Tearla", "Tearlaments", "Kashtira", "Labrynth",
             "VanquishSoul", "Unchained", "RescueAce", "Horus", "Memento",
             "WhiteForest", "Fiendsmith", "Azamina", "Maliss", "Raika",

@@ -1,5 +1,35 @@
 [
   {
+    "name": "SacrBeatsMach",
+    "deck": "SacrBeatsMach",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "ScarbeatMach",
+    "deck": "SacrBeatsMach",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Anime_JoeyWheeler",
+    "deck": "Anime_JoeyWheeler",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
     "name": "Anime_Kaiba",
     "deck": "Anime_Kaiba",
     "difficulty": 3,
@@ -52,6 +82,17 @@
   {
     "name": "Anime_Sayer",
     "deck": "Anime_Sayer",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Anime_JoeyWheeler",
+    "deck": "Anime_JoeyWheeler",
+    "dialog": "default",
     "difficulty": 3,
     "masterRules": [
       3,
@@ -638,6 +679,26 @@
   {
     "name": "Expert_2026_Kwtune",
     "deck": "2026_Kwtune",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "WCParisKewlTune",
+    "deck": "WCParisKewlTune",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Expert_WCParisKewlTune",
+    "deck": "WCParisKewlTune",
     "difficulty": 3,
     "masterRules": [
       3,

@@ -1,4 +1,159 @@
-# Progress Log: Anime_Yugi, 2026_Purrely, 2026_Yummy, 2026_Tearla, GOD-01, Yubel2, 2026_Branded, 2026_DarkTime, 2026_Runick, 2026_RyuGe, 2026_AFS, 2026_Spright, GOD-01, Demise, 2026_Darklord, 2026_DarkWorld & 2026_Hecahand ModernExecutors
+# Progress Log: SacrBeatsMach (FTK & ModernExecutor), Fidraulis Harmonia Lua Fix, 2026_Puppet Bugfix & WCParisKewlTune Refactor, WCParisKewlTune, 2026_Kwtune (Refactor), Anime_JoeyWheeler (Refactor), Anime_JoeyWheeler, Anime_Yugi, 2026_Purrely, 2026_Yummy, 2026_Tearla, GOD-01, Yubel2, 2026_Branded, 2026_DarkTime, 2026_Runick, 2026_RyuGe, 2026_AFS, 2026_Spright, GOD-01, Demise, 2026_Darklord, 2026_DarkWorld & 2026_Hecahand ModernExecutors
+
+## SacrBeatsMach (Sacred Beasts Machina Trains FTK): ModernExecutor, Thai Localization, Image Ingestion & Engine Audit (2026-09-21)
+
+### Overview
+- **Deck**: `SacrBeatsMach.ydk` & alias `ScarbeatMach.ydk` (53 Main Deck, 15 Extra Deck, 15 Side Deck)
+- **Investigation of User Inquiries**:
+  1. **ABC Mixture Claim**: Verified false. No ABC cards (`A`, `B`, `C`, or `ABC-Dragon Buster`) exist in the deck. However, `Machina Ruinforce` (Lv 10, ATK 4600) exhibits a loop mechanic very similar to ABC: it summons itself repeatedly from GY by banishing 12+ Machine levels, and upon destruction/tribute, floats into up to 3 banished Machina monsters (levels <= 12), enabling perpetual component cycling.
+  2. **FTK Feasibility**: Verified true 100%. The deck executes FTK via:
+     - `Cannon Soldier MK-2` (14702066): Tributes 2 monsters for 1500 damage with no once-per-turn limit, cycling through `Machina Ruinforce` revivals and Machina component floats.
+     - Rank 10 Train Burn: `Gustav Max` (2000 burn) -> `Gustav Rocket` (1000 burn) -> `Calamity Hamon` (1000 burn on opp monster sent to GY).
+- **Work Completed**:
+  1. **Official Image Ingestion**: Downloaded high-resolution official artwork for 13 missing cards from YGOPRODeck CDN into both `EdoGame\pics\` and `src\YGO_SOURCE_CLEAN\pics\`. Updated `BUILD_AND_DEPLOY.ps1` to automatically deploy `pics\`.
+  2. **Thai Localization**: Translated descriptions for 13 cards into standard Yu-Gi-Oh Thai phrasing while strictly keeping English card names. Injected into `cards.delta.cdb` (both source and game runtime).
+     - Cards: `1259915` (Sacred Beasts Thunderclap), `7894706` (The Chaotic Phantasmal Sacred Beasts), `17350692` (Yomagna), `18616294` (Gray Layer), `22734799` (Summoner of SB), `23856331` (Inferno Uria), `38776201` (Sacred Beasts Released), `50147815` (Combined Assault), `50251045` (Calamity Hamon), `59138498` (Martyr of SB), `65861210` (Fallen Paradise of SB), `80843006` (Mixousia), `96345184` (Infinity Raviel).
+  3. **Rule-Based ModernExecutor (`_2026_SacrBeatsMachExecutor.cs`)**:
+     - Inherits `ModernExecutor`.
+     - Supports Plan A (FTK Cannon Soldier MK-2 Tribute Loop), Plan B (Rank 10 Train Burn with `Gustav Max` + `Gustav Rocket` & Omni-negate `Varudras` / `The Chaotic Phantasmal Sacred Beasts`), and Plan C (Turn 2 Board Breaking & `Liebe` 6000 ATK OTK).
+     - Registered in `bots.json` as both `SacrBeatsMach` and `ScarbeatMach`.
+  4. **Build, Deployment & Git Synchronization**:
+     - Built and deployed exclusively to `C:\Users\admin\Documents\EdoGame\`.
+     - All assets and source code committed and pushed to `origin/main`.
+
+---
+
+## Fidraulis Harmonia (Lua Fix), 2026_Puppet (Bug Fixes), & WCParisKewlTune (Refactor) (2026-09-21)
+
+### Overview
+- **Decks Affected**: `WCParisKewlTune.ydk`, `2026_Kwtune.ydk`, and `2026_Puppet.ydk`
+- **Primary Tasks Completed**:
+  1. **Fixed in-game crash in `c70088809.lua` (`Fidraulis Harmonia` / 調和ノ天救竜)**:
+     - Error: `[string "c70088809.lua"]:72: Attempting to access deleted object.`
+     - Root Cause: In `s.effcost`, the revealed Synchros group `sg` was created without `sg:KeepAlive()`. At the end of the activation cost, OCGCore deleted `sg`. When resolving `s.effop` line 72, calling `cd.revealed_synchros:Match(Card.IsRelateToEffect,nil,e)` resulted in an access violation on the deleted C++ group object.
+     - Solution: Added `sg:KeepAlive()` in `s.effcost`. In `s.effop`, wrapped group validity in safe `pcall`, added fallback to `Duel.GetMatchingGroup(Card.IsRelateToEffect,tp,LOCATION_EXTRA,0,nil,e)` if deleted, and properly cleaned up with `rev_g:DeleteGroup()` at the end of the operation.
+     - Deployed to: `src\YGO_SOURCE_CLEAN\script\c70088809.lua`, `script\c70088809.lua`, `script\official\c70088809.lua`, and `repositories\local-patches\script\official\c70088809.lua`.
+  2. **Refactored `_2026_KwtuneExecutor.cs` (WCParisKewlTune / 2026_Kwtune)**:
+     - **Hand-Sync Material Rule Enforcement**: Fixed Hint 512 material selection where selecting cards from hand and field separately could pick >1 hand monster, violating Yu-Gi-Oh Hand-Sync mechanics (maximum 1 monster from hand). Replaced with unified selection logic: selects 1 on-field Tuner, at most 1 hand monster (`.Take(1)`), and fills remaining materials strictly from field.
+     - **Fidraulis Harmonia Integration**: Added intelligent card selection for Hint 508 (dumps `Golden Cloud Beast - Malong` to trigger target bounce, or `Wind Pegasus @Ignister` / `Luluwalilith`) and Hint 502 (selects opponent's highest ATK monster for destruction).
+  3. **Comprehensive Bug Fixes in `_2026_PuppetExecutor.cs` (2026_Puppet)**:
+     - **Fanatix Machinix Burn Trigger**: Fixed `ShouldFanatixBurnActivate` which checked `LastChainCard.Controller == 1`. When the AI summoned a monster to the opponent's field via Fanatix ignition, Mansion, or Cattle Scream, the summon controller was the AI (`0`), blocking Fanatix from burning and destroying the monster. Removed the faulty check so Fanatix correctly triggers whenever a monster is Special Summoned to the opponent's field.
+     - **Missing Hint Handlers in `OnSelectCard`**:
+       - `Hint 505` (Search): `Fantasix Machinix` searches `Rank-Up-Magic Argent Chaos Force`; `Fanatix Machinix` searches `Service Puppet Play`; `Mansion` searches `Little Soldiers` -> `Rouge Doll` -> `Bloody Doll`.
+       - `Hint 508` (Send to GY): `Little Soldiers` sends Lv8 `Rouge Doll` / `Cattle Scream` to become Level 8; `King's Sarcophagus` sends `Hapi`; `Condolence Puppet` dumps GP monsters not already in GY.
+       - `Hint 509` (Special Summon): Handles `Argent Chaos Force` Extra Deck rank-up into `CXyz Fanatix Machinix`.
+     - **Fiendish Knight Legal Target**: Restricted GY target in `Bot.Graveyard` to `IsGimmickPuppet(c)`, preventing invalid selections.
+     - **Extra Deck Lock Enforcement**: Set `_gpExtraLocked` when using `Rouge Doll`, `Fiendish Knight`, and `Chimera Doll`, preventing illegal `S:P Little Knight` summons while locked into Gimmick Puppet Xyz monsters.
+     - **Service Puppet Play Control Limit**: Constrained take-control count to `Math.Min(gpXyzCount, 5 - Bot.GetMonsterCount())` and verified controlling a Gimmick Puppet Xyz before triggering GY revival.
+     - **`IsGimmickPuppet` Database**: Added missing GP Xyz IDs (`GPDarkStrings`, `GPStrings`, `GPGigantesDoll`).
+  4. **Build & Exclusive Deployment**:
+     - Successfully built and deployed all binaries and scripts to `C:\Users\admin\Documents\EdoGame\`.
+
+---
+
+## WCParisKewlTune & 2026_Kwtune: Strategic Deck Optimization & Comprehensive ModernExecutor Refactoring (2026-09-21)
+
+### Overview
+- **Deck**: `WCParisKewlTune.ydk` (41 Main Deck, 15 Extra Deck, 15 Side Deck) & `2026_Kwtune.ydk`
+- **Primary Tasks**:
+  1. Analyzed Side Deck for bot playability: identified that Extra Deck's `Visas Amritara` required a "Visas Starfrost" Spell/Trap in Main Deck to resolve its search effect, which was trapped in the Side Deck (`Mannadium Reframing`).
+  2. Swapped 4 cards between Main and Side: added `Mannadium Reframing` x1, `Called by the Grave` x1, `Duelist Genesis` x1, `Triple Tactics Talent` x1 to Main Deck; moved `Ghost Belle` x2 and `Synchro Emergency` x2 to Side Deck. Backed up original deck as `WCParisKewlTune_Original.ydk`.
+  3. Refactored `_2026_KwtuneExecutor.cs` completely to power both `WCParisKewlTune` and `2026_Kwtune` with a unified, high-performance Rule-Based ModernExecutor.
+  4. Fixed card audit defects (Clip level corrected to 2, Zalen correctly classified as Tuner Synchro, Ash Blossom and Feather Duster IDs updated, hardcoded floodgate arrays eliminated in favor of `CardIntelligence`).
+  5. Implemented comprehensive `OnSelectCard` handlers for Hint 512 (Hand-Sync material protection), Hint 502 (Destroy priority), Hint 509 (Cue and Back2Back SS routing), and Hint 505/506 (Amritara Reframing search).
+  6. Registered `WCParisKewlTune` and `Expert_WCParisKewlTune` in `bots.json` and tagged as **Modern** in DashBot WPF Launcher.
+  7. Built and deployed exclusively to `C:\Users\admin\Documents\EdoGame\`.
+
+---
+
+## Anime_JoeyWheeler (Refactor & Full Lua Script Bug Resolution): In-Game Crash Elimination & Strategic ModernExecutor Refactoring (2026-09-21)
+
+### Overview
+- **Deck**: `Anime_JoeyWheeler.ydk` & `Joey Wheeler ADO.ydk` (40 Main Deck, 10 Extra Deck, 23 unique IDs)
+- **Primary Tasks**:
+  1. Investigated and eliminated 3 in-game Lua card script errors (`Attempting to access deleted object`) in `c100459008.lua`, `c101402053.lua`, and `utility.lua`.
+  2. Refactored `Anime_JoeyWheelerExecutor.cs` with smart Hint handlers (`Hint 508` To Grave, `Hint 509` Special Summon, `Hint 502` Destroy, `Hint 500` Tribute, `Hint 501` Discard, `Hint 505` Search, `Hint 507` Equip).
+  3. Added extra deck lock awareness guarding against `Sleeping Scapegoats` Fusion-only restriction when evaluating Link summons.
+  4. Strengthened `Salamandra Fusion` activation checking `Card.EquipTarget.HasType(CardType.Fusion)`.
+  5. Built and deployed exclusively to `C:\Users\admin\Documents\EdoGame\`.
+
+### Work Completed
+
+#### 1. In-Game Lua Script Bug Resolution (3 Errors)
+- **Gilford the Lightning (`c100459008.lua`)**:
+  - *Error*: `[string "c100459008.lua"]:61: Attempting to access deleted object.`
+  - *Root Cause*: `g:KeepAlive()` was missing in `sptg`, and `spop` evaluated `g:IsExists(Card.IsOwner, 1, nil, 1-tp)` after `Duel.Release(g, REASON_COST)`. When tokens (Scapegoat tokens) were released, OCGCore destroyed their C++ objects immediately, causing subsequent iteration to access deleted pointers.
+  - *Fix*: Added `g:KeepAlive()` in `sptg`. In `spop`, cached `local opp_owned = g:IsExists(...)` before calling `Duel.Release`, then cleanly cleaned up with `g:DeleteGroup()` and `e:SetLabelObject(nil)`.
+  - *Synced Across*: `script/c100459008.lua` and `repositories/official-scripts/pre-release/c100459008.lua`.
+- **Graceful Skull Dice (`c101402053.lua`)**:
+  - *Error*: `[string "c101402053.lua"]:90: Attempting to access deleted object.`
+  - *Root Cause*: Missing `g:KeepAlive()` in `initial_effect(c)` on `local g = Group.CreateGroup()`. OCGCore garbage-collected the group when initialization concluded, resulting in `regop` invoking `g:Clear()` on a deleted group object.
+  - *Fix*: Added `g:KeepAlive()`. In `regop`, added null-guard auto-reinstantiation. In `destg`, protected `e:GetLabelObject()` null check.
+  - *Synced Across*: `script/c101402053.lua`, `repositories/official-scripts/pre-release/c101402053.lua`, `script/official/c101402053.lua`, `script/pre-release/c101402053.lua`.
+- **aux.DelayedOperation (`utility.lua`)**:
+  - *Error*: `[string "utility.lua"]:2894: Attempting to access deleted object.`
+  - *Root Cause*: In `e1:SetOperation`, `g:DeleteGroup()` deleted the group but left `e:GetLabelObject()` referencing the freed memory. Subsequent condition evaluations accessed the deleted group via `get_affected_group(e)`.
+  - *Fix*: Added `e:SetLabelObject(nil)` before `g:DeleteGroup()`. Protected `get_affected_group(e)` with `pcall` fallback.
+  - *Synced Across*: `script/utility.lua` and `repositories/official-scripts/utility.lua`.
+
+#### 2. Rule-Based ModernExecutor Refactoring (`Anime_JoeyWheelerExecutor.cs`)
+- **Full Hint Message System (`OnSelectCard`)**:
+  - `Hint 508` (To Grave): Prioritizes dumping `Fighting Flame Dragon` (Extra Deck) on `Fighting Flame Swordsman` death trigger, enabling +700 ATK & 2nd attack on Warrior Fusions, followed by `Salamandra` and `Graceful Skull Dice`.
+  - `Hint 509` (Special Summon): Prioritizes reviving highest impact bosses (`Ultimate Flame Swordsman`, `Gilford`, `Red-Eyes Exceed`, `Swift Panther Warrior`).
+  - `Hint 500` (Tribute): Prioritizes opponent monsters (if selectable by effect) -> Scapegoat tokens -> low ATK non-Ace fodder.
+  - `Hint 501` (Discard): Discards cards with GY triggers (`Salamandra`, `Foolish Graverobber`, `Graceful Skull Dice`, `Fighting Flame Dragon`).
+  - `Hint 502` (Destroy): Targets enemy negators/threats, or selects own Scapegoat Token for `Sleeping Scapegoats` replacement protection.
+  - `Hint 505` (Search): Follows strategic line hierarchy between Flame Swordsman and Dark Time engines.
+- **Rule Enforcement & Safety Checks**:
+  - `_sleepingScapegoatsUsedThisTurn` flag: Enforces Extra Deck Fusion-only restriction, blocking illegal Link Summon attempts for `Ferocious Flame Swordsman`.
+  - `ShouldSalamandraFusionActivate`: Strictly checks `Card.EquipTarget.HasType(CardType.Fusion)` before triggering Extra Deck Fusion invocation.
+  - `ShouldFlameSwordsrealmActivate`: Selects `Fighting Flame Swordsman` as prime fodder to immediately trigger its graveyard dump engine.
+
+#### 3. Exclusive Deployment
+- Executed `BUILD_AND_DEPLOY.ps1` in `src/YGO_SOURCE_CLEAN/` (0 Errors).
+- Deployed all updated binaries, CDBs, and patched scripts exclusively to `C:\Users\admin\Documents\EdoGame\`.
+
+---
+
+### Overview
+- **Deck**: `Anime_JoeyWheeler.ydk` & `Joey Wheeler ADO.ydk` (40 Main Deck, 10 Extra Deck, 23 unique IDs)
+- **Primary Tasks**:
+  1. Resolved missing card IDs from YGOPRODeck (mapped to official Beyond the Brave BETB & YAC1 sets).
+  2. Downloaded and verified all official high-resolution card artwork into `pics/`.
+  3. Translated card effects into Thai across `cards.cdb`, `cards.delta.cdb`, `prerelease-others.cdb` (strictly preserving English card names).
+  4. Built custom Lua script `c100459023.lua` for Gearfried the Steel Knight.
+  5. Implemented 100% Rule-Based C# Executor `Anime_JoeyWheelerExecutor.cs` using `ModernExecutor`.
+  6. Registered bot in `bots.json` under name `Anime_JoeyWheeler` and categorized under **Anime** in DashBot UI.
+  7. Tested with Headless Simulator against legacy AI (0 Violations / 0 Crash).
+  8. Deployed exclusively to `C:\Users\admin\Documents\EdoGame\`.
+
+### Work Completed
+
+#### 1. Card ID Resolution & Database Ingestion (23 Cards)
+- Mapped 9 Beyond the Brave (BETB) cards from temporary YGOPRODeck internal IDs to official IDs (`101402001`, `101402002`, `101402004`, `101402036`, `101402052`, `101402053`, `101402054`, `101402070`, `101402071`).
+- Added 3 Original Artwork Collection (YAC1) cards: `100459008` (Gilford), `100459015` (Super Critical), `100459023` (Gearfried).
+- Downloaded high-resolution artwork: `100459008.jpg`, `100459015.jpg`, `100459023.jpg` to `C:\Users\admin\Documents\EdoGame\pics\`.
+- Created Lua script `c100459023.lua` in `script/` and `src\YGO_SOURCE_CLEAN\script\`.
+- Ingested Thai card descriptions into SQLite databases across game runtime and source directories.
+
+#### 2. Rule-Based AI Executor (`Anime_JoeyWheelerExecutor.cs`)
+- Implemented `Anime_JoeyWheelerExecutor` extending `ModernExecutor`.
+- Supported Flame Swordsman Fusion engine, Dark Time Wizard resource routing, Sleeping Scapegoats defense/token generation, Reversal Box negation/ATK reduction, and Gilford the Lightning 3-tribute non-targeting board wipe.
+- Handled overrides: `OnSelectCard` (smart priority for Tribute, Discard, Search, Equip), `OnSelectOption`, and `OnSelectPosition`.
+
+#### 3. DashBot Anime Category Integration
+- Registered bot in `bots.json` with `"name": "Anime_JoeyWheeler"`, `"deck": "Anime_JoeyWheeler"`.
+- DashBot automatically categorizes it under **Anime** (Tag: `Anime`, Color: `#BE185D`, Display Name: "Joey Wheeler").
+
+#### 4. Headless Simulation Audit
+- Ran duel simulation against `AI_BlueEyes` via `Client_Headless_Fortest`.
+- **Results**: Status OK (100%), 0 Rule Violations, 0 Crashes.
+
+#### 5. Exclusive Deployment
+- Executed `BUILD_AND_DEPLOY.ps1` in `src\YGO_SOURCE_CLEAN`.
+- Deployed all updated binaries (`WindBot.dll`, `ExecutorBase.dll`, `core.dll`, `bots.json`, `DashBot.exe`, decks) exclusively to `C:\Users\admin\Documents\EdoGame\`.
+
+---
 
 ## Anime_Yugi (Yugi Muto Deck): Official Card Images, Thai Effect Translations, and Full Lua Bug Resolution (2026-09-21)
 

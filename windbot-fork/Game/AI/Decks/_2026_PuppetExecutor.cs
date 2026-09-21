@@ -123,7 +123,9 @@ namespace WindBot.Game.AI.Decks
         private bool _fantasixSearchUsed = false;
         private bool _fanatixSearchUsed = false;
         private bool _fanatixSSOppUsed = false;
+        private bool _fanatixBurnUsed = false;
         private bool _condolenceUsed = false;
+        private bool _gpExtraLocked = false;
 
         public _2026_PuppetExecutor(GameAI ai, Duel duel)
             : base(ai, duel)
@@ -252,7 +254,9 @@ namespace WindBot.Game.AI.Decks
             _fantasixSearchUsed = false;
             _fanatixSearchUsed = false;
             _fanatixSSOppUsed = false;
+            _fanatixBurnUsed = false;
             _condolenceUsed = false;
+            _gpExtraLocked = false;
         }
 
         public override bool OnSelectHand()
@@ -368,8 +372,8 @@ namespace WindBot.Game.AI.Decks
 
         public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
         {
-            // Fanatix Machinix: destroy target on opponent's field
-            if (LastChainCard != null && LastChainCard.Id == CardId.GPFanatixMachinix)
+            // Fanatix Machinix: destroy target on opponent's field (Trigger or Hint 502)
+            if ((LastChainCard != null && LastChainCard.Id == CardId.GPFanatixMachinix) || hint == 502)
             {
                 var oppMonsters = cards.Where(c => c != null && c.Controller == 1 && c.Location == CardLocation.MonsterZone)
                     .OrderByDescending(c => c.Attack)
@@ -392,8 +396,8 @@ namespace WindBot.Game.AI.Decks
                 }
             }
 
-            // Deck search selections (Hint 506)
-            if (hint == 506)
+            // Hint 505 / 506: Deck search selections & additions to hand
+            if (hint == 505 || hint == 506)
             {
                 if (Card != null && Card.Id == CardId.GPFantasixMachinix)
                 {
@@ -416,16 +420,59 @@ namespace WindBot.Game.AI.Decks
                 }
             }
 
-            // Special Summon from Deck (Hint 509)
+            // Hint 508: Send to GY / Dump from Deck
+            if (hint == 508)
+            {
+                // Little Soldiers: Dump Lv8 (Rouge Doll / Cattle Scream / Bisque Doll) so Little Soldiers becomes Lv8
+                if (Card != null && Card.Id == CardId.GPLittleSoldiers)
+                {
+                    var lv8Target = cards.FirstOrDefault(c => c.Id == CardId.GPRougeDoll)
+                                 ?? cards.FirstOrDefault(c => c.Id == CardId.GPCattleScream)
+                                 ?? cards.FirstOrDefault(c => c.Id == CardId.GPBisqueDoll);
+                    if (lv8Target != null) return new List<ClientCard> { lv8Target };
+                }
+
+                // King's Sarcophagus: Dump Hapi
+                if (Card != null && Card.Id == CardId.KingsSarcophagus)
+                {
+                    var hapi = cards.FirstOrDefault(c => c.Id == CardId.HapiHorus);
+                    if (hapi != null) return new List<ClientCard> { hapi };
+                }
+
+                // Condolence Puppet: Send different GP monsters from deck to GY
+                if (Card != null && Card.Id == CardId.CondolencePuppet)
+                {
+                    var sorted = cards.OrderBy(c =>
+                    {
+                        if (c.Id == CardId.GPRougeDoll) return 1;
+                        if (c.Id == CardId.GPCattleScream) return 2;
+                        if (c.Id == CardId.GPBisqueDoll) return 3;
+                        if (c.Id == CardId.GPTerrorBaby) return 4;
+                        return 10;
+                    }).ToList();
+                    return Util.CheckSelectCount(sorted, cards, min, max);
+                }
+            }
+
+            // Hint 509: Special Summon from Deck / Extra Deck
             if (hint == 509)
             {
+                // Argent Chaos Force: Rank-Up into Fanatix / Giant Hunter from Extra Deck
+                if (Card != null && Card.Id == CardId.ArgentChaosForce)
+                {
+                    var fanatix = cards.FirstOrDefault(c => c.Id == CardId.GPFanatixMachinix)
+                               ?? cards.FirstOrDefault(c => c.Id == CardId.GPGiantHunter)
+                               ?? cards.FirstOrDefault(c => c.Id == CardId.GPDarkStrings);
+                    if (fanatix != null) return new List<ClientCard> { fanatix };
+                }
+
                 var deckCards = cards.Where(c => c != null && c.Location == CardLocation.Deck).ToList();
                 if (deckCards.Count > 0)
                 {
                     var preferred = deckCards.OrderBy(c => {
-                        if (c.Id == CardId.GPRougeDoll) return 1;
-                        if (c.Id == CardId.GPCattleScream) return 2;
-                        if (c.Id == CardId.GPBisqueDoll) return 3;
+                        if (c.Id == CardId.GPCattleScream) return 1;
+                        if (c.Id == CardId.GPBisqueDoll) return 2;
+                        if (c.Id == CardId.GPRougeDoll) return 3;
                         if (c.Id == CardId.GPLittleSoldiers) return 4;
                         return 10;
                     }).ToList();
@@ -433,8 +480,8 @@ namespace WindBot.Game.AI.Decks
                 }
             }
 
-            // Xyz Material selection (Hint 511/512/513/533)
-            if (hint == 511 || hint == 512 || hint == 513 || hint == 533)
+            // Xyz Material selection (Hint 511/512/513/519/533)
+            if (hint == 511 || hint == 512 || hint == 513 || hint == 519 || hint == 533)
             {
                 var sorted = cards.Where(c => c != null)
                     .OrderBy(c => GetMaterialPriority(c))
@@ -551,11 +598,12 @@ namespace WindBot.Game.AI.Decks
                 }
 
                 // Trigger 2: When monster SS'd to opponent's field -> Destroy & Burn
-                if (LastChainCard != null && LastChainCard.Controller == 1)
+                if (!_fanatixBurnUsed)
                 {
                     var oppMonster = Enemy.MonsterZone.Where(c => c != null && c.IsFaceup()).OrderByDescending(c => c.Attack).FirstOrDefault();
                     if (oppMonster != null)
                     {
+                        _fanatixBurnUsed = true;
                         AI.SelectCard(oppMonster);
                         DecisionTracer.TraceActivate("FanatixEffect", $"Destroy and burn opponent monster {oppMonster.Name}");
                         return true;
@@ -563,7 +611,8 @@ namespace WindBot.Game.AI.Decks
                 }
 
                 // Ignition Effect: Detach 1 -> SS monster from GY to opponent field (burn setup)
-                if (!_fanatixSSOppUsed && Card.HasXyzMaterial() && Duel.Phase == DuelPhase.Main1)
+                // Only do this if Fanatix can immediately burn it and opponent has room
+                if (!_fanatixSSOppUsed && !_fanatixBurnUsed && Card.HasXyzMaterial() && Duel.Phase == DuelPhase.Main1 && Enemy.GetMonsterCount() < 5)
                 {
                     var gyTarget = Bot.Graveyard.Concat(Enemy.Graveyard)
                         .Where(c => c != null && c.IsMonster() && c.IsCanRevive())
@@ -639,18 +688,26 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location == CardLocation.SpellZone && Card.IsFacedown())
             {
-                var oppMonsters = Enemy.MonsterZone.Where(c => c != null && c.IsFaceup()).OrderByDescending(c => c.Attack).ToList();
+                int freeZones = 5 - Bot.GetMonsterCount();
+                if (freeZones <= 0) return false;
+
                 int gpXyzCount = Bot.MonsterZone.Count(c => c != null && c.IsFaceup() && c.HasType(CardType.Xyz) && IsGimmickPuppet(c));
-                if (oppMonsters.Count > 0 && gpXyzCount > 0)
+                int takeCount = Math.Min(gpXyzCount, freeZones);
+                var oppMonsters = Enemy.MonsterZone.Where(c => c != null && c.IsFaceup()).OrderByDescending(c => c.Attack).Take(takeCount).ToList();
+
+                if (oppMonsters.Count > 0 && takeCount > 0)
                 {
-                    AI.SelectCard(oppMonsters.Take(gpXyzCount).ToList());
-                    DecisionTracer.TraceActivate("ServicePuppetPlay", "Taking control of opponent's monsters");
+                    AI.SelectCard(oppMonsters);
+                    DecisionTracer.TraceActivate("ServicePuppetPlay", $"Taking control of {oppMonsters.Count} opponent monster(s)");
                     return true;
                 }
             }
             if (Card.Location == CardLocation.Grave)
             {
-                // Banish from GY to SS Xyz from either GY
+                // Banish from GY to SS Xyz from either GY (requires controlling a GP Xyz)
+                bool hasGPXyz = Bot.MonsterZone.Any(c => c != null && c.IsFaceup() && c.HasType(CardType.Xyz) && IsGimmickPuppet(c));
+                if (!hasGPXyz) return false;
+
                 var xyzTarget = Bot.Graveyard.Concat(Enemy.Graveyard)
                     .FirstOrDefault(c => c != null && c.HasType(CardType.Xyz) && c.IsCanRevive());
                 if (xyzTarget != null)
@@ -725,15 +782,19 @@ namespace WindBot.Game.AI.Decks
             {
                 if (_mansionFieldUsed) return false;
                 // Field Ignition: Detach 1 from Xyz -> SS GP monster from GY to opponent's field in Def (burn setup)
-                bool hasXyzWithMat = Bot.MonsterZone.Any(c => c != null && c.IsFaceup() && c.HasType(CardType.Xyz) && c.Overlays.Count > 0);
-                var gpInGY = Bot.Graveyard.FirstOrDefault(c => c != null && GPMonsters.Contains(c.Id) && c.IsCanRevive());
-
-                if (hasXyzWithMat && gpInGY != null && Bot.HasInMonstersZone(CardId.GPFanatixMachinix))
+                // Only if Fanatix can burn it and opponent has monster zone space!
+                if (!_fanatixBurnUsed && Bot.HasInMonstersZone(CardId.GPFanatixMachinix) && Enemy.GetMonsterCount() < 5)
                 {
-                    _mansionFieldUsed = true;
-                    AI.SelectCard(gpInGY);
-                    DecisionTracer.TraceActivate("MansionEffect", $"Tribute/Detach to SS {gpInGY.Name} to opponent field for Fanatix trigger");
-                    return true;
+                    bool hasXyzWithMat = Bot.MonsterZone.Any(c => c != null && c.IsFaceup() && c.HasType(CardType.Xyz) && c.Overlays.Count > 0);
+                    var gpInGY = Bot.Graveyard.FirstOrDefault(c => c != null && GPMonsters.Contains(c.Id) && c.IsCanRevive());
+
+                    if (hasXyzWithMat && gpInGY != null)
+                    {
+                        _mansionFieldUsed = true;
+                        AI.SelectCard(gpInGY);
+                        DecisionTracer.TraceActivate("MansionEffect", $"Detach to SS {gpInGY.Name} to opponent field for Fanatix trigger");
+                        return true;
+                    }
                 }
             }
 
@@ -826,6 +887,7 @@ namespace WindBot.Game.AI.Decks
             {
                 // Reveal GP Xyz in Extra Deck -> SS Rouge + GP from Deck
                 _rougeHandUsed = true;
+                _gpExtraLocked = true;
                 AI.SelectCard(CardId.GPFanatixMachinix, CardId.GPFantasixMachinix, CardId.GPGiantGrinder);
                 AI.SelectNextCard(CardId.GPCattleScream, CardId.GPBisqueDoll, CardId.GPRougeDoll);
                 DecisionTracer.TraceActivate("RougeDollEffect", "Reveal Xyz and SS Rouge + Lv8 GP from deck");
@@ -867,10 +929,14 @@ namespace WindBot.Game.AI.Decks
             if (IsSpecialSummonBlocked()) return false;
             if (Card.Location == CardLocation.Hand && !_fiendishHandUsed)
             {
-                var target = Bot.Graveyard.Concat(Enemy.Graveyard).FirstOrDefault(c => c != null && c.IsMonster() && c.IsCanRevive());
+                // Target 1 GP monster in our GY OR 1 monster in opp GY
+                var target = Bot.Graveyard.Where(c => c != null && c.IsMonster() && IsGimmickPuppet(c) && c.IsCanRevive())
+                    .Concat(Enemy.Graveyard.Where(c => c != null && c.IsMonster() && c.IsCanRevive()))
+                    .FirstOrDefault();
                 if (target != null)
                 {
                     _fiendishHandUsed = true;
+                    _gpExtraLocked = true;
                     AI.SelectCard(target);
                     DecisionTracer.TraceActivate("FiendishKnightEffect", $"Targeting {target.Name} in GY to SS Fiendish Knight");
                     return true;
@@ -989,6 +1055,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool ChimeraDollEffect()
         {
+            _gpExtraLocked = true;
             AI.SelectCard(CardId.GPRougeDoll, CardId.GPLittleSoldiers, CardId.GPTerrorBaby);
             return true;
         }
@@ -1008,6 +1075,7 @@ namespace WindBot.Game.AI.Decks
         private bool LinkSummonCheck()
         {
             if (IsSpecialSummonBlocked()) return false;
+            if (_gpExtraLocked) return false; // Locked to GP / Machine Xyz
             if (ShouldAvoidGenericExtraDeckSummon(2)) return false;
             return Bot.MonsterZone.Count(c => c != null && c.IsFaceup() && !IsAceCard(c)) >= 2;
         }
@@ -1020,7 +1088,15 @@ namespace WindBot.Game.AI.Decks
         private bool IsGimmickPuppet(ClientCard c)
         {
             if (c == null) return false;
-            return GPMonsters.Contains(c.Id) || c.Id == CardId.GPFanatixMachinix || c.Id == CardId.GPFantasixMachinix || c.Id == CardId.GPChimeraDoll || c.Id == CardId.GPGiantGrinder || c.Id == CardId.GPGiantHunter;
+            return GPMonsters.Contains(c.Id)
+                || c.Id == CardId.GPFanatixMachinix
+                || c.Id == CardId.GPFantasixMachinix
+                || c.Id == CardId.GPChimeraDoll
+                || c.Id == CardId.GPGiantGrinder
+                || c.Id == CardId.GPGiantHunter
+                || c.Id == CardId.GPDarkStrings
+                || c.Id == CardId.GPStrings
+                || c.Id == CardId.GPGigantesDoll;
         }
     }
 

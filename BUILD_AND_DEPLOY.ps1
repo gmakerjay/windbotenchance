@@ -171,6 +171,15 @@ if (Test-Path $sourceScriptDir) {
     Write-OK "Deployed custom/patched Lua scripts to script\"
 }
 
+# Deploy Card Pictures (pics)
+$sourcePicsDir = Join-Path $ScriptDir "pics"
+if (Test-Path $sourcePicsDir) {
+    $targetPicsDir = Join-Path $TargetDir "pics"
+    if (!(Test-Path $targetPicsDir)) { New-Item -ItemType Directory -Path $targetPicsDir -Force | Out-Null }
+    Copy-Item (Join-Path $sourcePicsDir "*") $targetPicsDir -Recurse -Force
+    Write-OK "Deployed card pictures to pics\"
+}
+
 # Deploy DashBot
 Copy-Item "$DashBotOutput\*" "$TargetDir\" -Recurse -Force
 Write-OK "Deployed DashBot Launcher"
