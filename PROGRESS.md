@@ -1,4 +1,52 @@
-# Progress Log: PhantomKnight ModernExecutor, Official Card Ingestion & Thai CDB Localization, SacrBeatsMach Competitive Overhaul, Game Deck Cleanup & DashBot Cosmic Background, DashBot Category Segregation & SacrBeatsMach Alias Fix, SacrBeatsMach (FTK & ModernExecutor), Fidraulis Harmonia Lua Fix, 2026_Puppet Bugfix & WCParisKewlTune Refactor, WCParisKewlTune, 2026_Kwtune (Refactor), Anime_JoeyWheeler (Refactor), Anime_JoeyWheeler, Anime_Yugi, 2026_Purrely, 2026_Yummy, 2026_Tearla, GOD-01, Yubel2, 2026_Branded, 2026_DarkTime, 2026_Runick, 2026_RyuGe, 2026_AFS, 2026_Spright, GOD-01, Demise, 2026_Darklord, 2026_DarkWorld & 2026_Hecahand ModernExecutors
+# Progress Log: Phantom Knights & White Forest Strategic Optimization & Combo Bugfix, PhantomKnight ModernExecutor, Official Card Ingestion & Thai CDB Localization, SacrBeatsMach Competitive Overhaul, Game Deck Cleanup & DashBot Cosmic Background, DashBot Category Segregation & SacrBeatsMach Alias Fix, SacrBeatsMach (FTK & ModernExecutor), Fidraulis Harmonia Lua Fix, 2026_Puppet Bugfix & WCParisKewlTune Refactor, WCParisKewlTune, 2026_Kwtune (Refactor), Anime_JoeyWheeler (Refactor), Anime_JoeyWheeler, Anime_Yugi, 2026_Purrely, 2026_Yummy, 2026_Tearla, GOD-01, Yubel2, 2026_Branded, 2026_DarkTime, 2026_Runick, 2026_RyuGe, 2026_AFS, 2026_Spright, GOD-01, Demise, 2026_Darklord, 2026_DarkWorld & 2026_Hecahand ModernExecutors
+
+## Phantom Knights & White Forest: Strategic Optimization & Combo Flow Fix (2026-09-21)
+
+### Overview
+- **Deck 1**: `PhantomKnight.ydk` (`_2026_PhantomKnightExecutor.cs`)
+- **Deck 2**: `WhiteForest.ydk` (`WhiteForestExecutor.cs`)
+- **Framework**: `HeuristicGuard.cs` (Rule 3 refinement)
+- **Exclusive Deploy Target**: `C:\Users\admin\Documents\EdoGame\`
+
+### Work Completed
+
+#### 1. Phantom Knights: Resolution of the "Cherubini 500 ATK Pass" Bug
+- **Diagnosed Critical Engine Bug**:
+  - In `_2026_PhantomKnightExecutor.cs`, `ShouldSilentBootsGYActivate`, `ShouldAncientCloakGYActivate`, `ShouldRaggedGlovesGYActivate`, and `ShouldCrossoutDesignatorActivate` checked `Bot.Deck.Any(c => ...)`.
+  - In EDOPro, cards in `Bot.Deck` are face-down with `Id == 0`. Therefore `Bot.Deck.Any(...)` returned `false` 100% of the time.
+  - As a result, the bot NEVER activated any Graveyard searches or dumps, leaving Cherubini (500 ATK) completely stranded on the field without extending into `Rusty Bardiche` or Xyz plays.
+- **Engine Fixes**:
+  - Replaced all `Bot.Deck.Any(...)` queries with `GetRemainingCount(id) > 0` which tracks starting deck list minus known locations.
+  - Added strict `Card.Location == CardLocation.MonsterZone` guard to `ShouldDoomedSoleretOnSummon` and `ShouldDecayedCloakOnSummon` to avoid misfiring while cards are in GY.
+  - Added strict `Card.Location == CardLocation.Grave` guard to `ShouldDoomedSoleretGYLevelMod` and `ShouldDecayedCloakGYRankMod`.
+  - Added `case 510:` (`HINTMSG_SET`) in `OnSelectCard` prioritizing `FogBlade` > `PKWing` > `UmbrageVeil`.
+  - Added `case 551:` (`HINTMSG_TARGET`) in `OnSelectCard` prioritizing friendly Xyz targets for level/rank-up effects.
+- **Combo Pipeline Restored**:
+  - Cherubini (Link-2, 500 ATK) cost dumps -> GY searches (Silent Boots / Ancient Cloak) -> Torn Scales revives -> Link Summon `The Phantom Knights of Rusty Bardiche` (Link-3, 2100 ATK) -> Bardiche sets Fog Blade and pops card on Break Sword summon -> Break Sword floats into 2x Level 4 -> Raider's Knight -> `Arc Rebellion Xyz Dragon` (3000+ ATK OTK) or `Dark Requiem Xyz Dragon`.
+
+#### 2. White Forest: Resolution of the "5 Non-Tuners Board Clogging" Bug
+- **Diagnosed Strategic Misalignment**:
+  - In `WhiteForestExecutor.cs`, `AstellarSummon` was registered before `SilvySummon` with an unconditional `return true;`.
+  - Even when White Forest held `Silvy` (Level 4 Tuner) in hand, it Normal Summoned a redundant `Astellar` (Level 2 Non-Tuner).
+  - This filled all 5 monster zones with Non-Tuners (Astellar + Elzette + Toy Soldier + Toy Tank + Astellar), which simultaneously blocked Astellar from activating to SS a Tuner (`MonsterCount == 5`) and prevented all Synchro summons (0 Tuners on field).
+- **Engine Fixes**:
+  - Reordered starters: `AstellarActivate` (SS Tuner from deck while zones are open) -> `SilvySummon` -> `AstellarSummon`.
+  - Intelligent `AstellarSummon`: Blocked if an Astellar is already on field, if monster count is $\ge 4$, or if the field has Non-Tuners and hand holds Silvy.
+  - Intelligent `SilvySummon`: Prioritizes Normal Summoning Silvy (Level 4 Tuner) when Non-Tuners exist on field without a Tuner, immediately unlocking Level 6 (4+2 Rciela/Silvera) and Level 8 (4+4 Diabell Queen/Draco Berserker) Synchro summons.
+  - Added board unclogging to `TornadoDragonSummon`: If board has 2x Level 4 Non-Tuners (Toy Soldier + Toy Tank) with no Tuner and $\ge 3$ monsters, condenses them into Tornado Dragon (2400 ATK) to clear monster zones and provide Quick disruption.
+
+#### 3. HeuristicGuard Rule 3 Fix
+- In `HeuristicGuard.cs`, Rule 3 (Self-Target) was checking `hint == HINTMSG_DESTROY || hint == HINTMSG_TARGET`.
+- Because `HINTMSG_TARGET` (551) is standard for all friendly card targeting (level modulation, RUM, buffs, equip), it triggered false-positive warnings.
+- Refined Rule 3 to only check offensive removal (`hint == HINTMSG_DESTROY`).
+
+#### 4. Build & Exclusive Deployment
+- Executed `BUILD_AND_DEPLOY.ps1` with 0 Errors and 0 new warnings.
+- Deployed all updated binaries (`WindBot.dll`, `ExecutorBase.dll`, `core.dll`, `DashBot.exe`, etc.) to `C:\Users\admin\Documents\EdoGame\`.
+
+---
+
+
 
 ## PhantomKnight: Rule-Based ModernExecutor, Official Artwork Ingestion & Thai CDB Localization (2026-09-21)
 

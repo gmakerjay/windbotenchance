@@ -166,9 +166,9 @@ namespace WindBot.Game.AI.Decks
             // 7. White Forest Starters & Extenders
             // -------------------------------------------------------------
             AddExecutor(ExecutorType.Activate, CardId.ElzetteOfTheWhiteForest, ElzetteActivate);
-            AddExecutor(ExecutorType.Summon, CardId.AstellarOfTheWhiteForest, AstellarSummon);
             AddExecutor(ExecutorType.Activate, CardId.AstellarOfTheWhiteForest, AstellarActivate);
             AddExecutor(ExecutorType.Summon, CardId.SilvyOfTheWhiteForest, SilvySummon);
+            AddExecutor(ExecutorType.Summon, CardId.AstellarOfTheWhiteForest, AstellarSummon);
             AddExecutor(ExecutorType.Activate, CardId.SilvyOfTheWhiteForest, SilvyActivate);
             AddExecutor(ExecutorType.Activate, CardId.RuciaOfTheWhiteForest, RuciaActivate);
             AddExecutor(ExecutorType.Summon, CardId.RuciaOfTheWhiteForest, RuciaSummon);
@@ -764,7 +764,16 @@ namespace WindBot.Game.AI.Decks
         private bool AstellarSummon()
         {
             if (ShouldSkipForLethal()) return false;
-            // Primary Normal Summon starter!
+            // Never summon a second copy on field
+            if (Bot.HasInMonstersZone(CardId.AstellarOfTheWhiteForest)) return false;
+            // Never summon if monster zones are crowded (leave room for Tuner SS)
+            if (Bot.GetMonsterCount() >= 4) return false;
+            // If we already have non-tuners on field and have Silvy (Tuner) in hand, let Silvy take the Normal Summon
+            bool hasNonTuner = Bot.GetMonsters().Any(m => m.IsFaceup() && !m.IsTuner() && !IsWhiteForestBoss(m));
+            bool hasTunerOnField = Bot.GetMonsters().Any(m => m.IsFaceup() && m.IsTuner());
+            if (hasNonTuner && !hasTunerOnField && Bot.HasInHand(CardId.SilvyOfTheWhiteForest))
+                return false;
+
             return true;
         }
 
@@ -773,6 +782,8 @@ namespace WindBot.Game.AI.Decks
             if (Card.Location == CardLocation.MonsterZone)
             {
                 if (ShouldSkipForLethal()) return false;
+                // Need free monster zone to SS Tuner from Deck!
+                if (Bot.GetMonsterCount() >= 5) return false;
                 // Send 1 S/T from hand/field to GY: SS LIGHT Spellcaster Tuner from Deck!
                 ClientCard stCost = GetExpendableSpellTrapCost();
                 if (stCost != null)
@@ -789,7 +800,7 @@ namespace WindBot.Game.AI.Decks
             else if (Card.Location == CardLocation.Grave)
             {
                 // If S/T sent to GY to activate monster effect: SS self from GY!
-                return true;
+                return Bot.GetMonsterCount() < 5;
             }
             return false;
         }
@@ -797,7 +808,15 @@ namespace WindBot.Game.AI.Decks
         private bool SilvySummon()
         {
             if (ShouldSkipForLethal()) return false;
-            return true;
+            // If we have non-tuners on field and need a Tuner to Synchro, Silvy is top priority!
+            bool hasNonTuner = Bot.GetMonsters().Any(m => m.IsFaceup() && !m.IsTuner() && !IsWhiteForestBoss(m));
+            bool hasTunerOnField = Bot.GetMonsters().Any(m => m.IsFaceup() && m.IsTuner());
+            if (hasNonTuner && !hasTunerOnField) return true;
+
+            // If field is empty and we don't have Astellar in hand, Silvy searches S/T on summon
+            if (Bot.GetMonsterCount() == 0 && !Bot.HasInHand(CardId.AstellarOfTheWhiteForest)) return true;
+
+            return Bot.GetMonsterCount() < 4;
         }
 
         private bool SilvyActivate()
@@ -1042,9 +1061,14 @@ namespace WindBot.Game.AI.Decks
 
         private bool TornadoDragonSummon()
         {
-            if (Enemy.GetSpellCount() == 0) return false;
             int lv4Count = Bot.GetMonsters().Count(m => m.IsFaceup() && m.Level == 4 && !IsWhiteForestBoss(m));
-            return lv4Count >= 2;
+            if (lv4Count < 2) return false;
+            // Pop enemy backrow
+            if (Enemy.GetSpellCount() > 0) return true;
+            // Unclog zones when crowded with non-tuners and no Tuner on field
+            bool hasTuner = Bot.GetMonsters().Any(m => m.IsFaceup() && m.IsTuner());
+            if (!hasTuner && Bot.GetMonsterCount() >= 3) return true;
+            return false;
         }
 
         private bool BujinteiTsukuyomiSummon()

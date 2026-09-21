@@ -336,7 +336,7 @@ namespace WindBot.Game.AI.Decks
             if (lastCard == null) return false;
 
             // Can negate if we also run a copy in our Main Deck
-            return Bot.Deck.Any(c => c.Id == lastCard.Id);
+            return GetRemainingCount(lastCard.Id) > 0;
         }
 
         private bool ShouldDarkRequiemActivate()
@@ -563,12 +563,14 @@ namespace WindBot.Game.AI.Decks
 
         private bool ShouldDoomedSoleretOnSummon()
         {
+            if (Card.Location != CardLocation.MonsterZone) return false;
             // Sets 1 PK S/T from Deck
             return Bot.GetSpellCount() < 5;
         }
 
         private bool ShouldDecayedCloakOnSummon()
         {
+            if (Card.Location != CardLocation.MonsterZone) return false;
             // Adds 1 PK monster from Deck to hand
             return true;
         }
@@ -795,32 +797,37 @@ namespace WindBot.Game.AI.Decks
 
         private bool ShouldSilentBootsGYActivate()
         {
+            if (Card.Location != CardLocation.Grave) return false;
             // Banish to search PK S/T
-            return Bot.Deck.Any(c => PKSpellsTraps.Contains(c.Id));
+            return PKSpellsTraps.Any(id => GetRemainingCount(id) > 0);
         }
 
         private bool ShouldAncientCloakGYActivate()
         {
+            if (Card.Location != CardLocation.Grave) return false;
             // Banish to search PK monster
-            return Bot.Deck.Any(c => PKMonsters.Contains(c.Id) && c.Id != CardId.AncientCloak);
+            return PKMonsters.Any(id => id != CardId.AncientCloak && GetRemainingCount(id) > 0);
         }
 
         private bool ShouldDoomedSoleretGYLevelMod()
         {
+            if (Card.Location != CardLocation.Grave) return false;
             // Increase level/rank of up to 2 Lv3 DARK monsters by 1 -> enables Rank 4 Raider's Knight / Ophion!
             return Bot.GetMonsters().Count(c => c.IsFaceup() && c.Level == 3 && c.HasAttribute(CardAttribute.Dark)) >= 2;
         }
 
         private bool ShouldDecayedCloakGYRankMod()
         {
+            if (Card.Location != CardLocation.Grave) return false;
             // Treat Rank as Level
             return Bot.GetMonsters().Any(c => c.IsFaceup() && c.HasType(CardType.Xyz));
         }
 
         private bool ShouldRaggedGlovesGYActivate()
         {
+            if (Card.Location != CardLocation.Grave) return false;
             // Send PK card from Deck to GY
-            return Bot.Deck.Any(c => PKSpellsTraps.Contains(c.Id) || PKMonsters.Contains(c.Id));
+            return PKSpellsTraps.Concat(PKMonsters).Any(id => GetRemainingCount(id) > 0);
         }
 
         private bool ShouldTornScalesGYRevive()
@@ -1049,6 +1056,22 @@ namespace WindBot.Game.AI.Decks
                         break;
                     }
 
+                case 510: // HINTMSG_SET (Rusty Bardiche / Doomed Soleret set from Deck)
+                    {
+                        var setPriority = cards
+                            .OrderByDescending(c => c.Id == CardId.FogBlade)
+                            .ThenByDescending(c => c.Id == CardId.PKWing)
+                            .ThenByDescending(c => c.Id == CardId.UmbrageVeil)
+                            .ThenByDescending(c => c.Id == CardId.RUMRequiem)
+                            .ToList();
+
+                        foreach (var c in setPriority)
+                        {
+                            if (result.Count < max) result.Add(c);
+                        }
+                        break;
+                    }
+
                 case 512: // HINTMSG_XMATERIAL (Xyz Detach)
                     {
                         // Detach materials that trigger in GY
@@ -1061,6 +1084,31 @@ namespace WindBot.Game.AI.Decks
                             .ToList();
 
                         foreach (var c in detachPriority)
+                        {
+                            if (result.Count < max) result.Add(c);
+                        }
+                        break;
+                    }
+
+                case 551: // HINTMSG_TARGET (Friendly level mod / RUM or enemy target)
+                    {
+                        var ownTargets = cards.Where(c => c.Controller == 0)
+                            .OrderByDescending(c => c.Id == CardId.BreakSword)
+                            .ThenByDescending(c => c.Id == CardId.DarkRebellion)
+                            .ThenByDescending(c => c.Level == 3 && c.HasAttribute(CardAttribute.Dark))
+                            .ToList();
+
+                        var oppTargets = cards.Where(c => c.Controller == 1)
+                            .OrderByDescending(c => CardIntelligence.IsKnownNegator(c.Id))
+                            .ThenByDescending(c => CardIntelligence.IsFloodgateMonster(c.Id))
+                            .ThenByDescending(c => c.Attack)
+                            .ToList();
+
+                        foreach (var c in ownTargets)
+                        {
+                            if (result.Count < max) result.Add(c);
+                        }
+                        foreach (var c in oppTargets)
                         {
                             if (result.Count < max) result.Add(c);
                         }

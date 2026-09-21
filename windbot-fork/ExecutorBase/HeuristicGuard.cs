@@ -107,8 +107,8 @@ namespace WindBot
                     }
                 }
 
-                // Rule 3: Self-Target when enemy has targets
-                if (hint == HINTMSG_DESTROY || hint == HINTMSG_TARGET)
+                // Rule 3: Self-Target (destruction) when enemy has targets
+                if (hint == HINTMSG_DESTROY)
                 {
                     var ownCards = selected.Where(c => c != null && c.Controller == 0 &&
                         (c.Location == CardLocation.MonsterZone || c.Location == CardLocation.SpellZone)).ToList();
