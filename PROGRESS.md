@@ -1,4 +1,65 @@
-# Progress Log: SacrBeatsMach Competitive Overhaul, Game Deck Cleanup & DashBot Cosmic Background, DashBot Category Segregation & SacrBeatsMach Alias Fix, SacrBeatsMach (FTK & ModernExecutor), Fidraulis Harmonia Lua Fix, 2026_Puppet Bugfix & WCParisKewlTune Refactor, WCParisKewlTune, 2026_Kwtune (Refactor), Anime_JoeyWheeler (Refactor), Anime_JoeyWheeler, Anime_Yugi, 2026_Purrely, 2026_Yummy, 2026_Tearla, GOD-01, Yubel2, 2026_Branded, 2026_DarkTime, 2026_Runick, 2026_RyuGe, 2026_AFS, 2026_Spright, GOD-01, Demise, 2026_Darklord, 2026_DarkWorld & 2026_Hecahand ModernExecutors
+# Progress Log: PhantomKnight ModernExecutor, Official Card Ingestion & Thai CDB Localization, SacrBeatsMach Competitive Overhaul, Game Deck Cleanup & DashBot Cosmic Background, DashBot Category Segregation & SacrBeatsMach Alias Fix, SacrBeatsMach (FTK & ModernExecutor), Fidraulis Harmonia Lua Fix, 2026_Puppet Bugfix & WCParisKewlTune Refactor, WCParisKewlTune, 2026_Kwtune (Refactor), Anime_JoeyWheeler (Refactor), Anime_JoeyWheeler, Anime_Yugi, 2026_Purrely, 2026_Yummy, 2026_Tearla, GOD-01, Yubel2, 2026_Branded, 2026_DarkTime, 2026_Runick, 2026_RyuGe, 2026_AFS, 2026_Spright, GOD-01, Demise, 2026_Darklord, 2026_DarkWorld & 2026_Hecahand ModernExecutors
+
+## PhantomKnight: Rule-Based ModernExecutor, Official Artwork Ingestion & Thai CDB Localization (2026-09-21)
+
+### Overview
+- **Deck**: `PhantomKnight.ydk` (40 Main Deck, 15 Extra Deck, 15 Side Deck - 46 Unique IDs)
+- **Executor**: `_2026_PhantomKnightExecutor.cs` (Rule-Based C# / .NET 10, inheriting `ModernExecutor`)
+- **DashBot Registration**: Categorized as **Modern** (Amber/Gold badge, display name `"Phantom Knights"`)
+- **Bot Registration**: Registered in `bots.json` under names `"PhantomKnight"` and `"Phantom Knights"`
+- **Exclusive Deploy Target**: `C:\Users\admin\Documents\EdoGame\`
+
+### Work Completed
+
+#### 1. Official Card Artwork Sourcing & Download (7 Cards)
+- Audited all 46 unique cards in `PhantomKnight.ydk` against `EdoGame/pics/`. Identified 7 cards missing artwork.
+- Downloaded high-resolution official images directly from YGOPRODeck CDN (`https://images.ygoprodeck.com/images/cards/<id>.jpg`):
+  - `83566725.jpg` (The Phantom Knights of Doomed Soleret)
+  - `46072770.jpg` (The Phantom Knights of Decayed Cloak)
+  - `62104532.jpg` (The Phantom Knights' Rank-Up-Magic Requiem)
+  - `85257384.jpg` (The Phantom Knights of Umbrage Veil)
+  - `78449284.jpg` (The Phantom Knights of Malevolent Scythe)
+  - `16237004.jpg` (Shamanite Shamanknight)
+  - `98476659.jpg` (Pot of Sloth)
+- Verified valid JPEG format and saved to both `EdoGame/pics/` and `src/YGO_SOURCE_CLEAN/pics/`.
+
+#### 2. Thai Localization Ingestion (7 Cards)
+- Translated card descriptions into standard Yu-Gi-Oh Thai phrasing while strictly keeping card names 100% in English.
+- Injected into SQLite databases:
+  - `config\languages\Thai\cards.delta.cdb`
+  - `src\YGO_SOURCE_CLEAN\config\languages\Thai\cards.delta.cdb`
+  - `cards.cdb` / `src\YGO_SOURCE_CLEAN\cards.cdb` / `src\YGO_SOURCE_CLEAN\windbot-fork\cards.cdb`
+  - `WindBot\cards.cdb` / `WindBot\cards.delta.cdb` / `expansions\cards.cdb`
+- Verified that all 7 cards have valid Thai effect text and intact English card names.
+
+#### 3. Central Intelligence Updates (`CardIntelligence.cs`)
+- Added `DominusImpulse` (40366667) and `DominusSpark` (6325660) to `UniversalHandtraps`.
+- Added `DarkRequiem` (1621413) to `KnownNegators`.
+- Added `EvilswarmOphion` (91279700) and `TyphonSkyCrisis` (93039339) to `FloodgateMonsters`.
+
+#### 4. Rule-Based ModernExecutor (`_2026_PhantomKnightExecutor.cs`)
+- **Zero Magic Numbers**: Full CardId constants for all 46 cards.
+- **Anti-Brick Architecture ("ระวังการ์ดค้างมือ")**:
+  - `DoomedSoleret` Special Summons from hand when field is empty *before* any Normal Summon.
+  - `DecayedCloak` Special Summons by revealing another PK card *before* Normal Summoning.
+  - `TornScales` acts as the primary hand cleaner, discarding dead/stuck cards (`Boots`, `Soleret`, `Gloves`, `Fog Blade`, `Wing`) to dump from deck.
+  - Full compatibility with `Dominus Impulse` and `Dominus Spark`: because the entire PK engine is pure DARK, the Dominus attribute restriction has 0 penalty.
+  - Controlled backrow setting prevents backrow clogging, leaving open zones for `Rusty Bardiche` and `Soleret`.
+- **First-Turn End Board**:
+  - `The Phantom Knights of Rusty Bardiche` + `Dark Requiem Xyz Dragon` (3x monster negate + pop + revive Xyz) + `Fog Blade` (negate + attack lock) + `Evilswarm Nightmare` / `Evilswarm Ophion` (via `RUM Launch`).
+- **Turn 2 Board Breaking & OTK**:
+  - `Harpie's Feather Duster` + `Evenly Matched` / `Triple Tactics` / `Pot of Sloth` / `TY-PHON`.
+  - `Break Sword` targeted pop floats into two Level 4 PKs -> `Raider's Knight` -> `Arc Rebellion Xyz Dragon` (negates entire board, gains ATK of all other monsters, swings for 8,000-15,000+ ATK OTK).
+- **Bulletproof `OnSelectCard`**: Comprehensive hint handlers for 500 (Release), 501 (Discard), 502 (Destroy), 504 (Banish), 505 (Search to hand), 506 (To deck), 508 (To grave), 509 (SpSummon), 512 (Xyz detach), 552/572 (Negate), with fallback guarantee `result.Count >= min`.
+- **Stat-Aware `OnSelectPosition` & Smart `OnSelectOption`**.
+
+#### 5. Build, Exclusive Deployment & Git Sync
+- Executed `BUILD_AND_DEPLOY.ps1` with 0 Errors and 0 new warnings.
+- Exclusive deploy to `C:\Users\admin\Documents\EdoGame\`.
+- All changes committed and pushed to `origin/main`.
+
+---
+
 
 ## SacrBeatsMach: Competitive Overhaul, Engine Optimization & 4-Deck Benchmark Tournament (2026-09-21)
 

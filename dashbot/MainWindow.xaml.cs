@@ -332,7 +332,8 @@ namespace dashbot
             "WhiteForest", "Fiendsmith", "Azamina", "Maliss", "Raika",
             "Yubel", "Chimera", "GoblinBiker", "GoldPride", "Mikanko",
             "SuperHeavySamurai", "Mathmech", "Cyberse", "Synchron", "Exosister",
-            "SacrBeatsMach", "ScarbeatMach", "SacredBeats", "Machina"
+            "SacrBeatsMach", "ScarbeatMach", "SacredBeats", "Machina",
+            "PhantomKnight", "PhantomKnights"
         };
 
         private static DeckItem ParseDeckItem(string originalName)
@@ -447,7 +448,9 @@ namespace dashbot
                 { "ToadallyAwesome", "Toadally Awesome" },
                 { "SacrBeatsMach", "Sacred Beasts Machina (FTK)" },
                 { "ScarbeatMach", "Sacred Beasts Machina (FTK)" },
-                { "SacredBeats", "Sacred Beasts" }
+                { "SacredBeats", "Sacred Beasts" },
+                { "PhantomKnight", "Phantom Knights" },
+                { "PhantomKnights", "Phantom Knights" }
             };
 
             if (overrides.TryGetValue(name, out var customName))

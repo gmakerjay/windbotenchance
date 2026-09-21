@@ -1,5 +1,25 @@
 [
   {
+    "name": "PhantomKnight",
+    "deck": "PhantomKnight",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Phantom Knights",
+    "deck": "PhantomKnight",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
     "name": "SacrBeatsMach",
     "deck": "SacrBeatsMach",
     "difficulty": 3,

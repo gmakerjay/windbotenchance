@@ -43,6 +43,8 @@ namespace WindBot.Game.AI
             73356503,  // Barrier Statue of the Abyss
             84478195,  // Barrier Statue of the Torrent
             86325573,  // Barrier Statue of the Heavens
+            91279700,  // Evilswarm Ophion (Lv5+ SS Lock)
+            93039339,  // Super Starslayer TY-PHON - Sky Crisis (>=3000 ATK effect lock)
         };
 
         // ═══════════════════════════════════════════════════════════════
@@ -107,6 +109,7 @@ namespace WindBot.Game.AI
             90809975,  // Toadally Awesome
             73580471,  // Black Rose Dragon (wipe)
             46772449,  // Evilswarm Exciton Knight (wipe)
+            1621413,   // Dark Requiem Xyz Dragon (3x monster effect negate + pop + revive)
         };
 
         // ═══════════════════════════════════════════════════════════════
@@ -182,8 +185,10 @@ namespace WindBot.Game.AI
             24299458,  // Forbidden Droplet
             41420027,  // Solemn Judgment
             23002292,  // Red Reboot
-            62015408,  // Dominus Impulse
+            40366667,  // Dominus Impulse
+            6325660,   // Dominus Spark
             89264428,  // Dominus Purge
+            62015408,  // Ghost Reaper & Winter Cherries
             38814750,  // PSY-Framegear Gamma
         };
 
