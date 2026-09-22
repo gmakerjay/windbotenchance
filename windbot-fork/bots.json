@@ -1,5 +1,17 @@
 [
   {
+    "name": "ADML",
+    "deck": "ADML",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "Azamina Dark Magician",
+    "deck": "ADML",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
     "name": "AFS",
     "deck": "AFS",
     "difficulty": 3,
@@ -1998,21 +2010,12 @@
     "dialog": "default"
   },
   {
-    "name": "ArtMage",
-    "deck": "ArtMage",
-    "dialog": "default",
-    "difficulty": 3,
-    "masterRules": [
-      4,
-      5
-    ]
-  },
-  {
     "name": "Artmage",
     "deck": "ArtMage",
     "dialog": "default",
     "difficulty": 3,
     "masterRules": [
+      3,
       4,
       5
     ]

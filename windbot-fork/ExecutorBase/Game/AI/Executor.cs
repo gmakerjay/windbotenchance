@@ -96,6 +96,17 @@ namespace WindBot.Game.AI
             return null;
         }
 
+        /// <summary>
+        /// Universal Fallback Idle Command: called right before ending the turn when all CardExecutors
+        /// have returned no actions. Allows intelligent post-combo cleanup, desperation defense,
+        /// repositioning, and smart backrow setting.
+        /// </summary>
+        public virtual MainPhaseAction OnFallbackIdleCmd(MainPhase main)
+        {
+            // For overriding
+            return null;
+        }
+
         public virtual BattlePhaseAction OnSelectBattleCmd(BattlePhase battle)
         {
             // For overriding
@@ -911,5 +922,16 @@ namespace WindBot.Game.AI
         /// Note: Hand traps / quick effects during opponent's turn bypass this check.
         /// </summary>
         public virtual bool ShouldAllowActivate(ClientCard card) => true;
+
+        /// <summary>
+        /// Called before allowing a Battle Position change (Repos).
+        /// Return false to skip repositioning.
+        /// </summary>
+        public virtual bool ShouldAllowRepos(ClientCard card) => true;
+
+        /// <summary>
+        /// Called before allowing a Monster Set.
+        /// </summary>
+        public virtual bool ShouldAllowMonsterSet(ClientCard card) => true;
     }
 }

@@ -514,22 +514,13 @@ namespace WindBot.Game.AI
             int backrowCount = _bot.GetSpells().Count(c => c != null && c.IsFacedown());
             score += backrowCount * 10;
 
-            // Hand traps in hand (reduced weight — having hand traps shouldn't stop comboing)
+            // Hand traps in hand (using Central CardIntelligence)
             foreach (var c in _bot.Hand)
             {
                 if (c == null) continue;
-                switch (c.Id)
+                if (CardIntelligence.IsHandtrap(c.Id) || CardIntelligence.IsHandtrap(c.GetNonAltartCode()))
                 {
-                    case 14558127:  // Ash Blossom
-                    case 23434538:  // Maxx "C"
-                    case 94145021:  // Droll & Lock Bird
-                    case 97268402:  // Effect Veiler
-                    case 63845230:  // Eater of Millions
-                    case 59438930:  // Ghost Ogre
-                    case 73642296:  // Ghost Belle
-                    case 10045474:  // Infinite Impermanence
-                        score += 5; // Mild — these don't mean "board is done"
-                        break;
+                    score += 5; // Mild — these don't mean "board is done"
                 }
             }
 
@@ -639,6 +630,39 @@ namespace WindBot.Game.AI
             }
 
             return score;
+        }
+
+        /// <summary>
+        /// Calculates the opponent's visible combat clock and lethal danger.
+        /// Returns:
+        ///   visibleAtk: sum of ATK of face-up attack-position opponent monsters.
+        ///   combatClock: turns to kill if attacks go through unblocked.
+        ///   isImminentLethal: true if opponent has lethal on board or can kill this turn/next turn unblocked.
+        /// </summary>
+        public (int visibleAtk, double combatClock, bool isImminentLethal) CalculateOpponentCombatClock()
+        {
+            if (_bot == null || _enemy == null) return (0, 999.0, false);
+
+            int botLp = _bot.LifePoints;
+            int visibleAtk = 0;
+            int attackerCount = 0;
+
+            foreach (var m in _enemy.GetMonsters())
+            {
+                if (m != null && m.IsFaceup() && m.IsAttack() && m.Attack > 0)
+                {
+                    visibleAtk += m.Attack;
+                    attackerCount++;
+                }
+            }
+
+            if (visibleAtk <= 0)
+                return (0, 999.0, false);
+
+            double clock = (double)botLp / visibleAtk;
+            bool isImminentLethal = visibleAtk >= botLp || (_bot.GetMonsterCount() == 0 && (visibleAtk >= botLp * 0.8 || (attackerCount >= 3 && visibleAtk >= 4000)));
+
+            return (visibleAtk, clock, isImminentLethal);
         }
     }
 }

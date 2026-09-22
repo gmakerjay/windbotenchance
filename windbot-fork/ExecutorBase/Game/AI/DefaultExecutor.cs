@@ -1708,5 +1708,16 @@ namespace WindBot.Game.AI
                 return false;
             return true;
         }
+
+        /// <summary>
+        /// Baseline fallback idle command for legacy bots.
+        /// </summary>
+        public override MainPhaseAction OnFallbackIdleCmd(MainPhase main)
+        {
+            if (main == null) return null;
+            if (main.CanBattlePhase && Bot.HasAttackingMonster())
+                return new MainPhaseAction(MainPhaseAction.MainAction.ToBattlePhase);
+            return null;
+        }
     }
 }

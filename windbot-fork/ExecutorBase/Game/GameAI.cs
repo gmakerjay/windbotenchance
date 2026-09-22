@@ -628,6 +628,7 @@ namespace WindBot.Game
                 }
                 foreach (ClientCard card in main.MonsterSetableCards)
                 {
+                    if (!Executor.ShouldAllowMonsterSet(card)) continue;
                     if (ShouldExecute(exec, card, ExecutorType.MonsterSet))
                     {
                         _dialogs.SendSetMonster();
@@ -637,6 +638,7 @@ namespace WindBot.Game
                 }
                 foreach (ClientCard card in main.ReposableCards)
                 {
+                    if (!Executor.ShouldAllowRepos(card)) continue;
                     if (ShouldExecute(exec, card, ExecutorType.Repos))
                     {
                         TrackAction($"Repos({card.Name ?? $"#{card.Id}"})");
@@ -692,6 +694,12 @@ namespace WindBot.Game
 
             if (main.CanBattlePhase && Duel.Fields[0].HasAttackingMonster())
                 return new MainPhaseAction(MainPhaseAction.MainAction.ToBattlePhase);
+
+            // [CENTRAL CORE] Universal Fallback Idle Command
+            // Before passing the turn, check if the Executor wants to execute any desperation defense,
+            // smart repositioning, or backrow setup that wasn't caught by CardExecutors.
+            MainPhaseAction fallbackAction = Executor.OnFallbackIdleCmd(main);
+            if (fallbackAction != null) return fallbackAction;
 
             _dialogs.SendEndTurn();
             return new MainPhaseAction(MainPhaseAction.MainAction.ToEndPhase); 

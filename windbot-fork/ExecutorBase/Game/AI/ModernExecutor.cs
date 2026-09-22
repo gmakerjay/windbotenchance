@@ -1380,6 +1380,169 @@ namespace WindBot.Game.AI
         }
 
         // ═══════════════════════════════════════════════════════════════
+        //  § 7b. Universal Fallback & Human-Like Board Evaluation
+        //  Invoked by GameAI right before ToEndPhase when all CardExecutors
+        //  have returned no actions. Provides human-like end-of-turn judgment:
+        //  1. Smart Repositioning (turn low-power monsters / Bagooska to DEF)
+        //  2. Desperation Defense Guard (4-tier sacrifice hierarchy)
+        //  3. Smart Backrow MP2 Setting (set quick-plays and traps)
+        // ═══════════════════════════════════════════════════════════════
+
+        public override MainPhaseAction OnFallbackIdleCmd(MainPhase main)
+        {
+            if (main == null) return null;
+
+            // 1. Smart Repositioning: ensure monsters are in safe battle posture
+            MainPhaseAction reposAction = EvaluateSmartRepositioning(main);
+            if (reposAction != null) return reposAction;
+
+            // 2. Desperation Defense Guard: emergency shield if lethal threatens empty field
+            MainPhaseAction defAction = EvaluateDesperationDefense(main);
+            if (defAction != null) return defAction;
+
+            // 3. Smart Backrow Setting: set Quick-Play spells and Traps before ending turn
+            MainPhaseAction spellSetAction = EvaluateSmartBackrowSetting(main);
+            if (spellSetAction != null) return spellSetAction;
+
+            return null;
+        }
+
+        protected virtual MainPhaseAction EvaluateSmartRepositioning(MainPhase main)
+        {
+            if (main.ReposableCards == null || main.ReposableCards.Count == 0) return null;
+
+            bool canAttackNow = Duel.Phase == DuelPhase.Main1 && main.CanBattlePhase && Bot.HasAttackingMonster();
+
+            foreach (var card in main.ReposableCards)
+            {
+                if (card == null) continue;
+
+                // Rule 12: Bagooska MUST ALWAYS be in Defense position
+                if (card.Id == 26593852 && card.IsAttack())
+                {
+                    try { AI?.Log(LogLevel.Info, $"[SMART-REPOS] Changing Bagooska to Defense (Floodgate condition)"); } catch { }
+                    return new MainPhaseAction(MainPhaseAction.MainAction.Repos, card.ActionIndex);
+                }
+
+                // In MP2 or when not attacking: low-power or shield monsters switch to Defense
+                if (!canAttackNow && card.IsAttack())
+                {
+                    if (card.Attack < 1500 || card.Defense > card.Attack)
+                    {
+                        try { AI?.Log(LogLevel.Info, $"[SMART-REPOS] Turning {card.Name ?? $"#{card.Id}"} ({card.Attack}/{card.Defense}) to Defense"); } catch { }
+                        return new MainPhaseAction(MainPhaseAction.MainAction.Repos, card.ActionIndex);
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        protected virtual MainPhaseAction EvaluateDesperationDefense(MainPhase main)
+        {
+            // Gate 1: Never set on Turn 1! Opponent cannot attack on Turn 1.
+            if (Duel.Turn <= 1) return null;
+
+            // Gate 2: Only trigger when our monster field is completely empty
+            if (Bot.GetMonsterCount() > 0) return null;
+
+            // Gate 3: Must have available Normal Set
+            if (main.MonsterSetableCards == null || main.MonsterSetableCards.Count == 0)
+                return null;
+
+            // Gate 4: Calculate Opponent Combat Clock & Threat
+            var (enemyAtk, clock, isImminentLethal) = Scorer != null
+                ? Scorer.CalculateOpponentCombatClock()
+                : (0, 999.0, false);
+
+            int enemyMonsterCount = Enemy.GetMonsterCount();
+            if (enemyMonsterCount == 0) return null; // Opponent has no monsters, no shield needed
+
+            var setCandidates = main.MonsterSetableCards.Where(c => c != null).ToList();
+            if (setCandidates.Count == 0) return null;
+
+            // Tier 1: Non-Handtrap, Non-Tribute monsters (safe shields, high DEF, or useless in hand)
+            var tier1 = setCandidates
+                .Where(c => !CardIntelligence.IsHandtrap(c.Id) && !CardIntelligence.IsHandtrap(c.GetNonAltartCode()))
+                .OrderByDescending(c => c.Defense)
+                .FirstOrDefault();
+
+            if (tier1 != null)
+            {
+                try { AI?.Log(LogLevel.Info, $"[DESPERATION-DEFENSE] Tier 1: Setting wall {tier1.Name ?? $"#{tier1.Id}"} (DEF {tier1.Defense})"); } catch { }
+                return new MainPhaseAction(MainPhaseAction.MainAction.SetMonster, tier1.ActionIndex);
+            }
+
+            // Count how many handtraps we hold
+            int handtrapCount = Bot.Hand.Count(c => c != null && (CardIntelligence.IsHandtrap(c.Id) || CardIntelligence.IsHandtrap(c.GetNonAltartCode())));
+
+            // Tier 2: Redundant Handtraps (we hold 2+ handtraps, e.g. 2x Veiler or Veiler + Imperm)
+            // If enemy has threatening board (enemyAtk >= Bot.LifePoints / 2 or clock <= 2.0),
+            // sacrificing 1 redundant handtrap while keeping 1+ in hand is a sound defensive play.
+            if (handtrapCount >= 2 && (enemyAtk >= Bot.LifePoints / 2 || clock <= 2.0))
+            {
+                var redundantHt = setCandidates
+                    .OrderBy(c => c.Attack)
+                    .FirstOrDefault();
+
+                if (redundantHt != null)
+                {
+                    try { AI?.Log(LogLevel.Info, $"[DESPERATION-DEFENSE] Tier 2: Setting redundant handtrap {redundantHt.Name ?? $"#{redundantHt.Id}"} as shield (holds {handtrapCount} disruptions)"); } catch { }
+                    return new MainPhaseAction(MainPhaseAction.MainAction.SetMonster, redundantHt.ActionIndex);
+                }
+            }
+
+            // Tier 3: Sole Handtrap Sacrifice (100% Lethal on board ONLY)
+            // If enemy has visible lethal (enemyAtk >= Bot.LifePoints or isImminentLethal):
+            // Passing empty guarantees 0 LP and instant defeat. Setting ANY monster absorbs 1 attack.
+            if (isImminentLethal || enemyAtk >= Bot.LifePoints)
+            {
+                var emergencyHt = setCandidates
+                    .OrderBy(c => c.Attack)
+                    .FirstOrDefault();
+
+                if (emergencyHt != null)
+                {
+                    try { AI?.Log(LogLevel.Info, $"[DESPERATION-DEFENSE] Tier 3 CRITICAL: Sacrificing {emergencyHt.Name ?? $"#{emergencyHt.Id}"} to survive lethal ({enemyAtk} ATK vs {Bot.LifePoints} LP)"); } catch { }
+                    return new MainPhaseAction(MainPhaseAction.MainAction.SetMonster, emergencyHt.ActionIndex);
+                }
+            }
+
+            // If not lethal and only 1 handtrap: KEEP IT IN HAND!
+            try { AI?.Log(LogLevel.Info, $"[DESPERATION-DEFENSE] Retaining handtrap in hand for disruption (Non-lethal: {enemyAtk} ATK vs {Bot.LifePoints} LP, Clock: {clock:F1})"); } catch { }
+            return null;
+        }
+
+        protected virtual MainPhaseAction EvaluateSmartBackrowSetting(MainPhase main)
+        {
+            if (main.SpellSetableCards == null || main.SpellSetableCards.Count == 0) return null;
+
+            // Only set backrow in MP2, or in MP1 if we cannot battle / rush
+            if (Duel.Phase == DuelPhase.Main1 && main.CanBattlePhase && Bot.HasAttackingMonster())
+                return null;
+
+            foreach (var card in main.SpellSetableCards)
+            {
+                if (card == null) continue;
+                if (!ShouldAllowSpellSet(card)) continue;
+
+                if (card.IsTrap())
+                {
+                    try { AI?.Log(LogLevel.Info, $"[SMART-BACKROW] Setting trap {card.Name ?? $"#{card.Id}"}"); } catch { }
+                    return new MainPhaseAction(MainPhaseAction.MainAction.SetSpell, card.ActionIndex);
+                }
+
+                if (card.IsSpell() && card.HasType(CardType.QuickPlay))
+                {
+                    try { AI?.Log(LogLevel.Info, $"[SMART-BACKROW] Setting Quick-Play spell {card.Name ?? $"#{card.Id}"} for opponent turn"); } catch { }
+                    return new MainPhaseAction(MainPhaseAction.MainAction.SetSpell, card.ActionIndex);
+                }
+            }
+
+            return null;
+        }
+
+        // ═══════════════════════════════════════════════════════════════
         //  § 8. Smart Phase Strategy — Guard Overrides
         //  These gate EVERY action in GameAI.InternalOnSelectIdleCmd.
         //  All 2026 executors (inheriting ModernExecutor) benefit automatically.
@@ -1457,10 +1620,30 @@ namespace WindBot.Game.AI
         /// Defers to MP2 when:
         ///   - Lethal is confirmed (don't waste time)
         ///   - Opponent board is empty and we have attackers (attack first, set after)
+        /// Also enforces Handtrap Trap Guard (Imperm/Dominus on empty field) and Normal Spell Guard.
         /// </summary>
         public override bool ShouldAllowSpellSet(ClientCard card)
         {
             if (card == null) return true;
+
+            // Universal Handtrap Trap Guard: Never set Imperm / Dominus on empty field!
+            // When field is empty, Imperm and Dominus can be activated directly from hand,
+            // making them immune to Harpie's Feather Duster / Lightning Storm / S:P Little Knight.
+            if ((card.Id == 10045474 || card.Id == 40366667) && Bot.GetFieldCount() == 0)
+            {
+                LogPhaseGuard("BLOCKED", "SpellSet", card, "Keep hand-activatable trap in hand while field is empty");
+                return false;
+            }
+
+            // Normal / Field / Ritual / Continuous spells that have no quick effect:
+            // Setting them face-down in MP1/MP2 gives no interruption value on opponent's turn
+            // and makes them vulnerable to removal (unless hand size > 6 to avoid discard).
+            if (card.IsSpell() && !card.HasType(CardType.QuickPlay) && Bot.Hand.Count <= 6)
+            {
+                LogPhaseGuard("BLOCKED", "SpellSet", card, "Do not set non-QuickPlay spells without discard pressure");
+                return false;
+            }
+
             if (Duel.Phase != DuelPhase.Main1) return true;
 
             // Lethal → skip all setting, rush to battle
@@ -1474,6 +1657,46 @@ namespace WindBot.Game.AI
             if (Duel.Turn > 1 && Enemy.GetMonsterCount() == 0 && Bot.HasAttackingMonster())
             {
                 LogPhaseGuard("BLOCKED", "SpellSet", card, "Opponent board empty — battle first, set in MP2");
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Evaluate whether a Monster Set is allowed.
+        /// </summary>
+        public override bool ShouldAllowMonsterSet(ClientCard card)
+        {
+            if (card == null) return false;
+
+            // Turn 1 Handtrap Protection: Never set handtraps on Turn 1!
+            if (Duel.Turn <= 1 && (CardIntelligence.IsHandtrap(card.Id) || CardIntelligence.IsHandtrap(card.GetNonAltartCode())))
+            {
+                LogPhaseGuard("BLOCKED", "MonsterSet", card, "Never set handtrap on Turn 1");
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Evaluate whether repositioning this monster is allowed.
+        /// </summary>
+        public override bool ShouldAllowRepos(ClientCard card)
+        {
+            if (card == null) return false;
+
+            // Number 41: Bagooska MUST ALWAYS be in Defense position (Rule 12)
+            if (card.Id == 26593852)
+            {
+                if (card.IsAttack()) return true;
+                return false;
+            }
+
+            // In MP1 when we can attack: do NOT switch attackers to defense before battle
+            if (Duel.Phase == DuelPhase.Main1 && Bot.HasAttackingMonster() && card.IsAttack() && card.Attack >= 1500)
+            {
                 return false;
             }
 

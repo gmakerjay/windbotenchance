@@ -327,7 +327,7 @@ namespace dashbot
 
         private static readonly HashSet<string> ModernArchetypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            "AFS", "ArtMage",
+            "ADML", "AFS", "ArtMage",
             "Tenpai", "VoicelessVoice", "Centurion", "CenturIon",
             "Branded", "Purrely", "Yummy", "RyuGe", "Runick", "Spright", "WCParisKewlTune", "Kwtune", "KewlTune",
             "SnakeEye", "FireKing", "Tearla", "Tearlaments", "Kashtira", "Labrynth",

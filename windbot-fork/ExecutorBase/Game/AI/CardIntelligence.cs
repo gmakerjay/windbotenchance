@@ -109,7 +109,10 @@ namespace WindBot.Game.AI
             53971455,  // Despian Luluwalilith
             78397661,  // Ecclesia and the Dark Dragon
             76666602,  // The Dragon That Devours the Dogma
-            37675907,  // Red-Eyes Dark Dragoon
+            37818794,  // Red-Eyes Dark Dragoon
+            37675907,  // Legacy ID mapping
+            46396218,  // Azamina Ilia Silvia (Omni-Negate)
+            4993187,   // W:P Fancy Ball (Monster Negate)
             90809975,  // Toadally Awesome
             73580471,  // Black Rose Dragon (wipe)
             46772449,  // Evilswarm Exciton Knight (wipe)
@@ -216,7 +219,11 @@ namespace WindBot.Game.AI
         {
             55410871,  // Blue-Eyes Chaos MAX Dragon
             41721210,  // Dark Magician the Dragon Knight (protects backrow)
-            37675907,  // Red-Eyes Dark Dragoon
+            37818794,  // Red-Eyes Dark Dragoon (untargetable & indestructible)
+            37675907,  // Legacy ID mapping
+            70405001,  // Black Luster Soldier - Soldier of Light and Darkness (battle immune & activated unaffected)
+            44001993,  // Magician of Dark Chaos - Black Chaos (protects S/T & activated unaffected)
+            98684220,  // Black Chaos (activated unaffected with ritual spell in GY)
             21887175,  // Mekk-Knight Crusadia Avramax (untargetable by effects)
             88264978,  // Red-Eyes Flare Metal Dragon (destruction immune with mats)
         };

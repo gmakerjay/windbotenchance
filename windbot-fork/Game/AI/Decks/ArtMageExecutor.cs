@@ -291,12 +291,34 @@ namespace WindBot.Game.AI.Decks
         //  CORE CALLBACK HANDLERS (Audited & Critical)
         // ═══════════════════════════════════════════════════════════════
 
+        public override bool? OnSelectEffectYn(ClientCard card, long desc)
+        {
+            // Rule 14: Decline opponent-initiated effects by default
+            if (card != null && card.Controller == 1) return false;
+            return base.OnSelectEffectYn(card, desc);
+        }
+
         public override int OnSelectOption(IList<long> options)
         {
             if (options == null || options.Count == 0) return base.OnSelectOption(options);
 
             // 1. Medius the Pure: aux.ToHandOrElse
-            // Option 0 = Add to Hand, Option 1 = Special Summon it
+            // Option 0 = Add to Hand (desc 573), Option 1 = Special Summon it (Stringid(Medius, 3))
+            for (int i = 0; i < options.Count; i++)
+            {
+                long cardId = options[i] >> 4;
+                long optIndex = options[i] & 0xf;
+                if (cardId == 0)
+                {
+                    cardId = options[i] >> 20;
+                    optIndex = options[i] & 0xfffff;
+                }
+                if (cardId == CardId.MediusThePure && optIndex == 3)
+                {
+                    return Bot.GetMonsterCount() < 5 ? i : 0;
+                }
+            }
+
             if (LastChainCard != null && LastChainCard.Id == CardId.MediusThePure && options.Count >= 2)
             {
                 // If monster zone has room, summon Nervedo to field to immediately pop and summon Nerva!
@@ -318,6 +340,21 @@ namespace WindBot.Game.AI.Decks
             }
 
             // 3. Triple Tactics Talent
+            for (int i = 0; i < options.Count; i++)
+            {
+                long cardId = options[i] >> 4;
+                long optIndex = options[i] & 0xf;
+                if (cardId == 0)
+                {
+                    cardId = options[i] >> 20;
+                    optIndex = options[i] & 0xfffff;
+                }
+                if (cardId == CardId.TripleTacticsTalent)
+                {
+                    if (Enemy.GetMonsterCount() > 0 && Bot.GetMonsterCount() < 5 && optIndex == 1) return i;
+                    if (optIndex == 0) return i;
+                }
+            }
             if (LastChainCard != null && LastChainCard.Id == CardId.TripleTacticsTalent && options.Count >= 3)
             {
                 if (Enemy.GetMonsterCount() > 0 && Bot.GetMonsterCount() < 5)
@@ -330,15 +367,7 @@ namespace WindBot.Game.AI.Decks
 
         public override bool OnSelectYesNo(long desc)
         {
-            // Finmel: Draw 1 card? -> Always YES
-            // Graflare: Set 1 Artmage Spell from Deck? -> Always YES
-            // Litera: Add 1 Artmage card from GY to hand? -> Always YES
-            // Vandalism: Add Medius from Deck to hand? -> Always YES
-            // Varnish: Special Summon Medius on attack negation? -> YES if Medius in hand
-            // Impasto: Bounce all opponent Spells/Traps to hand? -> YES if opponent has Spells/Traps
-            // Nervedo in P-Zone: Negate opponent monster effect? -> Always YES
-            // Vandalism: Send Vandalism to GY instead of Acropolis being destroyed? -> Always YES
-            return true;
+            return base.OnSelectYesNo(desc);
         }
 
         public override CardPosition OnSelectPosition(int cardId, IList<CardPosition> positions)
@@ -349,12 +378,30 @@ namespace WindBot.Game.AI.Decks
                 if (positions.Contains(CardPosition.FaceUpAttack)) return CardPosition.FaceUpAttack;
             }
 
-            if (cardId == CardId.ShadowBeastNervedo || cardId == CardId.ArtmageLitera || cardId == CardId.CrossSheep)
+            if (cardId == CardId.ShadowBeastNervedo || cardId == CardId.ArtmageLitera || cardId == CardId.CrossSheep || cardId == CardId.ArtmagePowerPatron)
             {
                 if (positions.Contains(CardPosition.FaceUpDefence)) return CardPosition.FaceUpDefence;
             }
 
             return base.OnSelectPosition(cardId, positions);
+        }
+
+        public override int OnSelectPlace(long cardId, int player, CardLocation location, int available)
+        {
+            if (location == CardLocation.MonsterZone)
+            {
+                // Rule 11: Keep Extra Monster Zone clear for Link monsters!
+                // Never place Fusion or Main Deck monsters in EMZ (zones 5 and 6) if MMZ is open.
+                int mmzAvailable = available & 0x1F;
+                bool isLink = cardId == CardId.SPLittleKnight || cardId == CardId.CrossSheep ||
+                              cardId == CardId.KnightmareCerberus || cardId == CardId.AccesscodeTalker;
+
+                if (!isLink && mmzAvailable > 0)
+                {
+                    return mmzAvailable;
+                }
+            }
+            return base.OnSelectPlace(cardId, player, location, available);
         }
 
         public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
@@ -384,6 +431,7 @@ namespace WindBot.Game.AI.Decks
                 }
 
                 // Deck Special Summons (e.g. Medius -> Nervedo, Nervedo Extra trigger -> Finmel/Graflare)
+                // Prioritize monsters with Types NOT yet on our field to maximize distinct Race synergy!
                 var deckPreferred = new[] {
                     CardId.ShadowBeastNervedo,
                     CardId.ArtmageFinmel,
@@ -392,6 +440,12 @@ namespace WindBot.Game.AI.Decks
                     CardId.ArtmageLitera,
                     CardId.MediusThePure
                 };
+                var notOnField = deckPreferred.Where(id => !Bot.HasInMonstersZone(id)).ToList();
+                foreach (int id in notOnField)
+                {
+                    var match = cards.FirstOrDefault(c => c != null && c.Id == id);
+                    if (match != null) return new[] { match };
+                }
                 foreach (int id in deckPreferred)
                 {
                     var match = cards.FirstOrDefault(c => c != null && c.Id == id);
@@ -555,14 +609,19 @@ namespace WindBot.Game.AI.Decks
                 if (lastCard != null && lastCard.Controller == 0 && lastCard.IsMonster() &&
                     (lastCard.HasSetcode(ARTMAGE_SETCODE) || lastCard.Id == CardId.ShadowBeastNervedo))
                 {
+                    // Don't wipe if it's Nervedo Extra trigger (we want Nervedo to SS Finmel from Deck!)
+                    if (lastCard.Id == CardId.ShadowBeastNervedo) return false;
+                    // Don't wipe if it's Medius on summon (we want Medius to resolve its summon)
+                    if (lastCard.Id == CardId.MediusThePure && !_nervedoBanishUsed) return false;
+                    // Don't wipe if it's Power Patron GY search (we want to search Impasto Recapture)
+                    if (lastCard.Id == CardId.ArtmagePowerPatron && lastCard.Location == CardLocation.Grave) return false;
+
                     // On opponent's turn: ALWAYS wipe their board!
                     if (Duel.Player == 1) return true;
 
                     // On our turn: If opponent controls 2+ cards or a boss monster, wipe to clear for OTK!
                     if (Enemy.GetMonsterCount() >= 1 || Enemy.GetSpellCount() >= 2)
                     {
-                        // Don't wipe if it's Medius on summon (we want Medius to resolve its summon)
-                        if (lastCard.Id == CardId.MediusThePure && !_nervedoBanishUsed) return false;
                         return true;
                     }
                 }
@@ -578,12 +637,11 @@ namespace WindBot.Game.AI.Decks
             // Requires 3+ different Monster Types on our field
             if (GetDistinctRaceCount() < 3) return false;
 
-            // Negate opponent card/effect on field
+            // Negate opponent card/effect on field (including FieldZone and PendulumZone)
             if (Duel.LastChainPlayer == 1)
             {
                 var lastCard = Util.GetLastChainCard();
-                if (lastCard != null && lastCard.Controller == 1 &&
-                    (lastCard.Location == CardLocation.MonsterZone || lastCard.Location == CardLocation.SpellZone))
+                if (lastCard != null && lastCard.Controller == 1 && lastCard.IsOnField())
                 {
                     _diactorusNegateUsed = true;
                     return true;
@@ -672,8 +730,8 @@ namespace WindBot.Game.AI.Decks
             if (Duel.LastChainPlayer == 1)
             {
                 var ourTarget = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c != Card && !IsAceCard(c)) ?? Card;
-                var oppTarget = Enemy.GetMonsters().OrderByDescending(c => c.Attack).FirstOrDefault(c => c != null && c.IsFaceup())
-                             ?? Enemy.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup());
+                var oppTarget = Enemy.GetMonsters().Where(c => c != null && c.IsFaceup() && !c.IsShouldNotBeTarget())
+                                     .OrderByDescending(c => c.Attack).FirstOrDefault();
 
                 if (ourTarget != null && oppTarget != null)
                 {
@@ -725,7 +783,7 @@ namespace WindBot.Game.AI.Decks
             if (_powerPatronFusionUsed) return false;
             if (!Duel.IsMainPhase()) return false;
 
-            // Can summon Diactorus or Nerva using this card + hand/field
+            // Option 1: Diactorus (requires Medius + this card)
             bool hasMedius = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.Id == CardId.MediusThePure)
                           || Bot.Hand.Any(c => c != null && c.Id == CardId.MediusThePure);
 
@@ -733,6 +791,16 @@ namespace WindBot.Game.AI.Decks
             {
                 _powerPatronFusionUsed = true;
                 AI.SelectCard(CardId.ArtmageDiactorus);
+                return true;
+            }
+
+            // Option 2: Non-Finito fallback (requires 2 Artmage monsters: this card + 1 Artmage in hand/field)
+            bool hasOtherArtmage = Bot.Hand.Any(c => c != null && c != Card && c.HasSetcode(ARTMAGE_SETCODE))
+                                || Bot.GetMonsters().Any(c => c != null && c != Card && c.IsFaceup() && c.HasSetcode(ARTMAGE_SETCODE) && !IsAceCard(c));
+            if (hasOtherArtmage && !Bot.HasInMonstersZone(CardId.ArtmageNonFinito))
+            {
+                _powerPatronFusionUsed = true;
+                AI.SelectCard(CardId.ArtmageNonFinito);
                 return true;
             }
 
@@ -813,15 +881,20 @@ namespace WindBot.Game.AI.Decks
 
                 if (discard != null)
                 {
-                    int searchId = 0;
-                    if (!Bot.HasInMonstersZone(CardId.ArtmageFinmel) && !Bot.Hand.Any(c => c != null && c.Id == CardId.ArtmageFinmel))
-                        searchId = CardId.ArtmageFinmel;
-                    else if (!Bot.HasInMonstersZone(CardId.ArtmageGraflare) && !Bot.Hand.Any(c => c != null && c.Id == CardId.ArtmageGraflare))
-                        searchId = CardId.ArtmageGraflare;
-                    else if (!Bot.HasInMonstersZone(CardId.ArtmagePowerPatron) && !Bot.Hand.Any(c => c != null && c.Id == CardId.ArtmagePowerPatron))
-                        searchId = CardId.ArtmagePowerPatron;
-                    else
-                        searchId = CardId.ArtmageLitera;
+                    int[] candidates = { CardId.ArtmageFinmel, CardId.ArtmageGraflare, CardId.ArtmagePowerPatron, CardId.ArtmageLitera };
+                    // Find a candidate that is actually present in Deck and not currently on field
+                    int searchId = candidates.FirstOrDefault(id =>
+                        Bot.Deck.Any(c => c != null && c.Id == id) &&
+                        !Bot.HasInMonstersZone(id) &&
+                        !Bot.Hand.Any(c => c != null && c.Id == id)
+                    );
+                    if (searchId == 0)
+                    {
+                        searchId = candidates.FirstOrDefault(id =>
+                            Bot.Deck.Any(c => c != null && c.Id == id) &&
+                            !Bot.HasInMonstersZone(id)
+                        );
+                    }
 
                     if (searchId != 0)
                     {
@@ -971,14 +1044,21 @@ namespace WindBot.Game.AI.Decks
 
         private bool MasterworkFusionEffect()
         {
+            if (Card.Location == CardLocation.Hand && Duel.Player != 0) return false;
             if (Card.Location == CardLocation.Hand || Card.Location == CardLocation.SpellZone)
             {
                 if (_masterworkFusionUsed) return false;
 
+                // Protect our 3-race board: don't fuse away field monsters if it would break 3 races without hand replacement
+                if (GetDistinctRaceCount() >= 3 && Bot.Hand.Count(c => c != null && c.IsMonster()) == 0)
+                {
+                    if (Bot.GetMonsterCount() < 4) return false;
+                }
+
                 bool hasArtmage = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.HasSetcode(ARTMAGE_SETCODE))
                                || Bot.Hand.Any(c => c != null && c.HasSetcode(ARTMAGE_SETCODE));
                 int totalMats = Bot.Hand.Count(c => c != null && c.IsMonster())
-                              + Bot.GetMonsters().Count(c => c != null && c.IsFaceup());
+                              + Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && !IsAceCard(c));
 
                 if (hasArtmage && totalMats >= 2)
                 {
@@ -1025,11 +1105,13 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location == CardLocation.Grave)
             {
+                if (_pactUsed) return false;
                 var bounceTarget = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.HasSetcode(ARTMAGE_SETCODE) && !IsAceCard(c));
                 var oppTarget = Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup()) ?? Enemy.GetSpells().FirstOrDefault(c => c != null);
 
                 if (bounceTarget != null && oppTarget != null)
                 {
+                    _pactUsed = true;
                     AI.SelectCard(bounceTarget);
                     AI.SelectNextCard(oppTarget);
                     return true;
@@ -1097,8 +1179,9 @@ namespace WindBot.Game.AI.Decks
 
         private bool FinmelTributeSummon()
         {
-            if (Bot.GetMonsterCount() == 0) return false;
-            return Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && !IsAceCard(c) && c.Attack < 1500);
+            if (Bot.GetMonsterCount() < 2) return false;
+            int tributes = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && !IsAceCard(c) && c.Attack < 1500);
+            return tributes >= 2;
         }
 
         private bool GraflareTributeSummon()
@@ -1124,6 +1207,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool CrossSheepSummon()
         {
+            if (Bot.HasInMonstersZone(CardId.ArtmagePowerPatron)) return false;
             int mats = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && !IsAceCard(c));
             return mats >= 2 && !Bot.HasInMonstersZone(CardId.CrossSheep);
         }
@@ -1137,6 +1221,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool SPLittleKnightSummon()
         {
+            if (Bot.HasInMonstersZone(CardId.ArtmagePowerPatron)) return false;
             int mats = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && !IsAceCard(c));
             return mats >= 2 && !Bot.HasInMonstersZone(CardId.SPLittleKnight);
         }
@@ -1157,6 +1242,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool KnightmareCerberusSummon()
         {
+            if (Bot.HasInMonstersZone(CardId.ArtmagePowerPatron)) return false;
             int mats = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && !IsAceCard(c));
             bool oppHasSSMonster = Enemy.GetMonsters().Any(c => c != null && c.IsFaceup());
             return mats >= 2 && oppHasSSMonster;
@@ -1175,6 +1261,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool AccesscodeTalkerSummon()
         {
+            if (Bot.HasInMonstersZone(CardId.ArtmagePowerPatron)) return false;
             int mats = Bot.GetMonsters().Count(c => c != null && c.IsFaceup());
             return (mats >= 4 || (mats >= 2 && Bot.GetMonsters().Any(c => c != null && c.HasType(CardType.Link) && c.LinkCount >= 3))) && Duel.Turn > 1;
         }
