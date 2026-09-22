@@ -1,49 +1,49 @@
 // =========================================================================================
-// CARD AUDIT โ€” 2026_Monarch
-// | Card Name                    | Type    | OPT? | Cost              | Effect                                       | Activate When             | NEVER When                |
-// | Erebus the Underworld Monarch| Monster | Yes  | Send 2 Monarch S/T| Shuffles 1 card from hand/field/GY into deck | On Tribute Summon         | Opponent has negate setup |
-// | Zaborg the Mega Monarch      | Monster | No   | None              | Destroys 1 monster, mills Extra Deck         | On Tribute Summon         | Opponent has negate setup |
-// | Caius the Shadow Monarch     | Monster | No   | None              | Banishes 1 card on the field                 | On Tribute Summon         | Opponent has negate setup |
-// | Edea the Heavenly Squire     | Monster | Yes  | None              | SS 1 Squire from deck on summon              | In Hand to start combo    | GY effect has no targets  |
-// ACE CARDS: Primary: Erebus the Underworld Monarch / Secondary: Zaborg the Mega Monarch
-// COMBO STARTERS: 1. Edea the Heavenly Squire 2. Eidos the Underworld Squire
-// CHOKEPOINTS: Edea summon negated by handtraps
-// WIN CONDITION: Control and restrict opponent's extra deck via Zaborg/Erebus
-// GOING 1ST END BOARD: Erebus / Zaborg on field + Domain of the True Monarchs locking Extra Deck
-// GOING 2ND GAMEPLAN: Banish threat via Caius / Erebus, then attack for high damage
-// =========================================================================================
-
-// =========================================================================================
-// COMBO DRAFT โ€” 2026_Monarch
-// =========================================================================================
-// === COMBO LINE 1: Standard Tribute Setup (Starter: Edea) ===
-// HAND REQUIRED: Edea the Heavenly Squire + any Tribute Monarch
-// STEP 1: Normal Summon Edea the Heavenly Squire
-// STEP 2: Edea Effect: Special Summon Eidos the Underworld Squire from deck
-// STEP 3: Eidos Effect: Grant additional Tribute Summon
-// STEP 4: Tribute Edea + Eidos โ’ Tribute Summon Erebus / Zaborg
-// END BOARD: Erebus/Zaborg on field locking opponent
-// === COMBO LINE 2: Extra Deck Lockout ===
-// STEP 1: Set Domain of the True Monarchs
-// STEP 2: Tribute summon using opponent's monsters via Stormforth
+// CARD AUDIT — 2026_Monarch
+// | Card Name                     | ID       | Type    | OPT?     | Role / Effect Summary                                   |
+// | Erebus the Underworld Monarch | 23064604 | Monster | Soft     | Non-target spin 1 card; GY retrieve 2400/2800 Monarch  |
+// | Eidos the Underworld Monarch  | 31596518 | Monster | Hard     | On summon search 2800 Monarch/ST; GY trigger on Tribute |
+// | Caius the Shadow Monarch      | 9748752  | Monster | No       | Banish 1 card on field                                  |
+// | Zaborg the Thunder Monarch    | 51945556 | Monster | No       | Destroy 1 monster on field                              |
+// | Zaborg the Mega Monarch       | 87602890 | Monster | No       | Destroy 1 monster, mill up to 8 from both Extra Decks   |
+// | Edea the Heavenly Squire      | 95457011 | Monster | Hard     | SS Squire from Deck; GY recycle banished Monarch ST     |
+// | Eidos the Underworld Squire   | 59463312 | Monster | Soft/H   | Extra Tribute Summon; GY banish to SS Squire from GY    |
+// | Tessera the Primal Squire     | 67584223 | Monster | Hard     | Hand SS reveal ST; field Tribute; GY SS Squire from Deck|
+// | Mulcharmy Fuwalos             | 42141493 | Monster | Hard     | Handtrap: Draw on opponent SS from Deck/Extra Deck      |
+// | Ash Blossom & Joyous Spring   | 14558128 | Monster | Hard     | Handtrap: Negate search/dump/SS from Deck               |
+// | Nibiru, the Primal Being      | 27204311 | Monster | Hard     | Board Breaker: Tribute all monsters after 5 summons     |
+// | Pantheism of the Monarchs     | 22842126 | Spell   | Soft/H   | Hand draw 2; GY banish reveal 3 Monarch STs             |
+// | The Monarchs Revolt           | 9283801  | Spell   | Hard     | Discard 1, reveal 3 monsters; GY banish SS Squire       |
+// | Tenacity of the Monarchs      | 33609262 | Spell   | Hard     | Reveal Monarch in hand to search Monarch ST             |
+// | The Monarchs Masterplan       | 63899196 | Spell   | Hard(rem)| Send Monarch ST from Deck; Banish: search/summon 2400   |
+// | The Monarchs Stormforth       | 79844764 | Spell   | Hard     | Tribute 1 opponent monster for Tribute Summon           |
+// | Called by the Grave           | 24224830 | Spell   | No       | Quick-Play: Banish & negate opponent GY monster         |
+// | The Prime Monarch             | 54241725 | Trap    | Hard(sh) | S/T shuffle 2 draw 1; GY banish ST to SS as 2400 DEF    |
+// | Jurrac Astero                 | 52553102 | Extra   | No       | GY Quick: banish self+Jurrac to SS Meteor from Extra    |
+// | Jurrac Meteor                 | 17548456 | Extra   | Mandatory| On SS: Destroy all cards on the field (Board Wipe)      |
+// | The Duke of Demise            | 45445571 | Extra   | Hard     | GY ignition: banish self to retrieve Erebus/Caius to hand|
+// | Elder Entity N'tss            | 80532587 | Extra   | Mandatory| Sent to GY: Target 1 card on field; destroy it          |
+// | Garura, Wings of Resonant Life| 11765832 | Extra   | Mandatory| Sent to GY: Draw 1 card                                 |
+// | PSY-Framelord Omega           | 74586817 | Extra   | No       | GY ignition: shuffle self + 1 GY card to Deck           |
+// | Lunalight Perfume Dancer      | 81196066 | Extra   | Hard     | GY ignition: banish self to debuff opponent ATK by DEF  |
 // =========================================================================================
 
 using System;
-using YGOSharp.OCGWrapper.Enums;
 using System.Collections.Generic;
 using System.Linq;
 using WindBot;
 using WindBot.Game;
 using WindBot.Game.AI;
+using YGOSharp.OCGWrapper.Enums;
 
 namespace WindBot.Game.AI.Decks
 {
     [Deck("2026_Monarch", "2026_Monarch")]
     public class _2026_MonarchExecutor : ModernExecutor
     {
-        public class CardId
+        public static class CardId
         {
-            // Main Deck
+            // Main Deck Monsters
             public const int ErebusTheUnderworldMonarch = 23064604;
             public const int EidosTheUnderworldMonarch = 31596518;
             public const int CaiusTheShadowMonarch = 9748752;
@@ -53,8 +53,10 @@ namespace WindBot.Game.AI.Decks
             public const int EidosTheUnderworldSquire = 59463312;
             public const int TesseraThePrimalSquire = 67584223;
             public const int MulcharmyFuwalos = 42141493;
-            public const int AshBlossomAndJoyousSpring = 14558127;
+            public const int AshBlossomAndJoyousSpring = 14558128; // Audited ID (fixed typo 14558127 -> 14558128)
             public const int NibiruThePrimalBeing = 27204311;
+
+            // Spells & Traps
             public const int PantheismOfTheMonarchs = 22842126;
             public const int TheMonarchsRevolt = 9283801;
             public const int TenacityOfTheMonarchs = 33609262;
@@ -63,7 +65,7 @@ namespace WindBot.Game.AI.Decks
             public const int CalledByTheGrave = 24224830;
             public const int ThePrimeMonarch = 54241725;
 
-            // Extra Deck
+            // Extra Deck (Zaborg Mega Mill / Board Wipe Engine)
             public const int JurracAstero = 52553102;
             public const int JurracMeteor = 17548456;
             public const int JurracVelphito = 65961683;
@@ -76,113 +78,160 @@ namespace WindBot.Game.AI.Decks
             public const int ElderEntityNtss = 80532587;
         }
 
-        private static readonly int[] AceCardIds = {
+        private static readonly int[] AceCardIds =
+        {
             CardId.ErebusTheUnderworldMonarch,
             CardId.ZaborgTheMegaMonarch,
             CardId.CaiusTheShadowMonarch,
+            CardId.EidosTheUnderworldMonarch,
             CardId.ZaborgTheThunderMonarch
         };
 
-        // Once per turn (OPT) trackers
-        private bool _edeaSummonedUsed = false;
+        // Once-Per-Turn (OPT) State Trackers
+        private bool _edeaSummonUsed = false;
         private bool _edeaGyUsed = false;
         private bool _eidosGyUsed = false;
-        private bool _tesseraSsUsed = false;
-        private bool _tesseraTributeUsed = false;
+        private bool _tesseraHandSsUsed = false;
+        private bool _tesseraFieldTributeUsed = false;
         private bool _tesseraGyUsed = false;
-        private bool _pantheismActivated = false;
+        private bool _eidosMonarchSummonUsed = false;
+        private bool _eidosMonarchGyUsed = false;
+        private bool _pantheismHandUsed = false;
         private bool _pantheismGyUsed = false;
-        private bool _revoltActivated = false;
+        private bool _revoltHandUsed = false;
         private bool _revoltGyUsed = false;
-        private bool _tenacityActivated = false;
-        private bool _masterplanActivated = false;
+        private bool _tenacityUsed = false;
         private bool _masterplanBanishUsed = false;
         private bool _primeShuffleUsed = false;
-        private bool _primeGyUsed = false;
         private bool _stormforthActivatedThisTurn = false;
+        private bool _dukeGyUsed = false;
+        private bool _perfumeDancerGyUsed = false;
 
         public _2026_MonarchExecutor(GameAI ai, Duel duel)
             : base(ai, duel)
         {
             HeuristicGuard.RegisterAceCards(AceCardIds);
-            // โ”€โ”€ Combo Router: Sequencing โ”€โ”€
-            ComboRouter.RegisterLine(new ComboRouter.ComboLine {
-                Name = "Standard-Setup",
-                RequiredCards = new List<int> { CardId.EdeaTheHeavenlySquire, CardId.CaiusTheShadowMonarch },
-                Steps = new List<ComboRouter.ComboStep> {
-                    new() { CardId = CardId.EdeaTheHeavenlySquire, ActionType = ExecutorType.Activate, Description = "Play CardId.EdeaTheHeavenlySquire" },
-                    new() { CardId = CardId.CaiusTheShadowMonarch, ActionType = ExecutorType.Activate, Description = "Extend with CardId.CaiusTheShadowMonarch" }
+
+            // Combo Router: Sequencing
+            ComboRouter.RegisterLine(new ComboRouter.ComboLine
+            {
+                Name = "Mega-Zaborg-Extra-Wipe",
+                RequiredCards = new List<int> { CardId.EdeaTheHeavenlySquire, CardId.ZaborgTheMegaMonarch },
+                Steps = new List<ComboRouter.ComboStep>
+                {
+                    new() { CardId = CardId.EdeaTheHeavenlySquire, ActionType = ExecutorType.Summon, Description = "Normal Summon Edea" },
+                    new() { CardId = CardId.EdeaTheHeavenlySquire, ActionType = ExecutorType.Activate, Description = "Edea SS Eidos from Deck" },
+                    new() { CardId = CardId.ZaborgTheMegaMonarch, ActionType = ExecutorType.Summon, Description = "Tribute Summon Mega Zaborg" },
+                    new() { CardId = CardId.ZaborgTheMegaMonarch, ActionType = ExecutorType.Activate, Description = "Zaborg trigger: destroy & mill 8 Extra Deck cards" }
                 },
-                EndBoardScore = 80
+                EndBoardScore = 95
             });
 
-            // โ”€โ”€ Bait Planner โ”€โ”€
-            BaitPlanner.RegisterComboStarters(CardId.EdeaTheHeavenlySquire, CardId.ErebusTheUnderworldMonarch, CardId.EidosTheUnderworldMonarch);
-            BaitPlanner.RegisterBaitCards(CardId.ErebusTheUnderworldMonarch);
+            ComboRouter.RegisterLine(new ComboRouter.ComboLine
+            {
+                Name = "Erebus-Control",
+                RequiredCards = new List<int> { CardId.EdeaTheHeavenlySquire, CardId.ErebusTheUnderworldMonarch },
+                Steps = new List<ComboRouter.ComboStep>
+                {
+                    new() { CardId = CardId.EdeaTheHeavenlySquire, ActionType = ExecutorType.Summon, Description = "Normal Summon Edea" },
+                    new() { CardId = CardId.EdeaTheHeavenlySquire, ActionType = ExecutorType.Activate, Description = "Edea SS Eidos from Deck" },
+                    new() { CardId = CardId.ErebusTheUnderworldMonarch, ActionType = ExecutorType.Summon, Description = "Tribute Summon Erebus" },
+                    new() { CardId = CardId.ErebusTheUnderworldMonarch, ActionType = ExecutorType.Activate, Description = "Erebus send 2 S/Ts to spin opponent card" }
+                },
+                EndBoardScore = 85
+            });
 
-            // โ”€โ”€ Chain Advisor โ”€โ”€
-            ChainAdvisor.RegisterHighValueTargets(CardId.EdeaTheHeavenlySquire);
+            // Bait Planner & Chain Advisor
+            BaitPlanner.RegisterComboStarters(CardId.EdeaTheHeavenlySquire, CardId.TesseraThePrimalSquire, CardId.TheMonarchsRevolt);
+            BaitPlanner.RegisterBaitCards(CardId.TenacityOfTheMonarchs, CardId.PantheismOfTheMonarchs);
+            ChainAdvisor.RegisterHighValueTargets(CardId.EdeaTheHeavenlySquire, CardId.ZaborgTheMegaMonarch, CardId.ErebusTheUnderworldMonarch);
 
-
-            // 1. Hand Traps & Reactive Disruption (Called by, Ash, Mulcharmy, Nibiru)
+            // =========================================================================
+            // 1. Reactive Disruption & Handtraps (Called by, Ash, Fuwalos, Nibiru)
+            // =========================================================================
             AddExecutor(ExecutorType.Activate, CardId.CalledByTheGrave, CalledByTheGraveEffect);
             AddExecutor(ExecutorType.Activate, CardId.AshBlossomAndJoyousSpring, () => SmartHandTrapChain() && DefaultAshBlossomAndJoyousSpring());
             AddExecutor(ExecutorType.Activate, CardId.MulcharmyFuwalos, MulcharmyFuwalosEffect);
             AddExecutor(ExecutorType.Activate, CardId.NibiruThePrimalBeing, NibiruEffect);
 
-            // 2. Setup Spells (Pantheism, Tenacity, Masterplan, Revolt, Stormforth)
-            AddExecutor(ExecutorType.Activate, CardId.PantheismOfTheMonarchs, PantheismHandEffect);
-            AddExecutor(ExecutorType.Activate, CardId.TenacityOfTheMonarchs, TenacityEffect);
-            AddExecutor(ExecutorType.Activate, CardId.TheMonarchsMasterplan, MasterplanEffect);
-            AddExecutor(ExecutorType.Activate, CardId.TheMonarchsRevolt, RevoltEffect);
-            AddExecutor(ExecutorType.Activate, CardId.TheMonarchsStormforth, StormforthEffect);
+            // =========================================================================
+            // 2. GY Quick Disruptions (Opponent's Turn Board Wipe)
+            // =========================================================================
+            AddExecutor(ExecutorType.Activate, CardId.JurracAstero, JurracAsteroGyQuickEffect);
 
-            // 3. Squire Summoning & Field/GY Triggers
-            AddExecutor(ExecutorType.SpSummon, CardId.TesseraThePrimalSquire, TesseraSpSummon);
+            // =========================================================================
+            // 3. Setup Spells & Starters (Masterplan, Pantheism, Tenacity, Revolt, Stormforth)
+            // =========================================================================
+            AddExecutor(ExecutorType.Activate, CardId.TheMonarchsStormforth, StormforthEffect);
+            AddExecutor(ExecutorType.Activate, CardId.TheMonarchsMasterplan, MasterplanEffect);
+            AddExecutor(ExecutorType.Activate, CardId.PantheismOfTheMonarchs, PantheismEffect);
+            AddExecutor(ExecutorType.Activate, CardId.TheMonarchsRevolt, RevoltEffect);
+            AddExecutor(ExecutorType.Activate, CardId.TenacityOfTheMonarchs, TenacityEffect);
+
+            // =========================================================================
+            // 4. Squires & Tribute Fodder Summoning
+            // =========================================================================
+            // Tessera Hand Special Summon
+            AddExecutor(ExecutorType.SpSummon, CardId.TesseraThePrimalSquire, TesseraHandSpSummon);
             AddExecutor(ExecutorType.Activate, CardId.TesseraThePrimalSquire, TesseraEffect);
-            AddExecutor(ExecutorType.Summon, CardId.EdeaTheHeavenlySquire);
+
+            // Edea Normal Summon & Field/GY Trigger
+            AddExecutor(ExecutorType.Summon, CardId.EdeaTheHeavenlySquire, EdeaNormalSummon);
             AddExecutor(ExecutorType.Activate, CardId.EdeaTheHeavenlySquire, EdeaEffect);
-            AddExecutor(ExecutorType.Summon, CardId.EidosTheUnderworldSquire, EidosSummon);
+
+            // Eidos Normal Summon & GY Effect
+            AddExecutor(ExecutorType.Summon, CardId.EidosTheUnderworldSquire, EidosNormalSummon);
             AddExecutor(ExecutorType.Activate, CardId.EidosTheUnderworldSquire, EidosGyEffect);
+
+            // The Prime Monarch GY Special Summon
             AddExecutor(ExecutorType.Activate, CardId.ThePrimeMonarch, PrimeGyEffect);
 
-            // 4. Monarch Tribute Summons
+            // Eidos the Underworld Monarch GY Trigger on Tribute Summon
+            AddExecutor(ExecutorType.Activate, CardId.EidosTheUnderworldMonarch, EidosMonarchEffect);
+
+            // Linkuriboh (if Edea on field and need to trigger Edea GY to recover banished S/T)
+            AddExecutor(ExecutorType.SpSummon, CardId.Linkuriboh, LinkuribohSummon);
+
+            // =========================================================================
+            // 5. Monarch Tribute Summons
+            // =========================================================================
             AddExecutor(ExecutorType.Summon, CardId.ZaborgTheMegaMonarch, ZaborgMegaSummon);
             AddExecutor(ExecutorType.Summon, CardId.ErebusTheUnderworldMonarch, ErebusSummon);
             AddExecutor(ExecutorType.Summon, CardId.CaiusTheShadowMonarch, CaiusSummon);
-            AddExecutor(ExecutorType.Summon, CardId.ZaborgTheThunderMonarch, ZaborgSummon);
             AddExecutor(ExecutorType.Summon, CardId.EidosTheUnderworldMonarch, EidosMonarchSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.EidosTheUnderworldMonarch, EidosMonarchSpSummon);
+            AddExecutor(ExecutorType.Summon, CardId.ZaborgTheThunderMonarch, ZaborgSummon);
 
-            // 5. Monarch Ignition/Trigger Effects
+            // =========================================================================
+            // 6. Monarch Trigger & Ignition Effects
+            // =========================================================================
             AddExecutor(ExecutorType.Activate, CardId.ZaborgTheMegaMonarch, ZaborgMegaEffect);
             AddExecutor(ExecutorType.Activate, CardId.ErebusTheUnderworldMonarch, ErebusEffect);
             AddExecutor(ExecutorType.Activate, CardId.CaiusTheShadowMonarch, CaiusEffect);
             AddExecutor(ExecutorType.Activate, CardId.ZaborgTheThunderMonarch, ZaborgEffect);
-            AddExecutor(ExecutorType.Activate, CardId.EidosTheUnderworldMonarch, EidosMonarchEffect);
 
-            // 6. Extra Deck Summon (Linkuriboh to trigger Edea GY effect)
-            AddExecutor(ExecutorType.SpSummon, CardId.Linkuriboh, LinkuribohSummon);
-
-            // 7. Extra Deck GY Triggers (triggered from Zaborg Extra Deck mill)
+            // =========================================================================
+            // 7. Extra Deck Mill Triggers & GY Recovery
+            // =========================================================================
             AddExecutor(ExecutorType.Activate, CardId.GaruraWingsOfResonantLife);
             AddExecutor(ExecutorType.Activate, CardId.ElderEntityNtss, NtssGyEffect);
+            AddExecutor(ExecutorType.Activate, CardId.TheDukeOfDemise, DukeGyEffect);
             AddExecutor(ExecutorType.Activate, CardId.LunalightPerfumeDancer, PerfumeDancerGyEffect);
             AddExecutor(ExecutorType.Activate, CardId.PSYFramelordOmega, OmegaGyEffect);
 
-            // 8. Traps and Sets
+            // =========================================================================
+            // 8. Traps, Continuous Effects, & End Phase Sets
+            // =========================================================================
             AddExecutor(ExecutorType.Activate, CardId.ThePrimeMonarch, PrimeShuffleEffect);
             AddExecutor(ExecutorType.SpellSet, CardId.ThePrimeMonarch, SpellSetCheck);
             AddExecutor(ExecutorType.SpellSet, CardId.TheMonarchsStormforth, SpellSetCheck);
             AddExecutor(ExecutorType.SpellSet, CardId.CalledByTheGrave, SpellSetCheck);
-            AddExecutor(ExecutorType.SpellSet, CardId.TheMonarchsRevolt, SpellSetCheck);
 
             AddExecutor(ExecutorType.Repos, DefaultMonsterRepos);
         }
 
         public override bool OnSelectHand()
         {
-            // Prefer going first to set up domain/squire combos
+            // Prefer going first to execute Zaborg Mega Extra Deck mill & setup Jurrac board wipe
             return true;
         }
 
@@ -190,61 +239,49 @@ namespace WindBot.Game.AI.Decks
         {
             base.OnNewTurn();
             _isGoingSecond = (Duel.Turn > 1);
-            _edeaSummonedUsed = false;
+
+            // Reset turn-based OPT trackers
+            _edeaSummonUsed = false;
             _edeaGyUsed = false;
             _eidosGyUsed = false;
-            _tesseraSsUsed = false;
-            _tesseraTributeUsed = false;
+            _tesseraHandSsUsed = false;
+            _tesseraFieldTributeUsed = false;
             _tesseraGyUsed = false;
-            _pantheismActivated = false;
+            _eidosMonarchSummonUsed = false;
+            _eidosMonarchGyUsed = false;
+            _pantheismHandUsed = false;
             _pantheismGyUsed = false;
-            _revoltActivated = false;
+            _revoltHandUsed = false;
             _revoltGyUsed = false;
-            _tenacityActivated = false;
-            _masterplanActivated = false;
+            _tenacityUsed = false;
             _masterplanBanishUsed = false;
             _primeShuffleUsed = false;
-            _primeGyUsed = false;
             _stormforthActivatedThisTurn = false;
-
-            // โ”€โ”€ Going-Second BreakBoard: prioritize disruption over combo โ”€โ”€
-            if (ShouldGoBreakBoard)
-            {
-                // Reset board-breaking resources for aggressive turn-2 plays
-                _stormforthActivatedThisTurn = false;
-            }
+            _dukeGyUsed = false;
+            _perfumeDancerGyUsed = false;
         }
 
         public override bool IsAceCard(ClientCard card)
         {
             if (card == null) return false;
-            return card.IsCode(
-                CardId.ErebusTheUnderworldMonarch,
-                CardId.ZaborgTheMegaMonarch,
-                CardId.CaiusTheShadowMonarch
-            );
+            return card.IsCode(AceCardIds);
         }
 
         public override int GetMaterialPriority(ClientCard c)
         {
             if (c == null) return 999;
+            if (c.Controller == 1) return 0; // Highest priority: tribute opponent monsters via Stormforth
+            if (c.IsCode(CardId.EidosTheUnderworldSquire)) return 10;
+            if (c.IsCode(CardId.EdeaTheHeavenlySquire)) return 20;
+            if (c.IsCode(CardId.TesseraThePrimalSquire)) return 30;
+            if (c.IsCode(CardId.ThePrimeMonarch)) return 40;
             if (IsAceCard(c)) return 900;
             return 100;
         }
 
-        protected override bool IsBoardStrongEnough()
-        {
-            if (BoardScore() >= 15) return true;
-            return base.IsBoardStrongEnough();
-        }
-
-        protected override bool ShouldStopExtending()
-        {
-            if (BoardScore() >= 20) return true;
-            return base.ShouldStopExtending();
-        }
-
-        // --- Core Helper Check Methods ---
+        // =========================================================================
+        // Helper Queries
+        // =========================================================================
 
         private bool IsMonarchST(int id)
         {
@@ -263,6 +300,11 @@ namespace WindBot.Game.AI.Decks
                    (card.Attack == 2800 && card.Defense == 1000);
         }
 
+        private bool HasMonarchInHand()
+        {
+            return Bot.Hand.Any(c => c != null && c.IsMonster() && IsMonarchStats(c));
+        }
+
         private int GetAvailableTributes()
         {
             int count = Bot.GetMonsterCount();
@@ -273,7 +315,14 @@ namespace WindBot.Game.AI.Decks
             return count;
         }
 
-        // --- Hand Traps & Reactive Disruption ---
+        private bool HasTributeSummonedMonsterOnField()
+        {
+            return Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsSpecialSummoned && (c.Level >= 5 || IsMonarchStats(c)));
+        }
+
+        // =========================================================================
+        // 1. Reactive Disruption & Handtraps
+        // =========================================================================
 
         private bool CalledByTheGraveEffect()
         {
@@ -292,22 +341,95 @@ namespace WindBot.Game.AI.Decks
             return DefaultNibiru();
         }
 
-        // --- Setup Spells ---
+        // =========================================================================
+        // 2. GY Quick Disruptions (Jurrac Astero Board Wipe)
+        // =========================================================================
 
-        private bool PantheismHandEffect()
+        private bool JurracAsteroGyQuickEffect()
         {
-            if (ShouldSkipCombo()) return false;
+            // Astero Quick-Effect: During opponent's turn, banish self + 1 Jurrac from GY -> SS Jurrac Meteor from Extra Deck -> Board Wipe!
+            if (Duel.Player != 1) return false;
+            if (Card.Location != CardLocation.Grave) return false;
+
+            // Check if Extra Deck has Jurrac Meteor
+            bool hasMeteorInExtra = Bot.ExtraDeck.Any(c => c.IsCode(CardId.JurracMeteor));
+            if (!hasMeteorInExtra) return false;
+
+            // Check if there is another Jurrac in GY to banish as cost
+            bool hasOtherJurracInGy = Bot.Graveyard.Any(c => c != Card &&
+                c.IsCode(CardId.JurracAstero, CardId.JurracVelphito, CardId.JurracMeteor));
+            if (!hasOtherJurracInGy) return false;
+
+            // Trigger when opponent has committed cards to the field
+            int enemyFieldCards = Enemy.GetMonsterCount() + Enemy.GetSpellCount();
+            if (enemyFieldCards < 2 && Duel.Phase != DuelPhase.BattleStart && Duel.Phase != DuelPhase.Battle)
+            {
+                return false;
+            }
+
+            // Avoid wiping our own high-value field unless necessary
+            if (Bot.GetMonsterCount() >= 3 && enemyFieldCards < 3)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        // =========================================================================
+        // 3. Setup Spells
+        // =========================================================================
+
+        private bool StormforthEffect()
+        {
+            if (_stormforthActivatedThisTurn) return false;
+            if (Duel.Player == 0 && Duel.Phase == DuelPhase.Main1)
+            {
+                if (Enemy.GetMonsterCount() > 0 && HasMonarchInHand())
+                {
+                    _stormforthActivatedThisTurn = true;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private bool MasterplanEffect()
+        {
             if (Card.Location == CardLocation.Hand)
             {
-                if (_pantheismActivated) return false;
+                // Send 1 Monarch S/T from Deck to GY (primes Pantheism or The Prime Monarch)
+                return true;
+            }
+            if (Card.Location == CardLocation.Removed)
+            {
+                if (_masterplanBanishUsed) return false;
+                var oppMonster = Enemy.GetMonsters().FirstOrDefault(m => m != null && m.IsFaceup());
+                if (oppMonster != null)
+                {
+                    _masterplanBanishUsed = true;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private bool PantheismEffect()
+        {
+            if (Card.Location == CardLocation.Hand)
+            {
+                if (_pantheismHandUsed) return false;
                 var targets = Bot.Hand.Where(c => c != Card && IsMonarchST(c.Id)).ToList();
                 if (targets.Count > 0)
                 {
-                    var cost = targets.FirstOrDefault(c => c.IsCode(CardId.ThePrimeMonarch)) ?? targets.FirstOrDefault();
+                    // Prioritize discarding The Prime Monarch or Masterplan
+                    var cost = targets.FirstOrDefault(c => c.IsCode(CardId.ThePrimeMonarch))
+                        ?? targets.FirstOrDefault(c => c.IsCode(CardId.TheMonarchsMasterplan))
+                        ?? targets.FirstOrDefault();
                     if (cost != null)
                     {
                         AI.SelectCard(cost);
-                        _pantheismActivated = true;
+                        _pantheismHandUsed = true;
                         return true;
                     }
                 }
@@ -321,64 +443,33 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
-        private bool TenacityEffect()
-        {
-            if (ShouldSkipCombo()) return false;
-            if (_tenacityActivated) return false;
-            var revealTarget = Bot.Hand.FirstOrDefault(c => c.IsMonster() && IsMonarchStats(c));
-            if (revealTarget != null)
-            {
-                AI.SelectCard(revealTarget);
-                _tenacityActivated = true;
-                return true;
-            }
-            return false;
-        }
-
-        private bool MasterplanEffect()
-        {
-            if (Card.Location == CardLocation.Hand)
-            {
-                if (_masterplanActivated) return false;
-                _masterplanActivated = true;
-                return true;
-            }
-            else if (Card.Location == CardLocation.Removed)
-            {
-                if (_masterplanBanishUsed) return false;
-                var target = Enemy.GetMonsters().FirstOrDefault(m => m != null && m.IsFaceup());
-                if (target != null)
-                {
-                    AI.SelectCard(target);
-                    _masterplanBanishUsed = true;
-                    return true;
-                }
-            }
-            return false;
-        }
-
         private bool RevoltEffect()
         {
             if (Card.Location == CardLocation.Hand)
             {
-                if (_revoltActivated) return false;
-                // Destroy a face-up Monarch card we control (prioritizing The Prime Monarch)
-                var destroyTarget = Bot.GetMonsters().Concat(Bot.GetSpells())
-                    .Where(c => c != null && c.IsFaceup() && (c.IsCode(CardId.ThePrimeMonarch) || IsMonarchST(c.Id) || IsMonarchStats(c)))
-                    .OrderBy(c => c.IsCode(CardId.ThePrimeMonarch) ? 0 : 1)
-                    .FirstOrDefault();
-                if (destroyTarget != null)
+                if (_revoltHandUsed) return false;
+                // Cost: discard 1 card. Needs at least 1 other card in hand.
+                var discardCandidates = Bot.Hand.Where(c => c != Card).ToList();
+                if (discardCandidates.Count == 0) return false;
+
+                var cost = discardCandidates.FirstOrDefault(c => c.IsCode(CardId.ThePrimeMonarch))
+                    ?? discardCandidates.FirstOrDefault(c => c.IsCode(CardId.TheMonarchsMasterplan))
+                    ?? discardCandidates.FirstOrDefault(c => c.IsCode(CardId.PantheismOfTheMonarchs))
+                    ?? discardCandidates.FirstOrDefault();
+
+                if (cost != null)
                 {
-                    AI.SelectCard(destroyTarget);
-                    _revoltActivated = true;
+                    AI.SelectCard(cost);
+                    _revoltHandUsed = true;
                     return true;
                 }
             }
             else if (Card.Location == CardLocation.Grave)
             {
                 if (_revoltGyUsed) return false;
-                bool hasSquire = Bot.Hand.Any(c => c.IsMonster() && c.Attack == 800 && c.Defense == 1000);
-                if (hasSquire && !IsSpecialSummonBlocked())
+                // Banish self from GY: Special Summon 1 800/1000 monster from hand
+                bool hasSquireInHand = Bot.Hand.Any(c => c.IsMonster() && c.Attack == 800 && c.Defense == 1000);
+                if (hasSquireInHand && !IsSpecialSummonBlocked())
                 {
                     _revoltGyUsed = true;
                     return true;
@@ -387,41 +478,33 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
-        private bool StormforthEffect()
+        private bool TenacityEffect()
         {
-            if (_stormforthActivatedThisTurn) return false;
-            if (Duel.Player == 0 && Duel.Phase == DuelPhase.Main1)
+            if (_tenacityUsed) return false;
+            var revealTarget = Bot.Hand.FirstOrDefault(c => c.IsMonster() && IsMonarchStats(c));
+            if (revealTarget != null)
             {
-                if (Enemy.GetMonsterCount() > 0)
-                {
-                    // Check if we have a Monarch in hand OR an extra tribute summon available from squires
-                    bool hasMonarchInHand = Bot.Hand.Any(c => c.IsMonster() && IsMonarchStats(c));
-                    bool hasExtraTributeFromSquire = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() &&
-                        c.IsCode(CardId.EidosTheUnderworldSquire, CardId.TesseraThePrimalSquire));
-                    if (hasMonarchInHand || hasExtraTributeFromSquire)
-                    {
-                        _stormforthActivatedThisTurn = true;
-                        return true;
-                    }
-                }
+                AI.SelectCard(revealTarget);
+                _tenacityUsed = true;
+                return true;
             }
             return false;
         }
 
-        // --- Squire Summoning & Effects ---
+        // =========================================================================
+        // 4. Squires & Tribute Fodder Summoning
+        // =========================================================================
 
-        private bool TesseraSpSummon()
+        private bool TesseraHandSpSummon()
         {
-            if (_tesseraSsUsed) return false;
+            if (_tesseraHandSsUsed) return false;
             if (IsSpecialSummonBlocked()) return false;
-            bool hasMonarch = Bot.Hand.Any(c => c.IsMonster() && IsMonarchStats(c));
-            if (!hasMonarch) return false;
-
-            var target = Bot.Hand.FirstOrDefault(c => IsMonarchST(c.Id));
-            if (target != null)
+            // Cost: Reveal 1 Monarch Spell/Trap from hand
+            var stInHand = Bot.Hand.FirstOrDefault(c => IsMonarchST(c.Id));
+            if (stInHand != null)
             {
-                AI.SelectCard(target);
-                _tesseraSsUsed = true;
+                AI.SelectCard(stInHand);
+                _tesseraHandSsUsed = true;
                 return true;
             }
             return false;
@@ -431,41 +514,50 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location == CardLocation.MonsterZone)
             {
-                if (_tesseraTributeUsed) return false;
-                bool canTributeSummon = Bot.Hand.Any(c => c.IsMonster() && IsMonarchStats(c));
-                if (canTributeSummon)
+                if (_tesseraFieldTributeUsed) return false;
+                // Field ignition: Immediately Tribute Summon 1 monster from hand
+                if (HasMonarchInHand())
                 {
-                    _tesseraTributeUsed = true;
+                    _tesseraFieldTributeUsed = true;
                     return true;
                 }
             }
             else if (Card.Location == CardLocation.Grave)
             {
                 if (_tesseraGyUsed) return false;
+                // Trigger when sent to GY: SS 1 Squire (800/1000) from Deck
                 _tesseraGyUsed = true;
                 return true;
             }
             return false;
         }
 
+        private bool EdeaNormalSummon()
+        {
+            // Always prefer normal summoning Edea to tutor Eidos
+            return true;
+        }
+
         private bool EdeaEffect()
         {
-            if (ShouldSkipCombo()) return false;
             if (Card.Location == CardLocation.MonsterZone)
             {
-                if (_edeaSummonedUsed) return false;
+                if (_edeaSummonUsed) return false;
+                // SS Eidos the Underworld Squire from Deck
                 AI.SelectCard(CardId.EidosTheUnderworldSquire, CardId.TesseraThePrimalSquire);
-                _edeaSummonedUsed = true;
+                _edeaSummonUsed = true;
                 return true;
             }
             else if (Card.Location == CardLocation.Grave)
             {
                 if (_edeaGyUsed) return false;
+                // Recycle banished Monarch S/T
                 var banished = Bot.Banished.Where(c => IsMonarchST(c.Id)).ToList();
                 if (banished.Count > 0)
                 {
                     var target = banished.FirstOrDefault(c => c.IsCode(CardId.PantheismOfTheMonarchs))
                         ?? banished.FirstOrDefault(c => c.IsCode(CardId.TheMonarchsStormforth))
+                        ?? banished.FirstOrDefault(c => c.IsCode(CardId.TheMonarchsMasterplan))
                         ?? banished.FirstOrDefault();
                     if (target != null)
                     {
@@ -478,8 +570,9 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
-        private bool EidosSummon()
+        private bool EidosNormalSummon()
         {
+            // If Edea is in hand, summon Edea first instead
             if (Bot.Hand.Any(c => c.IsCode(CardId.EdeaTheHeavenlySquire) && c != Card))
             {
                 return false;
@@ -504,39 +597,56 @@ namespace WindBot.Game.AI.Decks
 
         private bool PrimeGyEffect()
         {
-            if (_primeGyUsed) return false;
             if (IsSpecialSummonBlocked()) return false;
+            // Prime Monarch in GY: banish 1 Monarch S/T to SS as monster
             var cost = Bot.Graveyard.Where(c => c != Card && IsMonarchST(c.Id)).ToList();
             if (cost.Count > 0)
             {
-                AI.SelectCard(cost.FirstOrDefault());
-                _primeGyUsed = true;
+                // Prioritize banishing Masterplan (to trigger Masterplan's banish search!)
+                var target = cost.FirstOrDefault(c => c.IsCode(CardId.TheMonarchsMasterplan))
+                    ?? cost.FirstOrDefault(c => c.IsCode(CardId.TheMonarchsRevolt))
+                    ?? cost.FirstOrDefault(c => c.IsCode(CardId.TheMonarchsStormforth))
+                    ?? cost.FirstOrDefault(c => c.IsCode(CardId.ThePrimeMonarch))
+                    ?? cost.FirstOrDefault();
+
+                if (target != null)
+                {
+                    AI.SelectCard(target);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private bool LinkuribohSummon()
+        {
+            if (IsSpecialSummonBlocked()) return false;
+            // Only summon Linkuriboh using Edea if we have a banished Monarch S/T to recover
+            bool hasBanishedST = Bot.Banished.Any(c => IsMonarchST(c.Id));
+            if (!hasBanishedST) return false;
+
+            var edea = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(CardId.EdeaTheHeavenlySquire));
+            if (edea != null)
+            {
+                AI.SelectCard(edea);
                 return true;
             }
             return false;
         }
 
-        // --- Monarch Summoning Logic ---
+        // =========================================================================
+        // 5. Monarch Tribute Summons
+        // =========================================================================
 
         private bool ZaborgMegaSummon()
         {
-            int tributesNeeded = 2;
-            bool hasTributeSummoned = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsSpecialSummoned && (c.Level >= 5 || IsMonarchStats(c)));
-            if (hasTributeSummoned)
-            {
-                tributesNeeded = 1;
-            }
+            int tributesNeeded = HasTributeSummonedMonsterOnField() ? 1 : 2;
             return GetAvailableTributes() >= tributesNeeded;
         }
 
         private bool ErebusSummon()
         {
-            int tributesNeeded = 2;
-            bool hasTributeSummoned = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsSpecialSummoned && (c.Level >= 5 || IsMonarchStats(c)));
-            if (hasTributeSummoned)
-            {
-                tributesNeeded = 1;
-            }
+            int tributesNeeded = HasTributeSummonedMonsterOnField() ? 1 : 2;
             return GetAvailableTributes() >= tributesNeeded;
         }
 
@@ -545,45 +655,40 @@ namespace WindBot.Game.AI.Decks
             return GetAvailableTributes() >= 1 && (Enemy.GetMonsterCount() > 0 || Enemy.GetSpellCount() > 0);
         }
 
+        private bool EidosMonarchSummon()
+        {
+            return GetAvailableTributes() >= 1;
+        }
+
         private bool ZaborgSummon()
         {
             return GetAvailableTributes() >= 1 && Enemy.GetMonsterCount() > 0;
         }
 
-        private bool EidosMonarchSummon()
-        {
-            int tributesNeeded = 2;
-            bool hasTributeSummoned = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsSpecialSummoned && (c.Level >= 5 || IsMonarchStats(c)));
-            if (hasTributeSummoned)
-            {
-                tributesNeeded = 1;
-            }
-            return GetAvailableTributes() >= tributesNeeded;
-        }
-
-        // --- Monarch Activation Effects ---
+        // =========================================================================
+        // 6. Monarch Trigger & Ignition Effects
+        // =========================================================================
 
         private bool ZaborgMegaEffect()
         {
-            // Zaborg Mega: destroy 1 monster, then both players send from Extra Deck to GY
-            // Priority: target opponent's monster
+            // Zaborg Mega: destroy 1 monster on field, then both players send from Extra Deck
+            // Priority 1: Target opponent's monster if any
             var oppTarget = Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup());
             if (oppTarget != null)
             {
                 AI.SelectCard(oppTarget);
                 return true;
             }
-            // Self-target ONLY going first Turn 1 (for Extra Deck mill value)
-            // Going second, self-destroying wastes our 2-tribute investment
-            if (Duel.Turn <= 1)
+
+            // Priority 2: On Turn 1 (or opponent has no monsters), target itself!
+            // Zaborg is Level 8 LIGHT, destroying itself triggers 8-card Extra Deck mill from both players
+            var itself = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(CardId.ZaborgTheMegaMonarch));
+            if (itself != null)
             {
-                var itself = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(CardId.ZaborgTheMegaMonarch));
-                if (itself != null)
-                {
-                    AI.SelectCard(itself);
-                    return true;
-                }
+                AI.SelectCard(itself);
+                return true;
             }
+
             return false;
         }
 
@@ -591,10 +696,11 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location == CardLocation.Grave)
             {
+                // GY Quick Effect: Discard 1 Monarch S/T, retrieve 2400/2800 Monarch from GY
                 var discard = Bot.Hand.FirstOrDefault(c => IsMonarchST(c.Id));
                 if (discard != null)
                 {
-                    var target = Bot.Graveyard.FirstOrDefault(c => c.IsMonster() && IsMonarchStats(c));
+                    var target = Bot.Graveyard.FirstOrDefault(c => c.IsMonster() && IsMonarchStats(c) && c != Card);
                     if (target != null)
                     {
                         AI.SelectCard(discard);
@@ -605,18 +711,11 @@ namespace WindBot.Game.AI.Decks
             }
             else
             {
-                // On-field trigger: send 2 Monarch S/T from hand/deck to GY, then shuffle 1 card
-                // from opponent's hand/field/GY into the deck
-                var sendTargets = Bot.Hand.Where(c => c != null && c != Card && IsMonarchST(c.Id)).ToList();
-                if (sendTargets.Count < 2)
-                {
-                    // Not enough Monarch S/T in hand โ€” still activate, the game will let us pick from deck
-                }
+                // On-field Tribute Summon trigger: Send 2 Monarch S/Ts to spin 1 card
                 AI.SelectCard(CardId.ThePrimeMonarch, CardId.PantheismOfTheMonarchs,
-                    CardId.TenacityOfTheMonarchs, CardId.TheMonarchsStormforth, CardId.TheMonarchsRevolt);
+                    CardId.TheMonarchsMasterplan, CardId.TheMonarchsStormforth, CardId.TheMonarchsRevolt);
 
-                // Select best opponent card to shuffle back into deck
-                var oppTarget = Util.GetBestEnemyCard(canBeTarget: true);
+                var oppTarget = Util.GetBestEnemyCard(canBeTarget: false);
                 if (oppTarget != null)
                 {
                     AI.SelectNextCard(oppTarget);
@@ -639,8 +738,6 @@ namespace WindBot.Game.AI.Decks
 
         private bool ZaborgEffect()
         {
-            // Zaborg (small): destroy 1 monster on field
-            // NEVER activate if no enemy monster โ€” would self-destruct
             var target = Enemy.GetMonsters()
                 .Where(c => c != null && c.IsFaceup() && !c.IsShouldNotBeTarget())
                 .OrderByDescending(c => c.Attack)
@@ -653,53 +750,31 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
-        private bool EidosMonarchSpSummon()
-        {
-            if (Duel.Player == 1 && (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Main2))
-            {
-                bool hasBanish = Bot.Graveyard.Any(c => IsMonarchST(c.Id));
-                if (hasBanish)
-                {
-                    int tributesNeeded = 2;
-                    bool hasTributeSummoned = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsSpecialSummoned && (c.Level >= 5 || IsMonarchStats(c)));
-                    if (hasTributeSummoned) tributesNeeded = 1;
-                    if (GetAvailableTributes() >= tributesNeeded)
-                    {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-
         private bool EidosMonarchEffect()
         {
-            if (Card.Location == CardLocation.Grave)
+            if (Card.Location == CardLocation.MonsterZone)
             {
-                var discard = Bot.Hand.FirstOrDefault(c => IsMonarchST(c.Id));
-                if (discard != null)
+                if (_eidosMonarchSummonUsed) return false;
+                // On summon: Add 1 Monarch S/T or 2800/1000 Monarch from Deck or GY to hand
+                _eidosMonarchSummonUsed = true;
+                return true;
+            }
+            else if (Card.Location == CardLocation.Grave)
+            {
+                if (_eidosMonarchGyUsed) return false;
+                // When a Monarch is Tribute Summoned: triggers to SS itself to field
+                if (!IsSpecialSummonBlocked() && Bot.GetMonsterCount() < 5)
                 {
-                    AI.SelectCard(discard);
+                    _eidosMonarchGyUsed = true;
                     return true;
                 }
-                return false;
-            }
-            return true;
-        }
-
-        // --- Link & Extra Deck GY Effects ---
-
-        private bool LinkuribohSummon()
-        {
-            if (IsSpecialSummonBlocked()) return false;
-            var edea = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(CardId.EdeaTheHeavenlySquire));
-            if (edea != null)
-            {
-                AI.SelectCard(edea);
-                return true;
             }
             return false;
         }
+
+        // =========================================================================
+        // 7. Extra Deck Mill Triggers & GY Recovery
+        // =========================================================================
 
         private bool NtssGyEffect()
         {
@@ -715,17 +790,42 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
+        private bool DukeGyEffect()
+        {
+            if (_dukeGyUsed) return false;
+            if (Card.Location != CardLocation.Grave) return false;
+            // Banish self from GY, target 1 Level 4+ Fiend/Zombie in GY (Erebus or Caius) to retrieve to hand
+            var target = Bot.Graveyard.FirstOrDefault(c => c.IsCode(CardId.ErebusTheUnderworldMonarch))
+                ?? Bot.Graveyard.FirstOrDefault(c => c.IsCode(CardId.CaiusTheShadowMonarch));
+            if (target != null)
+            {
+                AI.SelectCard(target);
+                _dukeGyUsed = true;
+                return true;
+            }
+            return false;
+        }
+
         private bool PerfumeDancerGyEffect()
         {
-            return Card.Location == CardLocation.Grave && Enemy.GetMonsterCount() > 0;
+            if (_perfumeDancerGyUsed) return false;
+            if (Card.Location != CardLocation.Grave) return false;
+            // Banish self to lower opponent monsters' ATK by their base DEF
+            if (Duel.Player == 0 && (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Battle) && Enemy.GetMonsterCount() > 0)
+            {
+                _perfumeDancerGyUsed = true;
+                return true;
+            }
+            return false;
         }
 
         private bool OmegaGyEffect()
         {
             if (Card.Location == CardLocation.Grave)
             {
-                var target = Enemy.Graveyard.FirstOrDefault(c => c.IsMonster() && c.IsExtraCard())
-                    ?? Bot.Graveyard.FirstOrDefault(c => c.IsCode(CardId.PantheismOfTheMonarchs));
+                // Recycle Pantheism into Deck, or disrupt opponent Extra monster in GY
+                var target = Bot.Graveyard.FirstOrDefault(c => c.IsCode(CardId.PantheismOfTheMonarchs))
+                    ?? Enemy.Graveyard.FirstOrDefault(c => c.IsMonster() && c.IsExtraCard());
                 if (target != null)
                 {
                     AI.SelectCard(target);
@@ -735,7 +835,9 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
-        // --- Traps and Sets Check ---
+        // =========================================================================
+        // 8. Traps, Sets & Callbacks
+        // =========================================================================
 
         private bool PrimeShuffleEffect()
         {
@@ -743,9 +845,14 @@ namespace WindBot.Game.AI.Decks
             var targets = Bot.Graveyard.Where(c => IsMonarchST(c.Id)).ToList();
             if (targets.Count >= 2)
             {
-                AI.SelectCard(targets.Take(2).ToList());
-                _primeShuffleUsed = true;
-                return true;
+                // Do not shuffle Pantheism if Pantheism GY hasn't been used yet!
+                var validTargets = targets.Where(c => !c.IsCode(CardId.PantheismOfTheMonarchs) || _pantheismGyUsed).ToList();
+                if (validTargets.Count >= 2)
+                {
+                    AI.SelectCard(validTargets.Take(2).ToList());
+                    _primeShuffleUsed = true;
+                    return true;
+                }
             }
             return false;
         }
@@ -757,7 +864,54 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
-        // --- Card Selection Overrides ---
+        public override CardPosition OnSelectPosition(int cardId, IList<CardPosition> positions)
+        {
+            // Low-stat starters & handtraps MUST be summoned in Defense Position
+            if (cardId == CardId.EdeaTheHeavenlySquire ||
+                cardId == CardId.EidosTheUnderworldSquire ||
+                cardId == CardId.TesseraThePrimalSquire ||
+                cardId == CardId.MulcharmyFuwalos ||
+                cardId == CardId.AshBlossomAndJoyousSpring ||
+                cardId == CardId.ThePrimeMonarch)
+            {
+                if (positions.Contains(CardPosition.FaceUpDefence))
+                {
+                    return CardPosition.FaceUpDefence;
+                }
+            }
+
+            // High-ATK Monarchs in Attack Position
+            if (cardId == CardId.ErebusTheUnderworldMonarch ||
+                cardId == CardId.ZaborgTheMegaMonarch ||
+                cardId == CardId.CaiusTheShadowMonarch ||
+                cardId == CardId.EidosTheUnderworldMonarch)
+            {
+                if (positions.Contains(CardPosition.FaceUpAttack))
+                {
+                    return CardPosition.FaceUpAttack;
+                }
+            }
+
+            return base.OnSelectPosition(cardId, positions);
+        }
+
+        public override int OnSelectPlace(long cardId, int player, CardLocation location, int available)
+        {
+            // Prefer middle columns (Zone 2, then 1, 3) to stay safe from column hazard locks
+            int[] preferredZones = { 0x4, 0x2, 0x8, 0x1, 0x10 };
+            foreach (int zone in preferredZones)
+            {
+                if ((available & zone) != 0)
+                {
+                    return zone;
+                }
+            }
+            return base.OnSelectPlace(cardId, player, location, available);
+        }
+
+        // =========================================================================
+        // OCGCore Hint & Selection Engine
+        // =========================================================================
 
         public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
         {
@@ -767,23 +921,32 @@ namespace WindBot.Game.AI.Decks
             if (lastChain != null && lastChain.IsCode(CardId.ZaborgTheMegaMonarch) && cards.Any(c => c.Location == CardLocation.Extra))
             {
                 List<ClientCard> selected = new List<ClientCard>();
-                var ourExtra = cards.Where(c => c.Id != 0).ToList();
+                var ourExtra = cards.Where(c => c.Controller == 0 && c.Id != 0).ToList();
+
                 if (ourExtra.Count > 0)
                 {
+                    // Precision 8-card dump order:
+                    // 1. Garura (draw 1)
+                    // 2. N'tss (destroy 1 card)
+                    // 3. The Duke of Demise (GY ignition retrieve Erebus/Caius)
+                    // 4. PSY-Framelord Omega (GY recycle)
+                    // 5. Jurrac Astero (GY Quick Effect setup)
+                    // 6. Jurrac Velphito (dino cost fodder for Astero)
+                    // 7. Lunalight Perfume Dancer (GY ATK debuff)
+                    // 8. Millennium-Eyes Restrict / Extra Astero
+                    // CRITICAL: NEVER select all 3 Jurrac Meteor (17548456)! Meteor MUST stay in Extra Deck!
                     var priorityList = new List<int>
                     {
                         CardId.GaruraWingsOfResonantLife,
                         CardId.ElderEntityNtss,
-                        CardId.LunalightPerfumeDancer,
+                        CardId.TheDukeOfDemise,
                         CardId.PSYFramelordOmega,
                         CardId.JurracAstero,
-                        CardId.JurracMeteor,
                         CardId.JurracVelphito,
-                        CardId.MillenniumEyesRestrict,
-                        CardId.TheDukeOfDemise,
-                        CardId.Linkuriboh
+                        CardId.LunalightPerfumeDancer,
+                        CardId.MillenniumEyesRestrict
                     };
-                    
+
                     foreach (int id in priorityList)
                     {
                         var match = ourExtra.FirstOrDefault(c => c.IsCode(id) && !selected.Contains(c));
@@ -793,21 +956,25 @@ namespace WindBot.Game.AI.Decks
                             if (selected.Count >= max) break;
                         }
                     }
+
+                    // Fallback for remaining slots: select any non-Meteor card first
                     if (selected.Count < min)
                     {
                         foreach (var c in ourExtra)
                         {
-                            if (!selected.Contains(c))
+                            if (!c.IsCode(CardId.JurracMeteor) && !selected.Contains(c))
                             {
                                 selected.Add(c);
                                 if (selected.Count >= min) break;
                             }
                         }
                     }
+
                     return selected;
                 }
-                
-                // For opponent's Extra Deck cards (IDs are 0)
+
+                // Opponent's Extra Deck cards (when we get to choose, e.g. LIGHT tributed)
+                // If cards are visible, rip their most impactful combo cards; if face-down (ID == 0), pick first available
                 foreach (var c in cards)
                 {
                     selected.Add(c);
@@ -816,96 +983,151 @@ namespace WindBot.Game.AI.Decks
                 return selected;
             }
 
-            // 2. Erebus / Ehther spell/trap send cost
-            if (lastChain != null && (lastChain.IsCode(CardId.ErebusTheUnderworldMonarch) || lastChain.IsCode(CardId.EidosTheUnderworldMonarch))
+            // 2. Erebus S/T dump cost (Hint 504 HINTMSG_TOGRAVE)
+            if (lastChain != null && lastChain.IsCode(CardId.ErebusTheUnderworldMonarch)
                 && cards.Any(c => c.Location == CardLocation.Deck || c.Location == CardLocation.Hand))
             {
                 List<ClientCard> selected = new List<ClientCard>();
                 var target1 = cards.FirstOrDefault(c => c.IsCode(CardId.ThePrimeMonarch));
                 var target2 = cards.FirstOrDefault(c => c.IsCode(CardId.PantheismOfTheMonarchs));
-                
+                var target3 = cards.FirstOrDefault(c => c.IsCode(CardId.TheMonarchsMasterplan));
+
                 if (target1 != null && selected.Count < max) selected.Add(target1);
-                if (target2 != null && selected.Count < max) selected.Add(target2);
-                
+                if (target2 != null && selected.Count < max && !selected.Contains(target2)) selected.Add(target2);
+                if (target3 != null && selected.Count < max && !selected.Contains(target3)) selected.Add(target3);
+
                 foreach (var c in cards)
                 {
                     if (selected.Count >= max) break;
-                    if (!selected.Contains(c))
-                    {
-                        selected.Add(c);
-                    }
+                    if (!selected.Contains(c)) selected.Add(c);
                 }
                 return selected;
             }
 
-            // 2.1 Masterplan banish selection
-            if (lastChain != null && lastChain.IsCode(CardId.TheMonarchsMasterplan) && cards.Any(c => c.Location == CardLocation.Grave))
+            // 3. The Monarchs Masterplan deck dump (Hint 504 HINTMSG_TOGRAVE)
+            if (lastChain != null && lastChain.IsCode(CardId.TheMonarchsMasterplan) && hint == 504)
             {
-                var target = cards.OrderBy(c => {
-                    if (c == null) return 999;
-                    if (c.IsCode(CardId.EdeaTheHeavenlySquire)) return 10;
-                    if (c.IsCode(CardId.EidosTheUnderworldSquire)) return 100;
-                    if (IsAceCard(c)) return 500;
-                    return 50;
-                }).FirstOrDefault();
+                var target = cards.FirstOrDefault(c => c.IsCode(CardId.PantheismOfTheMonarchs))
+                    ?? cards.FirstOrDefault(c => c.IsCode(CardId.ThePrimeMonarch))
+                    ?? cards.FirstOrDefault(c => c.IsCode(CardId.TheMonarchsStormforth))
+                    ?? cards.FirstOrDefault();
                 if (target != null)
                 {
                     return new List<ClientCard> { target };
                 }
             }
 
-            // 3. Search target priority (Tenacity, Revolt, Eidos search, Pantheism GY)
-            bool isSearch = cards.Any(c => c.Location == CardLocation.Deck);
-            if (isSearch)
+            // 4. The Monarchs Revolt reveal 3 monsters (Hint 526 HINTMSG_CONFIRM / Search)
+            if (lastChain != null && lastChain.IsCode(CardId.TheMonarchsRevolt) && cards.Any(c => c.Location == CardLocation.Deck))
             {
-                if (min > 1)
+                List<ClientCard> selected = new List<ClientCard>();
+                var targetErebus = cards.FirstOrDefault(c => c.IsCode(CardId.ErebusTheUnderworldMonarch));
+                var targetEdea = cards.FirstOrDefault(c => c.IsCode(CardId.EdeaTheHeavenlySquire));
+                var targetEidos = cards.FirstOrDefault(c => c.IsCode(CardId.EidosTheUnderworldSquire));
+                var targetZaborg = cards.FirstOrDefault(c => c.IsCode(CardId.ZaborgTheMegaMonarch));
+
+                if (targetErebus != null) selected.Add(targetErebus);
+                if (targetEdea != null && !selected.Contains(targetEdea)) selected.Add(targetEdea);
+                if (targetEidos != null && !selected.Contains(targetEidos)) selected.Add(targetEidos);
+                if (targetZaborg != null && selected.Count < max && !selected.Contains(targetZaborg)) selected.Add(targetZaborg);
+
+                foreach (var c in cards)
                 {
-                    var spells = cards.Where(c => IsMonarchST(c.Id)).ToList();
-                    List<ClientCard> selected = new List<ClientCard>();
-                    var priorityIds = new[] { CardId.PantheismOfTheMonarchs, CardId.TheMonarchsStormforth, CardId.ThePrimeMonarch };
-                    foreach (int id in priorityIds)
-                    {
-                        var matches = spells.Where(c => c.IsCode(id) && !selected.Contains(c)).ToList();
-                        foreach (var match in matches)
-                        {
-                            if (selected.Count >= max) break;
-                            selected.Add(match);
-                        }
-                        if (selected.Count >= max) break;
-                    }
-                    foreach (var c in spells)
-                    {
-                        if (selected.Count >= max) break;
-                        if (!selected.Contains(c)) selected.Add(c);
-                    }
-                    if (selected.Count < min)
-                    {
-                        foreach (var c in cards)
-                        {
-                            if (selected.Count >= min) break;
-                            if (!selected.Contains(c)) selected.Add(c);
-                        }
-                    }
-                    return selected;
+                    if (selected.Count >= max) break;
+                    if (!selected.Contains(c)) selected.Add(c);
                 }
-                
-                var spellsSingle = cards.Where(c => IsMonarchST(c.Id)).ToList();
-                if (spellsSingle.Count > 0)
+                return selected;
+            }
+
+            // 5. Hint 500 (HINTMSG_RELEASE) & Hint 531 (HINTMSG_TRIBUTE) — Tribute Fodder Selection
+            if (hint == 500 || hint == 531)
+            {
+                var sortedTribute = cards.OrderBy(c =>
                 {
-                    var target = spellsSingle.FirstOrDefault(c => c.IsCode(CardId.PantheismOfTheMonarchs))
-                        ?? spellsSingle.FirstOrDefault(c => c.IsCode(CardId.TheMonarchsStormforth))
-                        ?? spellsSingle.FirstOrDefault(c => c.IsCode(CardId.ThePrimeMonarch))
-                        ?? spellsSingle.FirstOrDefault();
+                    if (c == null) return 999;
+                    if (c.Controller == 1) return 0; // Tribute opponent's monster via Stormforth first!
+                    if (c.IsCode(CardId.EidosTheUnderworldSquire)) return 10;
+                    if (c.IsCode(CardId.EdeaTheHeavenlySquire)) return 20;
+                    if (c.IsCode(CardId.TesseraThePrimalSquire)) return 30;
+                    if (c.IsCode(CardId.ThePrimeMonarch)) return 40;
+                    if (IsAceCard(c)) return 900; // Never tribute our Ace cards unless forced
+                    return 100;
+                }).ToList();
+                return sortedTribute.Take(max).ToList();
+            }
+
+            // 6. Hint 501 (HINTMSG_DISCARD) — Discard Selection
+            if (hint == 501)
+            {
+                var sortedDiscard = cards.OrderBy(c =>
+                {
+                    if (c == null) return 999;
+                    if (c.IsCode(CardId.ThePrimeMonarch)) return 10; // Shuffles or summons from GY
+                    if (c.IsCode(CardId.TheMonarchsMasterplan)) return 20;
+                    if (c.IsCode(CardId.PantheismOfTheMonarchs)) return 30; // Triggers in GY
+                    if (c.IsCode(CardId.TheMonarchsRevolt)) return 40; // Triggers in GY
+                    if (c.IsCode(CardId.ErebusTheUnderworldMonarch)) return 50; // GY retrieval effect
+                    if (IsAceCard(c)) return 900;
+                    return 100;
+                }).ToList();
+                return sortedDiscard.Take(max).ToList();
+            }
+
+            // 7. Hint 503 (HINTMSG_REMOVE) — Banish Target Selection
+            if (hint == 503)
+            {
+                // If banishing from opponent field (e.g. Caius)
+                var oppCards = cards.Where(c => c.Controller == 1).ToList();
+                if (oppCards.Count > 0)
+                {
+                    var sortedOpp = oppCards.OrderByDescending(c =>
+                    {
+                        if (c.IsMonster()) return c.Attack;
+                        if (c.IsSpell() || c.IsTrap()) return c.IsFaceup() ? 2000 : 500;
+                        return 0;
+                    }).ToList();
+                    return sortedOpp.Take(max).ToList();
+                }
+
+                // If banishing from our GY as cost (e.g. The Prime Monarch)
+                var ourGyCards = cards.Where(c => c.Controller == 0 && c.Location == CardLocation.Grave).ToList();
+                if (ourGyCards.Count > 0)
+                {
+                    var sortedCost = ourGyCards.OrderBy(c =>
+                    {
+                        if (c.IsCode(CardId.TheMonarchsMasterplan)) return 10; // Triggers Masterplan search!
+                        if (c.IsCode(CardId.TheMonarchsRevolt)) return 20;
+                        if (c.IsCode(CardId.TheMonarchsStormforth)) return 30;
+                        if (c.IsCode(CardId.ThePrimeMonarch)) return 40;
+                        if (c.IsCode(CardId.PantheismOfTheMonarchs)) return 800; // Preserve Pantheism GY search
+                        return 100;
+                    }).ToList();
+                    return sortedCost.Take(max).ToList();
+                }
+            }
+
+            // 8. Hint 506 (HINTMSG_ATOHAND) — Search Selection
+            if (hint == 506 || cards.Any(c => c.Location == CardLocation.Deck))
+            {
+                var spells = cards.Where(c => IsMonarchST(c.Id)).ToList();
+                if (spells.Count > 0)
+                {
+                    var target = spells.FirstOrDefault(c => c.IsCode(CardId.PantheismOfTheMonarchs))
+                        ?? spells.FirstOrDefault(c => c.IsCode(CardId.TheMonarchsStormforth))
+                        ?? spells.FirstOrDefault(c => c.IsCode(CardId.ThePrimeMonarch))
+                        ?? spells.FirstOrDefault(c => c.IsCode(CardId.TheMonarchsMasterplan))
+                        ?? spells.FirstOrDefault();
                     if (target != null)
                     {
                         return new List<ClientCard> { target };
                     }
                 }
-                
+
                 var monsters = cards.Where(c => c.IsMonster()).ToList();
                 if (monsters.Count > 0)
                 {
-                    var target = monsters.FirstOrDefault(c => c.IsCode(CardId.ErebusTheUnderworldMonarch))
+                    var target = monsters.FirstOrDefault(c => c.IsCode(CardId.ZaborgTheMegaMonarch))
+                        ?? monsters.FirstOrDefault(c => c.IsCode(CardId.ErebusTheUnderworldMonarch))
                         ?? monsters.FirstOrDefault(c => c.IsCode(CardId.EdeaTheHeavenlySquire))
                         ?? monsters.FirstOrDefault(c => c.IsCode(CardId.EidosTheUnderworldSquire))
                         ?? monsters.FirstOrDefault();
@@ -916,32 +1138,62 @@ namespace WindBot.Game.AI.Decks
                 }
             }
 
-            // 4. General Tribute selection (Tribute summon hint 503)
-            if (hint == 503)
+            // 9. Hint 507 (HINTMSG_TODECK) — Erebus Spin / Omega Recycle
+            if (hint == 507)
             {
-                var sortedTribute = cards.OrderBy(c => {
+                var oppCards = cards.Where(c => c.Controller == 1).ToList();
+                if (oppCards.Count > 0)
+                {
+                    var sortedOpp = oppCards.OrderByDescending(c =>
+                    {
+                        if (c.IsMonster()) return c.Attack;
+                        if (c.IsSpell() || c.IsTrap()) return c.IsFaceup() ? 2500 : 1000;
+                        return 0;
+                    }).ToList();
+                    return sortedOpp.Take(max).ToList();
+                }
+
+                var ourCards = cards.Where(c => c.Controller == 0).ToList();
+                if (ourCards.Count > 0)
+                {
+                    var target = ourCards.FirstOrDefault(c => c.IsCode(CardId.PantheismOfTheMonarchs))
+                        ?? ourCards.FirstOrDefault(c => c.IsCode(CardId.ThePrimeMonarch))
+                        ?? ourCards.FirstOrDefault();
+                    if (target != null)
+                    {
+                        return new List<ClientCard> { target };
+                    }
+                }
+            }
+
+            // 10. Hint 509 (HINTMSG_SPSUMMON) — Special Summon Target Selection
+            if (hint == 509)
+            {
+                var sortedSs = cards.OrderBy(c =>
+                {
                     if (c == null) return 999;
-                    if (c.Controller == 1) return 0;
+                    if (c.IsCode(CardId.JurracMeteor)) return 5;
                     if (c.IsCode(CardId.EidosTheUnderworldSquire)) return 10;
                     if (c.IsCode(CardId.EdeaTheHeavenlySquire)) return 20;
                     if (c.IsCode(CardId.TesseraThePrimalSquire)) return 30;
                     if (c.IsCode(CardId.ThePrimeMonarch)) return 40;
-                    if (IsAceCard(c)) return 500;
+                    if (c.IsCode(CardId.ErebusTheUnderworldMonarch)) return 50;
                     return 100;
                 }).ToList();
-                return sortedTribute.Take(max).ToList();
+                return sortedSs.Take(max).ToList();
             }
 
-            // 5. Default opponent target selection
-            var oppCards = cards.Where(c => c.Controller == 1).ToList();
-            if (oppCards.Count >= min)
+            // 11. Generic Opponent Target Selection
+            var enemyCards = cards.Where(c => c.Controller == 1).ToList();
+            if (enemyCards.Count >= min)
             {
-                var sortedOpp = oppCards.OrderByDescending(c => {
+                var sortedEnemy = enemyCards.OrderByDescending(c =>
+                {
                     if (c.IsMonster()) return c.Attack;
-                    if (c.IsSpell() || c.IsTrap()) return c.IsFaceup() ? 2000 : 100;
+                    if (c.IsSpell() || c.IsTrap()) return c.IsFaceup() ? 2000 : 500;
                     return 0;
                 }).ToList();
-                return sortedOpp.Take(max).ToList();
+                return sortedEnemy.Take(max).ToList();
             }
 
             return base.OnSelectCard(cards, min, max, hint, cancelable);

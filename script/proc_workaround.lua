@@ -1,5 +1,21 @@
 --Utilities to be added to the core
 
+local getReasonEffect = Duel.GetReasonEffect
+if not getReasonEffect then
+	getReasonEffect = function()
+		return nil
+	end
+	Duel.GetReasonEffect = getReasonEffect
+end
+
+local getReasonPlayer = Duel.GetReasonPlayer
+if not getReasonPlayer then
+	getReasonPlayer = function()
+		return Duel.GetTurnPlayer()
+	end
+	Duel.GetReasonPlayer = getReasonPlayer
+end
+
 --[[
 	also consider the minimum and maximum Tribute requirements set by the Normal Summon procedures
 --]]
@@ -26,7 +42,7 @@ Card.IsRelateToEffect=(function()
 			return oldfunc(c,e,...)
 		end
 		--if the effect in question is what the core considers the "current effect" then check if the card is related to the current chain link
-		if Duel.GetReasonEffect and Duel.GetReasonEffect()==e then
+		if getReasonEffect()==e then
 			return c:IsRelateToChain(0)
 		else
 			--otherwise go through all the effects in the chain to find out which one it is
@@ -42,10 +58,10 @@ Card.IsRelateToEffect=(function()
 end)()
 
 --[[
-	'Duel.GetMatchingGroup' that also filters for 'Card.IsCanBeEffectTarget' using 'Duel.GetReasonEffect()'
+	'Duel.GetMatchingGroup' that also filters for 'Card.IsCanBeEffectTarget' using 'getReasonEffect()'
 --]]
 function Duel.GetTargetGroup(filter,player,loc1,loc2,exclusion,...)
-	local re=Duel.GetReasonEffect and Duel.GetReasonEffect()
+	local re=getReasonEffect and getReasonEffect()
 	if not re then
 		local ok,te=pcall(Duel.GetChainInfo,0,CHAININFO_TRIGGERING_EFFECT)
 		if ok and te then re=te end
@@ -76,7 +92,7 @@ Card.IsAbleToRemove=card_isableto_update(Card.IsAbleToRemove,LOCATION_REMOVED)
 	allow EFFECT_EXTRA_RELEASE_NONSUM effects to work on cards in the Extra Deck
 	used by "Duel Evolution - Assault Zone"
 	possibly to be expanded on to also include other locations such as the Deck
-
+	
 	will add more comments later
 --]]
 Duel.GetReleaseGroup=(function()
@@ -88,7 +104,7 @@ Duel.GetReleaseGroup=(function()
 		local g=oldfunc(player,use_hand,use_oppo,reason)
 		local exg=Duel.GetMatchingGroup(function(c) return c:IsHasEffect(EFFECT_EXTRA_RELEASE_NONSUM) and c:IsReleasable(reason) end,player,LOCATION_EXTRA,0,nil)
 		if #exg>0 then
-			local re=Duel.GetReasonEffect and Duel.GetReasonEffect() or nil
+			local re=getReasonEffect()
 			for exc in exg:Iter() do
 				local effs={exc:IsHasEffect(EFFECT_EXTRA_RELEASE_NONSUM)}
 				for _,eff in ipairs(effs) do
@@ -100,6 +116,28 @@ Duel.GetReleaseGroup=(function()
 			end
 		end
 		return g
+	end
+end)()
+Duel.Release=(function()
+	local oldfunc=Duel.Release
+	return function(targets,reason,rp)
+		rp=rp or getReasonPlayer()
+		local exg=Group.CreateGroup()
+		local others=Group.CreateGroup()
+		if type(targets)=="Group" then
+			exg,others=targets:Split(Card.IsLocation,nil,LOCATION_EXTRA)
+		elseif type(targets)=="Card" then
+			if targets:IsLocation(LOCATION_EXTRA) then
+				exg:AddCard(targets)
+			else
+				others:AddCard(targets)
+			end
+		end
+		local res=oldfunc(others,reason,rp)
+		if #exg>0 then
+			res=res+Duel.SendtoGrave(exg,REASON_RELEASE|reason,nil,rp)
+		end
+		return res
 	end
 end)()
 
@@ -242,7 +280,7 @@ do
 				end
 			end)
 	Duel.RegisterEffect(sum_status_eff,0)
-
+	
 	--set the summon turn status to 'false' for any monster that is Normal Set
 	--normally that status would cover both Normal Summons and Normal Sets
 	--however there's currently no card (that I can find) that cares for a monster that was Normal Set that specific turn
@@ -346,7 +384,7 @@ do
 					if check_opinfo(ev,CATEGORY_RELEASE,rc) then return end
 					--otherwise, shuffle
 					Duel.ShuffleHand(player)
-
+					
 					--if the activating card itself ends up moving then shuffle the hand after the current Chain Link finishes resolving
 					--this will make it so it matches the behaviour of the core which automatically shuffles the hand if the activating card is still there at the end of the resolution
 					local move_eff=Effect.CreateEffect(rc)
@@ -365,7 +403,7 @@ do
 							end)
 					move_eff:SetReset(RESET_CHAIN)
 					rc:RegisterEffect(move_eff)
-
+					
 					player_table[player]=true
 				end)
 	Duel.RegisterEffect(shuffle_eff,0)
@@ -404,7 +442,7 @@ end)()
 	The flag will reset if the monster stops being face-up in the Monster Zone
 	Intended to be used with Rush cards like "Wicked Dragon of Darkness" [160214042] that require having been Normal/Special Summoned during a specific phase
 	If the monster is Summoned again (e.g. a Gemini Monster) the previous value will be overwritten (could be improved by adding such handling but it's not needed for Rush anyways)
-
+	
 	Also added basic "get" and "is" functions:
 		- Card.GetSummonPhase: Returns the flag effect's label, or 0 if the flag effect doesn't exist
 		- Card.IsSummonPhase: Returns 'true' or 'false' depending on the passed phase
@@ -450,45 +488,30 @@ end
 Duel.Overlay=(function()
 	local oldfunc=Duel.Overlay
 	return function(xyz_monster,xyz_mats,send_to_grave)
-		local eg=Group.CreateGroup():AddCard(xyz_mats)
+		local eg=xyz_mats
 		local re=nil
 		local r=REASON_RULE
 		local rp=PLAYER_NONE
-		local core_reason_effect=Duel.GetReasonEffect and Duel.GetReasonEffect() or nil
+		local core_reason_effect=getReasonEffect()
 		if Duel.IsChainSolving() or (core_reason_effect and not core_reason_effect:IsHasProperty(EFFECT_FLAG_CANNOT_DISABLE)) then
-			re=Duel.GetReasonEffect and Duel.GetReasonEffect() or nil
+			re=getReasonEffect()
 			r=REASON_EFFECT
-			rp=Duel.GetReasonPlayer()
+			rp=getReasonPlayer()
 		end
 		if not send_to_grave then
 			if type(xyz_mats)=="Card" then
-				eg:Merge(xyz_mats:GetOverlayGroup())
+				eg=eg+xyz_mats:GetOverlayGroup()
 			elseif type(xyz_mats)=="Group" then
 				for c in xyz_mats:Iter() do
-					eg:Merge(c:GetOverlayGroup())
+					eg=eg+c:GetOverlayGroup()
 				end
 			end
 		end
 		local res=oldfunc(xyz_monster,xyz_mats,send_to_grave)
-		for ec in eg:Iter() do
-			ec:SetReasonPlayer(rp)
-		end
 		Duel.RaiseEvent(eg,EVENT_MOVE,re,r,rp,0,0)
 		return res
 	end
 end)()
-
---Overwritten because it does not set the Reason Player properly, which is required by cards like "Raise Moon Hope Squeeze - Jackpot" (DBGV-JP023)
-Duel.MoveToField=(function()
-	local oldfunc=Duel.MoveToField
-	return function(card,move_player,target_player,destination,position,enabled,zone)
-		local rp=Duel.GetReasonEffect() and Duel.GetReasonPlayer() or PLAYER_NONE
-		card:SetReasonPlayer(rp)
-		local res=oldfunc(card,move_player,target_player,destination,position,enabled,zone)
-		return res
-	end
-end)()
-
 
 --[[
 	Return false by default if the card to attach and the Xyz Monster to attach the card to are the same card
@@ -499,7 +522,7 @@ Card.IsCanBeXyzMaterial=(function()
 		if xyz_monster and card==xyz_monster then
 			return false
 		end
-		player=player or Duel.GetReasonPlayer()
+		player=player or getReasonPlayer()
 		reason=reason or REASON_XYZ|REASON_MATERIAL
 		return oldfunc(card,xyz_monster,player,reason)
 	end

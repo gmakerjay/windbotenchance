@@ -48,11 +48,15 @@ namespace WindBot
         private const long HINTMSG_FMATERIAL = 511;
         private const long HINTMSG_SMATERIAL = 512;
         private const long HINTMSG_XMATERIAL = 513;
+        private const long HINTMSG_FACEUP = 514;
+        private const long HINTMSG_EQUIP = 518;
+        private const long HINTMSG_REMOVEXYZ = 519;
+        private const long HINTMSG_CONTROL = 520;
+        private const long HINTMSG_POSCHANGE = 528;
         private const long HINTMSG_LMATERIAL = 533;
         private const long HINTMSG_TARGET = 551;
-        private const long HINTMSG_DISABLE = 552;
-        private const long HINTMSG_NEGATE = 572;
-        private const long HINTMSG_FACEUP = 575;
+        private const long HINTMSG_DISABLE = 575;
+        private const long HINTMSG_NEGATE = 575;
 
         /// <summary>
         /// Register boss/ace card IDs that should trigger warnings when used as material.

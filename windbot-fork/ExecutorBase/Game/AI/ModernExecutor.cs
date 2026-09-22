@@ -784,6 +784,18 @@ namespace WindBot.Game.AI
                     if (optIndex == 0 && oppHasFaceup) return i;
                     if (optIndex == 1) return i;
                 }
+
+                // 8. Fiendsmith's Lacrima (46640168)
+                // aux.ToHandOrElse: optIndex 3 is Special Summon (option index 0 is Add to hand).
+                if (cardId == 46640168)
+                {
+                    if (optIndex == 3) return i;
+                }
+            }
+
+            if (LastChainCard != null && LastChainCard.Id == 46640168 && options.Count >= 2)
+            {
+                return 1; // Special Summon
             }
 
             return base.OnSelectOption(options);
@@ -1983,12 +1995,12 @@ namespace WindBot.Game.AI
             const long HINTMSG_ATOHAND = 506;
             const long HINTMSG_TODECK = 507;
             const long HINTMSG_SPSUMMON = 509;
-            const long HINTMSG_CONTROL = 519;
-            const long HINTMSG_POSCHANGE = 518;
+            const long HINTMSG_FACEUP = 514;
+            const long HINTMSG_EQUIP = 518;
+            const long HINTMSG_CONTROL = 520;
+            const long HINTMSG_POSCHANGE = 528;
             const long HINTMSG_TARGET = 551;
-            const long HINTMSG_DISABLE = 552;
-            const long HINTMSG_NEGATE = 572;
-            const long HINTMSG_FACEUP = 575;
+            const long HINTMSG_NEGATE = 575;
 
             var enemyCards = cards.Where(c => c != null && c.Controller == 1).ToList();
             var ourCards = cards.Where(c => c != null && c.Controller == 0).ToList();
@@ -1996,7 +2008,7 @@ namespace WindBot.Game.AI
             // ── 1. Removal & Disruption against Enemy Cards ──
             if (hint == HINTMSG_DESTROY || hint == HINTMSG_REMOVE || hint == 504 /* old remove alias */ ||
                 hint == HINTMSG_RTOHAND || hint == HINTMSG_TODECK || hint == HINTMSG_CONTROL ||
-                hint == HINTMSG_TARGET || hint == HINTMSG_DISABLE || hint == HINTMSG_NEGATE || hint == HINTMSG_FACEUP)
+                hint == HINTMSG_TARGET || hint == HINTMSG_NEGATE || hint == HINTMSG_FACEUP || hint == 552 || hint == 572)
             {
                 if (enemyCards.Count >= min)
                 {
@@ -2051,7 +2063,7 @@ namespace WindBot.Game.AI
             }
 
             // ── 5. Position Change (e.g. Book of Moon) ──
-            if (hint == HINTMSG_POSCHANGE)
+            if (hint == HINTMSG_POSCHANGE || hint == 518 /* old alias */)
             {
                 if (enemyCards.Count >= min)
                 {
@@ -2063,7 +2075,7 @@ namespace WindBot.Game.AI
             }
 
             // ── 6. Equip Card ──
-            if (hint == 507 /* HINTMSG_EQUIP */)
+            if (hint == HINTMSG_EQUIP || hint == 507 /* old equip alias */)
             {
                 if (ourCards.Count >= min)
                 {

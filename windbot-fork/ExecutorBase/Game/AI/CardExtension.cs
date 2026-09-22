@@ -13,7 +13,7 @@ namespace WindBot.Game.AI
         public static bool IsMonsterInvincible(this ClientCard card)
         {
             if (card == null || card.IsDisabled()) return false;
-            return Enum.IsDefined(typeof(InvincibleMonster), card.Id);
+            return CardIntelligence.IsInvincibleBattle(card.Id) || Enum.IsDefined(typeof(InvincibleMonster), card.Id);
         }
 
         /// <summary>
@@ -22,7 +22,9 @@ namespace WindBot.Game.AI
         public static bool IsMonsterDangerous(this ClientCard card)
         {
             if (card == null || card.IsDisabled()) return false;
-            return Enum.IsDefined(typeof(DangerousMonster), card.Id) || (card.HasSetcode(0x18d) && (card.HasType(CardType.Ritual) || (card.EquipCards != null && card.EquipCards.Count > 0)));
+            return CardIntelligence.IsDangerousBattleTarget(card, null)
+                || Enum.IsDefined(typeof(DangerousMonster), card.Id)
+                || (card.HasSetcode(0x18d) && (card.HasType(CardType.Ritual) || (card.EquipCards != null && card.EquipCards.Count > 0)));
         }
 
         /// <summary>
@@ -41,7 +43,7 @@ namespace WindBot.Game.AI
         {
             if (card == null) return false;
             return card.IsFaceup() && card.IsDefense() && !card.IsDisabled()
-                && Enum.IsDefined(typeof(DefenseAttackMonster), card.Id);
+                && (card.HasSetcode(0x9a) || Enum.IsDefined(typeof(DefenseAttackMonster), card.Id));
         }
 
         /// <summary>
@@ -65,7 +67,11 @@ namespace WindBot.Game.AI
             if (card.IsDisabled()) return false;
             if (card.EquipCards != null && card.EquipCards.Any(c => c != null && (c.IsCode(30012506, 15622650) || c.IsCode(77411244) || c.IsCode(3405259, 34050266) || c.IsCode(89812483)) && !c.IsDisabled()))
                 return true;
-            return (!card.HasType(CardType.Normal) && Enum.IsDefined(typeof(ShouldNotBeTarget), card.Id)) || (card.Overlays != null && card.Overlays.Any(code => code == 91025875));
+            if (card.Overlays != null && card.Overlays.Any(code => code == 91025875))
+                return true;
+            if (CardIntelligence.IsTargetImmune(card.Id))
+                return true;
+            return (!card.HasType(CardType.Normal) && Enum.IsDefined(typeof(ShouldNotBeTarget), card.Id));
         }
 
         /// <summary>
@@ -104,7 +110,7 @@ namespace WindBot.Game.AI
         public static bool IsFloodgate(this ClientCard card)
         {
             if (card == null) return false;
-            return Enum.IsDefined(typeof(Floodgate), card.Id);
+            return CardIntelligence.IsFloodgate(card.Id) || Enum.IsDefined(typeof(Floodgate), card.Id);
         }
 
         public static bool IsOneForXyz(this ClientCard card)
@@ -116,7 +122,18 @@ namespace WindBot.Game.AI
         public static bool IsFusionSpell(this ClientCard card)
         {
             if (card == null) return false;
-            return Enum.IsDefined(typeof(FusionSpell), card.Id);
+            if (CardIntelligence.IsFusionSpell(card.Id) || Enum.IsDefined(typeof(FusionSpell), card.Id))
+                return true;
+            if (card.HasType(CardType.Spell))
+            {
+                string desc = card.Data?.Description;
+                if (!string.IsNullOrEmpty(desc))
+                {
+                    if (desc.Contains("Fusion Summon") || desc.Contains("ฟิวชั่น"))
+                        return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>

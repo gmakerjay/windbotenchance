@@ -10,7 +10,7 @@ namespace WindBot.Game.AI
     /// and immunities previously duplicated and hardcoded across dozens of executors.
     /// Provides high-performance O(1) lookups for all Core engines and Deck executors.
     /// </summary>
-    public static class CardIntelligence
+    public static partial class CardIntelligence
     {
         // ═══════════════════════════════════════════════════════════════
         //  1. SPECIAL SUMMON & FLOODGATE MONSTERS
@@ -330,15 +330,26 @@ namespace WindBot.Game.AI
 
         public static bool IsTargetImmune(int cardId)
         {
-            return TargetImmuneCards.Contains(cardId);
+            return TargetImmuneCards.Contains(cardId) || GeneratedTargetImmuneCards.Contains(cardId);
         }
 
         public static bool IsTargetImmune(ClientCard card)
         {
             if (card == null) return false;
-            if (TargetImmuneCards.Contains(card.Id)) return true;
+            if (card.IsDisabled()) return false;
+            if (IsTargetImmune(card.Id)) return true;
             if (card.IsShouldNotBeTarget()) return true;
             return false;
+        }
+
+        public static bool IsInvincibleBattle(int cardId)
+        {
+            return GeneratedBattleImmuneCards.Contains(cardId);
+        }
+
+        public static bool IsFusionSpell(int cardId)
+        {
+            return GeneratedFusionSpells.Contains(cardId);
         }
 
         /// <summary>
@@ -351,7 +362,7 @@ namespace WindBot.Game.AI
             int id = defender.Id;
 
             // 1. Direct match in dangerous battle monsters (Mikanko, Yubel, Timelords, etc.)
-            if (DangerousBattleMonsters.Contains(id))
+            if (DangerousBattleMonsters.Contains(id) || GeneratedDangerousBattleMonsters.Contains(id))
                 return true;
 
             // 2. Mekk-Knight Crusadia Avramax: Gains ATK equal to Special Summoned monster's ATK during damage calc

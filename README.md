@@ -83,6 +83,8 @@ windbotenchance/
 │   ├── ExecutorBase/               # ★ สถาปัตยกรรม Central AI Core
 │   │   ├── Game/AI/
 │   │   │   ├── CardIntelligence.cs # ฐานข้อมูล O(1) กลาง (Floodgates, Negators, Chokepoints)
+│   │   │   ├── CardIntelligence.Generated.cs # ★ ข้อมูลการ์ด Auto-Generated จาก Lua/CDB Scanner (370+ Battle Immune, 200+ Target Immune, 140+ Fusion)
+│   │   │   ├── CardExtension.cs    # ★ Dynamic & O(1) Extension Bridging (IsFloodgate, IsMonsterDangerous, etc.)
 │   │   │   ├── ModernExecutor.cs   # Base class หลักของ executors พร้อม Hint Table
 │   │   │   ├── Executor.cs         # Universal FallbackSelectCard, Safe Placement & Field Logic
 │   │   │   ├── DefaultExecutor.cs  # Universal Handtrap, Counter Trap & Battle fallbacks
@@ -93,6 +95,9 @@ windbotenchance/
 │   │   │   └── AntiFloodgateHelper.cs # ตรวจจับ Floodgates และวางแผน Break Board
 │   ├── Decks/                      # ไฟล์เด็คบอท (.ydk)
 │   └── Dialogs/                    # บทสนทนาของบอท (.json)
+│
+├── tools/                          # ★ เครื่องมือสนับสนุนการพัฒนา (Developer Tools)
+│   └── scan_card_intelligence.py   # สคริปต์สแกน Lua/CDB ทางการ 13,000+ ใบ อัปเดต Card Intelligence อัตโนมัติใน 2 วินาที
 │
 ├── dashbot/                        # DashBot WPF Launcher UI (C# net10.0-windows)
 │   ├── dashbot.csproj
@@ -108,6 +113,7 @@ windbotenchance/
 │   ├── EventBus.cs
 │   └── IpcWorker.cs
 │
+├── script/                         # Custom & Patched Lua scripts (รวม utility.lua ที่แก้ DelayedOperation)
 ├── Docs/                           # รายงานสถิติ, เอกสาร Architecture, และ Optimization Logs
 ├── .agents/skills/yugioh-executor/ # Skill & Guidelines สำหรับ AI Coding Assistant (Antigravity/Claude)
 ├── AGENTS.md                       # ข้อตกลงและกฎเหล็กในการพัฒนา AI Executor
@@ -232,6 +238,31 @@ dotnet run --project Client_Headless_Fortest\Client_Headless_Fortest.csproj -c R
   ```powershell
   .\BUILD_AND_DEPLOY.ps1 -DeployTarget "D:\Games\EDOPro"
   ```
+
+---
+
+## 🧠 สถาปัตยกรรม Card Intelligence & Scanner (3-Tier Scalable Architecture)
+
+เพื่อแก้ปัญหาการต้องพิมพ์ Card ID ลงใน Enums ด้วยมือเมื่อมีการ์ดใหม่เข้ามาหลายพันใบ ระบบได้ปรับเปลี่ยนมาใช้สถาปัตยกรรม 3 ระดับที่ทำงานสอดประสานกัน:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 1. Dynamic Engine Detection (CardExtension.cs)              │  <-- รองรับการ์ดใหม่ทุกใบได้ทันทีจาก Setcode / Text TH & EN
+├─────────────────────────────────────────────────────────────┤
+│ 2. Automated Lua Scanner (tools/scan_card_intelligence.py)  │  <-- สแกนไฟล์ทางการ 13,000+ ใบ สร้าง CardIntelligence.Generated
+├─────────────────────────────────────────────────────────────┤
+│ 3. Curated O(1) Intelligence (CardIntelligence.cs)          │  <-- จัดการ Chokepoints, Negators และ Handtraps เชิงกลยุทธ์
+└─────────────────────────────────────────────────────────────┘
+```
+
+### การรัน Auto-Scanner เมื่อมีแพ็คการ์ดใหม่:
+เมื่อตัวเกมมีการอัปเดตแพ็คการ์ดใหม่ หรือมีการ์ดเข้าสู่ฐานข้อมูล `cards.cdb` เพิ่มเติม สามารถรันคำสั่งสแกนเพียง 2 วินาที:
+
+```powershell
+python tools\scan_card_intelligence.py
+```
+
+สคริปต์จะอ่าน Effect Constants จากไฟล์ทางการของ OCGCore (`EFFECT_CANNOT_BE_EFFECT_TARGET`, `EFFECT_INDESTRUCTABLE_BATTLE`, `EFFECT_REFLECT_BATTLE_DAMAGE`, `CATEGORY_FUSION_SUMMON`) และอัปเดตไฟล์ `CardIntelligence.Generated.cs` อัตโนมัติทันที
 
 ---
 

@@ -1,5 +1,77 @@
 # Progress Log: Central Core Architecture & Universal Heuristics Overhaul, MagistusFairy ModernExecutor Refactor, PhantomKnight ModernExecutor
 
+## 0.035. Scalable 3-Tier Card Intelligence Architecture & Lua Engine DelayedOperation Fix (2026-09-22)
+
+### Overview
+- **Core Architecture Upgraded**: `CardIntelligence.cs`, `CardIntelligence.Generated.cs`, `CardExtension.cs`
+- **New Tooling**: `tools/scan_card_intelligence.py` (Automated Lua & CDB metadata extractor)
+- **Lua Engine Bugfix**: `repositories/delta-bagooska/script/utility.lua`, `script/utility.lua`
+- **Exclusive Deploy Target**: `C:\Users\admin\Documents\EdoGame\`
+
+### Enhancements & Fixes Implemented
+1. **Automated Lua & CDB Intelligence Scanner (`tools/scan_card_intelligence.py`)**:
+   - Replaced manual, error-prone enum maintenance with an automated scanner that parses official scripts in `script/official/*.lua` (13,478+ files) and `cards.cdb` in under 2 seconds.
+   - Extracts exact OCGCore effect constants:
+     - `EFFECT_CANNOT_BE_EFFECT_TARGET` -> 202 Target-Immune monsters
+     - `EFFECT_INDESTRUCTABLE_BATTLE` -> 377 Battle-Immune monsters
+     - `EFFECT_REFLECT_BATTLE_DAMAGE` / `EFFECT_AVOID_BATTLE_DAMAGE` -> 40 Dangerous Battle monsters (Yubel all forms, Mikanko, Timelords, Amazoness Swords Woman, Saint Azamina, etc.)
+     - `SUMMON_TYPE_FUSION` / `Fusion.CreateSummonEff` / `CATEGORY_FUSION_SUMMON` -> 145 Fusion Spells (Branded Fusion, Invocation, Fusion Destiny, Super Poly, etc.)
+   - Generates `CardIntelligence.Generated.cs` as a partial class for seamless compilation.
+2. **Central Database & Query API Integration (`CardIntelligence.cs`)**:
+   - Converted `CardIntelligence` into a partial class.
+   - Integrated generated sets into query methods: `IsTargetImmune(cardId)`, `IsInvincibleBattle(cardId)`, `IsDangerousBattleTarget(defender, attacker)`, and `IsFusionSpell(cardId)`.
+3. **CardExtension Dynamic Bridging (`CardExtension.cs`)**:
+   - Upgraded core extension methods used across all 30+ executors to query `CardIntelligence` $O(1)$ HashSets first:
+     - `card.IsMonsterInvincible()` -> queries `CardIntelligence.IsInvincibleBattle()` || `InvincibleMonster` enum.
+     - `card.IsMonsterDangerous()` -> queries `CardIntelligence.IsDangerousBattleTarget()` || `DangerousMonster` enum || Mikanko archetype (0x18d).
+     - `card.IsShouldNotBeTarget()` -> queries `CardIntelligence.IsTargetImmune()` || `ShouldNotBeTarget` enum.
+     - `card.IsFloodgate()` -> queries `CardIntelligence.IsFloodgate()` || `Floodgate` enum.
+     - `card.IsFusionSpell()` -> queries `CardIntelligence.IsFusionSpell()` || `FusionSpell` enum || dynamic PSCT keywords ("Fusion Summon", "อัญเชิญฟิวชั่น").
+     - `card.IsMonsterAttackWhileInDefPos()` -> checks Superheavy Samurai archetype (0x9a) || `DefenseAttackMonster` enum.
+4. **Lua Engine `Attempting to access deleted object` Crash Resolution (`utility.lua`)**:
+   - User reported script error: `[string "utility.lua"]:2889: Attempting to access deleted object` triggered during End Phase / Delayed Operations.
+   - Root Cause: In `repositories/delta-bagooska/script/utility.lua`, `Auxiliary.DelayedOperation` created a temporary card `Group` without calling `g:KeepAlive()`. When `EVENT_PHASE` triggered turns later, C++ OCGCore had already freed the group, causing `e:GetLabelObject():Filter(...)` to crash.
+   - Fixed by adding `g:KeepAlive()`, safe `pcall` handling in `get_affected_group`, and `g:DeleteGroup()` memory cleanup on completion.
+5. **Build & Deployment**:
+   - Deployed updated binaries, databases, and Lua patches to `C:\Users\admin\Documents\EdoGame\`.
+
+---
+
+## 0.034. AFS (Azamina Fiendsmith Snake-Eye) Decision Engine Overhaul & Game-Stall Fix (2026-09-22)
+
+### Overview
+- **Deck**: `AFS.ydk` & `2026_AFS.ydk` (40 Main Deck, 15 Extra Deck, 15 Side Deck)
+- **Executors Modified**: `AFSExecutor.cs`, `ModernExecutor.cs` (Rule-Based C# .NET 10)
+- **Exclusive Deploy Target**: `C:\Users\admin\Documents\EdoGame\`
+
+### Root Causes & Fixes Implemented
+1. **`Deception of the Sinful Spoils` (66328392) Hand Activation Lock**:
+   - `DeceptionEffect()` previously only checked `Bot.GetMonsters().FirstOrDefault(c => ... != null)`.
+   - Continuous Spell `Deception` can be activated from Hand freely without monsters on field. On field, its ignition effect can tribute from hand OR field.
+   - Fixed by allowing free hand activation and expanding tribute targets to hand fodder (`Lurrie`, `Poplar`, `Oak`, handtraps) or field.
+2. **`Forbidden Droplet` Self-Interruption**:
+   - `ForbiddenDropletEffect` was chaining into bot's own normal summon / starter ignition chains, discarding key resources (`Deception`, `Poplar`) and corrupting `SelectCard` queues.
+   - Added `if (Duel.LastChainPlayer == 0) return false;` to prevent interrupting our own combo starters.
+3. **`Fiendsmith's Lacrima` (46640168) & `aux.ToHandOrElse` (SelectOption Bug)**:
+   - On Fusion Summon, Lacrima calls `aux.ToHandOrElse` prompting `Duel.SelectOption(573, str)` (0 = Add to Hand, 1 = Special Summon it).
+   - WindBot defaulted to 0 (Add to Hand), leaving only 1 Level 6 Fiend on field and blocking `D/D/D Wave High King Caesar`.
+   - Overrode `OnSelectOption` in both `ModernExecutor.cs` and `AFSExecutor.cs` to return 1 (Special Summon) for Lacrima.
+4. **`Fiendsmith's Sequence` GY Material Shuffling**:
+   - Sequence was previously shuffling both Engravers from GY, leaving 0 Engravers for Lacrima to revive.
+   - Configured `OnSelectCard` hint 511 / `TODECK` to prioritize `LacrimaTheCrimsonTears` > `FabledLurrie` > `FiendsmithsRequiem` > `FiendsmithEngraver`, preserving Engraver in GY.
+5. **`DDDWaveHighKingCaesar` Priority & Sequence / Princess Guard**:
+   - Promoted `CaesarSummon` to Tier 3 before `SequenceSummon` and `PrincessSummon`.
+   - `SequenceSummon` and `PrometheanPrincessSummon` now explicitly guard against consuming Level 6 Fiends while Caesar is unsummoned.
+6. **`PrometheanPrincess` Continuous FIRE Lock Guard**:
+   - Princess continuously locks player into Special Summoning only FIRE monsters.
+   - Added guard requiring at least 1 FIRE monster in GY to revive before summoning Princess, and ensuring Fiendsmith / Azamina lines are not aborted.
+7. **Comprehensive 21-Engine `OnSelectCard` Integration**:
+   - Explicitly mapped targets for `SnakeEyeAsh` (Search Poplar; send S/T Poplar/Temple/Deception; summon Flamberge/Oak), `SnakeEyesPoplar`, `Bonfire`, `DivineTempleOfTheSnakeEye`, `OriginalSinfulSpoils`, `Wanted`, `Diabellstar`, `Deception`, `TheHallowedAzamina`, `Tract`, `Engraver`, `Requiem`, `Lacrima`, `Sequence`, `FlambergeDragon`, `Oak`, `Princess`, `SPLittleKnight`, `IPMasquerena`.
+8. **Build & Exclusive Deployment**:
+   - Built and deployed via `BUILD_AND_DEPLOY.ps1` with 0 Errors directly to `C:\Users\admin\Documents\EdoGame\`.
+
+---
+
 ## 0.033. Azamina Fiendsmith Snake-Eye & Exosister Lua Error Resolution (2026-09-21)
 
 ### Overview

@@ -80,13 +80,28 @@ namespace WindBot.Game.AI.Decks
             public const int DimensionalBarrier = 83326048;
         }
 
-        private const long HINT_SELECT_DESTROY = 502;
-        private const long HINT_SELECT_REMOVE = 503;
-        private const long HINT_SELECT_TOGRAVE = 504;
-        private const long HINT_SELECT_TOHAND = 506;
-        private const long HINT_SELECT_TODECK = 507;
-        private const long HINT_SELECT_SPSUMMON = 509;
-        private const long HINT_SELECT_DISCARD = 501;
+        // OCGCore / strings.conf System Hint Message Constants
+        private const long HINTMSG_RELEASE = 500;
+        private const long HINTMSG_DISCARD = 501;
+        private const long HINTMSG_DESTROY = 502;
+        private const long HINTMSG_REMOVE = 503;
+        private const long HINTMSG_TOGRAVE = 504;
+        private const long HINTMSG_RTOHAND = 505;
+        private const long HINTMSG_ATOHAND = 506;
+        private const long HINTMSG_TODECK = 507;
+        private const long HINTMSG_SUMMON = 508;
+        private const long HINTMSG_SPSUMMON = 509;
+        private const long HINTMSG_SET = 510;
+        private const long HINTMSG_FMATERIAL = 511;
+        private const long HINTMSG_SMATERIAL = 512;
+        private const long HINTMSG_XMATERIAL = 513;
+        private const long HINTMSG_EQUIP = 518;
+        private const long HINTMSG_XRELEASE = 519;
+        private const long HINTMSG_PLACE = 527;
+        private const long HINTMSG_LMATERIAL = 533;
+        private const long HINTMSG_TARGET = 551;
+        private const long HINTMSG_DISABLE = 552;
+        private const long HINTMSG_NEGATE = 572;
 
         private bool _diabellstarSetUsed;
         private bool _snakeEyeAshSearchUsed;
@@ -95,7 +110,7 @@ namespace WindBot.Game.AI.Decks
         private bool _snakeEyeOakSummonUsed;
         private bool _flambergeSTPlaceUsed;
         private bool _flambergeGYTriggerUsed;
-        private bool _deceptionUsed;
+        private bool _deceptionSearchUsed;
         private bool _hallowedAzaminaUsed;
         private bool _engraverHandUsed;
         private bool _engraverGYUsed;
@@ -112,9 +127,6 @@ namespace WindBot.Game.AI.Decks
             ResourcePlan.RegisterAceCards(
                 CardId.DDDWaveHighKingCaesar,
                 CardId.AzaminaIliaSilvia,
-                CardId.AzaminaMuRcielago,
-                CardId.SnakeEyesFlambergeDragon,
-                CardId.PrometheanPrincess,
                 CardId.SPLittleKnight,
                 CardId.IPMasquerena,
                 CardId.AccesscodeTalker,
@@ -132,42 +144,12 @@ namespace WindBot.Game.AI.Decks
                 CardId.TheHallowedAzamina,
                 CardId.FiendsmithEngraver,
                 CardId.FiendsmithsTract,
-                CardId.FiendsmithsSanct
+                CardId.LacrimaTheCrimsonTears
             );
             BaitPlanner.RegisterBaitCards(
                 CardId.DivineTempleOfTheSnakeEye,
                 CardId.CrossoutDesignator
             );
-
-            // ── 3. Register Combo Lines in ComboRouter ──
-            ComboRouter.RegisterLine(new ComboRouter.ComboLine
-            {
-                Name = "AFS-TripleEngine-CaesarSilvia",
-                RequiredCards = new List<int> { CardId.SnakeEyeAsh },
-                Steps = new List<ComboRouter.ComboStep> {
-                    new() { CardId = CardId.SnakeEyeAsh, ActionType = ExecutorType.Summon, Description = "Normal Summon Snake-Eye Ash -> Search Poplar" },
-                    new() { CardId = CardId.SnakeEyesPoplar, ActionType = ExecutorType.Activate, Description = "Poplar SS from hand -> Search Temple" },
-                    new() { CardId = CardId.Linkuriboh, ActionType = ExecutorType.SpSummon, Description = "Link Summon Linkuriboh -> Poplar places self in S/T" },
-                    new() { CardId = CardId.SnakeEyeAsh, ActionType = ExecutorType.Activate, Description = "Ash sends self + S/T Poplar -> SS Flamberge Dragon" },
-                    new() { CardId = CardId.FiendsmithEngraver, ActionType = ExecutorType.Activate, Description = "Engraver -> Search Tract -> Lurrie into Requiem" },
-                    new() { CardId = CardId.DDDWaveHighKingCaesar, ActionType = ExecutorType.SpSummon, Description = "Xyz Summon Caesar (Double SS Negate)" },
-                    new() { CardId = CardId.TheHallowedAzamina, ActionType = ExecutorType.Activate, Description = "The Hallowed Azamina -> Fusion Summon Silvia (Omni-Negate)" }
-                },
-                FallbackLineName = "Fiendsmith-Caesar-Line"
-            });
-
-            ComboRouter.RegisterLine(new ComboRouter.ComboLine
-            {
-                Name = "Fiendsmith-Caesar-Line",
-                RequiredCards = new List<int> { CardId.FiendsmithEngraver },
-                Steps = new List<ComboRouter.ComboStep> {
-                    new() { CardId = CardId.FiendsmithEngraver, ActionType = ExecutorType.Activate, Description = "Engraver searches Fiendsmith's Tract" },
-                    new() { CardId = CardId.FiendsmithsTract, ActionType = ExecutorType.Activate, Description = "Tract searches and discards Fabled Lurrie -> Lurrie SS" },
-                    new() { CardId = CardId.FiendsmithsRequiem, ActionType = ExecutorType.SpSummon, Description = "Lurrie into Requiem -> Requiem SS Lacrima from Deck" },
-                    new() { CardId = CardId.FiendsmithsSequence, ActionType = ExecutorType.SpSummon, Description = "Link Summon Sequence -> Fusion Fiendsmith's Lacrima" },
-                    new() { CardId = CardId.DDDWaveHighKingCaesar, ActionType = ExecutorType.SpSummon, Description = "Xyz Summon Caesar" }
-                }
-            });
 
             // ═══════════════════════════════════════════════════════════════
             //  EXECUTORS PIPELINE
@@ -198,60 +180,72 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.Activate, CardId.HarpiesFeatherDuster, HarpiesFeatherDusterEffect);
             AddExecutor(ExecutorType.Activate, CardId.EvenlyMatched, EvenlyMatchedEffect);
 
-            // ── Tier 1: Primary Starters (Bonfire / WANTED / Ash / Engraver / Tract) ──
+            // ── Tier 1: Primary Starters & Engine Bridges ──
+            // Spells that search starters
             AddExecutor(ExecutorType.Activate, CardId.WantedSeekerOfSinfulSpoils, WantedEffect);
             AddExecutor(ExecutorType.Activate, CardId.Bonfire, BonfireEffect);
-            AddExecutor(ExecutorType.Activate, CardId.OriginalSinfulSpoils, OriginalSinfulSpoilsEffect);
 
-            AddExecutor(ExecutorType.Activate, CardId.FiendsmithEngraver, EngraverEffect);
-            AddExecutor(ExecutorType.Activate, CardId.FiendsmithsTract, TractEffect);
-            AddExecutor(ExecutorType.Activate, CardId.FiendsmithsSanct, SanctEffect);
-            AddExecutor(ExecutorType.Activate, CardId.FabledLurrie, LurrieEffect);
-
+            // Snake-Eye Normal Summons & Triggers
             AddExecutor(ExecutorType.Summon, CardId.SnakeEyeAsh, SnakeEyeAshSummon);
-            AddExecutor(ExecutorType.Activate, CardId.SnakeEyeAsh, SnakeEyeAshEffect);
+            AddExecutor(ExecutorType.Activate, CardId.SnakeEyeAsh, SnakeEyeAshSearchEffect);
             AddExecutor(ExecutorType.Activate, CardId.SnakeEyesPoplar, PoplarEffect);
             AddExecutor(ExecutorType.Summon, CardId.SnakeEyesPoplar, PoplarSummon);
 
-            // Diabellstar Inherent Special Summon & Trigger
+            // CRITICAL: Linkuriboh using Poplar BEFORE Ash's field send effect!
+            AddExecutor(ExecutorType.SpSummon, CardId.Linkuriboh, LinkuribohSummon);
+
+            // Fiendsmith Normal Summons & Hand Starters
+            AddExecutor(ExecutorType.Activate, CardId.FiendsmithEngraver, EngraverHandEffect);
+            AddExecutor(ExecutorType.Activate, CardId.FiendsmithsTract, TractEffect);
+            AddExecutor(ExecutorType.Summon, CardId.LacrimaTheCrimsonTears, LacrimaSummon);
+            AddExecutor(ExecutorType.Activate, CardId.LacrimaTheCrimsonTears, LacrimaEffect);
+            AddExecutor(ExecutorType.Summon, CardId.FabledLurrie, LurrieSummon);
+            AddExecutor(ExecutorType.Activate, CardId.FabledLurrie, LurrieEffect);
+
+            // Diabellstar Inherent Special Summon & Spells
             AddExecutor(ExecutorType.SpSummon, CardId.DiabellstarTheBlackWitch, DiabellstarSpSummon);
             AddExecutor(ExecutorType.Activate, CardId.DiabellstarTheBlackWitch, DiabellstarSetEffect);
             AddExecutor(ExecutorType.Activate, CardId.DivineTempleOfTheSnakeEye, DivineTempleEffect);
+            AddExecutor(ExecutorType.Activate, CardId.OriginalSinfulSpoils, OriginalSinfulSpoilsEffect);
 
-            // ── Tier 2: Azamina Fusion & Sinful Spoils Spells ──
-            AddExecutor(ExecutorType.Activate, CardId.TheHallowedAzamina, HallowedAzaminaEffect);
-            AddExecutor(ExecutorType.Activate, CardId.DeceptionOfTheSinfulSpoils, DeceptionEffect);
-            AddExecutor(ExecutorType.Activate, CardId.AzaminaMuRcielago, MuRcielagoSearchEffect);
+            // ── Tier 2: Intermediate Links & Extensions (The Engine Bridges) ──
+            // Ash sends self + S/T Poplar -> Special Summons Flamberge Dragon
+            AddExecutor(ExecutorType.Activate, CardId.SnakeEyeAsh, SnakeEyeAshSummonFromDeckEffect);
+            AddExecutor(ExecutorType.Activate, CardId.SnakeEyesFlambergeDragon, FlambergeEffect);
 
-            // ── Tier 3: Fiendsmith Engine Loop ──
+            // Moon of the Closed Heaven bridges Linkuriboh + Flamberge into LIGHT Fiend
             AddExecutor(ExecutorType.SpSummon, CardId.MoonOfTheClosedHeaven, MoonOfTheClosedHeavenSummon);
+
+            // ── Tier 3: Fiendsmith Loop to Caesar ──
             AddExecutor(ExecutorType.SpSummon, CardId.FiendsmithsRequiem, RequiemSummon);
             AddExecutor(ExecutorType.Activate, CardId.FiendsmithsRequiem, RequiemEffect);
-            AddExecutor(ExecutorType.Summon, CardId.LacrimaTheCrimsonTears, LacrimaSummon);
-            AddExecutor(ExecutorType.Activate, CardId.LacrimaTheCrimsonTears, LacrimaEffect);
+            AddExecutor(ExecutorType.Activate, CardId.FiendsmithEngraver, EngraverGYEffect);
             AddExecutor(ExecutorType.SpSummon, CardId.FiendsmithsSequence, SequenceSummon);
             AddExecutor(ExecutorType.Activate, CardId.FiendsmithsSequence, SequenceEffect);
             AddExecutor(ExecutorType.Activate, CardId.FiendsmithsLacrima, FiendsmithLacrimaEffect);
+            AddExecutor(ExecutorType.SpSummon, CardId.DDDWaveHighKingCaesar, CaesarSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.FiendsmithsAgnumday, AgnumdaySummon);
 
-            // ── Tier 4: Snake-Eye Board Development & Revives ──
+            // ── Tier 4: Azamina Fusion Engine to Silvia ──
+            AddExecutor(ExecutorType.Activate, CardId.DeceptionOfTheSinfulSpoils, DeceptionEffect);
+            AddExecutor(ExecutorType.Activate, CardId.TheHallowedAzamina, HallowedAzaminaEffect);
+            AddExecutor(ExecutorType.Activate, CardId.AzaminaMuRcielago, MuRcielagoSearchEffect);
+
+            // ── Tier 5: Snake-Eye Remaining Effects & Diabellstar ──
             AddExecutor(ExecutorType.Summon, CardId.SnakeEyeOak, SnakeEyeOakSummon);
             AddExecutor(ExecutorType.Activate, CardId.SnakeEyeOak, SnakeEyeOakEffect);
-            AddExecutor(ExecutorType.Activate, CardId.SnakeEyesFlambergeDragon, FlambergeEffect);
             AddExecutor(ExecutorType.Activate, CardId.SnakeEyesDiabellstar, SnakeEyesDiabellstarEffect);
 
-            // ── Tier 5: Extra Deck Boss Summons ──
-            AddExecutor(ExecutorType.SpSummon, CardId.DDDWaveHighKingCaesar, CaesarSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.Linkuriboh, LinkuribohSummon);
+            // ── Tier 6: End Board Extra Deck Bosses (AFTER Caesar & Silvia) ──
             AddExecutor(ExecutorType.SpSummon, CardId.PrometheanPrincess, PrometheanPrincessSummon);
             AddExecutor(ExecutorType.Activate, CardId.PrometheanPrincess, PrometheanPrincessMainEffect);
             AddExecutor(ExecutorType.SpSummon, CardId.HiitaTheFireCharmer, HiitaSummon);
             AddExecutor(ExecutorType.Activate, CardId.HiitaTheFireCharmer, HiitaEffect);
+            AddExecutor(ExecutorType.SpSummon, CardId.IPMasquerena, IPMasquerenaSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.SPLittleKnight, SPLittleKnightSummon);
             AddExecutor(ExecutorType.Activate, CardId.SPLittleKnight, SPLittleKnightOnSummonEffect);
-            AddExecutor(ExecutorType.SpSummon, CardId.IPMasquerena, IPMasquerenaSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.FiendsmithsAgnumday, AgnumdaySummon);
 
-            // ── Tier 6: High Link Finishers (Going Second / Push for Game) ──
+            // High Link Finishers (Going Second / Lethal Push)
             AddExecutor(ExecutorType.SpSummon, CardId.SalamangreatRagingPhoenix, RagingPhoenixSummon);
             AddExecutor(ExecutorType.Activate, CardId.SalamangreatRagingPhoenix, RagingPhoenixEffect);
             AddExecutor(ExecutorType.SpSummon, CardId.WorldseaDragonZealantis, ZealantisSummon);
@@ -281,7 +275,7 @@ namespace WindBot.Game.AI.Decks
             _snakeEyeOakSummonUsed = false;
             _flambergeSTPlaceUsed = false;
             _flambergeGYTriggerUsed = false;
-            _deceptionUsed = false;
+            _deceptionSearchUsed = false;
             _hallowedAzaminaUsed = false;
             _engraverHandUsed = false;
             _engraverGYUsed = false;
@@ -295,7 +289,9 @@ namespace WindBot.Game.AI.Decks
 
         private bool SpellSetInMain2()
         {
-            return Duel.Phase == DuelPhase.Main2 || (Duel.Phase == DuelPhase.Main1 && Duel.Turn == 1);
+            return Duel.Phase == DuelPhase.Main2
+                || (Duel.Phase == DuelPhase.Main1 && Duel.Turn == 1)
+                || (Duel.Phase == DuelPhase.Main1 && Duel.Turn > 1 && !Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.IsAttack() && c.Attack > 0));
         }
 
         public override bool IsAceCard(ClientCard card)
@@ -303,8 +299,6 @@ namespace WindBot.Game.AI.Decks
             if (card == null) return false;
             return card.Id == CardId.DDDWaveHighKingCaesar
                 || card.Id == CardId.AzaminaIliaSilvia
-                || card.Id == CardId.SnakeEyesFlambergeDragon
-                || card.Id == CardId.PrometheanPrincess
                 || card.Id == CardId.SPLittleKnight
                 || card.Id == CardId.IPMasquerena
                 || card.Id == CardId.AccesscodeTalker
@@ -440,6 +434,8 @@ namespace WindBot.Game.AI.Decks
 
         private bool ForbiddenDropletEffect()
         {
+            if (Duel.LastChainPlayer == 0) return false;
+
             if (Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsDisabled()))
             {
                 var sendFodder = Bot.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup() && (c.Id == CardId.DivineTempleOfTheSnakeEye || c.Id == CardId.DeceptionOfTheSinfulSpoils))
@@ -534,29 +530,6 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
-        private bool OriginalSinfulSpoilsEffect()
-        {
-            var sendTarget = Bot.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup() && (c.Id == CardId.DivineTempleOfTheSnakeEye || c.Id == CardId.SnakeEyesPoplar || c.Id == CardId.DeceptionOfTheSinfulSpoils))
-                          ?? Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && !IsAceCard(c) && c.Id != CardId.SnakeEyeAsh)
-                          ?? Bot.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup());
-            if (sendTarget != null)
-            {
-                AI.SelectCard(sendTarget);
-                AI.SelectNextCard(CardId.SnakeEyeAsh, CardId.SnakeEyesPoplar, CardId.SnakeEyeOak);
-                return true;
-            }
-            return false;
-        }
-
-        private bool MoonOfTheClosedHeavenSummon()
-        {
-            if (_requiemUsed) return false;
-            if (Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.Attribute == (int)CardAttribute.Light && c.Race == (int)CardRace.Fiend))
-                return false;
-            int mats = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && !c.HasType(CardType.Token) && !IsAceCard(c));
-            return mats >= 2;
-        }
-
         private bool WantedEffect()
         {
             if (Card.Location == CardLocation.Hand || Card.Location == CardLocation.SpellZone)
@@ -566,7 +539,7 @@ namespace WindBot.Game.AI.Decks
             }
             if (Card.Location == CardLocation.Grave)
             {
-                var target = Bot.Graveyard.FirstOrDefault(c => c != null && (c.Id == CardId.DeceptionOfTheSinfulSpoils || c.Id == CardId.TheHallowedAzamina));
+                var target = Bot.Graveyard.FirstOrDefault(c => c != null && (c.Id == CardId.DeceptionOfTheSinfulSpoils || c.Id == CardId.OriginalSinfulSpoils || c.Id == CardId.TheHallowedAzamina));
                 if (target != null)
                 {
                     AI.SelectCard(target);
@@ -582,73 +555,34 @@ namespace WindBot.Game.AI.Decks
             return true;
         }
 
-        private bool EngraverEffect()
-        {
-            if (Card.Location == CardLocation.Hand)
-            {
-                if (_engraverHandUsed) return false;
-                _engraverHandUsed = true;
-                AI.SelectCard(CardId.FiendsmithsTract);
-                return true;
-            }
-            if (Card.Location == CardLocation.Grave)
-            {
-                if (_engraverGYUsed) return false;
-                var shufTarget = Bot.Graveyard.FirstOrDefault(c => c != null && c.Attribute == (int)CardAttribute.Light && c.Race == (int)CardRace.Fiend && c != Card)
-                              ?? Bot.Graveyard.FirstOrDefault(c => c != null && c.Id == CardId.FiendsmithsRequiem);
-                if (shufTarget != null)
-                {
-                    _engraverGYUsed = true;
-                    AI.SelectCard(shufTarget);
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private bool TractEffect()
-        {
-            if (_tractUsed) return false;
-            _tractUsed = true;
-            AI.SelectCard(CardId.FabledLurrie, CardId.LacrimaTheCrimsonTears, CardId.FiendsmithEngraver);
-            return true;
-        }
-
-        private bool SanctEffect()
-        {
-            return Bot.GetMonsters().All(c => c == null || (c.Attribute == (int)CardAttribute.Light && c.Race == (int)CardRace.Fiend));
-        }
-
-        private bool LurrieEffect()
-        {
-            return true;
-        }
-
         private bool SnakeEyeAshSummon()
         {
             return true;
         }
 
-        private bool SnakeEyeAshEffect()
+        private bool SnakeEyeAshSearchEffect()
         {
-            if (Card.Location == CardLocation.MonsterZone)
+            if (Card.Location == CardLocation.MonsterZone && !_snakeEyeAshSearchUsed)
             {
-                if (!_snakeEyeAshSearchUsed)
+                _snakeEyeAshSearchUsed = true;
+                AI.SelectCard(CardId.SnakeEyesPoplar);
+                return true;
+            }
+            return false;
+        }
+
+        private bool SnakeEyeAshSummonFromDeckEffect()
+        {
+            if (Card.Location == CardLocation.MonsterZone && !_snakeEyeAshSummonFromDeckUsed)
+            {
+                int sendable = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && !IsAceCard(c))
+                             + Bot.GetSpells().Count(c => c != null && c.IsFaceup());
+                if (sendable >= 2)
                 {
-                    _snakeEyeAshSearchUsed = true;
-                    AI.SelectCard(CardId.SnakeEyesPoplar);
+                    _snakeEyeAshSummonFromDeckUsed = true;
+                    // Cost will be handled by OnSelectCard (Ash + S/T Poplar)
+                    // Resulting SS will be Flamberge Dragon
                     return true;
-                }
-                if (!_snakeEyeAshSummonFromDeckUsed)
-                {
-                    int sendable = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && !IsAceCard(c))
-                                 + Bot.GetSpells().Count(c => c != null && c.IsFaceup());
-                    if (sendable >= 2)
-                    {
-                        _snakeEyeAshSummonFromDeckUsed = true;
-                        AI.SelectCard(CardId.SnakeEyesFlambergeDragon, CardId.SnakeEyeOak);
-                        return true;
-                    }
                 }
             }
             return false;
@@ -681,6 +615,76 @@ namespace WindBot.Game.AI.Decks
             return Bot.GetMonsterCount() == 0;
         }
 
+        private bool LinkuribohSummon()
+        {
+            return Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && (
+                c.Id == CardId.SnakeEyesPoplar ||
+                c.Id == CardId.FabledLurrie
+            ));
+        }
+
+        private bool EngraverHandEffect()
+        {
+            if (Card.Location == CardLocation.Hand)
+            {
+                if (_engraverHandUsed) return false;
+                _engraverHandUsed = true;
+                AI.SelectCard(CardId.FiendsmithsTract);
+                return true;
+            }
+            return false;
+        }
+
+        private bool EngraverGYEffect()
+        {
+            if (Card.Location == CardLocation.Grave)
+            {
+                if (_engraverGYUsed) return false;
+                var shufTarget = Bot.Graveyard.FirstOrDefault(c => c != null && c.Id == CardId.FiendsmithsRequiem)
+                              ?? Bot.Graveyard.FirstOrDefault(c => c != null && c.Id == CardId.MoonOfTheClosedHeaven)
+                              ?? Bot.Graveyard.FirstOrDefault(c => c != null && c.Attribute == (int)CardAttribute.Light && c.Race == (int)CardRace.Fiend && c != Card);
+                if (shufTarget != null)
+                {
+                    _engraverGYUsed = true;
+                    AI.SelectCard(shufTarget);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private bool TractEffect()
+        {
+            if (_tractUsed) return false;
+            _tractUsed = true;
+            AI.SelectCard(CardId.FabledLurrie, CardId.LacrimaTheCrimsonTears, CardId.FiendsmithEngraver);
+            return true;
+        }
+
+        private bool LurrieSummon()
+        {
+            // If no monsters on field, normal summon Lurrie to bridge into Requiem
+            return Bot.GetMonsterCount() == 0;
+        }
+
+        private bool LurrieEffect()
+        {
+            return true;
+        }
+
+        private bool LacrimaSummon()
+        {
+            return true;
+        }
+
+        private bool LacrimaEffect()
+        {
+            if (_lacrimaSummonUsed) return false;
+            _lacrimaSummonUsed = true;
+            AI.SelectCard(CardId.FiendsmithEngraver);
+            return true;
+        }
+
         private bool DiabellstarSpSummon()
         {
             var sendFodder = Bot.Hand.FirstOrDefault(c => c != null && c != Card && (c.Id == CardId.FabledLurrie || c.Id == CardId.SnakeEyesPoplar || c.Id == CardId.DeceptionOfTheSinfulSpoils))
@@ -698,7 +702,19 @@ namespace WindBot.Game.AI.Decks
         {
             if (_diabellstarSetUsed) return false;
             _diabellstarSetUsed = true;
-            AI.SelectCard(CardId.DeceptionOfTheSinfulSpoils, CardId.OriginalSinfulSpoils, CardId.WantedSeekerOfSinfulSpoils);
+
+            // If Snake-Eye engine hasn't started, prioritize Original Sinful Spoils to summon Ash from deck!
+            bool hasSnakeEyeStarted = Bot.GetMonsters().Any(c => c != null && (c.Id == CardId.SnakeEyeAsh || c.Id == CardId.SnakeEyesPoplar || c.Id == CardId.SnakeEyesFlambergeDragon))
+                                   || Bot.Graveyard.Any(c => c != null && (c.Id == CardId.SnakeEyeAsh || c.Id == CardId.SnakeEyesPoplar));
+
+            if (!hasSnakeEyeStarted)
+            {
+                AI.SelectCard(CardId.OriginalSinfulSpoils, CardId.DeceptionOfTheSinfulSpoils, CardId.WantedSeekerOfSinfulSpoils);
+            }
+            else
+            {
+                AI.SelectCard(CardId.DeceptionOfTheSinfulSpoils, CardId.OriginalSinfulSpoils, CardId.WantedSeekerOfSinfulSpoils);
+            }
             return true;
         }
 
@@ -712,32 +728,29 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
-        private bool HallowedAzaminaEffect()
+        private bool OriginalSinfulSpoilsEffect()
         {
-            if (_hallowedAzaminaUsed) return false;
-            _hallowedAzaminaUsed = true;
-            AI.SelectCard(CardId.AzaminaIliaSilvia, CardId.AzaminaMuRcielago);
-            return true;
-        }
-
-        private bool DeceptionEffect()
-        {
-            if (_deceptionUsed) return false;
-            var tributeTarget = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && !IsAceCard(c));
-            if (tributeTarget != null)
+            var sendTarget = Bot.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup() && (c.Id == CardId.DivineTempleOfTheSnakeEye || c.Id == CardId.SnakeEyesPoplar || c.Id == CardId.DeceptionOfTheSinfulSpoils))
+                          ?? Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && !IsAceCard(c) && c.Id != CardId.SnakeEyeAsh)
+                          ?? Bot.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup());
+            if (sendTarget != null)
             {
-                _deceptionUsed = true;
-                AI.SelectCard(tributeTarget);
-                AI.SelectNextCard(CardId.TheHallowedAzamina);
+                AI.SelectCard(sendTarget);
+                AI.SelectNextCard(CardId.SnakeEyeAsh, CardId.SnakeEyesPoplar, CardId.SnakeEyeOak);
                 return true;
             }
             return false;
         }
 
-        private bool MuRcielagoSearchEffect()
+        private bool MoonOfTheClosedHeavenSummon()
         {
-            AI.SelectCard(CardId.TheHallowedAzamina, CardId.DeceptionOfTheSinfulSpoils);
-            return true;
+            if (_requiemUsed) return false;
+            // Don't need Moon if we already have a LIGHT Fiend monster
+            if (Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.Attribute == (int)CardAttribute.Light && c.Race == (int)CardRace.Fiend))
+                return false;
+
+            int mats = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && !c.HasType(CardType.Token) && !IsAceCard(c));
+            return mats >= 2;
         }
 
         private bool RequiemSummon()
@@ -748,28 +761,29 @@ namespace WindBot.Game.AI.Decks
 
         private bool RequiemEffect()
         {
-            if (_requiemUsed) return false;
-            _requiemUsed = true;
-            AI.SelectCard(CardId.LacrimaTheCrimsonTears, CardId.FiendsmithEngraver);
-            return true;
-        }
-
-        private bool LacrimaSummon()
-        {
-            return true;
-        }
-
-        private bool LacrimaEffect()
-        {
-            if (_lacrimaSummonUsed) return false;
-            _lacrimaSummonUsed = true;
-            AI.SelectCard(CardId.FiendsmithEngraver);
-            return true;
+            if (Card.Location == CardLocation.MonsterZone)
+            {
+                if (_requiemUsed) return false;
+                _requiemUsed = true;
+                AI.SelectCard(CardId.LacrimaTheCrimsonTears, CardId.FiendsmithEngraver);
+                return true;
+            }
+            return false;
         }
 
         private bool SequenceSummon()
         {
             if (_sequenceUsed) return false;
+
+            // Must have at least 1 LIGHT Fiend on field
+            bool hasLightFiend = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.Attribute == (int)CardAttribute.Light && c.Race == (int)CardRace.Fiend && !IsAceCard(c));
+            if (!hasLightFiend) return false;
+
+            // If 2 Level 6 Fiends exist on field and Caesar is not yet made, let Caesar summon first!
+            int lv6Fiends = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && c.Level == 6 && c.Race == (int)CardRace.Fiend);
+            if (lv6Fiends >= 2 && !Bot.HasInMonstersZone(CardId.DDDWaveHighKingCaesar))
+                return false;
+
             int mats = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && !IsAceCard(c));
             return mats >= 2;
         }
@@ -795,6 +809,79 @@ namespace WindBot.Game.AI.Decks
             return true;
         }
 
+        private bool CaesarSummon()
+        {
+            int lv6Fiends = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && c.Level == 6 && c.Race == (int)CardRace.Fiend);
+            return lv6Fiends >= 2 && !Bot.HasInMonstersZone(CardId.DDDWaveHighKingCaesar);
+        }
+
+        private bool AgnumdaySummon()
+        {
+            int fiends = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && c.Race == (int)CardRace.Fiend && !IsAceCard(c));
+            return fiends >= 2;
+        }
+
+        private bool DeceptionEffect()
+        {
+            // Case 1: Activating Continuous Spell from hand
+            if (Card.Location == CardLocation.Hand)
+            {
+                return true;
+            }
+
+            // Case 2: In SpellZone
+            if (Card.Location == CardLocation.SpellZone)
+            {
+                // If set face-down, flip it face-up to activate the spell card (does not spend search yet)
+                if (Card.IsFacedown())
+                {
+                    return true;
+                }
+
+                // If face-up, check if ignition search effect already used this turn
+                if (_deceptionSearchUsed) return false;
+
+                // Send 1 card from hand or field to GY (Fabled Lurrie triggers SS!)
+                var sendFodder = Bot.Hand.FirstOrDefault(c => c != null && c != Card && c.Id == CardId.FabledLurrie)
+                              ?? Bot.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup() && c.Id == CardId.SnakeEyesPoplar)
+                              ?? Bot.Hand.FirstOrDefault(c => c != null && c != Card && (c.Id == CardId.SnakeEyesPoplar || c.Id == CardId.SnakeEyeOak || c.Id == CardId.SnakeEyesDiabellstar))
+                              ?? Bot.Hand.FirstOrDefault(c => c != null && c != Card && c.Id == CardId.FiendsmithEngraver)
+                              ?? Bot.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup() && c.Id == CardId.DivineTempleOfTheSnakeEye)
+                              ?? Bot.Hand.FirstOrDefault(c => c != null && c != Card && (c.Id == CardId.AshBlossom || c.Id == CardId.GhostBelle))
+                              ?? Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && !IsAceCard(c) && c.Id != CardId.SnakeEyeAsh && c.Id != CardId.SnakeEyesFlambergeDragon);
+
+                if (sendFodder != null)
+                {
+                    _deceptionSearchUsed = true;
+                    AI.SelectCard(sendFodder);
+                    AI.SelectNextCard(CardId.TheHallowedAzamina, CardId.AzaminaIliaSilvia, CardId.AzaminaMuRcielago);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool HallowedAzaminaEffect()
+        {
+            if (_hallowedAzaminaUsed) return false;
+
+            int sinfulCount = Bot.Hand.Count(c => c != null && IsSinfulSpoils(c))
+                            + Bot.GetSpells().Count(c => c != null && c.IsFaceup() && IsSinfulSpoils(c));
+            if (sinfulCount == 0) return false;
+
+            _hallowedAzaminaUsed = true;
+            // Silvia is Level 6 (requires 6/4 rounded down = 1 Sinful Spoils card)
+            AI.SelectCard(CardId.AzaminaIliaSilvia, CardId.AzaminaMuRcielago);
+            return true;
+        }
+
+        private bool MuRcielagoSearchEffect()
+        {
+            AI.SelectCard(CardId.TheHallowedAzamina, CardId.DeceptionOfTheSinfulSpoils);
+            return true;
+        }
+
         private bool SnakeEyeOakSummon()
         {
             return true;
@@ -802,40 +889,65 @@ namespace WindBot.Game.AI.Decks
 
         private bool SnakeEyeOakEffect()
         {
-            if (Card.Location == CardLocation.MonsterZone)
+            if (Card.Location == CardLocation.MonsterZone && !_snakeEyeOakSummonUsed)
             {
-                if (!_snakeEyeOakSummonUsed)
+                _snakeEyeOakSummonUsed = true;
+                AI.SelectCard(CardId.SnakeEyeAsh, CardId.SnakeEyesPoplar);
+                return true;
+            }
+            return false;
+        }
+
+        private bool SnakeEyesDiabellstarEffect()
+        {
+            if (Card.Location == CardLocation.SpellZone && Card.IsFaceup())
+            {
+                var fireTarget = Bot.Graveyard.FirstOrDefault(c => c != null && c.Attribute == (int)CardAttribute.Fire && c.Id != CardId.SnakeEyesDiabellstar && c.IsMonster());
+                if (fireTarget != null)
                 {
-                    _snakeEyeOakSummonUsed = true;
-                    AI.SelectCard(CardId.SnakeEyeAsh, CardId.SnakeEyesPoplar);
+                    AI.SelectCard(fireTarget);
                     return true;
                 }
             }
             return false;
         }
 
-        private bool CaesarSummon()
-        {
-            int lv6Fiends = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && c.Level == 6 && c.Race == (int)CardRace.Fiend);
-            return lv6Fiends >= 2;
-        }
-
         private bool FlambergeEffect()
         {
             if (Card.Location == CardLocation.MonsterZone)
             {
-                if (!_flambergeSTPlaceUsed)
+                // Our Turn: Main Phase Ignition Effect (place monster into S/T zone)
+                if (Duel.Player == 0 && (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Main2))
                 {
-                    _flambergeSTPlaceUsed = true;
-                    var target = Enemy.GetMonsters().OrderByDescending(c => c.Attack).FirstOrDefault(c => c != null && c.IsFaceup())
-                              ?? Bot.Graveyard.FirstOrDefault(c => c != null && c.IsMonster());
-                    if (target != null)
+                    if (!_flambergeSTPlaceUsed)
                     {
-                        AI.SelectCard(target);
-                        return true;
+                        _flambergeSTPlaceUsed = true;
+                        var target = Enemy.GetMonsters().OrderByDescending(c => c.Attack).FirstOrDefault(c => c != null && c.IsFaceup())
+                                  ?? Bot.Graveyard.FirstOrDefault(c => c != null && c.Attribute == (int)CardAttribute.Fire && c.IsMonster());
+                        if (target != null)
+                        {
+                            AI.SelectCard(target);
+                            return true;
+                        }
+                    }
+                }
+                // Opponent's Turn: Quick Effect to Special Summon 1 monster from S/T zone to OUR field!
+                else if (Duel.Player == 1)
+                {
+                    if (Bot.GetMonsterCount() < 5)
+                    {
+                        var stTarget = Bot.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsMonster())
+                                    ?? Enemy.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsMonster());
+                        if (stTarget != null)
+                        {
+                            AI.SelectCard(stTarget);
+                            return true;
+                        }
                     }
                 }
             }
+
+            // In GY: Trigger Effect when sent from field to GY (revive 2 Level 1 FIRE monsters!)
             if (Card.Location == CardLocation.Grave)
             {
                 if (!_flambergeGYTriggerUsed)
@@ -848,24 +960,25 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
-        private bool SnakeEyesDiabellstarEffect()
-        {
-            return true;
-        }
-
-        private bool LinkuribohSummon()
-        {
-            return Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.Id == CardId.SnakeEyesPoplar);
-        }
-
         private bool PrometheanPrincessSummon()
         {
             if (_prometheanPrincessUsed) return false;
-            if (!_requiemUsed && !_sequenceUsed && Bot.GetMonsters().Any(c => c != null && c.Attribute == (int)CardAttribute.Light && c.Race == (int)CardRace.Fiend))
+
+            // CRITICAL: Princess locks player into FIRE only!
+            // Never summon Princess before Caesar or Silvia unless Fiendsmith/Azamina is completed or unreachable!
+            bool fiendsmithDone = Bot.HasInMonstersZone(CardId.DDDWaveHighKingCaesar) || _sequenceUsed || _requiemUsed;
+            if (!fiendsmithDone && (Bot.Hand.Any(c => c != null && (c.Id == CardId.FiendsmithEngraver || c.Id == CardId.FiendsmithsTract))
+                || Bot.GetMonsters().Any(c => c != null && c.Id == CardId.MoonOfTheClosedHeaven)))
+            {
+                return false;
+            }
+
+            // Must have a FIRE monster in GY to revive
+            if (!Bot.Graveyard.Any(c => c != null && c.Attribute == (int)CardAttribute.Fire && c.IsMonster()))
                 return false;
 
             int mats = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && !IsAceCard(c));
-            return mats >= 3 || (mats >= 2 && Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.HasType(CardType.Link)));
+            return mats >= 3 || (mats >= 2 && Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.HasType(CardType.Link) && !IsAceCard(c)));
         }
 
         private bool PrometheanPrincessMainEffect()
@@ -923,15 +1036,9 @@ namespace WindBot.Game.AI.Decks
             return mats >= 2 && !Bot.HasInMonstersZone(CardId.IPMasquerena) && Duel.Turn == 1;
         }
 
-        private bool AgnumdaySummon()
-        {
-            int fiends = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && c.Race == (int)CardRace.Fiend);
-            return fiends >= 2;
-        }
-
         private bool RagingPhoenixSummon()
         {
-            int mats = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && c.Attribute == (int)CardAttribute.Fire);
+            int mats = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && c.Attribute == (int)CardAttribute.Fire && !IsAceCard(c));
             return mats >= 3;
         }
 
@@ -939,16 +1046,16 @@ namespace WindBot.Game.AI.Decks
 
         private bool ZealantisSummon()
         {
-            int mats = Bot.GetMonsters().Count(c => c != null && c.IsFaceup());
-            return mats >= 4 || (mats >= 2 && Bot.GetMonsters().Any(c => c != null && c.HasType(CardType.Link) && c.LinkCount >= 3));
+            int mats = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && !IsAceCard(c));
+            return mats >= 4 || (mats >= 2 && Bot.GetMonsters().Any(c => c != null && c.HasType(CardType.Link) && c.LinkCount >= 3 && !IsAceCard(c)));
         }
 
         private bool ZealantisEffect() => true;
 
         private bool AccesscodeTalkerSummon()
         {
-            int mats = Bot.GetMonsters().Count(c => c != null && c.IsFaceup());
-            return (mats >= 4 || (mats >= 2 && Bot.GetMonsters().Any(c => c != null && c.HasType(CardType.Link) && c.LinkCount >= 3))) && Duel.Turn > 1;
+            int mats = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && !IsAceCard(c));
+            return (mats >= 4 || (mats >= 2 && Bot.GetMonsters().Any(c => c != null && c.HasType(CardType.Link) && c.LinkCount >= 3 && !IsAceCard(c)))) && Duel.Turn > 1;
         }
 
         private bool AccesscodeTalkerEffect()
@@ -965,14 +1072,25 @@ namespace WindBot.Game.AI.Decks
             return true;
         }
 
+        private static bool IsSinfulSpoils(ClientCard card)
+        {
+            if (card == null) return false;
+            return card.Id == CardId.DeceptionOfTheSinfulSpoils
+                || card.Id == CardId.OriginalSinfulSpoils
+                || card.Id == CardId.WantedSeekerOfSinfulSpoils;
+        }
+
         // ═══════════════════════════════════════════════════════════════
         //  TACTICAL DECISION OVERRIDES (OnSelectCard / Position)
         // ═══════════════════════════════════════════════════════════════
 
         public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
         {
-            // Removal hints: ONLY target opponent cards (Rule 1)
-            if (hint == HINT_SELECT_DESTROY || hint == HINT_SELECT_REMOVE)
+            if (cards == null || cards.Count == 0)
+                return base.OnSelectCard(cards, min, max, hint, cancelable);
+
+            // 1. Removal hints (DESTROY / REMOVE): strictly target opponent cards
+            if (hint == HINTMSG_DESTROY || hint == HINTMSG_REMOVE)
             {
                 var enemyCards = cards.Where(c => c != null && c.Controller == 1).ToList();
                 if (enemyCards.Count >= min)
@@ -982,10 +1100,133 @@ namespace WindBot.Game.AI.Decks
                 }
             }
 
-            // Original Sinful Spoils send cost and special summon target
+            // 2. Discard hint: prioritize Lurrie (triggers SS), protect starters
+            if (hint == HINTMSG_DISCARD)
+            {
+                return SelectPreferredCard(cards, min, max,
+                    CardId.FabledLurrie,
+                    CardId.SnakeEyesPoplar,
+                    CardId.FiendsmithEngraver,
+                    CardId.LacrimaTheCrimsonTears);
+            }
+
+            // 3. Link Material Selection (HINTMSG_LMATERIAL = 533)
+            if (hint == HINTMSG_LMATERIAL || (hint == 0 && cards.All(c => c != null && c.Location == CardLocation.MonsterZone && c.Controller == 0)))
+            {
+                // Linkuriboh: select Poplar or Lurrie
+                var poplar = cards.FirstOrDefault(c => c != null && c.Id == CardId.SnakeEyesPoplar);
+                if (poplar != null && min == 1 && max == 1) return new List<ClientCard> { poplar };
+
+                var lurrie = cards.FirstOrDefault(c => c != null && c.Id == CardId.FabledLurrie);
+                if (lurrie != null && min == 1 && max == 1) return new List<ClientCard> { lurrie };
+
+                // Fiendsmith's Requiem: select Moon of the Closed Heaven or Lurrie or Lacrima
+                var moon = cards.FirstOrDefault(c => c != null && c.Id == CardId.MoonOfTheClosedHeaven);
+                if (moon != null && min == 1 && max == 1) return new List<ClientCard> { moon };
+
+                // Fiendsmith's Sequence: select Lacrima + Engraver
+                var seqMats = cards.Where(c => c != null && (c.Id == CardId.LacrimaTheCrimsonTears || c.Id == CardId.FiendsmithEngraver)).ToList();
+                if (seqMats.Count >= min) return seqMats.Take(max).ToList();
+
+                // Moon of the Closed Heaven / Princess: non-Ace monsters first
+                var nonAce = cards.Where(c => c != null && !IsAceCard(c)).ToList();
+                if (nonAce.Count >= min) return nonAce.Take(max).ToList();
+            }
+
+            // 4. Xyz Material Selection (HINTMSG_XMATERIAL = 513)
+            if (hint == HINTMSG_XMATERIAL)
+            {
+                var caesarMats = cards.Where(c => c != null && (c.Id == CardId.FiendsmithsLacrima || c.Id == CardId.FiendsmithEngraver)).ToList();
+                if (caesarMats.Count >= min) return caesarMats.Take(max).ToList();
+            }
+
+            // 5. Diabellstar Special Summon Cost from hand (when hint == 504 and hand cards present)
+            if (hint == HINTMSG_TOGRAVE && cards.Any(c => c != null && c.Location == CardLocation.Hand))
+            {
+                var preferredCost = new[] {
+                    CardId.FabledLurrie,
+                    CardId.SnakeEyesPoplar,
+                    CardId.DeceptionOfTheSinfulSpoils,
+                    CardId.OriginalSinfulSpoils,
+                    CardId.DivineTempleOfTheSnakeEye,
+                    CardId.SnakeEyesDiabellstar,
+                    CardId.SnakeEyeOak
+                };
+                foreach (int cid in preferredCost)
+                {
+                    var match = cards.FirstOrDefault(c => c != null && c.Id == cid);
+                    if (match != null) return new List<ClientCard> { match };
+                }
+            }
+
+            // 6. Snake-Eye Ash (Search, Cost, Summon from Deck)
+            if (LastChainCard != null && LastChainCard.Id == CardId.SnakeEyeAsh)
+            {
+                if (hint == HINTMSG_ATOHAND || hint == HINTMSG_RTOHAND)
+                {
+                    return SelectPreferredCard(cards, min, max,
+                        CardId.SnakeEyesPoplar,
+                        CardId.SnakeEyeOak);
+                }
+                if (hint == HINTMSG_TOGRAVE)
+                {
+                    return SelectPreferredCard(cards, min, max,
+                        CardId.SnakeEyesPoplar,
+                        CardId.DivineTempleOfTheSnakeEye,
+                        CardId.DeceptionOfTheSinfulSpoils,
+                        CardId.SnakeEyeAsh,
+                        CardId.Linkuriboh);
+                }
+                if (hint == HINTMSG_SPSUMMON || hint == 0)
+                {
+                    return SelectPreferredCard(cards, min, max,
+                        CardId.SnakeEyesFlambergeDragon,
+                        CardId.SnakeEyeOak);
+                }
+            }
+
+            // 7. Snake-Eyes Poplar (Search, S/T Placement)
+            if (LastChainCard != null && LastChainCard.Id == CardId.SnakeEyesPoplar)
+            {
+                if (hint == HINTMSG_ATOHAND || hint == HINTMSG_RTOHAND)
+                {
+                    return SelectPreferredCard(cards, min, max,
+                        CardId.DivineTempleOfTheSnakeEye,
+                        CardId.OriginalSinfulSpoils);
+                }
+                if (hint == HINTMSG_PLACE || hint == 0)
+                {
+                    return SelectPreferredCard(cards, min, max, CardId.SnakeEyesPoplar);
+                }
+            }
+
+            // 8. Bonfire: Ash > Poplar
+            if (LastChainCard != null && LastChainCard.Id == CardId.Bonfire)
+            {
+                if (hint == HINTMSG_ATOHAND || hint == HINTMSG_RTOHAND)
+                {
+                    return SelectPreferredCard(cards, min, max,
+                        CardId.SnakeEyeAsh,
+                        CardId.SnakeEyesPoplar);
+                }
+            }
+
+            // 9. Divine Temple of the Snake-Eye
+            if (LastChainCard != null && LastChainCard.Id == CardId.DivineTempleOfTheSnakeEye)
+            {
+                if (hint == HINTMSG_PLACE || hint == 0)
+                {
+                    return SelectPreferredCard(cards, min, max,
+                        CardId.SnakeEyeAsh,
+                        CardId.SnakeEyesFlambergeDragon,
+                        CardId.SnakeEyesPoplar);
+                }
+            }
+
+            // 10. Original Sinful Spoils
             if (LastChainCard != null && LastChainCard.Id == CardId.OriginalSinfulSpoils)
             {
-                if (hint == HINT_SELECT_TOGRAVE)
+                if (hint == HINTMSG_TOGRAVE)
                 {
                     return SelectPreferredCard(cards, min, max,
                         CardId.SnakeEyesPoplar,
@@ -993,7 +1234,7 @@ namespace WindBot.Game.AI.Decks
                         CardId.DeceptionOfTheSinfulSpoils,
                         CardId.Linkuriboh);
                 }
-                if (hint == HINT_SELECT_SPSUMMON || hint == 0)
+                if (hint == HINTMSG_SPSUMMON || hint == 0)
                 {
                     return SelectPreferredCard(cards, min, max,
                         CardId.SnakeEyeAsh,
@@ -1002,45 +1243,158 @@ namespace WindBot.Game.AI.Decks
                 }
             }
 
-            // Diabellstar the Black Witch send cost from hand/field
-            if (LastChainCard != null && LastChainCard.Id == CardId.DiabellstarTheBlackWitch && (hint == HINT_SELECT_TOGRAVE || hint == HINT_SELECT_DISCARD))
+            // 11. WANTED: Seeker of Sinful Spoils
+            if (LastChainCard != null && LastChainCard.Id == CardId.WantedSeekerOfSinfulSpoils)
             {
-                return SelectPreferredCard(cards, min, max,
-                    CardId.FabledLurrie,
-                    CardId.SnakeEyesPoplar,
-                    CardId.DeceptionOfTheSinfulSpoils,
-                    CardId.WantedSeekerOfSinfulSpoils,
-                    CardId.DivineTempleOfTheSnakeEye);
+                if (hint == HINTMSG_ATOHAND || hint == HINTMSG_RTOHAND)
+                {
+                    return SelectPreferredCard(cards, min, max, CardId.DiabellstarTheBlackWitch);
+                }
+                if (hint == HINTMSG_TODECK)
+                {
+                    return SelectPreferredCard(cards, min, max,
+                        CardId.OriginalSinfulSpoils,
+                        CardId.DeceptionOfTheSinfulSpoils);
+                }
             }
 
-            // Fiendsmith's Tract search & discard
+            // 12. Diabellstar the Black Witch
+            if (LastChainCard != null && LastChainCard.Id == CardId.DiabellstarTheBlackWitch)
+            {
+                if (hint == HINTMSG_TOGRAVE || hint == HINTMSG_DISCARD)
+                {
+                    return SelectPreferredCard(cards, min, max,
+                        CardId.FabledLurrie,
+                        CardId.SnakeEyesPoplar,
+                        CardId.DeceptionOfTheSinfulSpoils,
+                        CardId.WantedSeekerOfSinfulSpoils,
+                        CardId.DivineTempleOfTheSnakeEye);
+                }
+                if (hint == HINTMSG_SET || hint == 0)
+                {
+                    bool hasSnakeEyeStarted = Bot.GetMonsters().Any(c => c != null && (c.Id == CardId.SnakeEyeAsh || c.Id == CardId.SnakeEyesPoplar || c.Id == CardId.SnakeEyesFlambergeDragon))
+                                           || Bot.Graveyard.Any(c => c != null && (c.Id == CardId.SnakeEyeAsh || c.Id == CardId.SnakeEyesPoplar));
+                    if (!hasSnakeEyeStarted)
+                    {
+                        return SelectPreferredCard(cards, min, max, CardId.OriginalSinfulSpoils, CardId.DeceptionOfTheSinfulSpoils);
+                    }
+                    return SelectPreferredCard(cards, min, max, CardId.DeceptionOfTheSinfulSpoils, CardId.OriginalSinfulSpoils);
+                }
+            }
+
+            // 13. Deception of the Sinful Spoils
+            if (LastChainCard != null && LastChainCard.Id == CardId.DeceptionOfTheSinfulSpoils)
+            {
+                if (hint == HINTMSG_TOGRAVE || hint == 0)
+                {
+                    return SelectPreferredCard(cards, min, max,
+                        CardId.FabledLurrie,
+                        CardId.SnakeEyesPoplar,
+                        CardId.DivineTempleOfTheSnakeEye,
+                        CardId.SnakeEyeOak,
+                        CardId.AshBlossom,
+                        CardId.GhostBelle);
+                }
+                if (hint == HINTMSG_ATOHAND || hint == HINTMSG_RTOHAND)
+                {
+                    return SelectPreferredCard(cards, min, max,
+                        CardId.TheHallowedAzamina,
+                        CardId.AzaminaIliaSilvia,
+                        CardId.AzaminaMuRcielago);
+                }
+            }
+
+            // 14. The Hallowed Azamina
+            if (LastChainCard != null && LastChainCard.Id == CardId.TheHallowedAzamina)
+            {
+                if (hint == HINTMSG_SPSUMMON || hint == 0)
+                {
+                    return SelectPreferredCard(cards, min, max, CardId.AzaminaIliaSilvia, CardId.AzaminaMuRcielago);
+                }
+                if (hint == HINTMSG_TOGRAVE)
+                {
+                    return SelectPreferredCard(cards, min, max,
+                        CardId.DeceptionOfTheSinfulSpoils,
+                        CardId.WantedSeekerOfSinfulSpoils,
+                        CardId.OriginalSinfulSpoils);
+                }
+            }
+
+            // 15. Fiendsmith's Tract
             if (LastChainCard != null && LastChainCard.Id == CardId.FiendsmithsTract)
             {
-                if (hint == HINT_SELECT_TOHAND)
+                if (hint == HINTMSG_ATOHAND || hint == HINTMSG_RTOHAND)
                 {
                     return SelectPreferredCard(cards, min, max, CardId.FabledLurrie, CardId.LacrimaTheCrimsonTears, CardId.FiendsmithEngraver);
                 }
-                if (hint == HINT_SELECT_DISCARD || hint == HINT_SELECT_TOGRAVE)
+                if (hint == HINTMSG_DISCARD || hint == HINTMSG_TOGRAVE)
                 {
                     return SelectPreferredCard(cards, min, max, CardId.FabledLurrie, CardId.SnakeEyesPoplar, CardId.LacrimaTheCrimsonTears);
                 }
             }
 
-            // The Hallowed Azamina fusion & send cost
-            if (LastChainCard != null && LastChainCard.Id == CardId.TheHallowedAzamina)
+            // 16. Fiendsmith Engraver
+            if (LastChainCard != null && LastChainCard.Id == CardId.FiendsmithEngraver)
             {
-                if (hint == HINT_SELECT_TOGRAVE)
+                if (hint == HINTMSG_ATOHAND || hint == HINTMSG_RTOHAND)
                 {
-                    return SelectPreferredCard(cards, min, max,
-                        CardId.DeceptionOfTheSinfulSpoils,
-                        CardId.WantedSeekerOfSinfulSpoils);
+                    return SelectPreferredCard(cards, min, max, CardId.FiendsmithsTract, CardId.FiendsmithsSanct);
+                }
+                if (hint == HINTMSG_TODECK)
+                {
+                    return SelectPreferredCard(cards, min, max, CardId.FiendsmithsRequiem, CardId.MoonOfTheClosedHeaven, CardId.LacrimaTheCrimsonTears, CardId.FabledLurrie);
                 }
             }
 
-            // Snake-Eye Ash & Oak send 2 face-up cards cost
-            if (LastChainCard != null && (LastChainCard.Id == CardId.SnakeEyeAsh || LastChainCard.Id == CardId.SnakeEyeOak))
+            // 17. Fiendsmith's Requiem
+            if (LastChainCard != null && LastChainCard.Id == CardId.FiendsmithsRequiem)
             {
-                if (hint == HINT_SELECT_TOGRAVE)
+                if (hint == HINTMSG_SPSUMMON || hint == 0)
+                {
+                    return SelectPreferredCard(cards, min, max, CardId.LacrimaTheCrimsonTears, CardId.FiendsmithEngraver);
+                }
+            }
+
+            // 18. Lacrima the Crimson Tears
+            if (LastChainCard != null && LastChainCard.Id == CardId.LacrimaTheCrimsonTears)
+            {
+                if (hint == HINTMSG_TOGRAVE)
+                {
+                    return SelectPreferredCard(cards, min, max, CardId.FiendsmithEngraver, CardId.FiendsmithsTract);
+                }
+            }
+
+            // 19. Fiendsmith's Sequence
+            if (LastChainCard != null && LastChainCard.Id == CardId.FiendsmithsSequence)
+            {
+                if (hint == HINTMSG_SPSUMMON || hint == 0)
+                {
+                    return SelectPreferredCard(cards, min, max, CardId.FiendsmithsLacrima);
+                }
+                if (hint == HINTMSG_FMATERIAL || hint == HINTMSG_TODECK)
+                {
+                    return SelectPreferredCard(cards, min, max,
+                        CardId.LacrimaTheCrimsonTears,
+                        CardId.FiendsmithEngraver,
+                        CardId.FabledLurrie,
+                        CardId.FiendsmithsRequiem);
+                }
+            }
+
+            // 20. Fiendsmith's Lacrima (Fusion)
+            if (LastChainCard != null && LastChainCard.Id == CardId.FiendsmithsLacrima)
+            {
+                return SelectPreferredCard(cards, min, max,
+                    CardId.FiendsmithEngraver,
+                    CardId.LacrimaTheCrimsonTears,
+                    CardId.FabledLurrie,
+                    CardId.FiendsmithsRequiem);
+            }
+
+            // 21. Snake-Eye Oak
+            if (LastChainCard != null && LastChainCard.Id == CardId.SnakeEyeOak)
+            {
+                if (hint == HINTMSG_TOGRAVE)
                 {
                     return SelectPreferredCard(cards, min, max,
                         CardId.SnakeEyesPoplar,
@@ -1049,15 +1403,109 @@ namespace WindBot.Game.AI.Decks
                         CardId.SnakeEyeOak,
                         CardId.SnakeEyeAsh);
                 }
+                if (hint == HINTMSG_SPSUMMON || hint == 0)
+                {
+                    return SelectPreferredCard(cards, min, max, CardId.SnakeEyeAsh, CardId.SnakeEyesPoplar);
+                }
             }
 
-            // Snake-Eyes Flamberge Dragon revive 2 Level 1 FIRE
-            if (LastChainCard != null && LastChainCard.Id == CardId.SnakeEyesFlambergeDragon && (hint == HINT_SELECT_SPSUMMON || hint == 0))
+            // 22. Snake-Eyes Flamberge Dragon
+            if (LastChainCard != null && LastChainCard.Id == CardId.SnakeEyesFlambergeDragon)
             {
-                return SelectPreferredCard(cards, min, max, CardId.SnakeEyeAsh, CardId.SnakeEyesPoplar, CardId.SnakeEyeOak);
+                if (hint == HINTMSG_PLACE || hint == 0)
+                {
+                    var oppTarget = cards.Where(c => c != null && c.Controller == 1).OrderByDescending(c => c.Attack).ToList();
+                    if (oppTarget.Count >= min) return Util.CheckSelectCount(oppTarget, cards, min, max);
+                }
+                if (hint == HINTMSG_SPSUMMON)
+                {
+                    return SelectPreferredCard(cards, min, max, CardId.SnakeEyeAsh, CardId.SnakeEyesPoplar, CardId.SnakeEyeOak);
+                }
+            }
+
+            // 23. Promethean Princess GY Quick Effect
+            if (LastChainCard != null && LastChainCard.Id == CardId.PrometheanPrincess)
+            {
+                if (hint == HINTMSG_DESTROY)
+                {
+                    var opp = cards.FirstOrDefault(c => c != null && c.Controller == 1);
+                    if (opp != null) return new List<ClientCard> { opp };
+
+                    var ourFire = cards.FirstOrDefault(c => c != null && c.Controller == 0 && c.Attribute == (int)CardAttribute.Fire && !IsAceCard(c));
+                    if (ourFire != null) return new List<ClientCard> { ourFire };
+                }
+                if (hint == HINTMSG_SPSUMMON)
+                {
+                    return SelectPreferredCard(cards, min, max,
+                        CardId.SnakeEyesFlambergeDragon,
+                        CardId.SnakeEyeAsh,
+                        CardId.SnakeEyesPoplar);
+                }
+            }
+
+            // 24. S:P Little Knight
+            if (LastChainCard != null && LastChainCard.Id == CardId.SPLittleKnight)
+            {
+                if (hint == HINTMSG_REMOVE)
+                {
+                    var oppTarget = cards.Where(c => c != null && c.Controller == 1).OrderByDescending(c => c.Attack).ToList();
+                    if (oppTarget.Count >= min) return Util.CheckSelectCount(oppTarget, cards, min, max);
+                }
+            }
+
+            // 25. I:P Masquerena Link Summon on Opponent's Turn
+            if (LastChainCard != null && LastChainCard.Id == CardId.IPMasquerena)
+            {
+                if (hint == HINTMSG_SPSUMMON || hint == 0)
+                {
+                    return SelectPreferredCard(cards, min, max, CardId.SPLittleKnight);
+                }
             }
 
             return base.OnSelectCard(cards, min, max, hint, cancelable);
+        }
+
+        public override int OnSelectOption(IList<long> options)
+        {
+            if (options == null || options.Count == 0)
+                return base.OnSelectOption(options);
+
+            // Fiendsmith's Lacrima (46640168): option for Special Summon
+            for (int i = 0; i < options.Count; i++)
+            {
+                long cardId = options[i] >> 4;
+                long optIndex = options[i] & 0xf;
+                if (cardId == 0)
+                {
+                    cardId = options[i] >> 20;
+                    optIndex = options[i] & 0xfffff;
+                }
+                if (cardId == CardId.FiendsmithsLacrima)
+                {
+                    if (optIndex == 3) return i;
+                }
+            }
+
+            if (LastChainCard != null && LastChainCard.Id == CardId.FiendsmithsLacrima && options.Count >= 2)
+            {
+                return 1; // Special Summon Engraver
+            }
+
+            // Lightning Storm
+            if (LastChainCard != null && LastChainCard.Id == CardId.LightningStorm && options.Count >= 2)
+            {
+                if (Enemy.GetSpellCount() >= 2) return 1;
+                if (Enemy.GetMonsters().Any(c => c != null && c.IsAttack())) return 0;
+                return 1;
+            }
+
+            // Dimensional Barrier
+            if (LastChainCard != null && LastChainCard.Id == CardId.DimensionalBarrier && options.Count >= 4)
+            {
+                return 3; // Declare Xyz
+            }
+
+            return base.OnSelectOption(options);
         }
 
         public override CardPosition OnSelectPosition(int cardId, IList<CardPosition> positions)
