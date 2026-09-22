@@ -1996,5 +1996,25 @@
       5
     ],
     "dialog": "default"
+  },
+  {
+    "name": "ArtMage",
+    "deck": "ArtMage",
+    "dialog": "default",
+    "difficulty": 3,
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Artmage",
+    "deck": "ArtMage",
+    "dialog": "default",
+    "difficulty": 3,
+    "masterRules": [
+      4,
+      5
+    ]
   }
 ]

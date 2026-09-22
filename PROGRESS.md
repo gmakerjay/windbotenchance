@@ -1,5 +1,73 @@
 # Progress Log: Central Core Architecture & Universal Heuristics Overhaul, MagistusFairy ModernExecutor Refactor, PhantomKnight ModernExecutor
 
+## 0.036. ArtMage Rule-Based ModernExecutor Complete Refactor & Strategic Optimization (2026-09-22)
+
+### Overview
+- **Deck**: `ArtMage.ydk` (40 Main Deck, 15 Extra Deck)
+- **Executors Modified**: `ArtMageExecutor.cs`, `bots.json`
+- **Build & Deploy Pipeline**: `BUILD_AND_DEPLOY.ps1` (Release win-x64 self-contained)
+- **Exclusive Deploy Target**: `C:\Users\admin\Documents\EdoGame\`
+
+### Root Causes & Key Flaws Identified in Previous Code
+1. **Broken 1-Card Primary Combo (`Medius the Pure` + `aux.ToHandOrElse`)**:
+   - `Medius the Pure`'s on-summon trigger uses `aux.ToHandOrElse` prompting `Duel.SelectOption(573, str)` (0 = Add to Hand, 1 = Special Summon).
+   - Without overriding `OnSelectOption`, WindBot defaulted to 0 (Add to Hand), putting `Shadow Beast Nervedo` in the hand instead of the Monster Zone.
+   - Because Nervedo was not on the field, its ignition effect (banish 3 top deck cards face-down to Special Summon `Nerva the Power Patron of Creation`) could never activate, breaking the bot's turn 1 setup immediately.
+2. **Missing `OnSelectYesNo` Confirmations**:
+   - Multiple key continuous/trigger effects in OCGCore Lua call `SelectYesNo`:
+     - `Artmage Finmel` (draw 1 card upon Special Summon)
+     - `Artmage Graflare` (Set 1 Artmage Spell from Deck upon Special Summon)
+     - `Artmage Litera` (Add 1 Artmage card from GY upon Special Summon)
+     - `Artmage Vandalism` (Search Medius upon activation)
+     - `Artmage Impasto` (Bounce all opponent Spells/Traps upon monster effect negate)
+     - `Shadow Beast Nervedo` (Pendulum Zone monster effect negate)
+     - `Vandalism` (Protect Acropolis from destruction)
+   - With no `OnSelectYesNo` override, these prompts were unhandled or refused.
+3. **Card Effect Hallucination (`Artmage Power Patron` 23829452)**:
+   - The legacy executor assigned a non-existent discard-from-hand search effect to `Artmage Power Patron`.
+   - Real Card Effects:
+     - Field Quick Effect (Main Phase): Fusion Summon 1 Artmage Fusion or Nerva using this card + hand/field.
+     - GY Trigger: When sent from hand or field to GY (e.g. as Fusion material, discarded by Acropolis/Super Poly), search 1 Artmage Spell/Trap with a different name from cards in GY.
+4. **Suboptimal Board-Wipe Timing for `Nerva the Power Patron of Creation` (53589300)**:
+   - Nerva replaces an activated Artmage monster effect with `"Destroy all cards your opponent controls"`.
+   - Chaining Nerva overrides the original effect; previously, it lacked turn-phase intelligence, occasionally destroying opponent's empty field or overriding critical setup searches.
+5. **Missing Bot Registration**:
+   - `ArtMage` and `Artmage` were missing in `bots.json`.
+
+### Enhancements & Architecture Implemented
+1. **Core Callback Engine Overhaul**:
+   - **`OnSelectOption(IList<long> options)`**:
+     - `Medius the Pure`: Returns `1` (Special Summon) when monster zone has room, ensuring Nervedo is summoned directly to field.
+     - `Artmage Varnish`: Returns `0` (Add Artmage card to hand) when Acropolis is already face-up on field.
+     - `Triple Tactics Talent`: Returns `1` (Take control) if enemy controls monsters, else `0` (Draw 2).
+   - **`OnSelectYesNo(long desc)`**:
+     - Automatically approves Finmel draw, Graflare SSet, Litera GY retrieve, Vandalism Medius search, Impasto backrow bounce, Nervedo P-zone negate, and Acropolis destruction protection.
+   - **`OnSelectCard(cards, min, max, hint, cancelable)`**:
+     - Hint 509 (SPSUMMON): Prioritizes Nerva from Extra, and Finmel/Graflare/Power Patron from Deck.
+     - Hint 506 (ATOHAND): Prioritizes Medius, Acropolis, Impasto Recapture, Masterwork, Varnish, Finmel.
+     - Hint 510 (SET): Prioritizes `ImpastoRecapture` (activatable turn set!) > `Masterwork` > `Pact`.
+     - Hint 511 (FMATERIAL) & 533 (LMATERIAL): Strict Ace protection (prevents fusing or linking away Nerva/Diactorus).
+     - Hint 501 (DISCARD): Discards redundant/duplicate Spells, strictly protecting `ImpastoRecapture` and `SuperPoly`.
+     - Hint 507 (TODECK): Selects distinct GY cards for Masterwork and low-value cards for Medius revival.
+2. **Real `Artmage Power Patron` Logic**:
+   - Implemented on-field Quick Fusion into Diactorus/Nerva.
+   - Implemented GY search for `ImpastoRecapture`, `Masterwork`, `Pact`, `Varnish`, `Vandalism`, `Acropolis`.
+3. **Tactical Multi-Type (Race) Synergy**:
+   - Dynamic counting of distinct on-field Races (Fairy, Warrior, Dragon, Spellcaster, Illusion).
+   - Activates Finmel's Quick Effect blanket monster negate + ATK halving and Diactorus's omni-negate when 3+ Types are present.
+4. **Smart Board-Wipe with Nerva**:
+   - On opponent's turn: Chains to any Artmage monster quick effect (e.g. Litera bounce, Finmel negate, Diactorus position change) to trigger a surprise Quick Raigeki + Harpie's Feather Duster!
+   - On our turn: Chains when opponent controls cards to clear board for lethal attacks.
+5. **Bot Registration & Deck Synchronization**:
+   - Added `ArtMage` and `Artmage` to `windbot-fork/bots.json`.
+   - Synchronized `ArtMage.ydk` to `deck/ArtMage.ydk`.
+
+### Build & Verification
+- **Compilation**: `BUILD_AND_DEPLOY.ps1` succeeded with 0 errors and 0 warnings in `ArtMageExecutor.cs`.
+- **Deployment**: Deployed all updated binaries (`WindBot.dll`, `ExecutorBase.dll`, `core.dll`, `bots.json`, `DashBot.exe`, etc.) exclusively to `C:\Users\admin\Documents\EdoGame\`.
+
+---
+
 ## 0.035. Scalable 3-Tier Card Intelligence Architecture & Lua Engine DelayedOperation Fix (2026-09-22)
 
 ### Overview
