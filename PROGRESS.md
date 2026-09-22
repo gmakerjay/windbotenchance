@@ -1,5 +1,36 @@
 # Progress Log: Central Core Architecture & Universal Heuristics Overhaul
 
+## 0.040. ADML Intelligent Combo Bridge & Dynamic Placement Cognitive Upgrade (2026-09-22)
+
+### Overview
+- **Deck**: `ADML.ydk` (Azamina Dark Magician Light and Darkness Ritual)
+- **Philosophy**: แทนที่จะใช้วิธีฮาร์ดโค้ดสั่งห้ามหรือปิดกั้นการอัญเชิญ Link Monster (`Cross-Sheep`), ระบบได้รับการยกระดับความฉลาด (Situational Awareness, Synergy Valuation, Precise Zone Placement, และ Advanced Link Climbing) เพื่อให้ AI เข้าใจจังหวะและมูลค่าของ `Cross-Sheep` อย่างแท้จริง
+- **Build & Deploy Pipeline**: คอมไพล์ผ่าน `BUILD_AND_DEPLOY.ps1` (0 Errors). Deploy มาที่ `C:\Users\admin\Documents\EdoGame\` โดยตรง
+
+### Key Intelligence Enhancements
+1. **Strategic Combo Sequencing (จัดลำดับตาม Value Curve)**:
+   - สลับลำดับใน `RegisterExecutors`: ให้ Starters ค้นหาทรัพยากร (`Illusion of Chaos`, `WANTED`, `Diabellstar`, `Deception`, `Magicians' Souls`, `Magician's Rod`) ทำงานก่อนเพื่อนำ fodder ที่หมดบทบาทลงมาบนสนามและเซ็ตอัปสุสาน
+   - วาง `Cross-Sheep` เป็น **Combo Bridge Enabler** ก่อนหน้าการสั่งใช้เวทฟิวชัน (`The Hallowed Azamina`, `The Gaze of Timaeus`) และเวทพิธีกรรม (`Light and Darkness Ritual`)
+   - ผลลัพธ์: มอนสเตอร์บอส Fusion หรือ Ritual ที่ถูกอัญเชิญตามหลัง จะลงมาทับตำแหน่งลูกศรของ `Cross-Sheep` พอดี ทำให้ทริกเกอร์เอฟเฟกต์ชุบชีวิตหรือจั่วการ์ดทำงาน 100% (แก้ปัญหาบอทเรียก Cross-Sheep มายืนเฉยๆ หลังฟิวชันเสร็จสิ้น)
+2. **Proactive Activation Verification (`CanTriggerCrossSheepThisTurn`)**:
+   - ประเมินก่อนอัญเชิญเสมอว่าในเทิร์นนี้มีเวท Fusion/Ritual ในมือพร้อมเล่นจริงหรือไม่
+   - ตรวจสอบเป้าหมายชุบชีวิตเลเวล 4 หรือต่ำกว่า (`Magicians' Souls`, `Magician's Rod`, `Griffoh`) ทั้งในสุสานหรือตัวที่จะถูกส่งลงสุสานเป็นวัตถุดิบของ `Cross-Sheep`
+3. **Strict Material Value Guard (`CrossSheepSpSummon`)**:
+   - บังคับใช้เฉพาะมอนสเตอร์ตัวเล็กที่หมดบทบาทแล้ว (ATK < 2000 เช่น Souls 0 ATK, Rod 1600 ATK, Griffoh 300 ATK)
+   - ปกป้องบอสตัวหลัก (`Red-Eyes Dark Dragoon`, `Azamina Ilia Silvia`, `Magician of Dark Chaos`, `Black Luster Soldier`, `Black Chaos`) อย่างเด็ดขาด ห้ามนำไปเป็นวัตถุดิบคอร์สชีพ
+   - ตรวจสอบเงื่อนไขชื่อต่างกัน 2 ตัว (`Distinct().Count() >= 2`) เพื่อป้องกันปัญหาเลือกตัวซ้ำแล้วเกมปฏิเสธ
+4. **Engine-Native Zone Guidance (`OnSelectPlace`)**:
+   - ใช้งาน `crossSheep.GetLinkedZones() & 0x1F` จากระดับ Central Core เพื่อคำนวณตำแหน่งช่องว่างบนสนามที่ลูกศรของ `Cross-Sheep` ชี้ลงมาอย่างแม่นยำ (ช่อง 0, 2 หรือ 4)
+   - นำทางมอนสเตอร์ Fusion / Ritual ลงมาในตำแหน่งลูกศรโดยตรง ทำให้ทริกเกอร์ทำงานโดยอัตโนมัติ
+5. **Seamless Link Climb & Field Recycling**:
+   - `Cross-Sheep` ทริกเกอร์ชุบ `Magicians' Souls` ขึ้นมา
+   - `Magicians' Souls` ส่งการ์ดเวทที่ใช้งานเสร็จแล้ว (`Deception`, `Wanted`) ลงสุสานเพื่อจั่วการ์ดเพิ่มสูงสุด 2 ใบ
+   - เชื่อมต่อไปยัง `Selene, Queen of the Master Magicians` (Link-3) โดยใช้ `Cross-Sheep` (Link-2) + `Souls` (Spellcaster)
+   - `Selene` ถอด 3 เคาน์เตอร์เวทมนตร์เพื่อชุบ `Dark Magician` หรือ `Diabellstar the Black Witch` กลับคืนสู่สนาม
+   - `Dark Magician` บนสนามพร้อมให้ `The Gaze of Timaeus` สั่งฟิวชันต่อยอดเป็น `Red-Eyes Dark Dragoon` ทันที
+
+---
+
 ## 0.039. ADML Rule-Based ModernExecutor Implementation & Architecture Integration (2026-09-22)
 
 ### Overview

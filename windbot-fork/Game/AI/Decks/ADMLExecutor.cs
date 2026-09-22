@@ -181,8 +181,11 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.Activate, CardId.SPLittleKnight, SPLittleKnightDisruptActivate);
 
             // ═══════════════════════════════════════════════════════════════
-            //  TIER 2: SEARCHERS, STARTERS & RITUAL / ENGINE SPELLS
+            //  TIER 2: SEARCHERS, STARTERS & COMBO ENGINES
             // ═══════════════════════════════════════════════════════════════
+            // Illusion of Chaos: Reveal to search Souls or Rod, return redundant card
+            AddExecutor(ExecutorType.Activate, CardId.IllusionOfChaos, IllusionOfChaosHandActivate);
+
             // WANTED: Seeker of Sinful Spoils (Search Diabellstar / Draw 1 from GY)
             AddExecutor(ExecutorType.Activate, CardId.WantedSeekerOfSinfulSpoils, WantedActivate);
 
@@ -193,11 +196,12 @@ namespace WindBot.Game.AI.Decks
             // Deception of the Sinful Spoils: Place on field & tribute monster to search The Hallowed Azamina
             AddExecutor(ExecutorType.Activate, CardId.DeceptionOfTheSinfulSpoils, DeceptionActivate);
 
-            // The Hallowed Azamina: Send Deception to Fusion Summon Azamina Silvia / Mu
-            AddExecutor(ExecutorType.Activate, CardId.TheHallowedAzamina, TheHallowedAzaminaActivate);
+            // Magicians' Souls: Hand dump Lv6+ Spellcaster to SS self / DM; Field dump spells to draw
+            AddExecutor(ExecutorType.Activate, CardId.MagiciansSouls, MagiciansSoulsActivate);
 
-            // Azamina Mu Rcielago: Search Azamina or Sinful Spoils on Fusion Summon
-            AddExecutor(ExecutorType.Activate, CardId.AzaminaMuRcielago, AzaminaMuActivate);
+            // Magician's Rod: Normal Summon search The Gaze of Timaeus or Curtain
+            AddExecutor(ExecutorType.Summon, CardId.MagiciansRod, MagiciansRodSummon);
+            AddExecutor(ExecutorType.Activate, CardId.MagiciansRod, MagiciansRodActivate);
 
             // Ragged Records of Rites: Reveal Ritual Spell to search Black Chaos / Griffoh / Skull Archfiend
             AddExecutor(ExecutorType.Activate, CardId.RaggedRecordsOfRites, RaggedRecordsActivate);
@@ -208,14 +212,20 @@ namespace WindBot.Game.AI.Decks
             // Griffoh: Hand discard to set Mind Shuffle (can activate this turn)
             AddExecutor(ExecutorType.Activate, CardId.Griffoh, GriffohActivate);
 
-            // Illusion of Chaos: Hand reveal to search Magicians' Souls or Rod, return redundant card
-            AddExecutor(ExecutorType.Activate, CardId.IllusionOfChaos, IllusionOfChaosHandActivate);
-
-            // Magicians' Souls: Hand dump Lv6+ Spellcaster to SS self / revive DM; Field dump spells to draw
-            AddExecutor(ExecutorType.Activate, CardId.MagiciansSouls, MagiciansSoulsActivate);
-
             // Skull Archfiend of Chaos: GY send trigger (dump Ritual Spell & search Ritual Monster)
             AddExecutor(ExecutorType.Activate, CardId.SkullArchfiendOfChaos, SkullArchfiendActivate);
+
+            // ── Cross-Sheep Combo Bridge Enabler ──
+            // Intelligently summon Cross-Sheep BEFORE Fusion/Ritual when we have spent fodder on field
+            // AND an upcoming Fusion or Ritual play, so the incoming boss lands in Cross-Sheep's pointed zone!
+            AddExecutor(ExecutorType.SpSummon, CardId.CrossSheep, CrossSheepSpSummon);
+            AddExecutor(ExecutorType.Activate, CardId.CrossSheep, CrossSheepActivate);
+
+            // The Hallowed Azamina: Send Deception to Fusion Summon Azamina Silvia / Mu
+            AddExecutor(ExecutorType.Activate, CardId.TheHallowedAzamina, TheHallowedAzaminaActivate);
+
+            // Azamina Mu Rcielago: Search Azamina or Sinful Spoils on Fusion Summon
+            AddExecutor(ExecutorType.Activate, CardId.AzaminaMuRcielago, AzaminaMuActivate);
 
             // Dark Magical Curtain: Special Summon Dark Magician from deck & search The Gaze of Timaeus
             AddExecutor(ExecutorType.Activate, CardId.DarkMagicalCurtain, DarkMagicalCurtainActivate);
@@ -230,10 +240,6 @@ namespace WindBot.Game.AI.Decks
             // Light and Darkness Ritual: Ritual Summon Magician of Dark Chaos / BLS
             AddExecutor(ExecutorType.Activate, CardId.LightAndDarknessRitual, LightAndDarknessRitualActivate);
 
-            // Magician's Rod: Normal Summon search The Gaze of Timaeus or Curtain
-            AddExecutor(ExecutorType.Summon, CardId.MagiciansRod, MagiciansRodSummon);
-            AddExecutor(ExecutorType.Activate, CardId.MagiciansRod, MagiciansRodActivate);
-
             // Special Summons for Main Bosses
             AddExecutor(ExecutorType.SpSummon, CardId.BlackChaos, BlackChaosSpSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.SkullArchfiendOfChaos, SkullArchfiendSpSummon);
@@ -247,10 +253,6 @@ namespace WindBot.Game.AI.Decks
             // Relinquished Anima: Link-1 using Level 1 (Souls/Griffoh) to absorb monster
             AddExecutor(ExecutorType.SpSummon, CardId.RelinquishedAnima, RelinquishedAnimaSpSummon);
             AddExecutor(ExecutorType.Activate, CardId.RelinquishedAnima, RelinquishedAnimaActivate);
-
-            // Cross-Sheep: Link-2 (Revive Lv4- on Fusion Summon, Draw 2/Discard 2 on Ritual)
-            AddExecutor(ExecutorType.SpSummon, CardId.CrossSheep, CrossSheepSpSummon);
-            AddExecutor(ExecutorType.Activate, CardId.CrossSheep, CrossSheepActivate);
 
             // Cyberse Contract Witch: Send spell to search Ritual Monster
             AddExecutor(ExecutorType.SpSummon, CardId.CyberseContractWitch, CyberseContractWitchSpSummon);
@@ -701,14 +703,28 @@ namespace WindBot.Game.AI.Decks
                     : (!Bot.Graveyard.Any(c => c.Id == CardId.SkullArchfiendOfChaos) ? CardId.SkullArchfiendOfChaos : CardId.DiabellstarTheBlackWitch);
 
                 AI.SelectCard(dumpTarget);
-                // Choose option 1: Special Summon Souls
+
+                // If we have Timaeus in hand and no DM on field, summon DM directly to field for Dragoon!
+                if (Bot.HasInHand(CardId.TheGazeOfTimaeus) && !Bot.GetMonsters().Any(m => m.IsFaceup() && m.Id == CardId.DarkMagician) && dumpTarget == CardId.DarkMagician)
+                {
+                    AI.SelectOption(1);
+                    AI.SelectNextCard(CardId.DarkMagician);
+                    return true;
+                }
+
+                AI.SelectOption(0);
                 return true;
             }
             else if (Card.Location == CardLocation.MonsterZone)
             {
                 // Send up to 2 Spells/Traps to draw
+                bool canSendDeception = Bot.HasInHand(CardId.TheHallowedAzamina) ||
+                                       Bot.HasInMonstersZone(CardId.AzaminaIliaSilvia) ||
+                                       Bot.HasInMonstersZone(CardId.AzaminaMuRcielago);
+
                 var deadSpells = Bot.SpellZone.Where(s => s != null && s.IsFaceup() &&
-                                                         (s.Id == CardId.DeceptionOfTheSinfulSpoils && s.IsDisabled())).Take(2).ToList();
+                                                         ((s.Id == CardId.DeceptionOfTheSinfulSpoils && canSendDeception) ||
+                                                           s.Id == CardId.WantedSeekerOfSinfulSpoils)).Take(2).ToList();
                 if (deadSpells.Count > 0)
                 {
                     AI.SelectCard(deadSpells);
@@ -736,9 +752,8 @@ namespace WindBot.Game.AI.Decks
 
         private bool TheGazeOfTimaeusActivate()
         {
-            // Target Dark Magician on field or in GY -> Fusion Summon Dragoon!
-            ClientCard dmTarget = Bot.GetMonsters().FirstOrDefault(m => m.Id == CardId.DarkMagician)
-                               ?? Bot.Graveyard.FirstOrDefault(c => c.Id == CardId.DarkMagician);
+            // Target Dark Magician on field -> Fusion Summon Dragoon!
+            ClientCard dmTarget = Bot.GetMonsters().FirstOrDefault(m => m.IsFaceup() && m.Id == CardId.DarkMagician);
 
             if (dmTarget != null)
             {
@@ -876,19 +891,89 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
+        private bool CanTriggerCrossSheepThisTurn()
+        {
+            // Cross-Sheep triggers when a Fusion or Ritual monster is Special Summoned to a zone it points to.
+            // Check if a Fusion or Ritual play is actively ready this turn:
+            bool hasFusionReady = (Bot.HasInHand(CardId.TheHallowedAzamina) && (Bot.SpellZone.Any(s => s != null && s.IsFaceup() && s.Id == CardId.DeceptionOfTheSinfulSpoils) || Bot.HasInHand(CardId.DeceptionOfTheSinfulSpoils) || Bot.HasInHand(CardId.WantedSeekerOfSinfulSpoils)))
+                               || (Bot.HasInHand(CardId.TheGazeOfTimaeus) && (Bot.GetMonsters().Any(m => m.IsFaceup() && m.Id == CardId.DarkMagician) || Bot.HasInHand(CardId.DarkMagicalCurtain)));
+
+            bool hasRitualReady = Bot.HasInHand(CardId.LightAndDarknessRitual) && (Bot.HasInHand(CardId.MagicianOfDarkChaosBlackChaos) || Bot.HasInHand(CardId.BlackLusterSoldierLightDarkness));
+
+            var validMats = Bot.GetMonsters().Where(m =>
+                m.Id != CardId.RedEyesDarkDragoon &&
+                m.Id != CardId.AzaminaIliaSilvia &&
+                m.Id != CardId.MagicianOfDarkChaosBlackChaos &&
+                m.Id != CardId.BlackLusterSoldierLightDarkness &&
+                m.Id != CardId.BlackChaos &&
+                !m.HasType(CardType.Link)
+            ).ToList();
+
+            // Revive target exists in GY or is currently on field and will be sent to GY as Cross-Sheep material:
+            bool hasReviveTarget = Bot.Graveyard.Any(c => c.Id == CardId.MagiciansSouls || c.Id == CardId.MagiciansRod || c.Id == CardId.Griffoh)
+                                || validMats.Any(m => m.Level <= 4 && (m.Id == CardId.MagiciansSouls || m.Id == CardId.MagiciansRod || m.Id == CardId.Griffoh));
+
+            if (hasFusionReady && hasReviveTarget) return true;
+            if (hasRitualReady) return true;
+
+            return false;
+        }
+
         private bool CrossSheepSpSummon()
         {
-            // 2 monsters with different names; do not sacrifice Dragoon, Silvia, or MagChaos!
-            var mats = Bot.GetMonsters().Where(m => m.Id != CardId.RedEyesDarkDragoon &&
-                                                   m.Id != CardId.AzaminaIliaSilvia &&
-                                                   m.Id != CardId.MagicianOfDarkChaosBlackChaos).ToList();
-            return mats.Count >= 2;
+            // Do not summon Cross-Sheep if it cannot be actively triggered this turn
+            if (!CanTriggerCrossSheepThisTurn())
+                return false;
+
+            // Only use spent fodder / non-boss monsters as materials
+            // NEVER sacrifice Ace Bosses or active Omni-Negates!
+            var validMats = Bot.GetMonsters().Where(m =>
+                m.Id != CardId.RedEyesDarkDragoon &&
+                m.Id != CardId.AzaminaIliaSilvia &&
+                m.Id != CardId.MagicianOfDarkChaosBlackChaos &&
+                m.Id != CardId.BlackLusterSoldierLightDarkness &&
+                m.Id != CardId.BlackChaos &&
+                !m.HasType(CardType.Link)
+            ).ToList();
+
+            if (validMats.Count < 2)
+                return false;
+
+            // Must have different names (Cross-Sheep requirement: 2 monsters with different names)
+            if (validMats.Select(m => m.Id).Distinct().Count() < 2)
+                return false;
+
+            // Material Value Evaluation:
+            // Prefer low-ATK spent fodder (Souls 0 ATK, Rod 1600 ATK, Griffoh 300 ATK)
+            var lowAtkMats = validMats.Where(m => m.Attack < 2000).ToList();
+            if (lowAtkMats.Count >= 2 && lowAtkMats.Select(m => m.Id).Distinct().Count() >= 2)
+            {
+                var chosen = lowAtkMats.GroupBy(m => m.Id).Select(g => g.First()).OrderBy(m => m.Attack).Take(2).ToList();
+                AI.SelectCard(chosen);
+                return true;
+            }
+
+            // If we only have 1 low-ATK monster and 1 beater (e.g. Souls + Diabellstar):
+            // Only summon if we have Selene in Extra Deck to immediately revive the beater back!
+            if (Bot.ExtraDeck.Any(c => c.Id == CardId.SeleneQueenOfTheMasterMagicians) && lowAtkMats.Count >= 1)
+            {
+                var chosen = validMats.GroupBy(m => m.Id).Select(g => g.First()).OrderBy(m => m.Attack).Take(2).ToList();
+                if (chosen.Count >= 2)
+                {
+                    AI.SelectCard(chosen);
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private bool CrossSheepActivate()
         {
-            // Revive Level 4 or lower from GY (Souls, Rod, Griffoh)
-            ClientCard revive = Bot.Graveyard.FirstOrDefault(c => c.Id == CardId.MagiciansSouls || c.Id == CardId.MagiciansRod || c.Id == CardId.Griffoh);
+            // Case 1: Fusion Summon trigger -> Revive Level 4 or lower from GY (Souls, Rod, Griffoh)
+            ClientCard revive = Bot.Graveyard.FirstOrDefault(c => c.Id == CardId.MagiciansSouls)
+                             ?? Bot.Graveyard.FirstOrDefault(c => c.Id == CardId.MagiciansRod)
+                             ?? Bot.Graveyard.FirstOrDefault(c => c.Id == CardId.Griffoh);
             if (revive != null)
             {
                 AI.SelectCard(revive);
@@ -922,10 +1007,35 @@ namespace WindBot.Game.AI.Decks
 
         private bool SeleneSpSummon()
         {
-            var mats = Bot.GetMonsters().Where(m => m.Id != CardId.RedEyesDarkDragoon &&
-                                                   m.Id != CardId.AzaminaIliaSilvia &&
-                                                   m.Id != CardId.MagicianOfDarkChaosBlackChaos).ToList();
-            return mats.Count >= 3 && mats.Any(m => m.Race == (int)CardRace.SpellCaster);
+            // Selene (Link-3) requires 2+ monsters including a Spellcaster, Link rating = 3
+            // Cross-Sheep (Link-2) + Magicians' Souls (Level 1 Spellcaster) = Link-3!
+            var validMats = Bot.GetMonsters().Where(m =>
+                m.Id != CardId.RedEyesDarkDragoon &&
+                m.Id != CardId.AzaminaIliaSilvia &&
+                m.Id != CardId.MagicianOfDarkChaosBlackChaos &&
+                m.Id != CardId.BlackLusterSoldierLightDarkness
+            ).ToList();
+
+            if (validMats.Count < 2) return false;
+
+            int totalRating = validMats.Sum(m => m.HasType(CardType.Link) ? m.LinkMarker : 1);
+            if (totalRating < 3) return false;
+
+            bool hasSpellcaster = validMats.Any(m => m.Race == (int)CardRace.SpellCaster);
+            if (!hasSpellcaster) return false;
+
+            // Make sure we have a valuable Spellcaster in GY to revive!
+            bool hasGyRevive = Bot.Graveyard.Any(c => c.Race == (int)CardRace.SpellCaster &&
+                                                     (c.Id == CardId.DarkMagician ||
+                                                      c.Id == CardId.DiabellstarTheBlackWitch ||
+                                                      c.Id == CardId.BlackChaos ||
+                                                      c.Id == CardId.MagicianOfDarkChaosBlackChaos));
+
+            if (!hasGyRevive) return false;
+
+            var chosen = validMats.OrderBy(m => m.Attack).Take(2).ToList();
+            AI.SelectCard(chosen);
+            return true;
         }
 
         private bool SeleneActivate()
@@ -1101,6 +1211,23 @@ namespace WindBot.Game.AI.Decks
 
                 if (!isLink)
                 {
+                    // If Cross-Sheep is on field, prioritize the zones Cross-Sheep points to
+                    ClientCard crossSheep = Bot.GetMonsters().FirstOrDefault(m => m.IsFaceup() && m.Id == CardId.CrossSheep);
+                    if (crossSheep != null)
+                    {
+                        int pointedZones = crossSheep.GetLinkedZones() & 0x1F;
+                        int match = mmz & pointedZones;
+                        if (match != 0)
+                        {
+                            int[] preference = { 0x4, 0x1, 0x10, 0x2, 0x8 };
+                            foreach (int z in preference)
+                            {
+                                if ((match & z) != 0)
+                                    return z;
+                            }
+                        }
+                    }
+
                     return base.OnSelectPlace(cardId, player, location, mmz);
                 }
             }
