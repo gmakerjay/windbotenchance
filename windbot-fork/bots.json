@@ -2019,5 +2019,93 @@
       4,
       5
     ]
+  },
+  {
+    "name": "Mikanko",
+    "deck": "Mikanko",
+    "dialog": "default",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "AztecRock",
+    "deck": "AztecRock",
+    "dialog": "default",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "BigShieldCounter",
+    "deck": "BigShieldCounter",
+    "dialog": "default",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Big Shield Gardna",
+    "deck": "BigShieldCounter",
+    "dialog": "default",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Dinomorphia",
+    "deck": "2026_Dinomorphia",
+    "dialog": "default",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Dinomorphia Stun",
+    "deck": "2026_Dinomorphia",
+    "dialog": "default",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Kashtira",
+    "deck": "2026_Kashtira",
+    "dialog": "default",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Kashtira Stun",
+    "deck": "2026_Kashtira",
+    "dialog": "default",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   }
 ]

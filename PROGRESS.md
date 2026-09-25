@@ -1,5 +1,34 @@
 # Progress Log: Central Core Architecture & Universal Heuristics Overhaul
 
+## 0.041. Dinomorphia Undying Trap Stun & Kashtira Macro Stun Integration (2026-09-25)
+
+### Overview
+- **Decks Created**:
+  - `windbot-fork/Decks/2026_Dinomorphia.ydk` (Undying Low-LP Trap Stun)
+  - `windbot-fork/Decks/2026_Kashtira.ydk` (Walking Macro Cosmos & Zone Lock Stun)
+- **New AI Executor**:
+  - `windbot-fork/Game/AI/Decks/_2026_DinomorphiaExecutor.cs` (Rule-Based ModernExecutor)
+- **Bots Registration**:
+  - Added `2026_Dinomorphia`, `Dinomorphia Stun`, `2026_Kashtira`, `Kashtira Stun` to `bots.json`
+- **Build & Deploy Pipeline**: Compiled via `BUILD_AND_DEPLOY.ps1` (0 Errors). Deployed exclusively to `C:\Users\admin\Documents\EdoGame\`.
+
+### Key Intelligence & Strategic Implementation
+1. **Dinomorphia Fusion Engine**:
+   - `Dinomorphia Frenzy`: Activates strictly in opponent's Main Phase, sending `Kentregina`/`Stealthbergia` from Extra Deck + `Therizia`/`Diplos` from Main Deck to summon `Dinomorphia Rexterm` (3000 ATK).
+   - `Dinomorphia Domain`: Activates in Main Phase to fuse Kentregina or Rexterm from hand/field/deck.
+2. **Rexterm Lockout & ATK Suppression**:
+   - Continuous floodgate prevents opponent monsters with ATK >= LP from activating effects.
+   - Quick effect pays half LP to reduce all opponent monsters' ATK to current LP, achieving complete monster lockout.
+3. **Graveyard Damage Nullification**:
+   - Banishes Counter Traps from GY during damage calculation to make battle damage 0.
+   - Banishes Normal Traps from GY in response to card effects to negate effect damage.
+4. **Undying Floating Loops**:
+   - Rexterm, Kentregina, Stealthbergia, Therizia, and Diplos float into Level 4 Dinomorphia upon destruction.
+5. **Miscellaneousaurus Integration**:
+   - Quick effect from hand grants all Dinosaurs complete immunity to opponent activated effects throughout the Main Phase.
+
+---
+
 ## 0.040. ADML Intelligent Combo Bridge & Dynamic Placement Cognitive Upgrade (2026-09-22)
 
 ### Overview

@@ -93,8 +93,8 @@ namespace WindBot
             {
                 var enemyPool = pool.Where(c => c != null && c.Controller == 1).ToList();
 
-                // 1. Intercept Self-Negate / Self-Disable
-                if ((hint == HINTMSG_NEGATE || hint == HINTMSG_FACEUP || hint == HINTMSG_DISABLE) && enemyPool.Count >= min)
+                // 1. Intercept Self-Negate / Self-Disable (Do NOT include HINTMSG_FACEUP which is used for buffs/equips)
+                if ((hint == HINTMSG_NEGATE || hint == HINTMSG_DISABLE) && enemyPool.Count >= min)
                 {
                     // Exemption: Archetype self-negation (e.g. Buio the Dawn's Light 19000848)
                     bool isSelfNegateExempt = selected.Any(c => c != null && c.Controller == 0 && c.HasRace(CardRace.Fiend) && c.HasType(CardType.Effect));

@@ -1,21 +1,51 @@
-using YGOSharp.OCGWrapper.Enums;
+// ============================================================================
+// CARD AUDIT — GOAT_SkillDrian (Skill Drain Beatdown)
+// ============================================================================
+// | Card Name                   | Type         | OPT? | HOPT? | Cost    | Effect Summary                                | Activate When                                | NEVER Activate When                         |
+// |-----------------------------|--------------|------|-------|---------|-----------------------------------------------|----------------------------------------------|---------------------------------------------|
+// | Skill Drain                 | Trap Cont    | No   | No    | 1000 LP | Negates effects of all face-up monsters on fld| Activate ASAP to super-buff beatsticks & stun | Already active on field or LP <= 1000       |
+// | Fusilier Dragon             | Monster L7   | No   | No    | None    | NS without tribute; stats reset to 2800/2000! | Normal Summon without tribute                 | We need tributes for some reason            |
+// | Goblin Attack Force         | Monster L4   | No   | No    | None    | 2300 ATK; under Skill Drain never switches DEF| Normal summon beatstick                       | Opponent has lethal attacker                |
+// | Giant Orc                   | Monster L4   | No   | No    | None    | 2200 ATK; under Skill Drain never switches DEF| Normal summon beatstick                       | Opponent has lethal attacker                |
+// | Jirai Gumo                  | Monster L4   | No   | No    | None    | 2200 ATK; under Skill Drain attacks free!     | Normal summon beater                          | LP <= 1000 and Skill Drain not active       |
+// | Zombyra the Dark            | Monster L4   | No   | No    | None    | 2100 ATK; under Skill Drain direct attack OK! | Normal summon beater                          | Never                                       |
+// | Berserk Gorilla             | Monster L4   | No   | No    | None    | 2000 ATK; under Skill Drain no self-destruct  | Normal summon beater                          | Opponent has stronger monster               |
+// | Breaker the Magical Warrior | Monster L4   | Yes  | No    | 1 Cntr  | Pop 1 S/T (activate before flipping Drain)    | Pop threatening backrow before Skill Drain    | Skill Drain already active on field         |
+// | Exiled Force                | Monster L4   | No   | No    | Tribute | Tribute self to pop mon (BYPASSES SKILL DRAIN)| Pop opponent threat (works under Skill Drain!)| Opponent has 0 monsters                     |
+// | Reinforcement of the Army   | Spell Normal | No   | No    | None    | Add Level 4 or lower Warrior from deck to hand| Search Exiled Force (removal) or Goblin/Zomby | No targets left in deck                     |
+// | Nobleman of Crossout        | Spell Normal | No   | No    | None    | Banish 1 face-down monster; strip copies      | Banish opponent face-down defense monster     | Opponent has 0 face-down monsters           |
+// | Smashing Ground             | Spell Normal | No   | No    | None    | Destroy 1 face-up monster with highest DEF    | Destroy big enemy monster                     | Opponent has 0 face-up monsters             |
+// | Snatch Steal                | Spell Equip  | No   | No    | None    | Take control of 1 opponent face-up monster    | Steal biggest enemy monster for attack/tribute | Opponent has 0 face-up monsters             |
+// | Premature Burial            | Spell Equip  | No   | No    | 800 LP  | Pay 800 LP: SS monster from GY (Fusilier 2800)| Revive Fusilier or Goblin for lethal push     | Bot LP <= 800 or GY has no targets          |
+// | Call of the Haunted         | Trap Cont    | No   | No    | None    | Special Summon 1 monster from GY in ATK       | Revive Fusilier (2800) during Battle/End Phase| No monsters in GY                           |
+// | Final Attack Orders         | Trap Cont    | No   | No    | None    | All monsters to face-up ATK; cannot change pos| Lock opponent in ATK for beatdown             | Skill Drain not active                      |
+// | Solemn Judgment             | Trap Counter | No   | No    | Half LP | Pay half LP: Negate Summon or Spell/Trap card | Protect Skill Drain from Heavy/MST or stop boss| Trivial opponent cards                      |
+// | Pot of Greed                | Spell Normal | No   | No    | None    | Draw 2 cards                                  | Always activate                               | Never                                       |
+// | Graceful Charity            | Spell Normal | No   | No    | Discard2| Draw 3 cards, then discard 2 cards            | Always activate; pitch beatsticks for Reborn  | Hand is empty                               |
+// | Delinquent Duo              | Spell Normal | No   | No    | 1000 LP | Pay 1000 LP: Opp discards 2 cards from hand   | Early hand rip (Opp hand >= 2)                | Bot LP <= 1000                              |
+// | Mystical Space Typhoon      | Spell Quick  | No   | No    | None    | Destroy 1 Spell/Trap on field                 | Remove opponent backrow / floodgates          | No targets                                  |
+// | Dust Tornado                | Trap Normal  | No   | No    | None    | Destroy 1 Spell/Trap on field; set 1 S/T      | End Phase removal of opponent backrow         | No targets                                  |
+// | Mirror Force                | Trap Normal  | No   | No    | None    | Destroy all Attack Position opponent monsters | Opponent attacks with strong board            | Weak single attack                          |
+// | Torrential Tribute          | Trap Normal  | No   | No    | None    | Destroy all monsters on field on summon       | Opponent summons big boss or multiple monsters| We control Fusilier / superior board        |
+// | Ring of Destruction         | Trap Normal  | No   | No    | None    | Destroy face-up monster; both take damage     | Remove dangerous monster or lethal burn       | ATK >= our LP                               |
+// ============================================================================
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using WindBot;
 using WindBot.Game;
 using WindBot.Game.AI;
+using YGOSharp.OCGWrapper.Enums;
 
 namespace WindBot.Game.AI.Decks
 {
-    // ==========================================
-    // GOAT_SkillDrian (Skill Drain Beatdown)
-    // ==========================================
     [Deck("GOAT_SkillDrian", "GOAT_SkillDrian")]
     public class GOAT_SkillDrianExecutor : ModernExecutor
     {
-        public class CardId
+        public static class CardId
         {
+            // Monsters
             public const int GiantOrc = 73698349;
             public const int GoblinAttackForce = 78658564;
             public const int BerserkGorilla = 39168895;
@@ -24,6 +54,8 @@ namespace WindBot.Game.AI.Decks
             public const int JiraiGumo = 94773007;
             public const int BreakerTheMagicalWarrior = 71413901;
             public const int ExiledForce = 74131780;
+
+            // Spells
             public const int PotOfGreed = 55144522;
             public const int GracefulCharity = 79571449;
             public const int DelinquentDuo = 44763025;
@@ -33,6 +65,8 @@ namespace WindBot.Game.AI.Decks
             public const int ReinforcementOfTheArmy = 32807846;
             public const int SmashingGround = 97169186;
             public const int MysticalSpaceTyphoon = 5318639;
+
+            // Traps
             public const int FinalAttackOrders = 52503575;
             public const int DustTornado = 60082869;
             public const int SkillDrain = 82732705;
@@ -41,13 +75,10 @@ namespace WindBot.Game.AI.Decks
             public const int RingOfDestruction = 83555666;
             public const int TorrentialTribute = 53582587;
             public const int CallOfTheHaunted = 97077563;
-            
-            // Add missing GOAT cards
-            public const int HeavyStorm = 19613556;
-            public const int GiantTrunade = 42703248;
         }
 
-        private static readonly int[] BossMonsters = {
+        private static readonly int[] BossMonsters =
+        {
             CardId.FusilierDragonTheDualModeBeast,
             CardId.GoblinAttackForce,
             CardId.GiantOrc
@@ -60,29 +91,33 @@ namespace WindBot.Game.AI.Decks
 
         public GOAT_SkillDrianExecutor(GameAI ai, Duel duel) : base(ai, duel)
         {
-            // ── Staples & Negations ──
+            // ── 1. Counter Traps & Hand Traps ──
             AddExecutor(ExecutorType.Activate, CardId.SolemnJudgment, SolemnJudgmentEffect);
+
+            // ── 2. Draw & Hand Disruption ──
             AddExecutor(ExecutorType.Activate, CardId.PotOfGreed);
             AddExecutor(ExecutorType.Activate, CardId.GracefulCharity);
             AddExecutor(ExecutorType.Activate, CardId.DelinquentDuo, DelinquentDuoEffect);
 
-            // ── Backrow removal & Spot removal ──
+            // ── 3. Backrow Removal & Spot Removal ──
             AddExecutor(ExecutorType.Activate, CardId.MysticalSpaceTyphoon, DefaultMysticalSpaceTyphoon);
             AddExecutor(ExecutorType.Activate, CardId.DustTornado, DustTornadoEffect);
             AddExecutor(ExecutorType.Activate, CardId.NoblemanOfCrossout, NoblemanOfCrossoutEffect);
             AddExecutor(ExecutorType.Activate, CardId.SmashingGround, DefaultSmashingGround);
             AddExecutor(ExecutorType.Activate, CardId.SnatchSteal, SnatchStealEffect);
+
+            // Exiled Force: Tributes for COST in GY, so it bypasses Skill Drain!
             AddExecutor(ExecutorType.Activate, CardId.ExiledForce, ExiledForceEffect);
 
-            // ── Reinforcement of the Army (Search) ──
+            // ── 4. Reinforcement of the Army (Search) ──
             AddExecutor(ExecutorType.Activate, CardId.ReinforcementOfTheArmy, RotAEffect);
 
-            // ── Skill Drain & Final Attack Orders ──
+            // ── 5. Skill Drain & Final Attack Orders ──
             AddExecutor(ExecutorType.Activate, CardId.SkillDrain, SkillDrainEffect);
             AddExecutor(ExecutorType.Activate, CardId.FinalAttackOrders, FinalAttackOrdersEffect);
 
-            // ── Summons ──
-            // Normal Summon Fusilier without tribute (he will gain full stats if Skill Drain is active)
+            // ── 6. Normal Summons (Beatsticks) ──
+            // Fusilier Dragon: Normal Summon without tribute (stats jump to 2800 under Skill Drain!)
             AddExecutor(ExecutorType.Summon, CardId.FusilierDragonTheDualModeBeast, FusilierSummon);
             AddExecutor(ExecutorType.Summon, CardId.GoblinAttackForce);
             AddExecutor(ExecutorType.Summon, CardId.GiantOrc);
@@ -92,41 +127,124 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.Summon, CardId.BreakerTheMagicalWarrior);
             AddExecutor(ExecutorType.Summon, CardId.ExiledForce, ExiledForceSummon);
 
-            // Reborn / Premature
+            // ── 7. Reborn / Premature ──
             AddExecutor(ExecutorType.Activate, CardId.PrematureBurial, PrematureBurialEffect);
-            AddExecutor(ExecutorType.Activate, CardId.CallOfTheHaunted, DefaultCallOfTheHaunted);
+            AddExecutor(ExecutorType.Activate, CardId.CallOfTheHaunted, CallOfTheHauntedEffect);
 
-            // ── Traps ──
+            // ── 8. Reactive Traps ──
             AddExecutor(ExecutorType.Activate, CardId.MirrorForce, MirrorForceEffect);
-            AddExecutor(ExecutorType.Activate, CardId.TorrentialTribute, DefaultTorrentialTribute);
+            AddExecutor(ExecutorType.Activate, CardId.TorrentialTribute, TorrentialTributeEffect);
             AddExecutor(ExecutorType.Activate, CardId.RingOfDestruction, RingOfDestructionEffect);
-
-            // ── Backrow Clearance ──
-            AddExecutor(ExecutorType.Activate, CardId.HeavyStorm, HeavyStormEffect);
-            AddExecutor(ExecutorType.Activate, CardId.GiantTrunade, GiantTrunadeEffect);
 
             AddExecutor(ExecutorType.SpellSet, SetTrapCondition);
             AddExecutor(ExecutorType.Repos, MonsterRepos);
         }
 
+        // ═══════════════════════════════════════════════════════════════
+        //  OCGCore Callbacks & Hint Handling
+        // ═══════════════════════════════════════════════════════════════
+
+        public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
+        {
+            if (cards == null || cards.Count == 0)
+                return base.OnSelectCard(cards, min, max, hint, cancelable);
+
+            const long HINTMSG_RELEASE = 500;
+            const long HINTMSG_DESTROY = 502;
+            const long HINTMSG_REMOVE = 503;
+            const long HINTMSG_ATOHAND = 506;
+            const long HINTMSG_SPSUMMON = 509;
+
+            // 1. Tribute Cost (Exiled Force): Tribute Exiled Force
+            if (hint == HINTMSG_RELEASE)
+            {
+                var exiled = cards.FirstOrDefault(c => c.IsCode(CardId.ExiledForce));
+                if (exiled != null) return new List<ClientCard> { exiled };
+            }
+
+            // 2. Search / Add to Hand (Reinforcement of the Army):
+            if (hint == HINTMSG_ATOHAND)
+            {
+                // If opponent has strong monster: search Exiled Force
+                if (Enemy.GetMonsterCount() > 0 && cards.Any(c => c.IsCode(CardId.ExiledForce)))
+                {
+                    var exiled = cards.First(c => c.IsCode(CardId.ExiledForce));
+                    return new List<ClientCard> { exiled };
+                }
+
+                // Otherwise search highest ATK Warrior
+                var bestWarrior = cards.OrderByDescending(c => c.Attack).FirstOrDefault();
+                if (bestWarrior != null) return new List<ClientCard> { bestWarrior };
+            }
+
+            // 3. Special Summon (Premature Burial / Call of the Haunted):
+            // Priority: Fusilier Dragon (2800) > Goblin Attack Force (2300) > Giant Orc (2200) > Zombyra (2100)
+            if (hint == HINTMSG_SPSUMMON)
+            {
+                var reviveTargets = cards.OrderBy(c =>
+                {
+                    if (c.IsCode(CardId.FusilierDragonTheDualModeBeast)) return 1;
+                    if (c.IsCode(CardId.GoblinAttackForce)) return 2;
+                    if (c.IsCode(CardId.GiantOrc)) return 3;
+                    if (c.IsCode(CardId.ZombyraTheDark)) return 4;
+                    if (c.IsCode(CardId.BerserkGorilla)) return 5;
+                    return 10;
+                }).ToList();
+
+                if (reviveTargets.Count >= min)
+                    return reviveTargets.Take(min).ToList();
+            }
+
+            // 4. Target Destruction (Exiled Force / Ring of Destruction):
+            if (hint == HINTMSG_DESTROY)
+            {
+                var threats = cards.Where(c => c.Controller == 1 && c.Location == CardLocation.MonsterZone && !IsTargetImmune(c))
+                    .OrderByDescending(c => c.Attack).ToList();
+                if (threats.Count >= min)
+                    return threats.Take(min).ToList();
+            }
+
+            // 5. Target Banish (Nobleman of Crossout):
+            if (hint == HINTMSG_REMOVE)
+            {
+                var facedown = cards.FirstOrDefault(c => c.Controller == 1 && c.IsFacedown());
+                if (facedown != null) return new List<ClientCard> { facedown };
+            }
+
+            return base.OnSelectCard(cards, min, max, hint, cancelable);
+        }
+
+        public override CardPosition OnSelectPosition(int cardId, IList<CardPosition> positions)
+        {
+            // All beatsticks should be in Attack Position
+            if (positions.Contains(CardPosition.Attack)) return CardPosition.Attack;
+            if (positions.Contains(CardPosition.FaceUpAttack)) return CardPosition.FaceUpAttack;
+
+            return base.OnSelectPosition(cardId, positions);
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        //  Strategic Decision Logic
+        // ═══════════════════════════════════════════════════════════════
+
         private bool SolemnJudgmentEffect()
         {
-            // Protect Skill Drain or our big beatsticks, or negate game-winning opponent plays
-            if (Util.GetLastChainCard() == null) return false;
-            if (Util.GetLastChainCard().Controller == 0) return false; // Don't negate ourselves
-            
-            // Prioritize protecting Skill Drain
-            bool isSkillDrainTarget = Util.GetLastChainCard().IsSpell() || Util.GetLastChainCard().IsTrap();
-            if (isSkillDrainTarget && Bot.HasInSpellZone(CardId.SkillDrain))
+            if (Util.GetLastChainCard() == null || Util.GetLastChainCard().Controller == 0) return false;
+
+            // Priority 1: Protect Skill Drain from destruction / bounce
+            var last = Util.GetLastChainCard();
+            if (Bot.HasInSpellZone(CardId.SkillDrain) &&
+                (last.IsCode(CardId.MysticalSpaceTyphoon) || last.IsCode(CardId.DustTornado) ||
+                 last.Id == 19613556 /* Heavy Storm */ || last.Id == 42703248 /* Giant Trunade */))
             {
                 return true;
             }
 
-            // Negate big summons or spells/traps
-            return Util.GetLastChainCard().Id == CardId.HeavyStorm ||
-                Util.GetLastChainCard().Id == CardId.GiantTrunade ||
-                Util.GetLastChainCard().Id == CardId.SnatchSteal ||
-                Util.GetLastChainCard().Id == CardId.TorrentialTribute;
+            // Priority 2: Negate game-winning opponent plays
+            return last.Id == 19613556 /* Heavy Storm */ ||
+                   last.Id == CardId.SnatchSteal ||
+                   last.Id == CardId.TorrentialTribute ||
+                   last.Id == 72989439 /* BLS Envoy */;
         }
 
         private bool DelinquentDuoEffect()
@@ -154,8 +272,10 @@ namespace WindBot.Game.AI.Decks
         private bool SnatchStealEffect()
         {
             if (DefaultSpellWillBeNegated()) return false;
-            ClientCard target = Enemy.GetMonsters().Where(c => c != null && c.IsFaceup() && !IsTargetImmune(c)).OrderByDescending(c => c.Attack).FirstOrDefault();
-            if (target != null)
+            ClientCard target = Enemy.GetMonsters()
+                .Where(c => c != null && c.IsFaceup() && !IsTargetImmune(c))
+                .OrderByDescending(c => c.Attack).FirstOrDefault();
+            if (target != null && target.Attack >= 1500)
             {
                 AI.SelectCard(target);
                 return true;
@@ -170,7 +290,9 @@ namespace WindBot.Game.AI.Decks
 
         private bool ExiledForceEffect()
         {
-            ClientCard target = Enemy.GetMonsters().Where(c => c != null && c.IsFaceup()).OrderByDescending(c => c.Attack).FirstOrDefault();
+            ClientCard target = Enemy.GetMonsters()
+                .Where(c => c != null && c.IsFaceup() && !IsTargetImmune(c))
+                .OrderByDescending(c => c.Attack).FirstOrDefault();
             if (target == null) target = Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFacedown());
             if (target != null)
             {
@@ -182,78 +304,63 @@ namespace WindBot.Game.AI.Decks
 
         private bool RotAEffect()
         {
-            // Search the best warrior for the situation
-            if (Enemy.GetMonsterCount() > 0 && !Bot.HasInSpellZone(CardId.SkillDrain))
-            {
-                // Need removal — search Exiled Force if available
-                if (Bot.GetRemainingCount(CardId.ExiledForce, 1) > 0)
-                    AI.SelectCard(CardId.ExiledForce, CardId.GoblinAttackForce, CardId.ZombyraTheDark);
-                else
-                    AI.SelectCard(CardId.GoblinAttackForce, CardId.ZombyraTheDark, CardId.GiantOrc);
-            }
-            else
-            {
-                // Get biggest beater
-                if (Bot.GetRemainingCount(CardId.GoblinAttackForce, 1) > 0)
-                    AI.SelectCard(CardId.GoblinAttackForce, CardId.ZombyraTheDark, CardId.ExiledForce);
-                else
-                    AI.SelectCard(CardId.ZombyraTheDark, CardId.GiantOrc, CardId.ExiledForce);
-            }
-            return true;
+            return Bot.GetRemainingCount(CardId.GoblinAttackForce, 1) > 0 ||
+                   Bot.GetRemainingCount(CardId.ExiledForce, 1) > 0 ||
+                   Bot.GetRemainingCount(CardId.ZombyraTheDark, 1) > 0;
         }
 
         private bool SkillDrainEffect()
         {
-            // Always activate as soon as possible if we control our beatsticks or if opponent relies on monster effects
+            // Activate Skill Drain as soon as possible if we have beatsticks or if opponent relies on monster effects
             return !Bot.HasInSpellZone(CardId.SkillDrain) && Bot.LifePoints > 1000;
         }
 
         private bool FinalAttackOrdersEffect()
         {
-            // Only activate if Skill Drain is also active (otherwise our Goblin/Orc suffer)
-            if (!Bot.HasInSpellZone(CardId.SkillDrain)) return false;
-            return !Bot.HasInSpellZone(CardId.FinalAttackOrders);
+            // Best activated when Skill Drain is also active or about to be active
+            return !Bot.HasInSpellZone(CardId.FinalAttackOrders) &&
+                   (Bot.HasInSpellZone(CardId.SkillDrain) || Bot.HasInHand(CardId.SkillDrain));
         }
 
         private bool FusilierSummon()
         {
-            // Without tribute, Fusilier loses half stats (1400/1200)
-            // Only summon without tribute if Skill Drain is active (restores full 2800/2000)
-            bool skillDrainActive = Bot.HasInSpellZone(CardId.SkillDrain);
-            if (skillDrainActive) return true;
-            // Without Skill Drain: only summon if we have no other monsters to play
-            bool hasOtherMonster = Bot.Hand.Any(c => c != null && c.Id != Card.Id && c.IsMonster() && c.Level <= 4 && c.Attack >= 1800);
-            return !hasOtherMonster && Bot.GetMonsterCount() == 0;
+            // Without tribute: 1400 ATK normally, but under Skill Drain it has full 2800 ATK!
+            if (Bot.HasInSpellZone(CardId.SkillDrain) || Bot.HasInHand(CardId.SkillDrain)) return true;
+            // Without Skill Drain: summon if no other monster in hand
+            return !Bot.Hand.Any(c => c != null && c.Id != Card.Id && c.IsMonster() && c.Level <= 4 && c.Attack >= 1800);
         }
 
         private bool PrematureBurialEffect()
         {
-            // Summon Fusilier (2800 ATK) or Goblin (2300 ATK) or Giant Orc (2200 ATK)
-            if (Bot.LifePoints > 800)
-            {
-                ClientCard target = Bot.Graveyard.FirstOrDefault(c => c != null && (c.IsCode(CardId.FusilierDragonTheDualModeBeast) || c.IsCode(CardId.GoblinAttackForce) || c.IsCode(CardId.GiantOrc)) && c.IsCanRevive());
-                if (target != null)
-                {
-                    AI.SelectCard(target);
-                    return true;
-                }
-            }
-            return false;
+            if (Bot.LifePoints <= 800) return false;
+            return Bot.Graveyard.Any(c => c != null && c.IsMonster() && c.IsCanRevive() && c.Attack >= 2000);
+        }
+
+        private bool CallOfTheHauntedEffect()
+        {
+            return Bot.Graveyard.Any(c => c != null && c.IsMonster() && c.IsCanRevive() && c.Attack >= 2000);
         }
 
         private bool MirrorForceEffect()
         {
             if (Duel.Player != 1) return false;
-            // Only use on meaningful attacks
             if (Enemy.BattlingMonster != null && Enemy.BattlingMonster.Attack >= 1500) return true;
-            if (Enemy.GetMonsters().Count(c => c != null && c.IsFaceup() && c.IsAttack()) >= 2) return true;
-            return false;
+            return Enemy.GetMonsters().Count(c => c != null && c.IsFaceup() && c.IsAttack()) >= 2;
+        }
+
+        private bool TorrentialTributeEffect()
+        {
+            // Don't wipe if we control Fusilier (2800) and opponent controls weaker monsters
+            if (Bot.HasInMonstersZone(CardId.FusilierDragonTheDualModeBeast) && Enemy.GetMonsterCount() <= 1) return false;
+            return DefaultTorrentialTribute();
         }
 
         private bool RingOfDestructionEffect()
         {
             if (Util.GetLastChainCard()?.Controller == 0) return false;
-            ClientCard target = Enemy.GetMonsters().Where(c => c != null && c.IsFaceup() && c.IsAttack() && c.Attack < Bot.LifePoints).OrderByDescending(c => c.Attack).FirstOrDefault();
+            ClientCard target = Enemy.GetMonsters()
+                .Where(c => c != null && c.IsFaceup() && c.IsAttack() && c.Attack < Bot.LifePoints && !IsTargetImmune(c))
+                .OrderByDescending(c => c.Attack).FirstOrDefault();
             if (target != null)
             {
                 AI.SelectCard(target);
@@ -264,7 +371,6 @@ namespace WindBot.Game.AI.Decks
 
         private bool SetTrapCondition()
         {
-            // Set traps including Skill Drain and Final Attack Orders
             return Card.HasType(CardType.Trap);
         }
 
@@ -273,37 +379,22 @@ namespace WindBot.Game.AI.Decks
             bool skillDrainActive = Bot.HasInSpellZone(CardId.SkillDrain);
             bool finalAttackActive = Bot.HasInSpellZone(CardId.FinalAttackOrders);
 
-            // With Skill Drain active: Goblin/Orc/Fusilier won't switch to DEF, so keep ATK
+            // With Skill Drain or Final Attack Orders: keep ALL beatsticks in Attack Position
             if (skillDrainActive || finalAttackActive)
             {
-                if (Card.IsDefense() && Card.IsFaceup()) return true; // Switch to ATK
+                if (Card.IsDefense() && Card.IsFaceup()) return true;
                 return false;
             }
 
-            // Without Skill Drain: use default smart repos
-            // Fusilier at half stats (1400 ATK) — switch to DEF if enemy has anything stronger
+            // Without Skill Drain: Fusilier at 1400 ATK switches to DEF if enemy has stronger monster
             if (Card.IsCode(CardId.FusilierDragonTheDualModeBeast) && Card.IsFaceup() && Card.Attack <= 1400)
             {
                 if (Card.IsAttack() && Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && c.Attack > 1400))
-                    return true; // Switch to DEF
+                    return true;
                 return false;
             }
 
             return DefaultMonsterRepos();
-        }
-
-        private bool HeavyStormEffect()
-        {
-            // Don't destroy our own Skill Drain
-            if (Bot.HasInSpellZone(CardId.SkillDrain)) return false;
-            return Enemy.GetSpellCount() > Bot.GetSpellCount() && Enemy.GetSpellCount() >= 2;
-        }
-
-        private bool GiantTrunadeEffect()
-        {
-            // Bounce everything — use before Skill Drain is set, or to clear opponent backrow for lethal
-            if (Bot.HasInSpellZone(CardId.SkillDrain)) return false; // Don't bounce our Skill Drain
-            return Enemy.GetSpellCount() >= 2 || (Enemy.GetSpellCount() >= 1 && GetTotalFieldATK() >= Enemy.LifePoints);
         }
     }
 }

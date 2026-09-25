@@ -129,8 +129,16 @@ $windbotFiles = @("ExecutorBase.dll", "WindBot.dll", "core.dll", "bots.json")
 foreach ($f in $windbotFiles) {
     $src = Join-Path $PublishOutput $f
     if (Test-Path $src) {
-        Copy-Item $src (Join-Path $TargetDir "WindBot\") -Force
-        Copy-Item $src (Join-Path $TargetDir "") -Force
+        try {
+            Copy-Item $src (Join-Path $TargetDir "WindBot\") -Force -ErrorAction Stop
+        } catch {
+            Write-Warning "Could not copy $f to WindBot directory (in use): $_"
+        }
+        try {
+            Copy-Item $src (Join-Path $TargetDir "") -Force -ErrorAction Stop
+        } catch {
+            Write-Warning "Could not copy $f to root directory (in use): $_"
+        }
         Write-OK "Deployed $f"
     } else {
         Write-Fail "Missing: $f"
@@ -180,8 +188,12 @@ if (Test-Path $sourcePicsDir) {
 }
 
 # Deploy DashBot
-Copy-Item "$DashBotOutput\*" "$TargetDir\" -Recurse -Force
-Write-OK "Deployed DashBot Launcher"
+try {
+    Copy-Item "$DashBotOutput\*" "$TargetDir\" -Recurse -Force -ErrorAction Stop
+    Write-OK "Deployed DashBot Launcher"
+} catch {
+    Write-Warning "Could not copy DashBot launcher (currently running): $_"
+}
 
 # ============================================================================
 # Summary
