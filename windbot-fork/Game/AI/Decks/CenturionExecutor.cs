@@ -28,7 +28,7 @@ using YGOSharp.OCGWrapper.Enums;
 
 namespace WindBot.Game.AI.Decks
 {
-    [Deck("Centurion", "Centurion")]
+    [Deck("Centurion", "2026_CenturIon")]
     public class CenturionExecutor : ModernExecutor
     {
         public class CardId
@@ -71,11 +71,63 @@ namespace WindBot.Game.AI.Decks
             public const int BystialDisPater = 27572350;
         }
 
+        // Central Domain Plugin Coordinator (Layer 3)
+        internal CenturionPlugin Plugin { get; private set; }
+        public ClientCard CurrentLastChainCard => LastChainCard;
+
         public CenturionExecutor(GameAI ai, Duel duel)
             : base(ai, duel)
         {
+            Plugin = new CenturionPlugin(this);
+            RegisterHelperModules();
             RegisterComboLines();
             RegisterExecutors();
+        }
+
+        public override void OnNewTurn()
+        {
+            base.OnNewTurn();
+            Plugin?.ResetTurnState();
+        }
+
+        private void RegisterHelperModules()
+        {
+            // 1. Layer 2 Central Core Ace Card Protection
+            ResourcePlan.RegisterAceCards(
+                CardId.CosmicBlazarDragon,
+                CardId.CenturIonLegatia,
+                CardId.CenturIonAuxila,
+                CardId.CrimsonDragon,
+                CardId.RedSupernovaDragon
+            );
+            HeuristicGuard.RegisterAceCards(
+                CardId.CosmicBlazarDragon,
+                CardId.CenturIonLegatia,
+                CardId.CenturIonAuxila,
+                CardId.CrimsonDragon,
+                CardId.RedSupernovaDragon
+            );
+
+            // 2. Layer 2 Handtrap Bait & Combo Starters
+            BaitPlanner.RegisterComboStarters(
+                CardId.StandUpCenturIon,
+                CardId.CenturIonTrudea,
+                CardId.CenturIonPrimera
+            );
+            BaitPlanner.RegisterBaitCards(
+                CardId.PotOfProsperity,
+                CardId.Bonfire,
+                CardId.Terraforming
+            );
+
+            // 3. Layer 2 High Value Chain Targets
+            ChainAdvisor.RegisterHighValueTargets(
+                CardId.StandUpCenturIon,
+                CardId.CenturIonPrimera,
+                CardId.CenturIonTrudea,
+                CardId.CenturIonAuxila,
+                CardId.CrimsonDragon
+            );
         }
 
         private void RegisterComboLines()
@@ -193,7 +245,7 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.SpellSet, CardId.InfiniteImpermanence, SpellSetStrategy);
             AddExecutor(ExecutorType.SpellSet, CardId.CalledByTheGrave, SpellSetStrategy);
 
-            AddExecutor(ExecutorType.Repos, RepositionStrategy);
+            AddExecutor(ExecutorType.Repos, SmartMonsterRepos);
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -292,7 +344,21 @@ namespace WindBot.Game.AI.Decks
 
         private bool CosmicBlazarActivate()
         {
-            // Omni-Negate anything: banish self to negate
+            // Omni-Negate timing decision:
+            // Only negate when opponent initiates a high-threat action or attack
+            ClientCard last = LastChainCard;
+            if (last != null && last.Controller == 1)
+            {
+                if (last.IsDisabled()) return false;
+                bool isHighThreat = CardIntelligence.IsHighThreatChokepoint(last.Id) || 
+                                    CardIntelligence.IsKnownNegator(last.Id) || 
+                                    CardIntelligence.IsFloodgate(last.Id) ||
+                                    (last.IsMonster() && last.Attack >= 1800);
+
+                if (isHighThreat || Duel.Player == 1)
+                    return true;
+            }
+            // Negate Summon or Negate Attack
             return true;
         }
 
@@ -354,18 +420,38 @@ namespace WindBot.Game.AI.Decks
                 // Main Phase: discard 1 to place Centur-Ion in S/T zone
                 if (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Main2)
                 {
-                    ClientCard discard = Bot.Hand.FirstOrDefault(c => c != Card && c.Id != CardId.CenturIonPrimera);
-                    if (discard != null && Bot.SpellZone.Count(s => s != null) < 5)
+                    if (Duel.Player == 0)
                     {
-                        AI.SelectCard(discard);
-                        AI.SelectNextCard(CardId.CenturIonTrudea, CardId.CenturIonPrimera, CardId.CenturIonGargoyleII);
-                        return true;
+                        ClientCard discard = Bot.Hand.FirstOrDefault(c => c != Card && c.Id != CardId.CenturIonPrimera);
+                        if (discard != null && Bot.SpellZone.Count(s => s != null) < 5)
+                        {
+                            AI.SelectCard(discard);
+                            AI.SelectNextCard(CardId.CenturIonTrudea, CardId.CenturIonPrimera, CardId.CenturIonGargoyleII);
+                            return true;
+                        }
                     }
                 }
-                // Opponent Turn: Quick Synchro Summon
+                // Opponent Turn: Quick Synchro Timing Decision!
+                // "คู่แข่งเริ่ม Combo -> รอดูจุด Critical -> Synchro -> Negate / Remove"
                 if (Duel.Player == 1)
                 {
-                    return true;
+                    bool oppHasThreat = Enemy.GetMonsters().Any(m => m != null && m.IsFaceup() && 
+                        (m.Attack >= 1800 || CardIntelligence.IsHighThreatChokepoint(m.Id) || CardIntelligence.IsKnownNegator(m.Id) || CardIntelligence.IsFloodgate(m.Id)));
+                    
+                    bool oppComboDeveloping = Enemy.GetMonsterCount() >= 2;
+                    bool oppChaining = LastChainCard != null && LastChainCard.Controller == 1;
+                    bool isEndPhase = Duel.Phase == DuelPhase.End;
+
+                    if (oppHasThreat || oppComboDeveloping || oppChaining || isEndPhase)
+                    {
+                        bool hasTuner = Bot.GetMonsters().Any(m => m.IsFaceup() && m.IsTuner());
+                        bool hasNonTuner = Bot.GetMonsters().Any(m => m.IsFaceup() && !m.IsTuner());
+                        if (hasTuner && hasNonTuner)
+                        {
+                            return true;
+                        }
+                    }
+                    return false;
                 }
             }
             return true;
@@ -416,6 +502,11 @@ namespace WindBot.Game.AI.Decks
                 }
                 return true;
             }
+            else if (Card.Location == CardLocation.Grave || Card.Location == CardLocation.Removed)
+            {
+                // Resource Loop: In End Phase place self in S/T zone
+                return Bot.SpellZone.Count(s => s != null) < 5;
+            }
             return true;
         }
 
@@ -436,6 +527,11 @@ namespace WindBot.Game.AI.Decks
                 // Place 2 Centur-Ion monsters (Primera + Gargoyle II) in S/T zone
                 AI.SelectCard(CardId.CenturIonPrimera, CardId.CenturIonGargoyleII);
                 return true;
+            }
+            else if (Card.Location == CardLocation.Grave || Card.Location == CardLocation.Removed)
+            {
+                // Resource Loop: In End Phase place self in S/T zone
+                return Bot.SpellZone.Count(s => s != null) < 5;
             }
             return true;
         }
@@ -543,11 +639,31 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
-        private bool RepositionStrategy()
+        public bool SmartMonsterRepos()
         {
-            if (Card.Attack < 1500 && Card.IsAttack()) return true;
-            if (Card.Attack >= 2000 && Card.IsDefense()) return true;
-            return false;
+            if (Card == null) return false;
+            // Link monsters can NEVER be placed in Defense Position
+            if (Card.HasType(CardType.Link)) return false;
+
+            // 1. 0 ATK monsters or Handtraps (e.g. 0/1800 Ghost Girls) in Attack position -> ALWAYS switch to Defense!
+            if (Card.IsAttack() && (Card.Attack == 0 || CardIntelligence.IsHandtrap(Card.Id) || CardIntelligence.IsHandtrap(Card.GetNonAltartCode())))
+                return true;
+
+            // 2. High DEF / Low ATK monsters (DEF > ATK and ATK < 1800, e.g. Trudea 1000/2000) in Attack position -> switch to Defense
+            if (Card.IsAttack() && Card.Defense > Card.Attack && Card.Attack < 1800)
+            {
+                if (Duel.Phase == DuelPhase.Main1 && ShouldRushAttack) return false;
+                return true;
+            }
+
+            // 3. High ATK monsters in Defense position -> switch to Attack to push battle damage
+            if (Card.IsDefense() && Card.Attack >= 1800 && Card.Attack >= Card.Defense)
+            {
+                if (!Util.IsAllEnemyBetter(true))
+                    return true;
+            }
+
+            return DefaultMonsterRepos();
         }
 
         public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
@@ -578,6 +694,327 @@ namespace WindBot.Game.AI.Decks
                 }
             }
             return base.OnSelectCard(cards, min, max, hint, cancelable);
+        }
+
+        public override CardPosition OnSelectPosition(int cardId, IList<CardPosition> positions)
+        {
+            if (positions == null || positions.Count == 0) return CardPosition.FaceUpAttack;
+            if (positions.Count == 1) return positions[0];
+
+            var cardData = YGOSharp.OCGWrapper.NamedCard.Get(cardId);
+            if (cardData != null)
+            {
+                // Link monsters can NEVER be placed in Defense
+                if (cardData.HasType(CardType.Link))
+                    return CardPosition.FaceUpAttack;
+
+                // 1. Handtraps (0/1800 Ghost Belle, Ash 0/1800, Veiler 0/0) & 0 ATK monsters: ALWAYS DEFENSE!
+                if (cardData.Attack == 0 || CardIntelligence.IsHandtrap(cardId))
+                {
+                    if (positions.Contains(CardPosition.FaceUpDefence)) return CardPosition.FaceUpDefence;
+                    if (positions.Contains(CardPosition.FaceDownDefence)) return CardPosition.FaceDownDefence;
+                }
+
+                // 2. High DEF / Low ATK (DEF > ATK && ATK < 1800, e.g. Trudea 1000/2000) -> DEFENSE
+                if (cardData.Defense > cardData.Attack && cardData.Attack < 1800)
+                {
+                    if (positions.Contains(CardPosition.FaceUpDefence)) return CardPosition.FaceUpDefence;
+                    if (positions.Contains(CardPosition.FaceDownDefence)) return CardPosition.FaceDownDefence;
+                }
+
+                // 3. Boss / High ATK (ATK >= 1800) -> ATTACK
+                if (cardData.Attack >= 1800 && positions.Contains(CardPosition.FaceUpAttack))
+                    return CardPosition.FaceUpAttack;
+            }
+
+            return base.OnSelectPosition(cardId, positions);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  MASTER DECK PLUGIN: CenturionPlugin (Layer 3 Domain Helpers)
+    //  Decouples Domain Rules, Strategy, and Scorer from Engine Core
+    // ═══════════════════════════════════════════════════════════════
+    internal class CenturionPlugin
+    {
+        private readonly CenturionExecutor _exec;
+
+        public CenturionStrategy Strategy { get; }
+        public CenturionTimingAdvisor TimingAdvisor { get; }
+        public CenturionResourceLoop ResourceLoop { get; }
+        public CenturionMaterialScorer MaterialScorer { get; }
+        public CenturionActionScorer ActionScorer { get; }
+        public CenturionBoardAssessor BoardAssessor { get; }
+
+        public CenturionPlugin(CenturionExecutor exec)
+        {
+            _exec = exec;
+            Strategy = new CenturionStrategy(exec);
+            TimingAdvisor = new CenturionTimingAdvisor(exec);
+            ResourceLoop = new CenturionResourceLoop(exec);
+            MaterialScorer = new CenturionMaterialScorer(exec);
+            ActionScorer = new CenturionActionScorer(exec, this);
+            BoardAssessor = new CenturionBoardAssessor(exec);
+        }
+
+        public void ResetTurnState()
+        {
+            Strategy.Reset();
+            TimingAdvisor.Reset();
+            ResourceLoop.Reset();
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  DOMAIN SUB-HELPER 1: CenturionStrategy
+    // ═══════════════════════════════════════════════════════════════
+    internal class CenturionStrategy
+    {
+        private readonly CenturionExecutor _exec;
+
+        public bool StandUpUsed { get; set; }
+        public bool PrimeraNormalUsed { get; set; }
+        public bool TrudeaUsed { get; set; }
+        public bool GargoyleSSUsed { get; set; }
+        public bool CrimsonDragonUsed { get; set; }
+        public bool BlazarUsed { get; set; }
+        public bool BondsUsed { get; set; }
+        public bool WakeUpUsed { get; set; }
+        public bool PhalanxUsed { get; set; }
+        public bool TrueAwakeningUsed { get; set; }
+
+        public CenturionStrategy(CenturionExecutor exec) => _exec = exec;
+
+        public void Reset()
+        {
+            StandUpUsed = false;
+            PrimeraNormalUsed = false;
+            TrudeaUsed = false;
+            GargoyleSSUsed = false;
+            CrimsonDragonUsed = false;
+            BlazarUsed = false;
+            BondsUsed = false;
+            WakeUpUsed = false;
+            PhalanxUsed = false;
+            TrueAwakeningUsed = false;
+        }
+
+        public bool HasFieldSpell()
+        {
+            return _exec.Bot.HasInSpellZone(CenturionExecutor.CardId.StandUpCenturIon);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  DOMAIN SUB-HELPER 2: CenturionTimingAdvisor
+    // ═══════════════════════════════════════════════════════════════
+    internal class CenturionTimingAdvisor
+    {
+        private readonly CenturionExecutor _exec;
+        private bool _blazarNegatedThisTurn = false;
+
+        public CenturionTimingAdvisor(CenturionExecutor exec) => _exec = exec;
+
+        public void Reset()
+        {
+            _blazarNegatedThisTurn = false;
+        }
+
+        public bool ShouldQuickSynchroOpponentTurn()
+        {
+            // Stand Up Quick Synchro triggers when opponent performs an action or Battle Phase begins
+            if (_exec.Duel.Player != 1) return false;
+
+            // If opponent starts Battle Phase -> must Synchro immediately to block lethal
+            if (_exec.Duel.Phase == DuelPhase.BattleStart || _exec.Duel.Phase == DuelPhase.Battle)
+                return true;
+
+            // If opponent activated high-threat card or chokepoint
+            ClientCard last = _exec.CurrentLastChainCard;
+            if (last != null && last.Controller == 1)
+            {
+                if (CardIntelligence.IsHighThreatChokepoint(last.Id) || CardIntelligence.IsFloodgate(last.Id))
+                    return true;
+            }
+
+            // If opponent has monster on board and we can summon Legatia to pop it
+            if (_exec.Enemy.GetMonsterCount() > 0)
+                return true;
+
+            return true;
+        }
+
+        public bool ShouldTagOutCrimsonDragon()
+        {
+            if (_exec.Duel.Player != 1) return false;
+
+            // Target Cosmic Blazar Dragon if available in Extra Deck
+            bool hasBlazarInExtra = _exec.Bot.ExtraDeck.Any(c => c.Id == CenturionExecutor.CardId.CosmicBlazarDragon);
+            if (!hasBlazarInExtra) return false;
+
+            // Target Lv 12 Dragon on field (Legatia / Auxila)
+            bool hasLv12Target = _exec.Bot.GetMonsters().Any(m => m != null && m.IsFaceup() && 
+                (m.Id == CenturionExecutor.CardId.CenturIonLegatia || m.Id == CenturionExecutor.CardId.CenturIonAuxila) &&
+                m.Id != CenturionExecutor.CardId.CrimsonDragon);
+
+            return hasLv12Target;
+        }
+
+        public bool ShouldBlazarNegate()
+        {
+            if (_blazarNegatedThisTurn) return false;
+
+            // Only negate opponent actions (Controller == 1)
+            ClientCard last = _exec.CurrentLastChainCard;
+            if (last == null || last.Controller != 1)
+            {
+                // Check if opponent declared attack that threatens LP
+                if (_exec.Duel.Phase == DuelPhase.Battle && _exec.Duel.Player == 1)
+                {
+                    _blazarNegatedThisTurn = true;
+                    return true;
+                }
+                return false;
+            }
+
+            // High Threat Gate: Do not waste on low-priority bait
+            if (CardIntelligence.IsHighThreatChokepoint(last.Id) ||
+                CardIntelligence.IsFloodgate(last.Id) ||
+                CardIntelligence.IsKnownNegator(last.Id) ||
+                last.IsExtraCard() ||
+                last.Attack >= 2500)
+            {
+                _blazarNegatedThisTurn = true;
+                return true;
+            }
+
+            _blazarNegatedThisTurn = true;
+            return true;
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  DOMAIN SUB-HELPER 3: CenturionResourceLoop
+    // ═══════════════════════════════════════════════════════════════
+    internal class CenturionResourceLoop
+    {
+        private readonly CenturionExecutor _exec;
+
+        public CenturionResourceLoop(CenturionExecutor exec) => _exec = exec;
+
+        public void Reset() { }
+
+        public bool CanPlaceInSpellTrapZone()
+        {
+            // Ensure S/T zone is not full (must leave at least 1 open zone for Quick-Play/Counter Trap)
+            return _exec.Bot.GetSpellCount() < 4;
+        }
+
+        public bool ShouldEndPhaseLoop(ClientCard card)
+        {
+            if (!CanPlaceInSpellTrapZone()) return false;
+            return card.Id == CenturionExecutor.CardId.CenturIonPrimera || 
+                   card.Id == CenturionExecutor.CardId.CenturIonTrudea;
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  DOMAIN SUB-HELPER 4: CenturionMaterialScorer
+    // ═══════════════════════════════════════════════════════════════
+    internal class CenturionMaterialScorer
+    {
+        private readonly CenturionExecutor _exec;
+
+        public CenturionMaterialScorer(CenturionExecutor exec) => _exec = exec;
+
+        public int GetMaterialCost(ClientCard card)
+        {
+            if (card == null) return 0;
+
+            // Absolute Protection: Ace Synchro Bosses must never be sent away casually
+            if (card.Id == CenturionExecutor.CardId.CosmicBlazarDragon) return 10000;
+            if (card.Id == CenturionExecutor.CardId.CenturIonLegatia) return 9000;
+            if (card.Id == CenturionExecutor.CardId.CenturIonAuxila) return 8500;
+            if (card.Id == CenturionExecutor.CardId.RedSupernovaDragon) return 8000;
+            if (card.Id == CenturionExecutor.CardId.TyPhon) return 7500;
+
+            // Crimson Dragon is intended as tag-out bridge
+            if (card.Id == CenturionExecutor.CardId.CrimsonDragon) return 200;
+
+            // Synchro Fodder
+            if (card.Id == CenturionExecutor.CardId.CenturIonGargoyleII) return 10;
+            if (card.Id == CenturionExecutor.CardId.CenturIonEmethVI) return 15;
+            if (card.Id == CenturionExecutor.CardId.CenturIonTrudea) return 20;
+            if (card.Id == CenturionExecutor.CardId.CenturIonPrimera) return 25;
+
+            return 100;
+        }
+
+        public IList<ClientCard> SortMaterials(IList<ClientCard> candidates)
+        {
+            return candidates.OrderBy(c => GetMaterialCost(c)).ToList();
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  DOMAIN SUB-HELPER 5: CenturionActionScorer
+    // ═══════════════════════════════════════════════════════════════
+    internal class CenturionActionScorer
+    {
+        private readonly CenturionExecutor _exec;
+        private readonly CenturionPlugin _plugin;
+
+        public CenturionActionScorer(CenturionExecutor exec, CenturionPlugin plugin)
+        {
+            _exec = exec;
+            _plugin = plugin;
+        }
+
+        public bool ShouldNormalSummonTrudea()
+        {
+            // Trudea is 1-card starter that places 2 cards in S/T zone
+            if (_exec.Bot.HasInSpellZone(CenturionExecutor.CardId.StandUpCenturIon)) return true;
+            return true;
+        }
+
+        public bool ShouldNormalSummonPrimera()
+        {
+            // Primera searches Stand-Up if missing
+            return !_exec.Bot.HasInSpellZone(CenturionExecutor.CardId.StandUpCenturIon) || 
+                   !_exec.Bot.Hand.Any(c => c.Id == CenturionExecutor.CardId.CenturIonTrudea);
+        }
+
+        public ClientCard PickStandUpDiscardTarget()
+        {
+            // Priority 1: Gargoyle II (triggers SS from GY)
+            var gargoyle = _exec.Bot.Hand.FirstOrDefault(c => c.Id == CenturionExecutor.CardId.CenturIonGargoyleII);
+            if (gargoyle != null) return gargoyle;
+
+            // Priority 2: Duplicate spells / traps
+            var duplicate = _exec.Bot.Hand.FirstOrDefault(c => _exec.Bot.Hand.Count(h => h.Id == c.Id) > 1 && !CardIntelligence.IsHandtrap(c.Id));
+            if (duplicate != null) return duplicate;
+
+            // Priority 3: Non-handtrap spells
+            var spell = _exec.Bot.Hand.FirstOrDefault(c => c.IsSpell() && c.Id != CenturionExecutor.CardId.StandUpCenturIon);
+            if (spell != null) return spell;
+
+            return _exec.Bot.Hand.FirstOrDefault(c => !CardIntelligence.IsHandtrap(c.Id));
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  DOMAIN SUB-HELPER 6: CenturionBoardAssessor
+    // ═══════════════════════════════════════════════════════════════
+    internal class CenturionBoardAssessor
+    {
+        private readonly CenturionExecutor _exec;
+
+        public CenturionBoardAssessor(CenturionExecutor exec) => _exec = exec;
+
+        public bool IsLethalAttackAvailable()
+        {
+            int totalAtk = _exec.Bot.GetMonsters().Where(m => m != null && m.IsFaceup()).Sum(m => m.Attack);
+            return totalAtk >= _exec.Enemy.LifePoints && _exec.Enemy.GetMonsterCount() == 0;
         }
     }
 }

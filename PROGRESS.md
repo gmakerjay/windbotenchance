@@ -1,5 +1,81 @@
 # Progress Log: Central Core Architecture & Universal Heuristics Overhaul
 
+## 0.047. Three Advanced Deck Implementations: MorganiteStun, DrytronTour & Madolche (2026-09-26)
+
+### Overview
+- **MorganiteStun (`MorganiteStunExecutor.cs`) — Anti-Meta Stun & Super Poly Board Breaker**:
+  - Implements `MorganiteStunPlugin`, `MorganiteStunStrategy`, `MorganiteFloodgateManager`, `SuperPolyAdvisor`, `MorganiteMaterialScorer`, `MorganiteActionScorer`, and `MorganiteBoardAssessor`.
+  - Normal Summons `Vanity's Ruler` (one-sided Special Summon lockout) or `Majesty's Fiend` without tribute under `Guilt-Gripping Morganite` with zero LP costs for `Solemn Judgment`, `Solemn Strike`, and `Iron Thunder`.
+  - Double Normal Summon & double draw under `Time-Tearing Morganite`, with `Seventh Tachyon` search engine via Number 104/107.
+  - Spell Speed 4 board clearing via `Super Polymerization` targeting Mudragon, Garura, Starving Venom, Dragostapelia, Earth Golem, or Triphyoverutum.
+  - Trap Handtraps (`Songs of the Dominators`, `Dominus Purge`, `Dominus Impulse`) bypass Morganite's restriction.
+- **DrytronTour (`DrytronTourExecutor.cs`) — Machine Ritual Engine & Rank 1 Xyz**:
+  - Implements `DrytronTourPlugin`, `DrytronStrategy`, `DrytronTributeManager`, `DrytronRitualAdvisor`, `DrytronMaterialScorer`, and `DrytronBoardAssessor`.
+  - Boss `Drytron Meteonis DA Draconids` (5000/5000) provides 2x quick monster effect negations per turn fueled by GY Drytrons.
+  - `Drytron Mu Beta Fafnir` mills missing combo pieces and detaches materials as tribute for Ritual Summons.
+  - Going second board break via `Dark Ruler No More` or `Gordian Slicer` followed by `Lyrilusc - Assembled Nightingale` direct attack into 4-material `AA-ZEUS`.
+- **Madolche (`MadolcheExecutor.cs`) — Non-Targeting Shuffle Control & Vernusylph Engine**:
+  - Implements `MadolchePlugin`, `MadolcheStrategy`, `MadolcheGraveyardManager`, `MadolcheMaterialScorer`, and `MadolcheBoardAssessor`.
+  - `Madolche Petingcessoeur` start $\rightarrow$ `Anjelly` $\rightarrow$ `Hootcake` $\rightarrow$ `Messengelato` search loop for Chateau, Promenade, and Ticket.
+  - Double spin loop: `Queen Tiaramisu` non-targeting spins 2 opponent cards on our turn $\rightarrow$ overlays into `Queen Tiarafraise` which quick-spins 2 more opponent cards on their turn.
+  - `Madolche Promenade` omni-negates while `Madolche Teacher Glassouffle` protects from monster effects and purges GY to enable Petingcessoeur.
+- **Universal Standards & Skill Update**:
+  - Updated `SKILL.md` Section 6.2 & 6.3 with mandatory standard: Every new deck must use Deck + Deck-Specific Helper Modules, Smart Position Control (0 ATK, Handtraps, and DEF > ATK in Defense), and Desperation MonsterSet without withholding handtraps from their primary disruption duties.
+  - Registered all 3 decks in `bots.json` with difficulty 3 (Master / Hard) and full aliases.
+  - Deployed exclusively via `BUILD_AND_DEPLOY.ps1` to `C:\Users\admin\Documents\EdoGame\` with 0 Errors.
+
+---
+
+## 0.046. Deck Domain Plugin Architecture Elevation & Smart Position Handtrap Survival Overhaul (2026-09-26)
+
+### Overview
+- **Domain Plugin Architecture Elevation (Matching Six Samurai Benchmark)**:
+  - **Endymion (`_2026_EndymionExecutor.cs`)**: Refactored with decoupled domain classes: `EndymionPlugin`, `EndymionStrategy`, `EndymionCounterEconomy`, `EndymionScaleResolver`, `EndymionMaterialScorer` (-10,000 boss sacrifice penalty), `EndymionActionScorer`, and `EndymionBoardAssessor`.
+  - **Centur-Ion (`CenturionExecutor.cs`)**: Refactored with decoupled domain classes: `CenturionPlugin`, `CenturionStrategy`, `CenturionTimingAdvisor` (opponent-turn Quick Synchro choke-point detection & Cosmic Blazar Dragon gating), `CenturionResourceLoop` (End Phase S/T zone recovery & board-clog prevention), `CenturionMaterialScorer`, `CenturionActionScorer`, and `CenturionBoardAssessor`.
+  - **D/D/D (`_2026_DDDExecutor.cs`)**: Refactored with decoupled domain classes: `DDDPlugin`, `DDDStrategy`, `DDDContractBurnManager` (Standby burn danger assessment & Contract Clearance protocol when LP $\le 2000$), `DDDScaleAndSearchResolver`, `DDDMaterialScorer` (Deus Machinex, High King Caesar, Siegfried boss protection), `DDDActionScorer`, and `DDDBoardAssessor`.
+  - **Six Samurai (`_2026_SixSamuraiExecutor.cs`)**: Unified with `SmartMonsterRepos` and `OnSelectPosition` survival wall safeguards.
+- **Smart Position & Handtrap Survival System**:
+  - **Problem Solved**: Normal Summons are always in Face-up Attack. Low ATK/high DEF handtraps (Ash Blossom 0/1800, Ghost Belle 0/1800, Veiler 0/0) or searchers/walls (Kepler 0/0, Fuma 200/1800) stranded in Attack position invited lethal/OTK battle damage.
+  - **Tier 1 (`OnSelectPosition`)**: Overridden to return `FaceUpDefence` or `FaceDownDefence` for all 0 ATK, Handtrap, and DEF > ATK survival monsters.
+  - **Tier 2 (`SmartMonsterRepos`)**: Registered via `ExecutorType.Repos` to actively reposition 0 ATK and high-DEF monsters stranded in Attack position to Defense.
+- **Policy Established for Future vs Legacy Decks**:
+  - **New Decks**: MUST implement Decoupled Domain Plugin Architecture (Layer 3) and Smart Position/Handtrap defense.
+  - **Legacy Working Decks**: Preserved intact without unnecessary modifications to ensure 100% backward compatibility and stability.
+- **Build & Deployment Pipeline**:
+  - Successfully published and deployed via `BUILD_AND_DEPLOY.ps1` with 0 Errors to `C:\Users\admin\Documents\EdoGame\`.
+
+---
+
+## 0.045. Three Modern Bot Implementations: Endymion, Centur-Ion & D/D/D (2026-09-26)
+
+### Overview
+- **1. Endymion (Spell Counter Control) — New Bot & Deck Plugin**:
+  - **Canonical Deck**: `2026_Endymion.ydk` (40 Main, 15 Extra, 15 Side) with Mythical Beast engine, Spellbook engine, Selene Queen of Master Magicians, Electrumite, Beyond the Pendulum, and Odd-Eyes Absolute -> Vortex dragon combo.
+  - **Executor Architecture**: `_2026_EndymionExecutor.cs` implementing full **Spell Counter Economy**:
+    - Five-tier counter reserve level: `Critical` (0-1), `Low` (2-3), `Ready` (4-5), `ComboReady` (6-7), `Surplus` (8+).
+    - `Jackal King` monster negate priority: 2-counter budget with threat evaluation (`IsBoss` > `IsHighThreatChokepoint` > `IsKnownNegator`). Rule: 1 Negate = 1 Problem (avoids double-negating already disabled chains).
+    - `Mighty Master of Magic`: Quick S/T negate with smart recycling priority (used `Servant` > used `Magister` > `Reflection` > highest counter holder to transfer counters). 6-counter board wipe on Going 2nd/breakout.
+    - `Servant of Endymion` & `Magister of Endymion`: 3-counter check ensures extension only when board value or disruption is added.
+    - `OnSelectCounter` engine hook: Prioritizes `Magical Citadel` (global fuel) and `Mythical Institution` / surplus monsters, protecting cards building toward 3 counters.
+- **2. Centur-Ion (Synchro Control) — Timing Decision & Resource Loop Upgrade**:
+  - **Canonical Deck**: `Centurion.ydk` synced and mapped to `Centurion`, `Centur-Ion`, and `2026_CenturIon`.
+  - **Executor Upgrade**: `CenturionExecutor.cs`:
+    - **Timing Decision**: `StandUpCenturIon` opponent-turn Quick Synchro no longer activates blindly; it monitors the opponent's combo and strikes at the **critical moment** (summon of monster with ATK $\ge 1800$, high-threat starter/chokepoint/boss, 2+ monsters on board, or chain activation).
+    - **Crimson Dragon -> Cosmic Blazar Dragon Loop**: Tags out Level 12 Synchros (Legatia/Auxila) into Cosmic Blazar Dragon at the optimal threat window.
+    - **Resource Loop**: End Phase triggers for `Primera` and `Trudea` placing themselves into the S/T Zone from GY/banished zone.
+- **3. D/D/D (Combo Monster) — Integration & Deployment**:
+  - **Canonical Deck**: `2026_DDD.ydk` registered and synced to `deck/2026_DDD.ydk`.
+  - **Executor Architecture**: `_2026_DDDExecutor.cs` registered across `2026_DDD`, `DDD`, and `D/D/D`.
+  - Combines Pendulum, Fusion, Synchro, Xyz, and Link routes ending on Deus Machinex, High King Caesar, Siegfried, and Sky King Zeus Ragnarok.
+- **bots.json Registration**:
+  - Registered all 3 bots with official canonical and alias names (`2026_Endymion`, `Endymion`, `2026_CenturIon`, `Centurion`, `Centur-Ion`, `2026_DDD`, `DDD`, `D/D/D`).
+- **Deck Synchronization**:
+  - Synced `2026_Endymion.ydk`, `Centurion.ydk`, and `2026_DDD.ydk` to `C:\Users\admin\Documents\EdoGame\deck\`.
+- **Build & Exclusive Deployment Pipeline**:
+  - Executed `BUILD_AND_DEPLOY.ps1` with 0 Errors; deployed to `C:\Users\admin\Documents\EdoGame\`.
+
+---
+
 ## 0.044. Developer Mode (โหมดนักพัฒนา) & Logging Control Integration (2026-09-26)
 
 ### Overview

@@ -207,6 +207,9 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.SpellSet, CardId.CrossoutDesignator, DefaultSpellSet);
             AddExecutor(ExecutorType.SpellSet, CardId.CunningOfTheSixSamurai, DefaultSpellSet);
             AddExecutor(ExecutorType.SpellSet);
+
+            // ── Tier 8: Smart Monster Repositioning (Prevent 0/1800 Handtrap/Wall Beatdown Suicide) ──
+            AddExecutor(ExecutorType.Repos, SmartMonsterRepos);
         }
 
         public override void OnNewTurn()
@@ -632,6 +635,52 @@ namespace WindBot.Game.AI.Decks
                 }
             }
             return false;
+        }
+
+        private bool SmartMonsterRepos()
+        {
+            if (Card == null) return false;
+            // 1. High DEF survival monsters / Handtraps stuck in Attack position
+            if (Card.IsAttack() && (Card.Attack == 0 || (Card.Defense > Card.Attack && Card.Defense >= 1800)))
+                return true;
+            // 2. High ATK monsters accidentally in Defense when we can push for damage
+            if (Card.IsDefense() && Card.Attack > Card.Defense && Card.Attack >= 1800 && Duel.Turn > 1)
+                return true;
+            return DefaultMonsterRepos();
+        }
+
+        public override CardPosition OnSelectPosition(int cardId, IList<CardPosition> positions)
+        {
+            if (positions == null || positions.Count == 0) return CardPosition.FaceUpAttack;
+            if (positions.Count == 1) return positions[0];
+
+            var cardData = YGOSharp.OCGWrapper.NamedCard.Get(cardId);
+            if (cardData != null)
+            {
+                // Link Monsters cannot be in Defense
+                if (cardData.HasType(CardType.Link))
+                    return CardPosition.FaceUpAttack;
+
+                // 1. Handtraps (Ash 0/1800, Belle 0/1800, Veiler 0/0) or 0 ATK -> 100% Defense
+                if (cardData.Attack == 0 || CardIntelligence.IsHandtrap(cardId))
+                {
+                    if (positions.Contains(CardPosition.FaceUpDefence)) return CardPosition.FaceUpDefence;
+                    if (positions.Contains(CardPosition.FaceDownDefence)) return CardPosition.FaceDownDefence;
+                }
+
+                // 2. High DEF / Wall (DEF > ATK and ATK < 1800, e.g. Fuma 200/1800) -> Defense
+                if (cardData.Defense > cardData.Attack && cardData.Attack < 1800)
+                {
+                    if (positions.Contains(CardPosition.FaceUpDefence)) return CardPosition.FaceUpDefence;
+                    if (positions.Contains(CardPosition.FaceDownDefence)) return CardPosition.FaceDownDefence;
+                }
+
+                // 3. Boss / High ATK (ATK >= 1800) -> Attack
+                if (cardData.Attack >= 1800 && positions.Contains(CardPosition.FaceUpAttack))
+                    return CardPosition.FaceUpAttack;
+            }
+
+            return base.OnSelectPosition(cardId, positions);
         }
     }
 

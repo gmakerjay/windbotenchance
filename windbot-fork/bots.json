@@ -1,5 +1,113 @@
 [
   {
+    "name": "MorganiteStun",
+    "deck": "MorganiteStun",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "Morganite Stun",
+    "deck": "MorganiteStun",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "2026_MorganiteStun",
+    "deck": "MorganiteStun",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "DrytronTour",
+    "deck": "DrytronTour",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "Drytron Tour",
+    "deck": "DrytronTour",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "Drytron",
+    "deck": "DrytronTour",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "2026_Drytron",
+    "deck": "DrytronTour",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "Madolche",
+    "deck": "Madolche",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "2026_Madolche",
+    "deck": "Madolche",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "Madolche Vernusylph",
+    "deck": "Madolche",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "2026_Endymion",
+    "deck": "2026_Endymion",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "Endymion",
+    "deck": "2026_Endymion",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "2026_CenturIon",
+    "deck": "Centurion",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "Centurion",
+    "deck": "Centurion",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "Centur-Ion",
+    "deck": "Centurion",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "2026_DDD",
+    "deck": "2026_DDD",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "DDD",
+    "deck": "2026_DDD",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "D/D/D",
+    "deck": "2026_DDD",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
     "name": "2026_SixSamurai",
     "deck": "2026_SixSamurai",
     "difficulty": 3,

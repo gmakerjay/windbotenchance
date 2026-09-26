@@ -192,12 +192,28 @@ namespace WindBot.Game.AI.Decks
             _alfredFuseUsed = false;
             _zeusRagnarokExtraPendUsed = false;
             _arcCrisisSSUsed = false;
+            Plugin?.ResetTurnState();
         }
+
+        // Central Domain Plugin Coordinator (Layer 3)
+        internal DDDPlugin Plugin { get; private set; }
+        public ClientCard CurrentLastChainCard => LastChainCard;
 
         public _2026_DDDExecutor(GameAI ai, Duel duel)
             : base(ai, duel)
         {
+            Plugin = new DDDPlugin(this);
             // Register Ace cards to prevent accidental sacrifice / link off
+            ResourcePlan.RegisterAceCards(
+                CardId.WaveHighKingCaesar,
+                CardId.CursedKingSiegfried,
+                CardId.DeusMachinex,
+                CardId.SkyKingZeusRagnarok,
+                CardId.AlfredDivineSage,
+                CardId.SuperDoomKingDarkArmageddon,
+                CardId.DimensionalKingArcCrisis,
+                CardId.FlameHighKingGenghis
+            );
             HeuristicGuard.RegisterAceCards(
                 CardId.WaveHighKingCaesar,
                 CardId.CursedKingSiegfried,
@@ -412,19 +428,19 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.SpellSet, CardId.SuperPoly);
 
             // Reposition monsters
-            AddExecutor(ExecutorType.Repos, DefaultMonsterRepos);
+            AddExecutor(ExecutorType.Repos, SmartMonsterRepos);
         }
 
         // ==========================================
         // Helper Utilities
         // ==========================================
 
-        private bool HasAvailablePZone()
+        public bool HasAvailablePZone()
         {
             return Util.GetPZone(0, 0) == null || Util.GetPZone(0, 1) == null;
         }
 
-        private bool HasBothPZonesFilled()
+        public bool HasBothPZonesFilled()
         {
             return Util.GetPZone(0, 0) != null && Util.GetPZone(0, 1) != null;
         }
@@ -1770,12 +1786,34 @@ namespace WindBot.Game.AI.Decks
 
         public override CardPosition OnSelectPosition(int cardId, IList<CardPosition> positions)
         {
-            int[] defMonsters = {
-                CardId.Copernicus, CardId.Lamia, CardId.SwirlSlime, CardId.NecroSlime, CardId.ScaleSurveyor
-            };
+            if (positions == null || positions.Count == 0) return CardPosition.FaceUpAttack;
+            if (positions.Count == 1) return positions[0];
 
-            if (defMonsters.Contains(cardId) && positions.Contains(CardPosition.FaceUpDefence))
-                return CardPosition.FaceUpDefence;
+            var cardData = YGOSharp.OCGWrapper.NamedCard.Get(cardId);
+            if (cardData != null)
+            {
+                // Link monsters can NEVER be placed in Defense
+                if (cardData.HasType(CardType.Link))
+                    return CardPosition.FaceUpAttack;
+
+                // 1. Handtraps (0/1800, Veiler 0/0) & 0 ATK monsters (Kepler 0/0): ALWAYS DEFENSE!
+                if (cardData.Attack == 0 || CardIntelligence.IsHandtrap(cardId))
+                {
+                    if (positions.Contains(CardPosition.FaceUpDefence)) return CardPosition.FaceUpDefence;
+                    if (positions.Contains(CardPosition.FaceDownDefence)) return CardPosition.FaceDownDefence;
+                }
+
+                // 2. High DEF / Low ATK (DEF > ATK && ATK < 1800, e.g. Thomas 200/2600, Copernicus, Lamia) -> DEFENSE
+                if (cardData.Defense > cardData.Attack && cardData.Attack < 1800)
+                {
+                    if (positions.Contains(CardPosition.FaceUpDefence)) return CardPosition.FaceUpDefence;
+                    if (positions.Contains(CardPosition.FaceDownDefence)) return CardPosition.FaceDownDefence;
+                }
+
+                // 3. Boss / High ATK (ATK >= 1800) -> ATTACK
+                if (cardData.Attack >= 1800 && positions.Contains(CardPosition.FaceUpAttack))
+                    return CardPosition.FaceUpAttack;
+            }
 
             return base.OnSelectPosition(cardId, positions);
         }
@@ -1827,6 +1865,276 @@ namespace WindBot.Game.AI.Decks
             if (attacker == null) return false;
             if (defender == null) return true;
             return base.OnPreBattleBetween(attacker, defender);
+        }
+
+        public bool SmartMonsterRepos()
+        {
+            if (Card == null) return false;
+            // Link monsters can NEVER be placed in Defense Position
+            if (Card.HasType(CardType.Link)) return false;
+
+            // 1. 0 ATK monsters or Handtraps (e.g. 0/1800 Ghost Girls, Kepler 0/0, Veiler 0/0) in Attack position -> ALWAYS switch to Defense!
+            if (Card.IsAttack() && (Card.Attack == 0 || CardIntelligence.IsHandtrap(Card.Id) || CardIntelligence.IsHandtrap(Card.GetNonAltartCode())))
+                return true;
+
+            // 2. High DEF / Low ATK monsters (DEF > ATK and ATK < 1800, e.g. Thomas 200/2600) in Attack position -> switch to Defense
+            if (Card.IsAttack() && Card.Defense > Card.Attack && Card.Attack < 1800)
+            {
+                if (Duel.Phase == DuelPhase.Main1 && ShouldRushAttack) return false;
+                return true;
+            }
+
+            // 3. High ATK monsters in Defense position -> switch to Attack to push battle damage
+            if (Card.IsDefense() && Card.Attack >= 1800 && Card.Attack >= Card.Defense)
+            {
+                if (!Util.IsAllEnemyBetter(true))
+                    return true;
+            }
+
+            return DefaultMonsterRepos();
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  MASTER DECK PLUGIN: DDDPlugin (Layer 3 Domain Helpers)
+    //  Decouples Domain Rules, Strategy, and Scorer from Engine Core
+    // ═══════════════════════════════════════════════════════════════
+    internal class DDDPlugin
+    {
+        private readonly _2026_DDDExecutor _exec;
+
+        public DDDStrategy Strategy { get; }
+        public DDDContractBurnManager ContractBurnManager { get; }
+        public DDDScaleAndSearchResolver ScaleAndSearchResolver { get; }
+        public DDDMaterialScorer MaterialScorer { get; }
+        public DDDActionScorer ActionScorer { get; }
+        public DDDBoardAssessor BoardAssessor { get; }
+
+        public DDDPlugin(_2026_DDDExecutor exec)
+        {
+            _exec = exec;
+            Strategy = new DDDStrategy(exec);
+            ContractBurnManager = new DDDContractBurnManager(exec);
+            ScaleAndSearchResolver = new DDDScaleAndSearchResolver(exec);
+            MaterialScorer = new DDDMaterialScorer(exec);
+            ActionScorer = new DDDActionScorer(exec, this);
+            BoardAssessor = new DDDBoardAssessor(exec);
+        }
+
+        public void ResetTurnState()
+        {
+            Strategy.Reset();
+            ContractBurnManager.Reset();
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  DOMAIN SUB-HELPER 1: DDDStrategy
+    // ═══════════════════════════════════════════════════════════════
+    internal class DDDStrategy
+    {
+        private readonly _2026_DDDExecutor _exec;
+
+        public bool GateUsed { get; set; }
+        public bool SwampKingUsed { get; set; }
+        public bool SwirlSlimeHandUsed { get; set; }
+        public bool NecroSlimeUsed { get; set; }
+        public bool KeplerUsed { get; set; }
+        public bool CopernicusUsed { get; set; }
+        public bool GryphonUsed { get; set; }
+        public bool GilgameshUsed { get; set; }
+        public bool MachinexUsed { get; set; }
+
+        public DDDStrategy(_2026_DDDExecutor exec) => _exec = exec;
+
+        public void Reset()
+        {
+            GateUsed = false;
+            SwampKingUsed = false;
+            SwirlSlimeHandUsed = false;
+            NecroSlimeUsed = false;
+            KeplerUsed = false;
+            CopernicusUsed = false;
+            GryphonUsed = false;
+            GilgameshUsed = false;
+            MachinexUsed = false;
+        }
+
+        public bool HasGateActive()
+        {
+            return _exec.Bot.HasInSpellZone(_2026_DDDExecutor.CardId.DctGate);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  DOMAIN SUB-HELPER 2: DDDContractBurnManager
+    // ═══════════════════════════════════════════════════════════════
+    internal class DDDContractBurnManager
+    {
+        private readonly _2026_DDDExecutor _exec;
+
+        public DDDContractBurnManager(_2026_DDDExecutor exec) => _exec = exec;
+
+        public void Reset() { }
+
+        public int GetActiveContractCount()
+        {
+            return _exec.Bot.GetSpells().Count(s => s != null && s.IsFaceup() && 
+                (s.Id == _2026_DDDExecutor.CardId.DctGate || 
+                 s.Id == _2026_DDDExecutor.CardId.DctSwampKing || 
+                 s.Id == _2026_DDDExecutor.CardId.DctZeroKing || 
+                 s.Id == _2026_DDDExecutor.CardId.DctEternalDarkness));
+        }
+
+        public int GetProjectedBurnDamage()
+        {
+            return GetActiveContractCount() * 1000;
+        }
+
+        public bool IsInBurnDangerZone()
+        {
+            // Threat gate: If next Standby Phase burn could reduce LP to <= 0 or critical
+            int burn = GetProjectedBurnDamage();
+            return _exec.Bot.LifePoints <= (burn + 1000);
+        }
+
+        public bool ShouldEmergencyClearContract()
+        {
+            // Trigger emergency clearance via Machinex detach or Orthros pop
+            return IsInBurnDangerZone();
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  DOMAIN SUB-HELPER 3: DDDScaleAndSearchResolver
+    // ═══════════════════════════════════════════════════════════════
+    internal class DDDScaleAndSearchResolver
+    {
+        private readonly _2026_DDDExecutor _exec;
+
+        public DDDScaleAndSearchResolver(_2026_DDDExecutor exec) => _exec = exec;
+
+        public ClientCard PickGateSearchTarget(IList<ClientCard> candidates)
+        {
+            // Priority 1: Kepler for P-Scale setup if not Normal Summoned
+            if (!_exec.Bot.GetMonsters().Any(m => m.Id == _2026_DDDExecutor.CardId.Kepler) &&
+                !_exec.Bot.Hand.Any(c => c.Id == _2026_DDDExecutor.CardId.Kepler))
+            {
+                var kepler = candidates.FirstOrDefault(c => c.Id == _2026_DDDExecutor.CardId.Kepler);
+                if (kepler != null) return kepler;
+            }
+
+            // Priority 2: Swirl Slime for Fusion Line
+            if (!_exec.Bot.Hand.Any(c => c.Id == _2026_DDDExecutor.CardId.SwirlSlime))
+            {
+                var swirl = candidates.FirstOrDefault(c => c.Id == _2026_DDDExecutor.CardId.SwirlSlime);
+                if (swirl != null) return swirl;
+            }
+
+            // Priority 3: Gryphon for Level 4 body + extra search
+            var gryphon = candidates.FirstOrDefault(c => c.Id == _2026_DDDExecutor.CardId.Gryphon);
+            if (gryphon != null) return gryphon;
+
+            // Priority 4: Copernicus
+            var copernicus = candidates.FirstOrDefault(c => c.Id == _2026_DDDExecutor.CardId.Copernicus);
+            if (copernicus != null) return copernicus;
+
+            return candidates.FirstOrDefault();
+        }
+
+        public (ClientCard lowScale, ClientCard highScale) PickGilgameshScales(IList<ClientCard> candidates)
+        {
+            var low = candidates.FirstOrDefault(c => c.Id == _2026_DDDExecutor.CardId.CountSurveyor || 
+                                                    c.Id == _2026_DDDExecutor.CardId.Kepler);
+            var high = candidates.FirstOrDefault(c => c.Id == _2026_DDDExecutor.CardId.ScaleSurveyor || 
+                                                     c.Id == _2026_DDDExecutor.CardId.Orthros || 
+                                                     c.Id == _2026_DDDExecutor.CardId.Gryphon);
+            return (low, high);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  DOMAIN SUB-HELPER 4: DDDMaterialScorer
+    // ═══════════════════════════════════════════════════════════════
+    internal class DDDMaterialScorer
+    {
+        private readonly _2026_DDDExecutor _exec;
+
+        public DDDMaterialScorer(_2026_DDDExecutor exec) => _exec = exec;
+
+        public int GetMaterialCost(ClientCard card)
+        {
+            if (card == null) return 0;
+
+            // Absolute Protection: End Board Bosses must never be linked/fused away casually
+            if (card.Id == _2026_DDDExecutor.CardId.WaveHighKingCaesar) return 10000;
+            if (card.Id == _2026_DDDExecutor.CardId.CursedKingSiegfried) return 9500;
+            if (card.Id == _2026_DDDExecutor.CardId.DeusMachinex) return 9000;
+            if (card.Id == _2026_DDDExecutor.CardId.DimensionalKingArcCrisis) return 8500;
+            if (card.Id == _2026_DDDExecutor.CardId.SkyKingZeusRagnarok) return 8000;
+            if (card.Id == _2026_DDDExecutor.CardId.FlameHighKingGenghis) return 7500;
+
+            // Step Bosses (Intended as bridges/overlay bases)
+            if (card.Id == _2026_DDDExecutor.CardId.AbyssKingGilgamesh) return 200;
+            if (card.Id == _2026_DDDExecutor.CardId.MarksmanKingTell) return 250;
+            if (card.Id == _2026_DDDExecutor.CardId.FlameKingGenghis) return 300;
+
+            // Fodder Ranking
+            if (card.Id == _2026_DDDExecutor.CardId.SwirlSlime || card.Id == _2026_DDDExecutor.CardId.NecroSlime) return 10;
+            if (card.Id == _2026_DDDExecutor.CardId.Lamia) return 15;
+            if (card.Id == _2026_DDDExecutor.CardId.Kepler) return 20;
+            if (card.Id == _2026_DDDExecutor.CardId.Copernicus) return 25;
+            if (card.Id == _2026_DDDExecutor.CardId.Gryphon) return 30;
+
+            return 100;
+        }
+
+        public IList<ClientCard> SortMaterials(IList<ClientCard> candidates)
+        {
+            return candidates.OrderBy(c => GetMaterialCost(c)).ToList();
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  DOMAIN SUB-HELPER 5: DDDActionScorer
+    // ═══════════════════════════════════════════════════════════════
+    internal class DDDActionScorer
+    {
+        private readonly _2026_DDDExecutor _exec;
+        private readonly DDDPlugin _plugin;
+
+        public DDDActionScorer(_2026_DDDExecutor exec, DDDPlugin plugin)
+        {
+            _exec = exec;
+            _plugin = plugin;
+        }
+
+        public bool ShouldOverlayMachinex()
+        {
+            // Machinex can overlay directly on Gilgamesh or Tell/Caesar to provide immediate 2-material monster steal
+            return true;
+        }
+
+        public bool ShouldSummonGilgamesh()
+        {
+            // Gilgamesh is vital if scales are not set yet
+            return !_exec.HasBothPZonesFilled();
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  DOMAIN SUB-HELPER 6: DDDBoardAssessor
+    // ═══════════════════════════════════════════════════════════════
+    internal class DDDBoardAssessor
+    {
+        private readonly _2026_DDDExecutor _exec;
+
+        public DDDBoardAssessor(_2026_DDDExecutor exec) => _exec = exec;
+
+        public bool IsLethalAttackAvailable()
+        {
+            int totalAtk = _exec.Bot.GetMonsters().Where(m => m != null && m.IsFaceup()).Sum(m => m.Attack);
+            return totalAtk >= _exec.Enemy.LifePoints && _exec.Enemy.GetMonsterCount() == 0;
         }
     }
 }

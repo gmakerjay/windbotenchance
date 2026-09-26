@@ -145,19 +145,81 @@ Layer 5 — Executor
           (ส่ง Action ที่มี Score สูงสุดไปยัง Engine)
 ```
 
-### 6.2 Deck Plugin Contract (ออกแบบตามความซับซ้อนของเด็ค)
-ไม่ต้องสร้างคลาสย่อย 6-7 ตัวทุกเด็ค ให้ปรับตามระดับความซับซ้อน:
-1. **Simple Deck (เด็คบีทดาวน์/สตัน)**: รวมอยู่ในไฟล์เดียว ใช้ Internal Helper ขนาดเล็ก
-2. **Medium Deck (เด็คมีทรัพยากรเฉพาะ เช่น LP, Zone, Counter)**:
-   - `DeckExecutor.cs` (ลงทะเบียนการ์ดและรัน Pipeline)
-   - `DeckResourceHelper` (คุมกลไกเฉพาะทาง)
-3. **Complex Deck (เด็คคอมโบหนัก/วนลูป เช่น Six Samurai, Tearlaments, Branded)**:
-   - `DeckExecutor.cs`
-   - `DeckStrategy` / `DeckComboPlanner` (จัดการ Routing และ Breakpoint)
-   - `DeckResourceHelper` (จัดการ Counter, Overlays, LP)
-   - `DeckMaterialScorer` (ป้องกัน Ace และจัดลำดับ Fodder)
+### 6.2 Deck + Specific Helper Module Architecture (Mandatory Standard)
+แนวทางมาตรฐานสำหรับเด็คใหม่ทุกเด็ค:
+**ต้องเขียนเด็คควบคู่กับโมดูลช่วยเหลือเฉพาะเด็ค (Deck + Deck-Specific Helper Modules) เสมอ** เพื่อยกระดับความฉลาด ความเสถียรภาพ และความเข้าใจสถานการณ์ของบอทให้สูงสุด (AI ระดับ Hard/Master):
 
-### 6.3 กฎการเขียนโค้ด C#
+1. **`DeckPlugin`**: ผู้ประสานงานกลางและจัดการ State/Lifecycle ของเด็ค
+2. **`DeckStrategy`**: จัดการ Combo Routing, First/Second Turn Lines, Target End Board, และ Breakpoints
+3. **`DeckSpecificHelper(s)`**: โมดูลช่วยเหลือเฉพาะทางของแต่ละ Archetype (เช่น Counter Economy, Timing Advisor, Graveyard Manager, Contract Burn Guard, Tribute Resolver)
+4. **`DeckMaterialScorer`**: ป้องกัน Ace Monsters และ Key Bosses ไม่ให้ถูกนำไปสังเวย/Link/Xyz ทิ้งอย่างสูญเปล่า
+5. **`DeckBoardAssessor`**: ประเมินสถานการณ์บอร์ดสด คำนวณ Lethal และประเมินระดับภัยคุกคาม
+
+> ⚠️ **นโยบายเด็คเก่า (Legacy Decks)**:
+> เด็คเก่าที่ยังใช้งานได้ดี ให้คงไว้ตามเดิม **ห้ามแตะต้องหรือแก้ไขโดยไม่จำเป็น** เพื่อรักษาความเสถียรภาพ หากต้องการปรับปรุงให้เลือกขัดเกลาเฉพาะตามที่ผู้ใช้มอบหมายเท่านั้น
+
+### 6.3 Smart Position Control & Handtrap Survival System (Universal Standard)
+มาตรฐานบังคับใช้ใน Executor ของทุกเด็คใหม่:
+
+1. **กฎเหล็กใน `OnSelectPosition` (ดัก 100% Defense สำหรับ 0/1800 และ Handtraps)**:
+```csharp
+public override CardPosition OnSelectPosition(int cardId, IList<CardPosition> positions)
+{
+    if (positions == null || positions.Count == 0) return CardPosition.FaceUpAttack;
+    if (positions.Count == 1) return positions[0];
+
+    var cardData = YGOSharp.OCGWrapper.NamedCard.Get(cardId);
+    if (cardData != null)
+    {
+        // Link Monsters cannot be in Defense
+        if (cardData.HasType(CardType.Link))
+            return CardPosition.FaceUpAttack;
+
+        // 1. Handtraps (Ash 0/1800, Belle 0/1800, Veiler 0/0) หรือ 0 ATK -> บังคับ Defense 100%
+        if (cardData.Attack == 0 || CardIntelligence.IsHandtrap(cardId))
+        {
+            if (positions.Contains(CardPosition.FaceUpDefence)) return CardPosition.FaceUpDefence;
+            if (positions.Contains(CardPosition.FaceDownDefence)) return CardPosition.FaceDownDefence;
+        }
+
+        // 2. High DEF / Wall (DEF > ATK และ ATK < 1800 เช่น Trudea 1000/2000, Servant 900/1500) -> Defense
+        if (cardData.Defense > cardData.Attack && cardData.Attack < 1800)
+        {
+            if (positions.Contains(CardPosition.FaceUpDefence)) return CardPosition.FaceUpDefence;
+            if (positions.Contains(CardPosition.FaceDownDefence)) return CardPosition.FaceDownDefence;
+        }
+
+        // 3. มอนสเตอร์บอส / ATK สูง (>= 1800) -> Attack
+        if (cardData.Attack >= 1800 && positions.Contains(CardPosition.FaceUpAttack))
+            return CardPosition.FaceUpAttack;
+    }
+
+    return base.OnSelectPosition(cardId, positions);
+}
+```
+
+2. **ระบบสลับท่านอนฉลาด (`SmartMonsterRepos`) ผ่าน `ExecutorType.Repos`**:
+```csharp
+AddExecutor(ExecutorType.Repos, SmartMonsterRepos);
+
+private bool SmartMonsterRepos()
+{
+    if (Card == null) return false;
+    // สลับมอนสเตอร์ 0 ATK, Handtrap หรือ DEF > ATK ที่เผลอยืนโจมตี ให้หมอบตั้งรับทันที
+    if (Card.IsAttack() && (Card.Attack == 0 || (Card.Defense > Card.Attack && Card.Defense >= 1800)))
+        return true;
+    // สลับมอนสเตอร์พลังโจมตีสูง (ATK >= 1800) ให้เป็นตั้งโจมตีในเทิร์น 2+ เพื่อปิดเกม
+    if (Card.IsDefense() && Card.Attack > Card.Defense && Card.Attack >= 1800 && Duel.Turn > 1)
+        return true;
+    return DefaultMonsterRepos();
+}
+```
+
+3. **ล็อกคำสั่งกันตายฉุกเฉิน (Desperation Defense) ให้เป็น `MonsterSet` เสมอ**:
+   - หากจำเป็นต้องส่ง Handtrap หรือตัว 0/1800 ลงมาเป็นโล่ป้องกันการโจมตีฉุกเฉิน ต้องส่งผ่านคำสั่ง `MonsterSet` (คว่ำป้องกัน) เท่านั้น **ห้าม Normal Summon หน้าหงายเด็ดขาด**
+   - **ห้ามกั๊ก Handtrap**: Handtrap ยังคงมีบทบาทขัดขวางคู่ต่อสู้ใน Tier 0 ของ Pipeline เสมอ การส่งลงมาเป็นโล่กันตายจะเกิดขึ้นเฉพาะเมื่อจวนตัวและไม่มีทางเลือกอื่นเท่านั้น
+
+### 6.4 กฎการเขียนโค้ด C#
 1. **0 Magic Numbers**: Card ID ทุกตัวต้องอยู่ใน `public static class CardId`
 2. **ใช้ Central Intelligence**: ตรวจสอบ Negator, Floodgate, Handtrap จาก `CardIntelligence`
 3. **แยก Method สะอาด**: `ShouldActivateX()` (เงื่อนไข) + `ActivateX()` (การกระทำ)
