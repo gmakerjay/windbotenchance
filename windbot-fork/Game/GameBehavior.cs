@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using WindBot.Game.AI;
 using YGOSharp.Network;
@@ -1333,16 +1334,70 @@ namespace WindBot.Game
             int count = packet.ReadByte();
             for (int i = 0; i < count; ++i)
             {
-                packet.ReadInt32(); // card id
+                int cardId = packet.ReadInt32();
                 int player = GetLocalPlayer(packet.ReadByte());
                 CardLocation loc = (CardLocation) packet.ReadByte();
                 int seq = packet.ReadByte();
                 int num = packet.ReadInt16();
-                cards.Add(_duel.GetCard(player, loc, seq));
+                ClientCard card = _duel.GetCard(player, loc, seq);
+                if (card == null)
+                    card = new ClientCard(cardId, loc, seq, player);
+                else if (card.Id == 0)
+                    card.SetId(cardId);
+                cards.Add(card);
                 counters.Add(num);
             }
 
             IList<int> used = _ai.OnSelectCounter(type, quantity, cards, counters);
+
+            // Absolute Engine Safety Guarantee:
+            if (used == null || used.Count != counters.Count)
+            {
+                used = new int[counters.Count];
+            }
+
+            for (int i = 0; i < used.Count; i++)
+            {
+                if (used[i] < 0) used[i] = 0;
+                if (used[i] > counters[i]) used[i] = counters[i];
+            }
+
+            int curSum = used.Sum();
+            if (curSum < quantity)
+            {
+                int remaining = quantity - curSum;
+                for (int i = 0; i < counters.Count && remaining > 0; i++)
+                {
+                    int avail = counters[i] - used[i];
+                    if (avail > 0)
+                    {
+                        int take = Math.Min(avail, remaining);
+                        used[i] += take;
+                        remaining -= take;
+                    }
+                }
+            }
+            else if (curSum > quantity)
+            {
+                int excess = curSum - quantity;
+                for (int i = counters.Count - 1; i >= 0 && excess > 0; i--)
+                {
+                    if (used[i] > 0)
+                    {
+                        int reduce = Math.Min(used[i], excess);
+                        used[i] -= reduce;
+                        excess -= reduce;
+                    }
+                }
+            }
+
+            Logger.WriteLine($"[OnSelectCounter] type=0x{type:X}, quantity={quantity}, count={count}");
+            for (int i = 0; i < count; ++i)
+            {
+                Logger.WriteLine($"  card[{i}] id={cards[i]?.Id}, loc={cards[i]?.Location}, seq={cards[i]?.Sequence}, available={counters[i]}, used={used[i]}");
+            }
+            Logger.WriteLine($"[OnSelectCounter] Response: sum={used.Sum()}/{quantity}, payload=[{string.Join(",", used)}]");
+
             byte[] result = new byte[used.Count * 2];
             for (int i = 0; i < used.Count; ++i)
             {

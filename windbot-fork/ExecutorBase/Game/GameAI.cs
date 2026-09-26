@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using WindBot.Game.AI;
@@ -482,22 +483,14 @@ namespace WindBot.Game
             if (custom != null)
                 return custom;
 
-            // Always select the first available counters.
+            // Always select the first available counters safely without index out of bounds.
             int[] used = new int[counters.Count];
-            int i = 0;
-            while (quantity > 0)
+            int needed = quantity;
+            for (int i = 0; i < counters.Count && needed > 0; i++)
             {
-                if (counters[i] >= quantity)
-                {
-                    used[i] = quantity;
-                    quantity = 0;
-                }
-                else
-                {
-                    used[i] = counters[i];
-                    quantity -= counters[i];
-                }
-                i++;
+                int take = Math.Min(counters[i], needed);
+                used[i] = take;
+                needed -= take;
             }
             return used;
         }

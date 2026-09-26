@@ -1,5 +1,43 @@
 # Progress Log: Central Core Architecture & Universal Heuristics Overhaul
 
+## 0.048. Endymion SelectCounter Engine Crash Resolution & Universal Counter Safety (2026-09-26)
+
+### Incident & Root Cause Analysis
+- **Symptom**: In EDOPro vs `Endymion` bot on Turn 1, the duel engine halted with popup `"เกิดข้อผิดพลาด!"` (An error occurred!). Duel log recorded:
+  ```
+  [TRACE][Activate] ✓ 'Endymion, the Mighty Master of Magic' (3611830) → MightyMasterBoardBreak from SpellZone
+  [BOARD SCORE] Idle Command Decision | Score: 0 | Action: Activate (Index: 1)
+  [ERROR] Got MSG_RETRY. Last message is SelectCounter
+  Connection closed by remote host.
+  ```
+- **Primary Root Causes**:
+  1. **Premature Turn 1 Board-Break Activation**:
+     `_2026_EndymionExecutor.MightyMasterBoardBreak` contained condition `Duel.Player == 0` which falsely evaluated to `true` on Turn 1 when bot was Player 0. This triggered Mighty Master to remove 6 Spell Counters to destroy opponent cards when the opponent's field was 100% empty, draining vital counter reserves.
+  2. **Invalid Pendulum Scale Sequence Checks**:
+     Scale placement conditions in `_2026_EndymionExecutor` checked `SpellZone[1]` and `SpellZone[5]`. In MR4/2020, Pendulum scales are in `SpellZone[0]` and `SpellZone[4]`, while `SpellZone[5]` is the Field Spell zone.
+  3. **Packet ClientCard Deserialization Incomplete in GameBehavior**:
+     `GameBehavior.OnSelectCounter` read the card id from packet via `packet.ReadInt32();` but discarded it, calling `_duel.GetCard(player, loc, seq)` directly. If the field card was untracked or returned null, `cards[i]` became null and card ID matching failed.
+  4. **Missing Sum & Boundary Enforcement in Engine Protocol**:
+     Neither `GameBehavior.OnSelectCounter` nor `GameAI.OnSelectCounter` verified that `sum(used) == quantity` or guarded against bounds errors. If any executor returned unbalanced distributions, OCGCore rejected the CTOS response packet with `MSG_RETRY` and disconnected.
+
+### Comprehensive Fixes Applied
+- **1. GameBehavior.OnSelectCounter Engine Hardening (`GameBehavior.cs`)**:
+  - Automatically initializes `ClientCard(cardId, loc, seq, player)` or sets `card.SetId(cardId)` so `cards[i]` is never null and `cards[i].Id` is guaranteed authentic from OCGCore.
+  - Implements an infallible mathematical safety allocator: clamps `0 <= used[i] <= counters[i]`, and dynamically distributes any remainder or trims any excess so `sum(used) == quantity` is guaranteed 100% of the time.
+  - Added comprehensive diagnostic trace logging for every `OnSelectCounter` packet.
+- **2. GameAI Fallback Loop Safety (`GameAI.cs`)**:
+  - Replaced unsafe `while (quantity > 0)` loop with a bounded `for` loop, eliminating `IndexOutOfRangeException` risk.
+- **3. Endymion Pendulum & Scale Architecture Fix (`_2026_EndymionExecutor.cs`)**:
+  - Standardized all scale zone checks to `Bot.SpellZone[0]` and `Bot.SpellZone[4]`.
+  - Added strict opponent board check: `MightyMasterBoardBreak` will **NEVER** activate unless opponent controls at least 1 monster or spell/trap to destroy (`Enemy.GetMonsterCount() > 0 || Enemy.GetSpellCount() > 0`).
+  - `MasterCerberusPendulum` now strictly verifies that both scales or the other scale is completely empty before activation.
+  - Delegated `OnSelectCounter` cleanly to `EndymionCounterEconomy.SelectCounters` with Jackal King 2-counter negate protection and full decision tracing.
+- **Build & Deployment**:
+  - Built and verified with 0 errors via `BUILD_AND_DEPLOY.ps1`.
+  - Deployed exclusively to `C:\Users\admin\Documents\EdoGame\`.
+
+---
+
 ## 0.047. Three Advanced Deck Implementations: MorganiteStun, DrytronTour & Madolche (2026-09-26)
 
 ### Overview

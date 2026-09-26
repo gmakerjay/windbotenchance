@@ -636,12 +636,16 @@ namespace WindBot.Game.AI.Decks
             if (Card.Location == CardLocation.Hand)
             {
                 // Only place in scale if other P-Zone is completely empty
-                return Bot.SpellZone[1] == null && Bot.SpellZone[5] == null;
+                return Bot.SpellZone[0] == null && Bot.SpellZone[4] == null;
             }
 
             // In Pendulum Zone: activate to destroy and search Jackal King
             if (Card.Location == CardLocation.SpellZone)
             {
+                // Can only activate if the other Pendulum Zone is empty
+                ClientCard otherScale = Card.Sequence == 0 ? Bot.SpellZone[4] : Bot.SpellZone[0];
+                if (otherScale != null) return false;
+
                 _masterCerberusPZoneUsed = true;
                 AI.SelectCard(CardId.MythicalBeastJackalKing, CardId.MythicalBeastGaruda);
                 return true;
@@ -788,7 +792,7 @@ namespace WindBot.Game.AI.Decks
             if (Card.Location == CardLocation.Hand)
             {
                 // Place as Scale 2
-                return Bot.SpellZone[1] == null || Bot.SpellZone[5] == null;
+                return Bot.SpellZone[0] == null || Bot.SpellZone[4] == null;
             }
 
             if (Card.Location == CardLocation.SpellZone)
@@ -811,7 +815,7 @@ namespace WindBot.Game.AI.Decks
             if (Card.Location == CardLocation.Hand)
             {
                 // Place as Scale 8
-                return Bot.SpellZone[1] == null || Bot.SpellZone[5] == null;
+                return Bot.SpellZone[0] == null || Bot.SpellZone[4] == null;
             }
 
             if (Card.Location == CardLocation.SpellZone)
@@ -832,7 +836,7 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location == CardLocation.Hand)
             {
-                return Bot.SpellZone[1] == null || Bot.SpellZone[5] == null;
+                return Bot.SpellZone[0] == null || Bot.SpellZone[4] == null;
             }
 
             if (Card.Location == CardLocation.SpellZone)
@@ -851,21 +855,23 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location == CardLocation.Hand)
             {
-                // Scale 8
-                return Bot.SpellZone[1] == null || Bot.SpellZone[5] == null;
+                // Place as Scale 8
+                return Bot.SpellZone[0] == null || Bot.SpellZone[4] == null;
             }
 
             if (Card.Location == CardLocation.SpellZone)
             {
+                // Strict Board-Break Requirement:
+                // Only board-break when opponent actually controls cards to destroy!
+                // NEVER activate on Turn 1 or against empty opponent boards!
+                if (Enemy.GetMonsterCount() == 0 && Enemy.GetSpellCount() == 0)
+                    return false;
+
                 // Remove 6 counters from field to SS self and pop cards
                 int fieldCounters = GetTotalCountersOnField();
                 if (fieldCounters >= 6 && Bot.GetMonsterCount() < 5)
                 {
-                    // Going second or clearing opponent board
-                    if (Enemy.GetMonsterCount() > 0 || Enemy.GetSpellCount() > 0 || Duel.Player == 0)
-                    {
-                        return true;
-                    }
+                    return true;
                 }
             }
             return false;
@@ -1136,73 +1142,8 @@ namespace WindBot.Game.AI.Decks
         // ============================================================================
         public override IList<int> OnSelectCounter(int type, int quantity, IList<ClientCard> cards, IList<int> counters)
         {
-            if (cards == null || counters == null || cards.Count != counters.Count)
-                return base.OnSelectCounter(type, quantity, cards, counters);
-
-            // Sync tracked counters with exact OCGCore engine data!
-            for (int i = 0; i < cards.Count; i++)
-            {
-                if (cards[i] != null)
-                    SetCardCounters(cards[i], counters[i]);
-            }
-
-            int[] used = new int[counters.Count];
-            int needed = quantity;
-
-            // 1st Priority: Magical Citadel of Endymion (Citadel counters are global replacement fuel!)
-            for (int i = 0; i < cards.Count && needed > 0; i++)
-            {
-                if (cards[i] != null && cards[i].Id == CardId.MagicalCitadel)
-                {
-                    int take = Math.Min(counters[i], needed);
-                    used[i] += take;
-                    needed -= take;
-                }
-            }
-
-            // 2nd Priority: Mythical Institution & cards with surplus counters (> 3)
-            for (int i = 0; i < cards.Count && needed > 0; i++)
-            {
-                if (cards[i] != null && cards[i].Id == CardId.MythicalInstitution)
-                {
-                    int take = Math.Min(counters[i] - used[i], needed);
-                    used[i] += take;
-                    needed -= take;
-                }
-            }
-
-            // 3rd Priority: Monsters with surplus counters (> 2 on Jackal King, > 4 on Master Cerberus)
-            for (int i = 0; i < cards.Count && needed > 0; i++)
-            {
-                if (cards[i] != null && cards[i].Id != CardId.ServantOfEndymion && cards[i].Id != CardId.MagisterOfEndymion)
-                {
-                    int avail = counters[i] - used[i];
-                    int take = Math.Min(avail, needed);
-                    used[i] += take;
-                    needed -= take;
-                }
-            }
-
-            // 4th Priority: Fallback to any available counters
-            for (int i = 0; i < cards.Count && needed > 0; i++)
-            {
-                int avail = counters[i] - used[i];
-                if (avail > 0)
-                {
-                    int take = Math.Min(avail, needed);
-                    used[i] += take;
-                    needed -= take;
-                }
-            }
-
-            // Update remaining internal counters
-            for (int i = 0; i < cards.Count; i++)
-            {
-                if (cards[i] != null)
-                    SetCardCounters(cards[i], Math.Max(0, counters[i] - used[i]));
-            }
-
-            return used;
+            return Plugin?.CounterEconomy?.SelectCounters(quantity, cards, counters)
+                ?? base.OnSelectCounter(type, quantity, cards, counters);
         }
 
         public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
@@ -1449,8 +1390,18 @@ namespace WindBot.Game.AI.Decks
 
         public IList<int> SelectCounters(int quantity, IList<ClientCard> cards, IList<int> counters)
         {
+            if (cards == null || counters == null || cards.Count != counters.Count)
+                return null;
+
             int[] used = new int[counters.Count];
             int needed = quantity;
+
+            // Sync tracked counters with exact OCGCore engine data
+            for (int i = 0; i < cards.Count; i++)
+            {
+                if (cards[i] != null)
+                    SetCounters(cards[i], counters[i]);
+            }
 
             // Priority 1: Magical Citadel of Endymion (Global replacement fuel)
             for (int i = 0; i < cards.Count && needed > 0; i++)
@@ -1460,10 +1411,11 @@ namespace WindBot.Game.AI.Decks
                     int take = Math.Min(counters[i], needed);
                     used[i] += take;
                     needed -= take;
+                    DecisionTracer.Trace("EndymionCounterEconomy", $"Spent {take} counters from Magical Citadel");
                 }
             }
 
-            // Priority 2: Mythical Institution & Surplus counters (> 3)
+            // Priority 2: Mythical Institution & Surplus continuous cards
             for (int i = 0; i < cards.Count && needed > 0; i++)
             {
                 if (cards[i] != null && cards[i].Id == _2026_EndymionExecutor.CardId.MythicalInstitution)
@@ -1471,10 +1423,11 @@ namespace WindBot.Game.AI.Decks
                     int take = Math.Min(counters[i] - used[i], needed);
                     used[i] += take;
                     needed -= take;
+                    DecisionTracer.Trace("EndymionCounterEconomy", $"Spent {take} counters from Mythical Institution");
                 }
             }
 
-            // Priority 3: Non-negator monsters with surplus counters
+            // Priority 3: Non-negator monsters & cards with surplus counters (> 2 on Jackal King)
             for (int i = 0; i < cards.Count && needed > 0; i++)
             {
                 if (cards[i] != null && 
@@ -1482,13 +1435,22 @@ namespace WindBot.Game.AI.Decks
                     cards[i].Id != _2026_EndymionExecutor.CardId.MagisterOfEndymion)
                 {
                     int avail = counters[i] - used[i];
-                    int take = Math.Min(avail, needed);
-                    used[i] += take;
-                    needed -= take;
+                    // If Jackal King, preserve at least 2 counters for monster negate if possible
+                    if (cards[i].Id == _2026_EndymionExecutor.CardId.MythicalBeastJackalKing)
+                    {
+                        avail = Math.Max(0, avail - 2);
+                    }
+                    if (avail > 0)
+                    {
+                        int take = Math.Min(avail, needed);
+                        used[i] += take;
+                        needed -= take;
+                        DecisionTracer.Trace("EndymionCounterEconomy", $"Spent {take} surplus counters from {cards[i].Name ?? cards[i].Id.ToString()}");
+                    }
                 }
             }
 
-            // Priority 4: Safe fallback
+            // Priority 4: Safe fallback across ANY remaining counters to strictly guarantee sum(used) == quantity
             for (int i = 0; i < cards.Count && needed > 0; i++)
             {
                 int avail = counters[i] - used[i];
@@ -1497,7 +1459,15 @@ namespace WindBot.Game.AI.Decks
                     int take = Math.Min(avail, needed);
                     used[i] += take;
                     needed -= take;
+                    DecisionTracer.Trace("EndymionCounterEconomy", $"Spent {take} fallback counters from {cards[i]?.Name ?? cards[i]?.Id.ToString()}");
                 }
+            }
+
+            // Update remaining internal counters
+            for (int i = 0; i < cards.Count; i++)
+            {
+                if (cards[i] != null)
+                    SetCounters(cards[i], Math.Max(0, counters[i] - used[i]));
             }
 
             return used;
