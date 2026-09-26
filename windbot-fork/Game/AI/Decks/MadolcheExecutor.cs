@@ -446,7 +446,7 @@ namespace WindBot.Game.AI.Decks
                 return base.OnSelectCard(cards, min, max, hint, cancelable);
 
             // Search priority (hint 506 = HINTMSG_ATOHAND)
-            if (hint == 506)
+            if (hint == 506 && min <= 1 && 1 <= max)
             {
                 // Petingcessoeur if GY is clean
                 if (Bot.Graveyard.Count(c => c.IsMonster()) == 0 && !Bot.HasInHand(CardId.MadolchePetingcessoeur))

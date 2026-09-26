@@ -248,13 +248,8 @@ namespace WindBot.Game.AI.Decks
             _absoluteUsed = false;
             _crowleyUsed = false;
             _garudaUsed = false;
-            Plugin?.ResetTurnState();
 
-            // Retain valid cards on field in counter tracker
-            var validCards = new HashSet<ClientCard>(Bot.GetMonsters().Concat(Bot.GetSpells()));
-            var keysToRemove = _cardCounters.Keys.Where(k => !validCards.Contains(k)).ToList();
-            foreach (var k in keysToRemove)
-                _cardCounters.Remove(k);
+            Plugin?.ResetTurnState();
         }
 
         public override void OnChaining(int player, ClientCard card)
@@ -273,7 +268,8 @@ namespace WindBot.Game.AI.Decks
                     {
                         AddCardCounters(c, 1);
                     }
-                    else if (c.Id == CardId.MythicalBeastJackalKing || c.Id == CardId.MythicalBeastMasterCerberus)
+                    else if ((c.Id == CardId.MythicalBeastJackalKing || c.Id == CardId.MythicalBeastMasterCerberus)
+                             && c.Location == CardLocation.MonsterZone)
                     {
                         AddCardCounters(c, 2);
                     }
@@ -288,48 +284,14 @@ namespace WindBot.Game.AI.Decks
         }
 
         // ============================================================================
-        // COUNTER ECONOMY HELPER
+        // COUNTER ECONOMY DELEGATION (Single Source of Truth: Plugin.CounterEconomy)
         // ============================================================================
-        public int GetCardCounters(ClientCard card)
-        {
-            if (card == null) return 0;
-            if (_cardCounters.TryGetValue(card, out int count))
-                return count;
-            return 0;
-        }
-
-        public void SetCardCounters(ClientCard card, int count)
-        {
-            if (card != null)
-                _cardCounters[card] = Math.Max(0, count);
-        }
-
-        public void AddCardCounters(ClientCard card, int count)
-        {
-            if (card != null)
-                _cardCounters[card] = GetCardCounters(card) + count;
-        }
-
-        private int GetTotalCountersOnField()
-        {
-            int total = 0;
-            foreach (ClientCard card in Bot.GetMonsters().Concat(Bot.GetSpells()))
-            {
-                if (card != null && card.IsFaceup())
-                    total += GetCardCounters(card);
-            }
-            return total;
-        }
-
-        private CounterLevel GetCounterLevel()
-        {
-            int total = GetTotalCountersOnField();
-            if (total <= 1) return CounterLevel.Critical;
-            if (total <= 3) return CounterLevel.Low;
-            if (total <= 5) return CounterLevel.Ready;
-            if (total <= 7) return CounterLevel.ComboReady;
-            return CounterLevel.Surplus;
-        }
+        public int GetCardCounters(ClientCard card) => Plugin?.CounterEconomy?.GetCounters(card) ?? 0;
+        public void SetCardCounters(ClientCard card, int count) => Plugin?.CounterEconomy?.SetCounters(card, count);
+        public void AddCardCounters(ClientCard card, int count) => Plugin?.CounterEconomy?.AddCounters(card, count);
+        public int GetTotalCountersOnField() => Plugin?.CounterEconomy?.GetTotalCountersOnField() ?? 0;
+        public CounterLevel GetCounterLevel() => Plugin?.CounterEconomy?.GetCounterLevel() ?? CounterLevel.Critical;
+        public bool CanSafelySpendCounters(int cost) => Plugin?.CounterEconomy?.CanSafelySpendCounters(cost) ?? false;
 
         private int GetReserveThreshold()
         {
@@ -354,16 +316,6 @@ namespace WindBot.Game.AI.Decks
                 }
             }
             return false;
-        }
-
-        private bool CanSafelySpendCounters(int cost)
-        {
-            int current = GetTotalCountersOnField();
-            if (current < cost) return false;
-            if (IsEmergencyState()) return true;
-
-            int remaining = current - cost;
-            return remaining >= GetReserveThreshold();
         }
 
         // ============================================================================
@@ -977,7 +929,7 @@ namespace WindBot.Game.AI.Decks
         private bool GravityControllerSpSummon()
         {
             // Link 1 using Odd-Eyes Absolute Dragon in Extra Monster Zone!
-            ClientCard emzMonster = Bot.GetMonsters().FirstOrDefault(m => m.IsFaceup() && m.Id == CardId.OddEyesAbsoluteDragon);
+            ClientCard emzMonster = Bot.GetMonsters().FirstOrDefault(m => m.IsFaceup() && m.Id == CardId.OddEyesAbsoluteDragon && (m.Sequence == 5 || m.Sequence == 6));
             return emzMonster != null;
         }
 

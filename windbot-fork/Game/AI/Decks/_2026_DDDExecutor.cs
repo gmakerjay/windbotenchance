@@ -1742,6 +1742,9 @@ namespace WindBot.Game.AI.Decks
 
         public override IList<ClientCard> OnSelectFusionMaterial(IList<ClientCard> cards, int min, int max)
         {
+            if (cards == null || cards.Count < min)
+                return base.OnSelectFusionMaterial(cards, min, max);
+
             var sorted = cards.OrderBy(c =>
             {
                 if (c == null) return 999;
@@ -1751,25 +1754,20 @@ namespace WindBot.Game.AI.Decks
                 if (c.Location == CardLocation.MonsterZone) return 30;
                 return 100;
             }).ToList();
-            return sorted.Take(max).ToList();
+            return sorted.Take(min).ToList();
         }
 
         public override IList<ClientCard> OnSelectSynchroMaterial(IList<ClientCard> cards, int sum, int min, int max)
         {
-            var sorted = cards.OrderBy(c =>
-            {
-                if (c == null) return 999;
-                if (c.Controller == 0 && IsAceCard(c)) return 10000;
-                if (c.IsCode(CardId.Lamia)) return 10;
-                if (c.IsCode(DDDMonsters)) return 20;
-                if (c.IsCode(HandTraps)) return 800;
-                return 100;
-            }).ToList();
-            return sorted.Take(max).ToList();
+            // For Synchro materials, level sum must match 'sum'. Delegate to base subset-sum algorithm.
+            return base.OnSelectSynchroMaterial(cards, sum, min, max);
         }
 
         public override IList<ClientCard> OnSelectXyzMaterial(IList<ClientCard> cards, int min, int max)
         {
+            if (cards == null || cards.Count < min)
+                return base.OnSelectXyzMaterial(cards, min, max);
+
             var sorted = cards.OrderBy(c =>
             {
                 if (c == null) return 999;
@@ -1781,7 +1779,7 @@ namespace WindBot.Game.AI.Decks
                 if (c.IsCode(DDDMonsters)) return 30;
                 return 100;
             }).ToList();
-            return sorted.Take(max).ToList();
+            return sorted.Take(min).ToList();
         }
 
         public override CardPosition OnSelectPosition(int cardId, IList<CardPosition> positions)

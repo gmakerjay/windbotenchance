@@ -224,7 +224,8 @@ namespace WindBot.Game.AI.Decks
 
         public override IList<int> OnSelectCounter(int type, int quantity, IList<ClientCard> cards, IList<int> counters)
         {
-            return Plugin.CounterEconomy.SelectCounters(quantity, cards, counters);
+            return Plugin?.CounterEconomy?.SelectCounters(quantity, cards, counters)
+                ?? base.OnSelectCounter(type, quantity, cards, counters);
         }
 
         public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
@@ -836,6 +837,9 @@ namespace WindBot.Game.AI.Decks
 
         public IList<int> SelectCounters(int quantity, IList<ClientCard> cards, IList<int> counters)
         {
+            if (cards == null || counters == null || cards.Count != counters.Count)
+                return null;
+
             int[] used = new int[counters.Count];
             int needed = quantity;
 

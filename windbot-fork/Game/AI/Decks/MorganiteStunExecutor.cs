@@ -408,28 +408,29 @@ namespace WindBot.Game.AI.Decks
                 if (enemies.Count >= min) return enemies.Take(max).ToList();
             }
 
-            // Seventh Tachyon Extra Deck reveal: Number 107 (for Vanity's Ruler) or Number 104 (for Boarder)
-            var tachyon107 = cards.FirstOrDefault(c => c.Id == CardId.Number107GalaxyEyesTachyonDragon);
-            if (tachyon107 != null && (Plugin.FloodgateManager.IsGuiltMorganiteActive || Bot.GetMonsterCount() > 0))
-                return new List<ClientCard> { tachyon107 };
+            // Seventh Tachyon Extra Deck reveal / search / top deck placement:
+            if (min <= 1 && 1 <= max)
+            {
+                var tachyon107 = cards.FirstOrDefault(c => c.Id == CardId.Number107GalaxyEyesTachyonDragon);
+                if (tachyon107 != null && ((Plugin?.FloodgateManager?.IsGuiltMorganiteActive == true) || Bot.GetMonsterCount() > 0))
+                    return new List<ClientCard> { tachyon107 };
 
-            var tachyon104 = cards.FirstOrDefault(c => c.Id == CardId.Number104Masquerade);
-            if (tachyon104 != null)
-                return new List<ClientCard> { tachyon104 };
+                var tachyon104 = cards.FirstOrDefault(c => c.Id == CardId.Number104Masquerade);
+                if (tachyon104 != null)
+                    return new List<ClientCard> { tachyon104 };
 
-            // Seventh Tachyon deck search: Vanity's Ruler > Inspector Boarder
-            var vanity = cards.FirstOrDefault(c => c.Id == CardId.VanitySRuler);
-            if (vanity != null && (Plugin.FloodgateManager.IsGuiltMorganiteActive || Bot.GetMonsterCount() > 0))
-                return new List<ClientCard> { vanity };
+                var vanity = cards.FirstOrDefault(c => c.Id == CardId.VanitySRuler);
+                if (vanity != null && ((Plugin?.FloodgateManager?.IsGuiltMorganiteActive == true) || Bot.GetMonsterCount() > 0))
+                    return new List<ClientCard> { vanity };
 
-            var boarder = cards.FirstOrDefault(c => c.Id == CardId.InspectorBoarder);
-            if (boarder != null)
-                return new List<ClientCard> { boarder };
+                var boarder = cards.FirstOrDefault(c => c.Id == CardId.InspectorBoarder);
+                if (boarder != null)
+                    return new List<ClientCard> { boarder };
 
-            // Seventh Tachyon top deck placement: place redundant spell or Morganite
-            var topDeckFodder = cards.FirstOrDefault(c => c.Id == CardId.SeventhTachyon || c.Id == CardId.SuccumbingSongMorganite);
-            if (topDeckFodder != null)
-                return new List<ClientCard> { topDeckFodder };
+                var topDeckFodder = cards.FirstOrDefault(c => c.Id == CardId.SeventhTachyon || c.Id == CardId.SuccumbingSongMorganite);
+                if (topDeckFodder != null)
+                    return new List<ClientCard> { topDeckFodder };
+            }
 
             return base.OnSelectCard(cards, min, max, hint, cancelable);
         }

@@ -404,7 +404,7 @@ namespace WindBot.Game.AI.Decks
             }
 
             // Search priority (hint 506 = HINTMSG_ATOHAND)
-            if (hint == 506)
+            if (hint == 506 && min <= 1 && 1 <= max)
             {
                 // If don't have Ritual Spell -> Meteonis Drytron
                 if (!Bot.HasInHand(CardId.MeteonisDrytron) && !Bot.HasInGraveyard(CardId.MeteonisDrytron))
@@ -422,27 +422,27 @@ namespace WindBot.Game.AI.Decks
 
                 // Drytron Alpha > Zeta > Nu II > Gamma
                 var alpha = cards.FirstOrDefault(c => c.Id == CardId.DrytronAlphaThuban);
-                if (alpha != null && !Plugin.AlphaUsed) return new List<ClientCard> { alpha };
+                if (alpha != null && (Plugin?.AlphaUsed != true)) return new List<ClientCard> { alpha };
 
                 var zeta = cards.FirstOrDefault(c => c.Id == CardId.DrytronZetaAldhibah);
-                if (zeta != null && !Plugin.ZetaUsed) return new List<ClientCard> { zeta };
+                if (zeta != null && (Plugin?.ZetaUsed != true)) return new List<ClientCard> { zeta };
 
                 var nu = cards.FirstOrDefault(c => c.Id == CardId.DrytronNuII);
-                if (nu != null && !Plugin.NuUsed) return new List<ClientCard> { nu };
+                if (nu != null && (Plugin?.NuUsed != true)) return new List<ClientCard> { nu };
             }
 
             // Send to GY (hint 504 = HINTMSG_TOGRAVE, e.g. Mu Beta Fafnir mill)
-            if (hint == 504)
+            if (hint == 504 && min <= 1 && 1 <= max)
             {
                 // Mill Zeta if missing ritual spell, Alpha if missing boss, Nu II if missing extender
                 var millZeta = cards.FirstOrDefault(c => c.Id == CardId.DrytronZetaAldhibah);
-                if (millZeta != null && !Plugin.ZetaUsed) return new List<ClientCard> { millZeta };
+                if (millZeta != null && (Plugin?.ZetaUsed != true)) return new List<ClientCard> { millZeta };
 
                 var millAlpha = cards.FirstOrDefault(c => c.Id == CardId.DrytronAlphaThuban);
-                if (millAlpha != null && !Plugin.AlphaUsed) return new List<ClientCard> { millAlpha };
+                if (millAlpha != null && (Plugin?.AlphaUsed != true)) return new List<ClientCard> { millAlpha };
 
                 var millGamma = cards.FirstOrDefault(c => c.Id == CardId.DrytronGammaEltanin);
-                if (millGamma != null && !Plugin.GammaUsed) return new List<ClientCard> { millGamma };
+                if (millGamma != null && (Plugin?.GammaUsed != true)) return new List<ClientCard> { millGamma };
             }
 
             return base.OnSelectCard(cards, min, max, hint, cancelable);

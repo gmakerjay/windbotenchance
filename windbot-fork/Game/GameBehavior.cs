@@ -1327,11 +1327,11 @@ namespace WindBot.Game
         {
             packet.ReadByte(); // player
             int type = packet.ReadInt16();
-            int quantity = packet.ReadInt32();
+            int quantity = packet.ReadInt16();
 
             IList<ClientCard> cards = new List<ClientCard>();
             IList<int> counters = new List<int>();
-            int count = packet.ReadByte();
+            int count = packet.ReadInt32();
             for (int i = 0; i < count; ++i)
             {
                 int cardId = packet.ReadInt32();

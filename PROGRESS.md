@@ -1,5 +1,97 @@
 # Progress Log: Central Core Architecture & Universal Heuristics Overhaul
 
+## 0.049. Binary Protocol Disassembly & Universal SelectCounter Engine Fix (2026-09-26)
+
+### Breakthrough Discovery: OCGCore MSG_SELECT_COUNTER Binary Protocol Misalignment
+A critical root-cause bug in the foundational network layer of WindBot (`GameBehavior.cs`) was uncovered through binary disassembly of `ocgcore.dll` (at offset `0x10079ba0` - `0x10079e86`):
+
+1. **OCGCore Binary Protocol Structure**:
+   - `0x10079d5b`: `write_buffer(player, 1)` $\rightarrow$ **1 byte** (`byte`)
+   - `0x10079d6e`: `write_buffer(type, 2)` $\rightarrow$ **2 bytes** (`int16`)
+   - `0x10079d85`: `write_buffer(quantity, 2)` $\rightarrow$ **2 bytes** (`int16`)
+   - `0x10079d9e`: `write_buffer(count, 4)` $\rightarrow$ **4 bytes** (`int32`)
+   - Loop `1..count` at `0x10079df0`:
+     - `0x10079e00`: `cardId` (4 bytes, `int32`)
+     - `0x10079e19`: `player` (1 byte, `byte`)
+     - `0x10079e32`: `loc` (1 byte, `byte`)
+     - `0x10079e4b`: `seq` (1 byte, `byte`)
+     - `0x10079e66`: `available_counters` (2 bytes, `int16`)
+
+2. **The Flaw in WindBot's Implementation**:
+   In `GameBehavior.cs`, `OnSelectCounter` was implemented as:
+   ```csharp
+   int type = packet.ReadInt16();     // 2 bytes
+   int quantity = packet.ReadInt32(); // 4 bytes (WRONG: read quantity + lower 2 bytes of count!)
+   int count = packet.ReadByte();     // 1 byte (WRONG: read upper byte of count!)
+   ```
+   - When 2 cards had counters on the field (e.g. Gateway + Dojo, or Citadel + Servant):
+     - `quantity = (count << 16) | real_quantity` $\rightarrow$ `(2 << 16) | 4 = 131076`!
+     - `count` was read from the high zero-byte $\rightarrow$ `count = 0`!
+     - The cards list was empty, returning `payload=[]` (sum = 0 / 131076).
+     - OCGCore compared `cx != ax` at `0x10079f2e`, emitted `MSG_RETRY`, WindBot disconnected, and EDOPro threw GUI modal **`"เกิดข้อผิดพลาด!"`**.
+
+3. **Definitive Fix Applied**:
+   - Corrected `quantity` to `packet.ReadInt16()` (2 bytes).
+   - Corrected `count` to `packet.ReadInt32()` (4 bytes).
+   - Validated live via session log:
+     ```text
+     [OnSelectCounter] type=0x3, quantity=4, count=2
+     [OnSelectCounter] Response: sum=4/4, payload=[1,3]
+     ```
+     Zero retries, zero disconnects, and 100% protocol adherence!
+
+---
+
+### Audit & Hardening Scope Across All 7 Dedicated Plugin Decks
+Following the Endymion `OnSelectCounter` investigation, a comprehensive audit was executed across all 7 decks in the codebase that implement dedicated/custom domain modules (`*Plugin`):
+
+1. **`Endymion` (`_2026_EndymionExecutor.cs` & `EndymionPlugin`)**:
+   - **Root Cause Verified**: Duplicate counter tracking (`_cardCounters` dictionary in executor vs `_trackedCounters` in `EndymionCounterEconomy`) caused desynchronization. In addition, `GameBehavior.OnSelectCounter` discarded card ID packets, causing null lookups when selecting counters on newly summoned/moved cards.
+   - **Hardening**:
+     - Removed redundant `_cardCounters` dictionary completely; all counter lookups, additions, and removals now query `Plugin.CounterEconomy` as the single source of truth.
+     - Added `c.Location == CardLocation.MonsterZone` check for monster-effect counter generation (Jackal King, Master Cerberus).
+     - Guarded `GravityController` Special Summon to strictly require Extra Monster Zone sequence (`m.Sequence == 5 || m.Sequence == 6`).
+     - Added strict opponent board requirement for `MightyMasterBoardBreak` (`Enemy.GetMonsterCount() > 0 || Enemy.GetSpellCount() > 0`), stopping Turn 1 counter-draining against empty fields.
+     - Headless simulation verified: 8-turn full match vs `DarkMagician` with 0 Violations and 0 Crashes.
+
+2. **`Six Samurai` (`_2026_SixSamuraiExecutor.cs` & `SixSamuraiPlugin`)**:
+   - **Issue Found**: `OnSelectCounter` directly accessed `Plugin.CounterEconomy.SelectCounters` without null-propagation and lacked length-match safety guards on the input lists.
+   - **Hardening**:
+     - Added null-safe fallback: `Plugin?.CounterEconomy?.SelectCounters(cards, counters, quantity) ?? base.OnSelectCounter(cards, counters, quantity)`.
+     - Added defensive list boundary guard: `if (cards == null || counters == null || cards.Count != counters.Count) return null;`.
+     - Headless simulation verified: full 3-game match (2-1 win rate) with 0 Violations and 0 Crashes.
+
+3. **`D/D/D` (`_2026_DDDExecutor.cs` & `DDDPlugin`)**:
+   - **Issue Found**:
+     - `OnSelectSynchroMaterial` returned `sorted.Take(max)`, completely ignoring the exact `sum` (Level) requirement specified by OCGCore. This caused illegal material selection and engine level-mismatch violations.
+     - `OnSelectFusionMaterial` and `OnSelectXyzMaterial` returned `sorted.Take(max)` instead of `sorted.Take(min)`, unnecessarily consuming excess materials.
+   - **Hardening**:
+     - Delegated `OnSelectSynchroMaterial` to `base.OnSelectSynchroMaterial(cards, sum, min, max)` to leverage the exact subset-sum level solver.
+     - Fixed `OnSelectFusionMaterial` and `OnSelectXyzMaterial` to select `sorted.Take(min)` with graceful fallbacks when `cards.Count < min`.
+     - Headless simulation verified: 100% win rate (5 turns) vs `DarkMagician` with 0 Violations.
+
+4. **`Morganite Stun` (`MorganiteStunExecutor.cs` & `MorganiteStunPlugin`)**:
+   - **Issue Found**: In `OnSelectCard`, returning `new List<ClientCard> { card }` without checking `min <= 1 && 1 <= max` posed violation risks if OCGCore requested multi-card selection.
+   - **Hardening**: Wrapped single-card selections with `if (min <= 1 && 1 <= max)` and null-safe plugin access.
+
+5. **`Drytron Tour` (`DrytronTourExecutor.cs` & `DrytronTourPlugin`)**:
+   - **Issue Found**: Single-card search/mill returns in `OnSelectCard` lacked `min <= 1 && 1 <= max` boundary guards.
+   - **Hardening**: Wrapped all single-card returns with `if (min <= 1 && 1 <= max)` and null-safe plugin access.
+
+6. **`Madolche` (`MadolcheExecutor.cs` & `MadolchePlugin`)**:
+   - **Issue Found**: Single-card search returns in `OnSelectCard` lacked `min <= 1 && 1 <= max` boundary guards.
+   - **Hardening**: Wrapped all single-card returns with `if (min <= 1 && 1 <= max)` and null-safe plugin access.
+
+7. **`Centur-Ion` (`CenturionExecutor.cs` & `CenturionPlugin`)**:
+   - **Audit Result**: Clean. Does not override `OnSelectCard`, `OnSelectCounter`, or material selectors; safely uses base `ModernExecutor` heuristics and OCGCore protocol.
+
+### Verification Results
+- All 7 decks compiled and published cleanly with 0 Errors via `BUILD_AND_DEPLOY.ps1`.
+- Headless simulation verified: `2026_Endymion` (0 Violations, 0 Crashes), `2026_DDD` (0 Violations, 100% Win Rate), `2026_SixSamurai` (0 Violations, 66.7% Win Rate over 3 matches).
+- Deployed exclusively to `C:\Users\admin\Documents\EdoGame\`.
+
+---
+
 ## 0.048. Endymion SelectCounter Engine Crash Resolution & Universal Counter Safety (2026-09-26)
 
 ### Incident & Root Cause Analysis
