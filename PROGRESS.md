@@ -1,5 +1,82 @@
 # Progress Log: Central Core Architecture & Universal Heuristics Overhaul
 
+## 0.044. Developer Mode (โหมดนักพัฒนา) & Logging Control Integration (2026-09-26)
+
+### Overview
+- **DashBot Developer Mode Toggle ("โหมดนักพัฒนา")**:
+  - Added `ChkDevMode` toggle checkbox to DashBot UI (`MainWindow.xaml`), positioned right beside "Console Output Logs" with `IsChecked="True"` as the default state.
+  - **Developer Mode ON (Default)**: Full verbose engine decision traces (`DecisionTracer`, `Logger.WriteTraceLine`) shown in UI console and written to session log files (`WindBot\logs\duel_*.log` and `logs\headless\*.log`).
+  - **Developer Mode OFF (Clean Mode)**:
+    - Passes `EnableFileLog = false` (`Log=false`) to WindBot and HeadlessClientWrapper, completely suppressing file log writing to keep the disk clean.
+    - Filters high-frequency noisy traces (`[DEBUG]`, `[TRACE]`, `Candidate card`, `Score:`) in the DashBot console window, keeping only turn milestones, results, and critical notifications.
+- **Engine Core & WindBot Plumbing**:
+  - `Logger.cs`: Added `public static bool FileLogEnabled { get; set; } = true;` guarding `StartDuelSession`, `EndDuelSession`, `WriteToLogFile`, and `WriteErrorToLogFile`.
+  - `Program.cs`: Configured CLI parameter `Log=bool` to toggle `Logger.FileLogEnabled` and `DecisionTracer.Enabled`.
+  - `HeadlessClientWrapper.cs`: Added `EnableFileLog` property to control whether `_logWriter` is created and whether `Log=true/false` is passed to the WindBot process.
+- **Deck Taxonomy & Anti-Duplication Standards**:
+  - Cleaned up duplicate `.ydk` files (removed duplicate `_2026_SixSamurai.ydk`, preserving single canonical `2026_SixSamurai.ydk`).
+  - Enforced strict Anti-Duplication Rule in Section 0 (Rule 6) and Section 8 of `SKILL.md` (Modern `2026_`, Anime `Anime_`, Legacy `AI_`, GOAT `GOAT_`, Special).
+- **Log Sanitation**:
+  - Cleared all historical duel logs in `WindBot\logs\`, `logs\`, and `src\YGO_SOURCE_CLEAN\logs\`.
+- **Build & Deploy Pipeline**:
+  - Successfully compiled and deployed via `BUILD_AND_DEPLOY.ps1` with 0 Errors; deployed to `C:\Users\admin\Documents\EdoGame\`.
+
+---
+
+## 0.043. Six Samurai Gateway Engine Audit & DashBot Logs Integration (2026-09-26)
+
+### Overview
+- **Six Samurai Engine Optimization & Bugfixes**:
+  - **Gateway of the Six Multi-Effect Discrimination**: Added `ActivateDescription` routing in `_2026_SixSamuraiExecutor.cs` to distinguish Effect 1 (Search, cost 4 Bushido counters), Effect 0 (+500 ATK, cost 2 counters), and Effect 2 (Revive Shien, cost 6 counters). Blocks Effect 0 during Main Phase 1 setup to guarantee counters reach $\ge 4$ for loop searching.
+  - **SelectCounters Safety Fallback**: Enhanced `SixSamCounterEconomy.SelectCounters` with strict Gateway card checks and residual fallback drain, ensuring `sum(used) == quantity` and eliminating `MSG_RETRY` engine disconnects.
+  - **HeuristicGuard Self-Negate False Positive Fix**: Removed `hint == HINTMSG_FACEUP` from `ValidateSelection` Rule 1 in `HeuristicGuard.cs`. Eliminates false self-negate violations on friendly stat buffs and equip targets.
+- **DashBot Launcher Quality of Life**:
+  - Added **"Open Logs"** button (`BtnOpenLogs`) in `MainWindow.xaml` and `MainWindow.xaml.cs` to open `WindBot\logs\` directly in File Explorer.
+- **Build & Deploy Pipeline**:
+  - Compiled and deployed via `BUILD_AND_DEPLOY.ps1` with 0 Errors; deployed to `C:\Users\admin\Documents\EdoGame\`.
+
+---
+
+## 0.042. Six Samurai Decoupled Deck Plugin AI Architecture (v11.0 Audited) (2026-09-26)
+
+### Overview
+- **Decks Created**:
+  - `windbot-fork/Decks/2026_SixSamurai.ydk` & `_2026_SixSamurai.ydk` (2026 Master Duel ROTA Six Samurai Core)
+  - Synced to `C:\Users\admin\Documents\EdoGame\deck/`
+- **New AI Architecture**:
+  - `windbot-fork/Game/AI/Decks/_2026_SixSamuraiExecutor.cs` (Rule-Based ModernExecutor with 5-Layer Decoupled Deck Plugin Model)
+  - Coordinated by `SixSamuraiPlugin` with 7 sub-helpers: `SixSamStrategy`, `SixSamCounterEconomy`, `SixSamKizaruResolver`, `SixSamMaterialScorer`, `SixSamActionScorer`, `SixSamRecoveryPlanner`, `SixSamBoardAssessor`.
+- **Core Engine Upgrade**:
+  - Enhanced `Executor.cs` & `GameAI.cs` with `OnSelectCounter` virtual callback, granting counter-based decks full control over counter spending priorities.
+  - Upgraded `SKILL.md` to **v11.0 (Audited Decoupled Plugin & Contextual Reasoning Architecture)**, eliminating incorrect Hint 573, establishing Contextual Removal Evaluation, Compensated Advantage Gate, and Repo-native API Signature rules.
+- **Bots Registration**:
+  - Added `2026_SixSamurai`, `Six Samurai`, `SixSamurai` to `bots.json`
+- **Build & Deploy Pipeline**:
+  - Compiled via `BUILD_AND_DEPLOY.ps1` (0 Errors). Deployed exclusively to `C:\Users\admin\Documents\EdoGame\`.
+
+### Key Intelligence & Domain-Specific Implementation
+1. **Bushido Counter Economy & Management (`SixSamCounterEconomy`)**:
+   - Manages Bushido Counter removal via `OnSelectCounter` override: drains counters from `Battle Shogun` (vulnerable monster body) first, then `Shien's Dojo`, while preserving `Gateway of the Six` counters.
+   - Loop cutoff guard prevents infinite activation loops and timeouts (hard safety limit at 20 activations per turn or immediate cutoff when lethal OTK is reached).
+2. **Missing Resource Search Routing (`PickSearchTarget`)**:
+   - Dynamic search decisions based on hand & board state:
+     - Missing Gateway $\to$ `Gateway of the Six` (via Battle Shogun)
+     - Missing Starter $\to$ `Kageki` / `Shien's Smoke Signal`
+     - 2+ Six Sam on board $\to$ `Great Shogun Shien` (Spell/Trap lockout floodgate)
+     - Missing Tuner for Synchro $\to$ `Tactical Trainer` (Lv2) / `Anarchist Monk` (Lv3) / `Fuma` (Lv1)
+     - Extender / Loop Continuation $\to$ `Kizan` (free SS, no OPT)
+3. **Material Valuation & Boss Monster Protection (`SixSamMaterialScorer`)**:
+   - Custom scoring in `OnSelectCard` for `HINT_LMATERIAL` and `HINT_SMATERIAL`:
+     - Maximum penalty (10000) for `Legendary Lord Shi En`, `Legendary Shi En`, `Great Shogun Shien`, `Naturia Beast`, `Apollousa`.
+     - Preserves `Fuma` for destruction protection if it is our sole Tuner.
+     - Selects low-ATK or spent bodies (`Kageki` 200 ATK, `Shinai`, `Mizuho`, duplicate `Kizan`) as link/synchro fodder.
+4. **Layered End Board & Going 2nd Board Breaking**:
+   - **Going 1st**: `Legendary Lord Shi En` (Monster effect negate), `Legendary Shi En` (Spell/Trap negate), `Great Shogun Shien` (limits opponent to 1 S/T per turn), `Naturia Beast` (unlimited Spell negate via mill), `Apollousa` (multi-monster negate).
+   - **Going 2nd**: `Legendary Lord Enishi` (bounce monsters up to banished Six Sam), `Mizuho` (tribute fodder to pop enemy cards).
+   - **OTK Cutoff**: Automatically disables combo loop and directs resources to battle phase when lethal damage is secured.
+
+---
+
 ## 0.041. Dinomorphia Undying Trap Stun & Kashtira Macro Stun Integration (2026-09-25)
 
 ### Overview

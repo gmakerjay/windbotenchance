@@ -181,7 +181,7 @@ namespace WindBot
             try
             {
                 // Rule 1: Self-Negate
-                if (hint == HINTMSG_NEGATE || hint == HINTMSG_FACEUP || hint == HINTMSG_DISABLE)
+                if (hint == HINTMSG_NEGATE || hint == HINTMSG_DISABLE)
                 {
                     // EXEMPTION: Buio the Dawn's Light (19000848) negates our own Fiend Effect monsters to summon itself.
                     var ownCards = selected.Where(c => c != null && c.Controller == 0 && !(c.HasRace(CardRace.Fiend) && c.HasType(CardType.Effect))).ToList();

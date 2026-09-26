@@ -23,6 +23,7 @@ namespace YgoAiPlatform.Core
         public int? Version { get; set; }
         public string? Dialog { get; set; }
         public bool DebugMode { get; set; } = false;
+        public bool EnableFileLog { get; set; } = true;
         public bool Chat { get; set; } = false;
         public string? ReplayPath { get; set; }
         public string? DuelId { get; set; }
@@ -73,22 +74,25 @@ namespace YgoAiPlatform.Core
                     throw new FileNotFoundException($"Could not find WindBot.dll at: {windbotDllPath}. Please run the build script first.");
                 }
 
-                // Initialize client log file
-                string headlessLogDir = Path.Combine(_projectRootDir, "logs", "headless");
-                Directory.CreateDirectory(headlessLogDir);
-                string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                string logPath = Path.Combine(headlessLogDir, $"client_{CleanFileName(Name)}_{timestamp}_{Port}.log");
-                try
+                // Initialize client log file only when EnableFileLog is enabled
+                if (EnableFileLog)
                 {
-                    _logWriter = new StreamWriter(logPath, false, Encoding.UTF8);
-                    _logWriter.WriteLine($"=== WindBot Headless Client Start: {DateTime.Now:yyyy-MM-dd HH:mm:ss} ===");
-                    _logWriter.WriteLine($"Deck: {Deck} | Host: {Host}:{Port}");
-                    _logWriter.WriteLine("==================================================");
-                    _logWriter.Flush();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[Warning] Failed to initialize headless client log file: {ex.Message}");
+                    string headlessLogDir = Path.Combine(_projectRootDir, "logs", "headless");
+                    Directory.CreateDirectory(headlessLogDir);
+                    string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                    string logPath = Path.Combine(headlessLogDir, $"client_{CleanFileName(Name)}_{timestamp}_{Port}.log");
+                    try
+                    {
+                        _logWriter = new StreamWriter(logPath, false, Encoding.UTF8);
+                        _logWriter.WriteLine($"=== WindBot Headless Client Start: {DateTime.Now:yyyy-MM-dd HH:mm:ss} ===");
+                        _logWriter.WriteLine($"Deck: {Deck} | Host: {Host}:{Port}");
+                        _logWriter.WriteLine("==================================================");
+                        _logWriter.Flush();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[Warning] Failed to initialize headless client log file: {ex.Message}");
+                    }
                 }
 
                 var argsBuilder = new StringBuilder();
@@ -100,6 +104,7 @@ namespace YgoAiPlatform.Core
                 argsBuilder.Append($" Port={Port}");
                 argsBuilder.Append($" Chat={(Chat ? "true" : "false")}");
                 argsBuilder.Append($" Debug={(DebugMode ? "true" : "false")}");
+                argsBuilder.Append($" Log={(EnableFileLog ? "true" : "false")}");
 
                 if (Hand.HasValue)
                 {

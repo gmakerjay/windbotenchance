@@ -468,9 +468,11 @@
                         <Grid Grid.Row="0" Margin="0,0,0,8">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <TextBlock Text="Console Output Logs" FontSize="13" FontWeight="Bold" Foreground="#111111"/>
+                                <CheckBox x:Name="ChkDevMode" Content="โหมดนักพัฒนา (บันทึก Logs)" IsChecked="True" FontWeight="SemiBold" FontSize="11" Foreground="#444444" Margin="14,0,0,0" VerticalAlignment="Center" Cursor="Hand" Click="ChkDevMode_Click" ToolTip="เปิด: แสดงผลและบันทึก Logs ละเอียดทั้งหมด / ปิด: ซ่อน Log ละเอียดและไม่บันทึกไฟล์ลงดิสก์"/>
                                 <TextBlock x:Name="TxtConsoleStatus" Text="Ready." FontSize="11" Foreground="#059669" FontWeight="Bold" Margin="10,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button x:Name="BtnOpenLogs" Content="Open Logs" Style="{StaticResource SecondaryWhiteBtn}" Padding="10,3" Margin="0,0,6,0" Click="BtnOpenLogs_Click"/>
                                 <Button x:Name="BtnCopyConsole" Content="Copy" Style="{StaticResource SecondaryWhiteBtn}" Padding="10,3" Margin="0,0,6,0" Click="BtnCopyConsole_Click"/>
                                 <Button x:Name="BtnClearConsole" Content="Clear" Style="{StaticResource SecondaryWhiteBtn}" Padding="10,3" Click="BtnClearConsole_Click"/>
                             </StackPanel>

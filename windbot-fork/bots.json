@@ -1,5 +1,23 @@
 [
   {
+    "name": "2026_SixSamurai",
+    "deck": "2026_SixSamurai",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "Six Samurai",
+    "deck": "2026_SixSamurai",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "SixSamurai",
+    "deck": "2026_SixSamurai",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
     "name": "ADML",
     "deck": "ADML",
     "difficulty": 3,

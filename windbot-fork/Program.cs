@@ -41,6 +41,10 @@ namespace WindBot
 
             Config.Load(args);
 
+            bool enableLog = Config.GetBool("Log", true);
+            Logger.FileLogEnabled = enableLog;
+            DecisionTracer.Enabled = enableLog;
+
             // ZMQ Integration for Spectator
             int zmqPubPort = Config.GetInt("ZmqPubPort", 0);
             int zmqRepPort = Config.GetInt("ZmqRepPort", 0);

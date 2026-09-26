@@ -168,10 +168,10 @@ namespace WindBot.Game.AI.Decks
 
             // ── 9. Battle Forcing & Reflect Traps (Battle Mania / Staunch Defender / D2 Shield / Cross Counter) ──
             AddExecutor(ExecutorType.Activate, CardId.BattleMania, BattleManiaEffect);
-            AddExecutor(ExecutorType.Activate, CardId.StaunchDefender, StaunchDefenderEffect);
-            AddExecutor(ExecutorType.Activate, CardId.RiseToFullHeight, RiseToFullHeightEffect);
             AddExecutor(ExecutorType.Activate, CardId.D2Shield, D2ShieldEffect);
+            AddExecutor(ExecutorType.Activate, CardId.RiseToFullHeight, RiseToFullHeightEffect);
             AddExecutor(ExecutorType.Activate, CardId.CrossCounter, CrossCounterEffect);
+            AddExecutor(ExecutorType.Activate, CardId.StaunchDefender, StaunchDefenderEffect);
 
             AddExecutor(ExecutorType.SpellSet, SetTrapCondition);
             AddExecutor(ExecutorType.Repos, MonsterRepos);
@@ -267,13 +267,15 @@ namespace WindBot.Game.AI.Decks
             }
 
             // 6. Target Selection (D2 Shield / Rise to Full Height / Staunch Defender):
-            // Always target Big Shield Gardna first!
+            // Always target Big Shield Gardna first, prioritizing non-zero DEF!
             if (hint == HINTMSG_TARGET || hint == HINTMSG_FACEUP)
             {
-                var gardnaTarget = cards.FirstOrDefault(c => c.Controller == 0 && c.IsCode(CardId.BigShieldGardna) && c.IsFaceup());
+                var gardnaTarget = cards.FirstOrDefault(c => c.Controller == 0 && c.IsCode(CardId.BigShieldGardna) && c.IsFaceup() && c.IsDefense() && c.Defense > 0)
+                    ?? cards.FirstOrDefault(c => c.Controller == 0 && c.IsCode(CardId.BigShieldGardna) && c.IsFaceup() && c.IsDefense());
                 if (gardnaTarget != null) return new List<ClientCard> { gardnaTarget };
 
-                var otherDefTarget = cards.FirstOrDefault(c => c.Controller == 0 && c.IsDefense() && c.IsFaceup());
+                var otherDefTarget = cards.FirstOrDefault(c => c.Controller == 0 && c.IsDefense() && c.IsFaceup() && c.Defense > 0)
+                    ?? cards.FirstOrDefault(c => c.Controller == 0 && c.IsDefense() && c.IsFaceup());
                 if (otherDefTarget != null) return new List<ClientCard> { otherDefTarget };
             }
 
@@ -372,7 +374,19 @@ namespace WindBot.Game.AI.Decks
         {
             // Damage Step Handtrap (+1500 DEF): Activates from HAND, so it completely ignores Skill Drain!
             if (Duel.Phase != DuelPhase.BattleStep && Duel.Phase != DuelPhase.Damage) return false;
-            return Bot.BattlingMonster != null && Bot.BattlingMonster.IsDefense();
+            if (Bot.BattlingMonster == null || !Bot.BattlingMonster.IsDefense()) return false;
+
+            // Only activate if our monster has DEF > 0 and the boost allows survival/punishment
+            if (Bot.BattlingMonster.IsFaceup() && Bot.BattlingMonster.Defense <= 0) return false;
+
+            ClientCard attacker = Enemy.BattlingMonster;
+            if (attacker != null)
+            {
+                int currentDef = Bot.BattlingMonster.IsFaceup() ? Bot.BattlingMonster.Defense : (Bot.BattlingMonster.Data?.Defense ?? 0);
+                return currentDef + 1500 >= attacker.Attack;
+            }
+
+            return true;
         }
 
         private bool HarpiesFeatherDusterEffect()
@@ -408,8 +422,8 @@ namespace WindBot.Game.AI.Decks
 
         private bool MidShieldGardnaEffect()
         {
-            // Flip itself face-down once per turn in Main Phase to reset its spell negation trap!
-            return Card.Location == CardLocation.MonsterZone && Card.IsFaceup() && Card.IsDefense();
+            // Flip itself face-down once per turn in Main Phase to reset its spell negation trap AND reset stats!
+            return Card.Location == CardLocation.MonsterZone && Card.IsFaceup();
         }
 
         private bool FossilDynaMonsterSet()
@@ -495,30 +509,118 @@ namespace WindBot.Game.AI.Decks
 
         private bool BattleManiaEffect()
         {
-            // Do not force attack if enemy controls damage reflect monsters (Mikanko or Daigusto Sphreez)
-            if (Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && (c.IsCode(29552709) || c.HasSetcode(0x18d))))
+            // Activate only during opponent's Standby Phase (card requirement)
+            if (Duel.Player != 1 || Duel.Phase != DuelPhase.Standby)
                 return false;
 
-            // Activate in opponent's Standby Phase if we control Big Shield Gardna or Defense walls
-            bool haveGardna = Bot.GetMonsters().Any(c => c != null &&
-                (c.IsCode(CardId.BigShieldGardna) || c.IsCode(CardId.MidShieldGardna) || c.IsFacedown()));
-            return Duel.Player == 1 && Duel.Phase == DuelPhase.Standby && haveGardna && Enemy.GetMonsterCount() > 0;
+            // Opponent must control monsters to attack
+            if (Enemy.GetMonsterCount() == 0)
+                return false;
+
+            // Do not force attack if enemy controls damage reflect monsters (Mikanko, Daigusto Sphreez, Yubel, Amazoness Swords Woman)
+            if (Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() &&
+                (c.IsCode(29552709) || c.HasSetcode(0x18d) || c.IsCode(73915051) ||
+                 c.IsCode(78371393) || c.IsCode(4779091) || c.IsCode(31764782))))
+            {
+                return false;
+            }
+
+            // Do not activate if we control face-up Bagooska in Defense (it forces all monsters to DEF, preventing attacks)
+            if (Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.IsDefense() && c.IsCode(CardId.Bagooska)))
+                return false;
+
+            var myMonsters = Bot.GetMonsters().Where(c => c != null).ToList();
+            if (myMonsters.Count == 0)
+                return false;
+
+            // Check attack redirection availability
+            bool hasAttackRedirect = (Bot.HasInSpellZone(CardId.StaunchDefender) && Bot.GetSpells().Any(c => c != null && c.IsFacedown() && c.IsCode(CardId.StaunchDefender)))
+                || Bot.Graveyard.Any(c => c != null && c.IsCode(CardId.RiseToFullHeight));
+
+            // CRITICAL CHECK: Any vulnerable monster on our field?
+            // If any face-up monster is in Attack position with low ATK (< 2500), opponent will attack it!
+            bool hasVulnerableAttackMonster = myMonsters.Any(c => c.IsFaceup() && c.IsAttack() && c.Attack < 2500);
+            if (hasVulnerableAttackMonster && !hasAttackRedirect)
+                return false;
+
+            // If any face-up monster is in Defense position with DEF <= 0 (e.g. from Rise to Full Height lingering effect),
+            // opponent would crash into it for free with 0 reflection damage!
+            bool hasZeroDefMonster = myMonsters.Any(c => c.IsFaceup() && c.IsDefense() && c.Defense <= 0);
+            if (hasZeroDefMonster && !hasAttackRedirect)
+                return false;
+
+            // Evaluate our defensive walls
+            int bestDef = 0;
+            ClientCard bestWall = null;
+
+            foreach (var m in myMonsters)
+            {
+                if (m.IsFacedown())
+                {
+                    // Face-down monsters: use original DEF from card data (Gardna: 2600, Mid: 1800, Lord: 3000)
+                    int def = m.Data?.Defense ?? 0;
+                    if (def > bestDef)
+                    {
+                        bestDef = def;
+                        bestWall = m;
+                    }
+                }
+                else if (m.IsDefense())
+                {
+                    // Face-up defense monster: MUST check actual on-field DEF!
+                    // If DEF is 0 or negative, it cannot be our wall!
+                    if (m.Defense > 0 && m.Defense > bestDef)
+                    {
+                        bestDef = m.Defense;
+                        bestWall = m;
+                    }
+                }
+            }
+
+            // Must have a solid wall with at least 1800 DEF
+            if (bestWall == null || bestDef < 1800)
+                return false;
+
+            // Check available combat boosts
+            bool hasD2Shield = Bot.GetSpells().Any(c => c != null && c.IsFacedown() && c.IsCode(CardId.D2Shield));
+            bool hasStronghold = Bot.HasInHand(CardId.StrongholdGuardian);
+            bool hasRise = Bot.GetSpells().Any(c => c != null && c.IsFacedown() && c.IsCode(CardId.RiseToFullHeight));
+
+            int maxPotentialDef = bestDef;
+            if (hasD2Shield || hasRise) maxPotentialDef = Math.Max(maxPotentialDef, bestDef * 2);
+            if (hasStronghold) maxPotentialDef += 1500;
+
+            // Check opponent's highest ATK
+            int oppMaxAtk = Enemy.GetMonsters()
+                .Where(c => c != null && c.IsFaceup())
+                .Select(c => c.Attack)
+                .DefaultIfEmpty(0)
+                .Max();
+
+            if (oppMaxAtk == 0 && Enemy.GetMonsterCount() > 0)
+                oppMaxAtk = 1500;
+
+            // If opponent's highest ATK can beat even our potential DEF, do NOT force them to attack!
+            if (oppMaxAtk >= maxPotentialDef)
+                return false;
+
+            return true;
         }
 
         private bool StaunchDefenderEffect()
         {
             if (Duel.Player != 1) return false;
 
-            // Select face-up Big Shield Gardna (or high DEF wall)
-            ClientCard gardna = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() &&
-                (c.IsCode(CardId.BigShieldGardna) || c.IsCode(CardId.MidShieldGardna) || c.IsCode(CardId.LordOfTheHeavenlyPrison)) && c.IsDefense());
+            // Select face-up Big Shield Gardna (or high DEF wall) THAT HAS DEF > 0!
+            ClientCard gardna = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsDefense() && c.Defense > 0 &&
+                (c.IsCode(CardId.BigShieldGardna) || c.IsCode(CardId.MidShieldGardna) || c.IsCode(CardId.LordOfTheHeavenlyPrison)));
             if (gardna == null) return false;
 
             bool hasDefTrap = Bot.GetSpells().Any(c => c != null && c.IsFacedown() &&
-                (c.IsCode(CardId.D2Shield) || c.IsCode(CardId.CrossCounter)));
+                (c.IsCode(CardId.D2Shield) || c.IsCode(CardId.CrossCounter) || c.IsCode(CardId.RiseToFullHeight)));
             bool hasHandTrap = Bot.HasInHand(CardId.StrongholdGuardian);
 
-            if (!hasDefTrap && !hasHandTrap && Enemy.GetMonsterCount() > 1) return false;
+            if (!hasDefTrap && !hasHandTrap && Enemy.GetMonsterCount() > 1 && gardna.Defense < 3000) return false;
 
             AI.SelectCard(gardna);
             return true;
@@ -527,11 +629,24 @@ namespace WindBot.Game.AI.Decks
         private bool RiseToFullHeightEffect()
         {
             // Field effect: double DEF of Big Shield Gardna (2600 -> 5200 DEF!)
+            // WARNING: "its DEF becomes 0 at the end of this turn."
+            // Therefore, ONLY activate in opponent's turn during Battle Step when our monster is attacked!
+            // NEVER activate in Main Phase or our turn, as that leaves our monster with 0 DEF permanently!
             if (Card.Location == CardLocation.SpellZone)
             {
-                ClientCard target = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() &&
-                    (c.IsCode(CardId.BigShieldGardna) || c.IsCode(CardId.MidShieldGardna)) && c.IsDefense());
-                if (target != null)
+                if (Duel.Player != 1 || (Duel.Phase != DuelPhase.BattleStep && Duel.Phase != DuelPhase.Damage))
+                    return false;
+
+                ClientCard target = Bot.BattlingMonster;
+                if (target == null || !target.IsFaceup() || !target.IsDefense() || target.Defense <= 0)
+                    return false;
+
+                if (!target.IsCode(CardId.BigShieldGardna) && !target.IsCode(CardId.MidShieldGardna) && !target.IsCode(CardId.LordOfTheHeavenlyPrison))
+                    return false;
+
+                ClientCard attacker = Enemy.BattlingMonster;
+                // Only activate if doubling DEF beats attacker or we need to survive/inflict damage
+                if (attacker != null && target.Defense * 2 > attacker.Attack)
                 {
                     AI.SelectCard(target);
                     return true;
@@ -539,12 +654,14 @@ namespace WindBot.Game.AI.Decks
                 return false;
             }
 
-            // GY effect: banish to lock opponent attacks strictly onto Big Shield Gardna!
+            // GY effect: banish to lock opponent attacks strictly onto our high-DEF wall!
             if (Card.Location == CardLocation.Grave)
             {
                 if (Duel.Player == 1 && (Duel.Phase == DuelPhase.BattleStep || Duel.Phase == DuelPhase.Battle || Duel.Phase == DuelPhase.Main1))
                 {
-                    ClientCard target = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(CardId.BigShieldGardna));
+                    // Target must be face-up, in Defense, and have DEF >= 1800!
+                    ClientCard target = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsDefense() && c.Defense >= 1800 &&
+                        (c.IsCode(CardId.BigShieldGardna) || c.IsCode(CardId.MidShieldGardna) || c.IsCode(CardId.LordOfTheHeavenlyPrison)));
                     if (target != null)
                     {
                         AI.SelectCard(target);
@@ -558,22 +675,28 @@ namespace WindBot.Game.AI.Decks
 
         private bool D2ShieldEffect()
         {
-            // Double DEF of Big Shield Gardna (2600 original -> 5200 DEF!)
-            ClientCard gardna = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() &&
-                c.IsCode(CardId.BigShieldGardna) && c.IsDefense());
-            if (gardna != null)
+            // Activate in Battle Step when attacked, OR in Standby Phase when Battle Mania is active
+            // D2 Shield doubles original DEF (2600 -> 5200, 1800 -> 3600), safe and permanent!
+            if (Duel.Phase == DuelPhase.BattleStep || Duel.Phase == DuelPhase.Damage ||
+                (Duel.Phase == DuelPhase.Standby && Bot.HasInSpellZone(CardId.BattleMania)))
             {
-                AI.SelectCard(gardna);
-                return true;
-            }
+                // Primary target: Big Shield Gardna (2600 original -> 5200 DEF!)
+                ClientCard gardna = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() &&
+                    c.IsCode(CardId.BigShieldGardna) && c.IsDefense());
+                if (gardna != null)
+                {
+                    AI.SelectCard(gardna);
+                    return true;
+                }
 
-            // Secondary target: Mid Shield Gardna (1800 -> 3600 DEF)
-            ClientCard other = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() &&
-                c.IsCode(CardId.MidShieldGardna) && c.IsDefense());
-            if (other != null)
-            {
-                AI.SelectCard(other);
-                return true;
+                // Secondary target: Mid Shield Gardna (1800 -> 3600 DEF)
+                ClientCard other = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() &&
+                    c.IsCode(CardId.MidShieldGardna) && c.IsDefense());
+                if (other != null)
+                {
+                    AI.SelectCard(other);
+                    return true;
+                }
             }
 
             return false;
@@ -606,6 +729,13 @@ namespace WindBot.Game.AI.Decks
             {
                 if (Card.IsAttack() && Card.IsFaceup()) return true;
                 return false;
+            }
+
+            // Fossil Dyna: Switch to DEF if opponent has monsters stronger than 1200 ATK
+            if (Card.IsCode(CardId.FossilDynaPachycephalo))
+            {
+                if (Card.IsAttack() && Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && c.Attack > 1200))
+                    return true;
             }
 
             // Lord of the Heavenly Prison: Keep in DEF (3000 DEF wall) unless we have lethal push

@@ -473,36 +473,145 @@ namespace WindBot.Game.AI.Decks
 
         private bool BattleManiaEffect()
         {
-            // Do not force attack if enemy controls Daigusto Sphreez (29552709) or Mikanko monsters that reflect battle damage back to us!
-            if (Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && (c.IsCode(29552709) || c.HasSetcode(0x18d))))
+            // Activate only during opponent's Standby Phase
+            if (Duel.Player != 1 || Duel.Phase != DuelPhase.Standby)
                 return false;
 
-            // Activate in opponent's Standby Phase if we control Aztec (face-up or face-down!)
-            bool haveAztec = Bot.GetMonsters().Any(c => c != null && (c.IsCode(CardId.StoneStatueOfTheAztecs) || c.IsFacedown()));
-            return Duel.Player == 1 && Duel.Phase == DuelPhase.Standby && haveAztec && Enemy.GetMonsterCount() > 0;
+            if (Enemy.GetMonsterCount() == 0)
+                return false;
+
+            // Do not force attack if enemy controls damage reflect monsters (Mikanko, Daigusto Sphreez, Yubel, Amazoness Swords Woman)
+            if (Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() &&
+                (c.IsCode(29552709) || c.HasSetcode(0x18d) || c.IsCode(73915051) ||
+                 c.IsCode(78371393) || c.IsCode(4779091) || c.IsCode(31764782))))
+            {
+                return false;
+            }
+
+            // Do not activate if we control face-up Bagooska in Defense
+            if (Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.IsDefense() && c.IsCode(CardId.Bagooska)))
+                return false;
+
+            var myMonsters = Bot.GetMonsters().Where(c => c != null).ToList();
+            if (myMonsters.Count == 0)
+                return false;
+
+            // Guard against vulnerable monsters
+            bool hasAttackRedirect = Bot.Graveyard.Any(c => c != null && c.IsCode(CardId.RiseToFullHeight));
+            bool hasVulnerableAttack = myMonsters.Any(c => c.IsFaceup() && c.IsAttack() && c.Attack < 2000);
+            if (hasVulnerableAttack && !hasAttackRedirect)
+                return false;
+
+            bool hasZeroDef = myMonsters.Any(c => c.IsFaceup() && c.IsDefense() && c.Defense <= 0);
+            if (hasZeroDef && !hasAttackRedirect)
+                return false;
+
+            // Find best defense wall
+            int bestDef = 0;
+            ClientCard bestWall = null;
+            foreach (var m in myMonsters)
+            {
+                if (m.IsFacedown())
+                {
+                    int def = m.Data?.Defense ?? 0;
+                    if (def > bestDef)
+                    {
+                        bestDef = def;
+                        bestWall = m;
+                    }
+                }
+                else if (m.IsDefense())
+                {
+                    if (m.Defense > 0 && m.Defense > bestDef)
+                    {
+                        bestDef = m.Defense;
+                        bestWall = m;
+                    }
+                }
+            }
+
+            if (bestWall == null || bestDef < 1800)
+                return false;
+
+            bool hasD2 = Bot.GetSpells().Any(c => c != null && c.IsFacedown() && c.IsCode(CardId.D2Shield));
+            bool hasStronghold = Bot.HasInHand(CardId.StrongholdGuardian);
+            bool hasRise = Bot.GetSpells().Any(c => c != null && c.IsFacedown() && c.IsCode(CardId.RiseToFullHeight));
+
+            int maxPotentialDef = bestDef;
+            if (hasD2 || hasRise) maxPotentialDef = Math.Max(maxPotentialDef, bestDef * 2);
+            if (hasStronghold) maxPotentialDef += 1500;
+
+            int oppMaxAtk = Enemy.GetMonsters()
+                .Where(c => c != null && c.IsFaceup())
+                .Select(c => c.Attack)
+                .DefaultIfEmpty(0)
+                .Max();
+
+            if (oppMaxAtk == 0 && Enemy.GetMonsterCount() > 0)
+                oppMaxAtk = 1500;
+
+            if (oppMaxAtk >= maxPotentialDef)
+                return false;
+
+            return true;
         }
 
         private bool RiseToFullHeightEffect()
         {
-            // Double DEF of Aztec and lock opponent attacks into it
-            ClientCard aztec = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(CardId.StoneStatueOfTheAztecs));
-            if (aztec != null)
+            // Field effect: only activate in opponent's Battle Step when our defense monster is attacked!
+            if (Card.Location == CardLocation.SpellZone)
             {
-                AI.SelectCard(aztec);
-                return true;
+                if (Duel.Player != 1 || (Duel.Phase != DuelPhase.BattleStep && Duel.Phase != DuelPhase.Damage))
+                    return false;
+
+                ClientCard target = Bot.BattlingMonster;
+                if (target == null || !target.IsFaceup() || !target.IsDefense() || target.Defense <= 0)
+                    return false;
+
+                if (!target.IsCode(CardId.StoneStatueOfTheAztecs) && !target.IsCode(CardId.LordOfTheHeavenlyPrison))
+                    return false;
+
+                ClientCard attacker = Enemy.BattlingMonster;
+                if (attacker != null && target.Defense * 2 > attacker.Attack)
+                {
+                    AI.SelectCard(target);
+                    return true;
+                }
+                return false;
             }
+
+            // GY effect: lock attacks to our high-DEF wall
+            if (Card.Location == CardLocation.Grave)
+            {
+                if (Duel.Player == 1 && (Duel.Phase == DuelPhase.BattleStep || Duel.Phase == DuelPhase.Battle || Duel.Phase == DuelPhase.Main1))
+                {
+                    ClientCard target = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsDefense() && c.Defense >= 1800 &&
+                        (c.IsCode(CardId.StoneStatueOfTheAztecs) || c.IsCode(CardId.LordOfTheHeavenlyPrison)));
+                    if (target != null)
+                    {
+                        AI.SelectCard(target);
+                        return true;
+                    }
+                }
+            }
+
             return false;
         }
 
         private bool D2ShieldEffect()
         {
-            // Double DEF of Stone Statue of the Aztecs (2000 -> 4000 DEF!)
-            ClientCard aztec = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(CardId.StoneStatueOfTheAztecs) && c.IsDefense());
-            if (aztec != null)
+            if (Duel.Phase == DuelPhase.BattleStep || Duel.Phase == DuelPhase.Damage ||
+                (Duel.Phase == DuelPhase.Standby && Bot.HasInSpellZone(CardId.BattleMania)))
             {
-                AI.SelectCard(aztec);
-                return true;
+                // Double DEF of Stone Statue of the Aztecs (2000 -> 4000 DEF!)
+                ClientCard aztec = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(CardId.StoneStatueOfTheAztecs) && c.IsDefense());
+                if (aztec != null)
+                {
+                    AI.SelectCard(aztec);
+                    return true;
+                }
             }
+
             return false;
         }
 

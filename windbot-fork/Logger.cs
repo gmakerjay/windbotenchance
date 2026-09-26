@@ -9,6 +9,7 @@ namespace WindBot
 {
     public static class Logger
     {
+        public static bool FileLogEnabled { get; set; } = true;
         private static string _currentLogDir = null;
 
         /// <summary>
@@ -66,6 +67,7 @@ namespace WindBot
 
         public static void StartDuelSession(string name0, string name1, string botName)
         {
+            if (!FileLogEnabled) return;
             lock (_logLock)
             {
                 try
@@ -164,6 +166,7 @@ namespace WindBot
 
         public static void EndDuelSession(string result)
         {
+            if (!FileLogEnabled) return;
             lock (_logLock)
             {
                 try
@@ -208,6 +211,7 @@ namespace WindBot
 
         private static void WriteToLogFile(string message)
         {
+            if (!FileLogEnabled) return;
             lock (_logLock)
             {
                 try
@@ -234,6 +238,7 @@ namespace WindBot
 
         private static void WriteErrorToLogFile(string message)
         {
+            if (!FileLogEnabled) return;
             lock (_logLock)
             {
                 try

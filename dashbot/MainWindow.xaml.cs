@@ -729,6 +729,58 @@ namespace dashbot
             }
         }
 
+        private void BtnOpenLogs_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string baseDir = AppContext.BaseDirectory;
+                string logDir = Path.Combine(baseDir, "WindBot", "logs");
+                if (!Directory.Exists(logDir))
+                {
+                    logDir = Path.Combine(baseDir, "logs");
+                }
+                if (!Directory.Exists(logDir))
+                {
+                    Directory.CreateDirectory(logDir);
+                }
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = logDir,
+                    UseShellExecute = true,
+                    Verb = "open"
+                });
+                TxtConsoleStatus.Text = "Logs folder opened.";
+            }
+            catch (Exception ex)
+            {
+                TxtConsoleStatus.Text = $"Open logs error: {ex.Message}";
+            }
+        }
+
+        private void ChkDevMode_Click(object sender, RoutedEventArgs e)
+        {
+            bool isDev = (ChkDevMode?.IsChecked == true);
+            if (isDev)
+            {
+                LogToConsole("[โหมดนักพัฒนา] เปิดใช้งาน: แสดง Trace ละเอียด และบันทึก Logs ลงไฟล์");
+                TxtConsoleStatus.Text = "Dev Mode: ON (Logging)";
+            }
+            else
+            {
+                LogToConsole("[โหมดนักพัฒนา] ปิดใช้งาน: ซ่อน Trace ละเอียด และระงับการบันทึกไฟล์ Logs");
+                TxtConsoleStatus.Text = "Dev Mode: OFF (Clean)";
+            }
+        }
+
+        private static bool ShouldShowInCleanMode(string line)
+        {
+            if (string.IsNullOrWhiteSpace(line)) return false;
+            // Suppress verbose debug and decision trace internals
+            if (line.Contains("[DEBUG]") || line.Contains("[TRACE]") || line.Contains("Candidate card") || line.Contains("Score:"))
+                return false;
+            return true;
+        }
+
         private async void BtnConnectAi_Click(object sender, RoutedEventArgs e)
         {
             string host = TxtHostIp.Text.Trim();
@@ -741,6 +793,7 @@ namespace dashbot
             string bot2DisplayName = _selectedBot2Deck?.DisplayName ?? "Dark Magician";
 
             bool isBotVsBot = (RbModeDual?.IsChecked == true);
+            bool isDevMode = (ChkDevMode?.IsChecked == true);
 
             if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(portStr))
             {
@@ -766,6 +819,7 @@ namespace dashbot
             {
                 LogToConsole($"Spawning WindBot: {bot1DisplayName} [{bot1FileName}]");
             }
+            LogToConsole($"Mode: {(isDevMode ? "โหมดนักพัฒนา (บันทึก Logs)" : "โหมดปกติ (ไม่บันทึก Logs)")}");
             LogToConsole($"Connecting to {host}:{port}...");
             LogToConsole($"---------------------------------------------------\n");
 
@@ -784,10 +838,17 @@ namespace dashbot
                         Name = bot1DisplayName,
                         Deck = bot1FileName,
                         Host = host,
-                        Port = port
+                        Port = port,
+                        EnableFileLog = isDevMode
                     };
 
-                    wrapper1.OnOutputReceived += (line) => LogToConsole($"[{bot1DisplayName}] {line}");
+                    wrapper1.OnOutputReceived += (line) =>
+                    {
+                        if (isDevMode || ShouldShowInCleanMode(line))
+                        {
+                            LogToConsole($"[{bot1DisplayName}] {line}");
+                        }
+                    };
                     wrapper1.OnErrorReceived += (line) => LogToConsole($"[{bot1DisplayName} Warning] {line}");
 
                     wrapper1.Start();
@@ -802,10 +863,17 @@ namespace dashbot
                             Name = botBName,
                             Deck = bot2FileName,
                             Host = host,
-                            Port = port
+                            Port = port,
+                            EnableFileLog = isDevMode
                         };
 
-                        wrapper2.OnOutputReceived += (line) => LogToConsole($"[{botBName}] {line}");
+                        wrapper2.OnOutputReceived += (line) =>
+                        {
+                            if (isDevMode || ShouldShowInCleanMode(line))
+                            {
+                                LogToConsole($"[{botBName}] {line}");
+                            }
+                        };
                         wrapper2.OnErrorReceived += (line) => LogToConsole($"[{botBName} Warning] {line}");
 
                         wrapper2.Start();
@@ -838,7 +906,7 @@ namespace dashbot
             });
 
             BtnConnectAi.IsEnabled = true;
-            TxtConsoleStatus.Text = "Ready.";
+            TxtConsoleStatus.Text = isDevMode ? "Ready (Dev Mode)." : "Ready.";
         }
     }
 }

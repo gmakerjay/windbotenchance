@@ -208,47 +208,203 @@ namespace WindBot.Game.AI.Decks
         }
 
         // ═══════════════════════════════════════════════════════════════
+        //  SITUATIONAL HELPER METHODS (Board Reading & LP Efficiency)
+        // ═══════════════════════════════════════════════════════════════
+
+        private bool IsRextermActiveOnField()
+        {
+            return Bot.GetMonsters().Any(m => m != null && m.IsFaceup() && !m.IsDisabled() && m.IsCode(CardId.DinomorphiaRexterm));
+        }
+
+        private bool IsStealthbergiaFreeCostActive()
+        {
+            return Bot.LifePoints <= 2000 && Bot.GetMonsters().Any(m => m != null && m.IsFaceup() && !m.IsDisabled() && m.IsCode(CardId.DinomorphiaStealthbergia));
+        }
+
+        private bool IsOpponentMonsterLockedByRexterm(ClientCard monster)
+        {
+            if (monster == null || !IsRextermActiveOnField()) return false;
+            // Rexterm continuous floodgate: Opponent cannot activate effects of monsters with ATK >= our LP
+            return monster.Attack >= Bot.LifePoints;
+        }
+
+        private bool HasSafeSelfDestructionTarget()
+        {
+            // Returns true if we control a Dinomorphia monster OTHER than our only Rexterm
+            var dinos = Bot.GetMonsters().Where(m => m != null && m.IsFaceup() && IsDinomorphiaMonster(m)).ToList();
+            if (dinos.Count == 0) return false;
+            // If we have any floater (Therizia, Diplos, Stealthbergia, Kentregina) or token
+            if (dinos.Any(m => m.Id != CardId.DinomorphiaRexterm)) return true;
+            // If we have multiple Rexterms (more than 1)
+            return dinos.Count(m => m.Id == CardId.DinomorphiaRexterm) > 1;
+        }
+
+        private bool ShouldPreventBattleDamage()
+        {
+            if (Bot.LifePoints > 2000) return false;
+            if (Duel.Phase != DuelPhase.Damage && Duel.Phase != DuelPhase.DamageCal && Duel.Phase != DuelPhase.BattleStep)
+                return false;
+
+            if (Enemy.BattlingMonster != null)
+            {
+                if (Bot.BattlingMonster == null)
+                {
+                    // Direct attack incoming!
+                    return true;
+                }
+                if (Bot.BattlingMonster.IsAttack() && Enemy.BattlingMonster.Attack > Bot.BattlingMonster.Attack)
+                    return true;
+                if (Bot.BattlingMonster.IsDefense() && Enemy.BattlingMonster.Attack > Bot.BattlingMonster.Defense)
+                    return true;
+            }
+            return false;
+        }
+
+        private bool ShouldPreventEffectDamage()
+        {
+            if (Bot.LifePoints > 2000) return false;
+            if (LastChainCard == null || LastChainCard.Controller != 1) return false;
+
+            // If LP is critically low (<= 1000), prevent any damage from opponent's chain
+            if (Bot.LifePoints <= 1000) return true;
+
+            // Opponent card is an activated effect that could burn
+            return LastChainCard.IsSpell() || LastChainCard.IsTrap() || LastChainCard.IsMonster();
+        }
+
+        private static bool IsMassBoardWipe(ClientCard card)
+        {
+            if (card == null) return false;
+            int id = card.Id;
+            return id == 18144506 || // Harpie's Feather Duster
+                   id == 12580477 || // Raigeki
+                   id == 43898403 || // Lightning Storm
+                   id == 57728570 || // Evenly Matched
+                   id == 27204311 || // Nibiru
+                   id == 24299458 || // Forbidden Droplet
+                   id == 10045474 || // Dark Ruler No More
+                   id == 48130397 || // Super Polymerization
+                   id == 72302403 || // Swords of Revealing Light
+                   id == 23002292;   // Red Reboot
+        }
+
+        // ═══════════════════════════════════════════════════════════════
         //  ACTIVATION & STRATEGY IMPLEMENTATIONS
         // ═══════════════════════════════════════════════════════════════
 
         private bool SolemnJudgmentEffect()
         {
-            // Negate high impact enemy cards
+            // Negate high impact enemy threats:
+            // 1. Mass removal / board wipes
             if (LastChainCard != null && LastChainCard.Controller == 1)
             {
-                return true;
+                if (IsMassBoardWipe(LastChainCard)) return true;
+
+                // Protect backrow & key monsters from dangerous Spells/Traps
+                if (LastChainCard.IsSpell() || LastChainCard.IsTrap())
+                {
+                    return true;
+                }
+                return false;
             }
-            return Duel.LastSummonPlayer == 1;
+
+            // 2. High-threat Summons:
+            // Only negate summons of boss monsters (Level/Rank >= 7, Link >= 3, or ATK >= 2800)
+            if (Duel.LastSummonPlayer == 1)
+            {
+                var summoned = Enemy.GetMonsters().OrderByDescending(m => m.Attack).FirstOrDefault();
+                if (summoned != null && (summoned.Attack >= 2800 || summoned.Level >= 7 || summoned.Rank >= 7 || summoned.LinkCount >= 3))
+                    return true;
+            }
+
+            return false;
         }
 
         private bool SolemnStrikeEffect()
         {
+            // Fixed cost: 1500 LP! Must have enough LP to pay
             if (Bot.LifePoints <= 1500) return false;
+
+            // If paying 1500 leaves us below 500, only use for game-saving negations
+            bool isCriticalLp = Bot.LifePoints <= 2000;
+
+            // 1. Monster effect negation:
             if (LastChainCard != null && LastChainCard.Controller == 1 && LastChainCard.IsMonster())
             {
+                // If Rexterm already locks this monster on field, do NOT waste 1500 LP!
+                if (IsOpponentMonsterLockedByRexterm(LastChainCard))
+                    return false;
+
+                // Negate dangerous effects from Hand/GY or un-locked field monsters
                 return true;
             }
-            return Duel.LastSummonPlayer == 1;
+
+            // 2. Special Summon negation:
+            if (Duel.LastSummonPlayer == 1)
+            {
+                if (isCriticalLp)
+                {
+                    // Only negate high-threat boss summons
+                    var summoned = Enemy.GetMonsters().OrderByDescending(m => m.Attack).FirstOrDefault();
+                    return summoned != null && summoned.Attack >= 2500;
+                }
+                return true;
+            }
+
+            return false;
         }
 
         private bool DinomorphiaIntactEffect()
         {
-            // Negate monster effect activation anywhere
+            // 1. GY Effect: Battle damage nullification during damage calculation
+            if (Card.Location == CardLocation.Grave)
+            {
+                return ShouldPreventBattleDamage();
+            }
+
+            // 2. Field Activation: Negate monster effect activation
             if (LastChainCard != null && LastChainCard.Controller == 1 && LastChainCard.IsMonster())
             {
+                // If Rexterm is on field and the monster is on field with ATK >= LP,
+                // that monster's effect is already illegal/locked!
+                if (IsOpponentMonsterLockedByRexterm(LastChainCard))
+                    return false;
+
+                // Must control a Dinomorphia card to activate
+                bool hasDinoCard = Bot.GetMonsters().Any(m => m.IsFaceup() && IsDinomorphiaMonster(m)) ||
+                                   Bot.GetSpells().Any(s => s.IsFaceup() && s.HasSetcode(0x173));
+                if (!hasDinoCard) return false;
+
+                // Intact halves all battle damage taken this turn, providing huge survival value
                 return true;
             }
+
             return false;
         }
 
         private bool DinomorphiaSonicEffect()
         {
-            // Negate opponent's spell or trap
+            // 1. GY Effect: Battle damage nullification
+            if (Card.Location == CardLocation.Grave)
+            {
+                return ShouldPreventBattleDamage();
+            }
+
+            // 2. Field Activation: Negate opponent's Spell or Trap
             if (LastChainCard != null && LastChainCard.Controller == 1 && (LastChainCard.IsSpell() || LastChainCard.IsTrap()))
             {
-                // Ensure we have a Dinomorphia to destroy (which will trigger float!)
-                return Bot.GetMonsters().Any(m => m.IsFaceup() && IsDinomorphiaMonster(m));
+                // CRITICAL SAFETY: "then, destroy 1 Dinomorphia monster you control"
+                // Never sacrifice our only Rexterm unless facing a mass wipe that kills Rexterm anyway!
+                if (!HasSafeSelfDestructionTarget())
+                {
+                    if (IsMassBoardWipe(LastChainCard))
+                        return true;
+                    return false;
+                }
+
+                return true;
             }
+
             return false;
         }
 
@@ -270,11 +426,11 @@ namespace WindBot.Game.AI.Decks
                     return true;
                 }
             }
-            // If in GY: Banish to special summon from deck
+            // If in GY: Banish to special summon Therizia from deck
             if (Card.Location == CardLocation.Grave)
             {
                 int dinoCount = Bot.Graveyard.Count(c => c.HasRace(CardRace.Dinosaur));
-                if (dinoCount >= 4 && !Bot.HasInMonstersZone(CardId.DinomorphiaTherizia))
+                if (dinoCount >= 4 && !Bot.HasInMonstersZone(CardId.DinomorphiaTherizia) && !Bot.HasInHand(CardId.DinomorphiaTherizia))
                 {
                     return true;
                 }
@@ -284,14 +440,24 @@ namespace WindBot.Game.AI.Decks
 
         private bool FerretFlamesEffect()
         {
+            // Ferret Flames costs 0 LP!
             // Opponent must shuffle monsters until ATK <= our LP!
-            // Activate when enemy has face-up monsters and total ATK > our LP, or during battle
             if (Enemy.GetMonsterCount() == 0) return false;
-            int enemyTotalAtk = Enemy.GetMonsters().Where(m => m.IsFaceup()).Sum(m => m.Attack);
-            if (enemyTotalAtk > Bot.LifePoints || Duel.Phase == DuelPhase.BattleStart || Duel.Phase == DuelPhase.BattleStep)
-            {
+
+            var oppFaceup = Enemy.GetMonsters().Where(m => m != null && m.IsFaceup()).ToList();
+            if (oppFaceup.Count == 0) return false;
+
+            int totalOppAtk = oppFaceup.Sum(m => m.Attack);
+            if (totalOppAtk <= Bot.LifePoints) return false;
+
+            // Activate in Battle Phase to blow out attacks, or in Main Phase if opponent finished summoning
+            if (Duel.Phase == DuelPhase.BattleStart || Duel.Phase == DuelPhase.BattleStep || Duel.Phase == DuelPhase.Battle)
                 return true;
-            }
+
+            // In Main Phase: activate if opponent has 2+ monsters or high total ATK
+            if (Duel.IsMainPhase() && (oppFaceup.Count >= 2 || totalOppAtk >= 3000))
+                return true;
+
             return false;
         }
 
@@ -301,19 +467,59 @@ namespace WindBot.Game.AI.Decks
             if (Card.Location == CardLocation.MonsterZone)
             {
                 if (_rextermAtkReductionUsed) return false;
-                // Activate if opponent controls any face-up monster with ATK > our LP
-                bool oppHasHigherAtk = Enemy.GetMonsters().Any(m => m.IsFaceup() && m.Attack > Bot.LifePoints);
-                if (oppHasHigherAtk || Duel.Phase == DuelPhase.BattleStep || (Duel.IsMainPhase() && Enemy.GetMonsterCount() > 0))
+
+                var oppFaceupMonsters = Enemy.GetMonsters().Where(m => m != null && m.IsFaceup()).ToList();
+                if (oppFaceupMonsters.Count == 0) return false;
+
+                // 1. In Battle Phase:
+                // If an opponent monster is attacking and its ATK exceeds our battling monster (or direct attack):
+                // Shrinking its ATK to our LP allows Rexterm (3000 ATK) to survive or crush the attacker!
+                if (Duel.Phase == DuelPhase.BattleStart || Duel.Phase == DuelPhase.BattleStep || Duel.Phase == DuelPhase.Damage)
                 {
-                    _rextermAtkReductionUsed = true;
-                    return true;
+                    ClientCard attacker = Enemy.BattlingMonster;
+                    if (attacker != null && attacker.Attack > Bot.LifePoints / 2)
+                    {
+                        _rextermAtkReductionUsed = true;
+                        return true;
+                    }
+                    if (oppFaceupMonsters.Any(m => m.Attack >= 3000))
+                    {
+                        _rextermAtkReductionUsed = true;
+                        return true;
+                    }
                 }
+
+                // 2. In Main Phase:
+                // Only activate if opponent controls monsters whose ATK is LESS than our LP (meaning they are NOT locked yet!)
+                // If they already have ATK >= LP, Rexterm's continuous effect ALREADY locks them!
+                bool hasUnlockedMonsters = oppFaceupMonsters.Any(m => m.Attack < Bot.LifePoints);
+                if (hasUnlockedMonsters && Duel.IsMainPhase())
+                {
+                    // Case 2A: Opponent monster is attempting to activate an on-field effect
+                    if (LastChainCard != null && LastChainCard.Controller == 1 &&
+                        LastChainCard.Location == CardLocation.MonsterZone && LastChainCard.Attack < Bot.LifePoints)
+                    {
+                        _rextermAtkReductionUsed = true;
+                        return true;
+                    }
+
+                    // Case 2B: Opponent has multiple monsters on field (potential Link/Xyz climb) or high threat
+                    if (oppFaceupMonsters.Count >= 2 && Bot.LifePoints > 1000)
+                    {
+                        _rextermAtkReductionUsed = true;
+                        return true;
+                    }
+                }
+
+                return false;
             }
-            // Trigger effect when destroyed: Special Summon Lv4 from GY
+
+            // Trigger effect when destroyed: Special Summon Lv6 or lower from GY (Kentregina, Stealthbergia, Therizia, Diplos)
             if (Card.Location == CardLocation.Grave)
             {
                 return true;
             }
+
             return false;
         }
 
@@ -323,81 +529,147 @@ namespace WindBot.Game.AI.Decks
             if (Card.Location == CardLocation.MonsterZone && Duel.IsMainPhase())
             {
                 if (_kentreginaCopyUsed) return false;
-                // If we don't have Rexterm, copy Frenzy or Domain to summon Rexterm!
+
                 bool hasRexterm = Bot.HasInMonstersZone(CardId.DinomorphiaRexterm);
+
+                // Priority 1: If we DON'T have Rexterm on field, summon Rexterm!
                 if (!hasRexterm)
                 {
-                    bool hasFrenzyInGY = Bot.Graveyard.Any(c => c.Id == CardId.DinomorphiaFrenzy);
-                    bool hasDomainInGY = Bot.Graveyard.Any(c => c.Id == CardId.DinomorphiaDomain);
-                    if (hasFrenzyInGY || hasDomainInGY)
+                    // In opponent's Main Phase: can copy Frenzy or Domain
+                    if (Duel.Player == 1)
+                    {
+                        bool canCopy = Bot.Graveyard.Any(c => c.Id == CardId.DinomorphiaFrenzy || c.Id == CardId.DinomorphiaDomain);
+                        if (canCopy)
+                        {
+                            _kentreginaCopyUsed = true;
+                            return true;
+                        }
+                    }
+                    // In our Main Phase: can ONLY copy Domain (Frenzy requires opponent Main Phase!)
+                    else
+                    {
+                        bool canCopyDomain = Bot.Graveyard.Any(c => c.Id == CardId.DinomorphiaDomain);
+                        if (canCopyDomain)
+                        {
+                            _kentreginaCopyUsed = true;
+                            return true;
+                        }
+                    }
+                }
+
+                // Priority 2: If Rexterm IS on field, copy Brute to pop opponent threat
+                // ONLY if we have another Dinomorphia to destroy (or Kentregina herself pops and floats)
+                if (hasRexterm && (Enemy.GetMonsterCount() > 0 || Enemy.GetSpellCount() > 0))
+                {
+                    bool hasBruteInGY = Bot.Graveyard.Any(c => c.Id == CardId.DinomorphiaBrute);
+                    if (hasBruteInGY && HasSafeSelfDestructionTarget())
                     {
                         _kentreginaCopyUsed = true;
                         return true;
                     }
                 }
-                // If Rexterm is on field, copy Brute to pop opponent threat!
-                bool hasBruteInGY = Bot.Graveyard.Any(c => c.Id == CardId.DinomorphiaBrute);
-                if (hasBruteInGY && (Enemy.GetMonsterCount() > 0 || Enemy.GetSpellCount() > 0))
+
+                // Priority 3: Recovery with Alert in End of Main Phase if field has space
+                if (Bot.GetMonsterCount() <= 2 && Bot.Graveyard.Any(c => c.Id == CardId.DinomorphiaAlert))
                 {
                     _kentreginaCopyUsed = true;
                     return true;
                 }
             }
+
             // Trigger effect when destroyed: Special Summon Lv4 from GY
             if (Card.Location == CardLocation.Grave)
             {
                 return true;
             }
+
             return false;
         }
 
         private bool DinomorphiaBruteEffect()
         {
-            // Target 1 Dinomorphia monster we control and 1 card opponent controls; destroy both
+            // 1. GY Effect: Effect damage nullification
+            if (Card.Location == CardLocation.Grave)
+            {
+                return ShouldPreventEffectDamage();
+            }
+
+            // 2. Field Activation: Destroy 1 Dinomorphia monster we control and 1 card opponent controls
             if (Enemy.GetMonsterCount() == 0 && Enemy.GetSpellCount() == 0) return false;
-            return Bot.GetMonsters().Any(m => m.IsFaceup() && IsDinomorphiaMonster(m));
+
+            // CRITICAL SAFETY: Never destroy our only Rexterm!
+            if (!HasSafeSelfDestructionTarget()) return false;
+
+            return true;
         }
 
         private bool DinomorphiaFrenzyEffect()
         {
-            // Activate during opponent's Main Phase!
-            if (Duel.Player == 1 && Duel.IsMainPhase())
-            {
-                return true;
-            }
-            // Damage nullification in GY
+            // 1. GY Effect: Effect damage nullification
             if (Card.Location == CardLocation.Grave)
             {
-                return Bot.LifePoints <= 2000;
+                // Prefer saving Frenzy in GY for Kentregina unless taking fatal effect damage
+                if (Bot.LifePoints <= 1000)
+                    return ShouldPreventEffectDamage();
+                return false;
             }
+
+            // 2. Field Activation: Opponent's Main Phase
+            if (Duel.Player == 1 && Duel.IsMainPhase())
+            {
+                // Always summon Rexterm if not on field
+                if (!IsRextermActiveOnField()) return true;
+
+                // If Rexterm is already on field, only summon if we have room and opponent has multiple cards
+                return Bot.GetMonsterCount() <= 2 && Enemy.GetMonsterCount() > 0;
+            }
+
             return false;
         }
 
         private bool DinomorphiaDomainEffect()
         {
-            // Activate during Main Phase (our turn or opponent's turn)
-            if (Duel.IsMainPhase())
-            {
-                // Prioritize summoning Rexterm or Kentregina
-                return true;
-            }
-            // Damage nullification in GY
+            // 1. GY Effect: Effect damage nullification
             if (Card.Location == CardLocation.Grave)
             {
-                return Bot.LifePoints <= 2000;
+                // Prefer saving Domain in GY for Kentregina unless taking fatal effect damage
+                if (Bot.LifePoints <= 1000)
+                    return ShouldPreventEffectDamage();
+                return false;
             }
+
+            // 2. Field Activation: Main Phase of either player
+            if (Duel.IsMainPhase())
+            {
+                if (!IsRextermActiveOnField()) return true;
+
+                // If Rexterm is on field, can summon Kentregina to provide extra pressure/copying
+                return !Bot.HasInMonstersZone(CardId.DinomorphiaKentregina) && Bot.GetMonsterCount() <= 3;
+            }
+
             return false;
         }
 
         private bool TrapTrickEffect()
         {
-            // Banish 1 Normal Trap from Deck, set 1 copy
-            // Use during opponent turn to set Frenzy or Ferret Flames
-            if (Duel.Player == 1)
+            if (Duel.Player != 1) return false;
+
+            // Trap Trick locks us into ONLY 1 MORE TRAP for the rest of the turn!
+            // Do NOT activate if we already have Frenzy or Domain set on field!
+            bool hasFusionTrap = Bot.GetSpells().Any(s => s != null && s.IsFacedown() &&
+                (s.IsCode(CardId.DinomorphiaFrenzy) || s.IsCode(CardId.DinomorphiaDomain)));
+            if (hasFusionTrap && !Enemy.GetMonsters().Any(m => m != null && m.IsFaceup() && m.Attack > Bot.LifePoints))
             {
-                return true;
+                return false;
             }
-            return false;
+
+            // If we have multiple counter traps set (e.g. Intact + Judgment), do not lock them out
+            int setCounterTraps = Bot.GetSpells().Count(s => s != null && s.IsFacedown() &&
+                (s.IsCode(CardId.DinomorphiaIntact) || s.IsCode(CardId.SolemnJudgment) || s.IsCode(CardId.SolemnStrike)));
+            if (setCounterTraps >= 2) return false;
+
+            // Activate if we need Frenzy (and don't have one) or Ferret Flames
+            return true;
         }
 
         private bool DinomorphiaAlertEffect()
@@ -405,18 +677,35 @@ namespace WindBot.Game.AI.Decks
             if (Card.Location == CardLocation.SpellZone)
             {
                 // Special summon up to 2 Dinos from GY whose total level <= 8
+                // Only activate during opponent's End Phase or when we need field recovery
+                if (Bot.GetMonsterCount() >= 4) return false;
                 return Bot.Graveyard.Count(c => IsDinomorphiaMonster(c) && c.Level <= 4) >= 1;
             }
-            return Card.Location == CardLocation.Grave && Bot.LifePoints <= 2000;
+            return Card.Location == CardLocation.Grave && ShouldPreventEffectDamage();
         }
 
         private bool DinomorphiaShellEffect()
         {
+            // 1. GY Effect: Battle damage nullification
+            if (Card.Location == CardLocation.Grave)
+            {
+                return ShouldPreventBattleDamage();
+            }
+
+            // 2. Field Activation: ONLY during Battle Phase when opponent is attacking!
             if (Card.Location == CardLocation.SpellZone)
             {
-                return Duel.Phase == DuelPhase.BattleStep || Enemy.GetMonsterCount() > Bot.GetMonsterCount();
+                if (Duel.Phase != DuelPhase.Battle && Duel.Phase != DuelPhase.BattleStart && Duel.Phase != DuelPhase.BattleStep)
+                    return false;
+
+                // Need space for Token
+                if (Bot.GetMonsterCount() >= 5) return false;
+
+                // Activate if opponent has attacking monsters
+                return Enemy.GetMonsters().Any(m => m != null && m.IsFaceup() && m.IsAttack());
             }
-            return Card.Location == CardLocation.Grave && Bot.LifePoints <= 2000;
+
+            return false;
         }
 
         private bool HeavenlyPrisonEffect()
@@ -559,8 +848,9 @@ namespace WindBot.Game.AI.Decks
                 var edMat = cards.FirstOrDefault(c => c.Location == CardLocation.Extra && (c.Id == CardId.DinomorphiaKentregina || c.Id == CardId.DinomorphiaStealthbergia));
                 if (edMat != null) materials.Add(edMat);
 
-                // Main Deck material: Prefer Therizia or Diplos
-                var mainMat = cards.FirstOrDefault(c => c.Location == CardLocation.Deck && (c.Id == CardId.DinomorphiaTherizia || c.Id == CardId.DinomorphiaDiplos));
+                // Main Deck material: Prefer Diplos over Therizia (save Therizia for normal summons/searches)
+                var mainMat = cards.FirstOrDefault(c => c.Location == CardLocation.Deck && c.Id == CardId.DinomorphiaDiplos)
+                           ?? cards.FirstOrDefault(c => c.Location == CardLocation.Deck && c.Id == CardId.DinomorphiaTherizia);
                 if (mainMat != null && !materials.Contains(mainMat)) materials.Add(mainMat);
 
                 if (materials.Count >= min) return materials.Take(max).ToList();
@@ -597,24 +887,31 @@ namespace WindBot.Game.AI.Decks
             // 4. Select Card to Destroy (Brute / Sonic)
             if (hint == HINT_SELECT_DESTROY)
             {
-                // Self destruction target: Therizia or Diplos or Stealthbergia (they float!)
-                var selfFloater = cards.FirstOrDefault(c => c.Controller == 0 && (c.Id == CardId.DinomorphiaTherizia || c.Id == CardId.DinomorphiaDiplos || c.Id == CardId.DinomorphiaStealthbergia));
+                // Self destruction target: Prioritize floaters, NEVER sacrifice Rexterm if avoidable!
+                var selfFloater = cards.FirstOrDefault(c => c.Controller == 0 && c.Id == CardId.DinomorphiaDiplos)
+                               ?? cards.FirstOrDefault(c => c.Controller == 0 && c.Id == CardId.DinomorphiaTherizia)
+                               ?? cards.FirstOrDefault(c => c.Controller == 0 && c.Id == CardId.DinomorphiaStealthbergia)
+                               ?? cards.FirstOrDefault(c => c.Controller == 0 && c.Id == CardId.DinomorphiaKentregina);
                 if (selfFloater != null) return new List<ClientCard> { selfFloater };
 
-                // Enemy destruction target: Highest threat or attack monster
-                var enemyTarget = cards.Where(c => c.Controller == 1).OrderByDescending(c => c.Attack).FirstOrDefault();
+                // Enemy destruction target: Highest threat (floodgate / negator / highest ATK)
+                var enemyTarget = cards.Where(c => c.Controller == 1)
+                    .OrderByDescending(c => CardIntelligence.IsFloodgate(c.Id) ? 10000 : 0)
+                    .ThenByDescending(c => CardIntelligence.IsKnownNegator(c.Id) ? 8000 : 0)
+                    .ThenByDescending(c => c.Attack)
+                    .FirstOrDefault();
                 if (enemyTarget != null) return new List<ClientCard> { enemyTarget };
             }
 
             // 5. Select Card to Banish from GY (Kentregina copy effect / Float cost)
             if (hint == HINT_SELECT_REMOVE)
             {
-                // Kentregina copy: Frenzy > Domain > Brute > Alert
-                var frenzyGY = cards.FirstOrDefault(c => c.Id == CardId.DinomorphiaFrenzy);
-                if (frenzyGY != null && !Bot.HasInMonstersZone(CardId.DinomorphiaRexterm)) return new List<ClientCard> { frenzyGY };
-
+                // Kentregina copy: Domain > Frenzy > Brute > Alert
                 var domainGY = cards.FirstOrDefault(c => c.Id == CardId.DinomorphiaDomain);
                 if (domainGY != null && !Bot.HasInMonstersZone(CardId.DinomorphiaRexterm)) return new List<ClientCard> { domainGY };
+
+                var frenzyGY = cards.FirstOrDefault(c => c.Id == CardId.DinomorphiaFrenzy);
+                if (frenzyGY != null && !Bot.HasInMonstersZone(CardId.DinomorphiaRexterm) && Duel.Player == 1) return new List<ClientCard> { frenzyGY };
 
                 var bruteGY = cards.FirstOrDefault(c => c.Id == CardId.DinomorphiaBrute);
                 if (bruteGY != null && (Enemy.GetMonsterCount() > 0 || Enemy.GetSpellCount() > 0)) return new List<ClientCard> { bruteGY };
@@ -628,6 +925,9 @@ namespace WindBot.Game.AI.Decks
 
                 var ssDiplos = cards.FirstOrDefault(c => c.Id == CardId.DinomorphiaDiplos);
                 if (ssDiplos != null) return new List<ClientCard> { ssDiplos };
+
+                var ssKent = cards.FirstOrDefault(c => c.Id == CardId.DinomorphiaKentregina);
+                if (ssKent != null) return new List<ClientCard> { ssKent };
             }
 
             // 7. Select Card to Add to Hand (Fossil Dig / Duality / Prosperity)
@@ -647,6 +947,32 @@ namespace WindBot.Game.AI.Decks
             }
 
             return base.OnSelectCard(cards, min, max, hint, cancelable);
+        }
+
+        public override CardPosition OnSelectPosition(int cardId, IList<CardPosition> positions)
+        {
+            // Rexterm: Always Attack Position (3000 ATK, shrinks enemy ATK to our LP)
+            if (cardId == CardId.DinomorphiaRexterm)
+            {
+                if (positions.Contains(CardPosition.Attack)) return CardPosition.Attack;
+                if (positions.Contains(CardPosition.FaceUpAttack)) return CardPosition.FaceUpAttack;
+            }
+
+            // Stealthbergia: 2500 DEF wall, 0 ATK -> Prefer Defense Position!
+            if (cardId == CardId.DinomorphiaStealthbergia)
+            {
+                if (positions.Contains(CardPosition.Defence)) return CardPosition.Defence;
+                if (positions.Contains(CardPosition.FaceUpDefence)) return CardPosition.FaceUpDefence;
+            }
+
+            // Kentregina: Loses ATK equal to LP. If LP >= 3000, ATK is <= 1000 -> prefer Defense if possible
+            if (cardId == CardId.DinomorphiaKentregina && Bot.LifePoints >= 3000)
+            {
+                if (positions.Contains(CardPosition.Defence)) return CardPosition.Defence;
+                if (positions.Contains(CardPosition.FaceUpDefence)) return CardPosition.FaceUpDefence;
+            }
+
+            return base.OnSelectPosition(cardId, positions);
         }
 
         private static bool IsDinomorphiaMonster(ClientCard card)

@@ -252,6 +252,12 @@ namespace WindBot.Game.AI
             return null;
         }
 
+        public virtual IList<int> OnSelectCounter(int type, int quantity, IList<ClientCard> cards, IList<int> counters)
+        {
+            // For overriding by counter-based decks
+            return null;
+        }
+
         /// <summary>
         /// Universal intelligent fallback when neither the deck executor nor any CardSelector chose targets.
         /// Replaces legacy blind selection (cards[0]) with heuristic evaluation.
