@@ -1,5 +1,167 @@
 [
   {
+    "name": "GoatControl",
+    "deck": "GoatControl",
+    "difficulty": 3,
+    "masterRules": [ 1, 2, 3, 4, 5 ]
+  },
+  {
+    "name": "ChaosTurbo",
+    "deck": "ChaosTurbo",
+    "difficulty": 3,
+    "masterRules": [ 1, 2, 3, 4, 5 ]
+  },
+  {
+    "name": "ReasoningGate",
+    "deck": "ReasoningGate",
+    "difficulty": 3,
+    "masterRules": [ 1, 2, 3, 4, 5 ]
+  },
+  {
+    "name": "AntiMeta",
+    "deck": "AntiMeta",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "HorusExodia",
+    "deck": "HorusExodia",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "HorusRa",
+    "deck": "HorusRa",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "ExodiaRaHorus",
+    "deck": "ExodiaRaHorus",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "Endymion",
+    "deck": "Endymion",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "2026_Endymion",
+    "deck": "Endymion",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "SixSamurai",
+    "deck": "SixSamurai",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "2026_SixSamurai",
+    "deck": "SixSamurai",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "Speedroid",
+    "deck": "Speedroid",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "2026_Speedroid",
+    "deck": "Speedroid",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "Plant",
+    "deck": "Plant",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "2026_Plant",
+    "deck": "Plant",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "Mimighoul",
+    "deck": "Mimighoul",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "2026_Mimighoul",
+    "deck": "Mimighoul",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "FireKing",
+    "deck": "FireKing",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "Fireking",
+    "deck": "FireKing",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "ModernSkyStriker",
+    "deck": "2026_SkyStriker",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "EvilTwin",
+    "deck": "EvilTwin",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "LiveTwin",
+    "deck": "EvilTwin",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "WhiteForest",
+    "deck": "WhiteForest",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "Yubel",
+    "deck": "Yubel",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "Yubel2",
+    "deck": "Yubel",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "Runick",
+    "deck": "Runick",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
+    "name": "2026_Runick",
+    "deck": "Runick",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
     "name": "MorganiteStun",
     "deck": "MorganiteStun",
     "difficulty": 3,
@@ -889,7 +1051,7 @@
     ]
   },
   {
-    "name": "2026_Labrynth",
+    "name": "Labrynth",
     "deck": "2026_Labrynth",
     "difficulty": 3,
     "masterRules": [
@@ -899,7 +1061,7 @@
     ]
   },
   {
-    "name": "Expert_2026_Labrynth",
+    "name": "2026_Labrynth",
     "deck": "2026_Labrynth",
     "difficulty": 3,
     "masterRules": [
@@ -941,6 +1103,16 @@
   {
     "name": "Expert_2026_Radiant",
     "deck": "2026_Radiant",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Branded",
+    "deck": "2026_Branded",
     "difficulty": 3,
     "masterRules": [
       3,
@@ -1129,7 +1301,7 @@
     ]
   },
   {
-    "name": "2026_Maliss",
+    "name": "Maliss",
     "deck": "2026_Maliss",
     "difficulty": 3,
     "masterRules": [
@@ -1139,7 +1311,7 @@
     ]
   },
   {
-    "name": "Expert_2026_Maliss",
+    "name": "2026_Maliss",
     "deck": "2026_Maliss",
     "difficulty": 3,
     "masterRules": [
@@ -1551,7 +1723,7 @@
     ]
   },
   {
-    "name": "Expert_2026_Exosister",
+    "name": "Exosister",
     "deck": "2026_Exosister",
     "difficulty": 3,
     "masterRules": [
@@ -1731,7 +1903,7 @@
     ]
   },
   {
-    "name": "Expert_2026_Purrely",
+    "name": "Purrely",
     "deck": "2026_Purrely",
     "difficulty": 3,
     "masterRules": [
@@ -1791,7 +1963,7 @@
     ]
   },
   {
-    "name": "Expert_2026_Spright",
+    "name": "Spright",
     "deck": "2026_Spright",
     "difficulty": 3,
     "masterRules": [
@@ -1871,7 +2043,7 @@
     ]
   },
   {
-    "name": "Expert_2026_Tearla",
+    "name": "Tearlaments",
     "deck": "2026_Tearla",
     "difficulty": 3,
     "masterRules": [
@@ -2191,6 +2363,17 @@
     ]
   },
   {
+    "name": "Dinomorphia",
+    "deck": "Dinomorphia",
+    "dialog": "default",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
     "name": "2026_Dinomorphia",
     "deck": "2026_Dinomorphia",
     "dialog": "default",
@@ -2214,6 +2397,17 @@
   },
   {
     "name": "2026_Kashtira",
+    "deck": "2026_Kashtira",
+    "dialog": "default",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Kashtira",
     "deck": "2026_Kashtira",
     "dialog": "default",
     "difficulty": 3,

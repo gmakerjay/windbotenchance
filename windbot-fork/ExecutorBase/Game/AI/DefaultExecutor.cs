@@ -450,10 +450,24 @@ namespace WindBot.Game.AI
 
             if (selected == null)
             {
+                var faceupThreats = spells.Where(card => card != null && card.IsFaceup())
+                    .OrderByDescending(card => CardIntelligence.GetCardThreatScore(card, 502))
+                    .ToList();
+                if (faceupThreats.Count > 0 && CardIntelligence.GetCardThreatScore(faceupThreats[0], 502) >= 5000)
+                {
+                    selected = faceupThreats[0];
+                }
+            }
+
+            if (selected == null)
+            {
                 if (Duel.Player == 0)
                     selected = spells.FirstOrDefault(card => card.IsFacedown());
                 if (Duel.Player == 1)
-                    selected = spells.FirstOrDefault(card => card.HasType(CardType.Continuous) || card.HasType(CardType.Equip) || card.HasType(CardType.Field));
+                {
+                    var faceupSpells = spells.Where(card => card != null && card.IsFaceup() && (card.HasType(CardType.Continuous) || card.HasType(CardType.Equip) || card.HasType(CardType.Field))).ToList();
+                    selected = faceupSpells.OrderByDescending(card => CardIntelligence.GetCardThreatScore(card, 502)).FirstOrDefault();
+                }
             }
 
             if (selected == null)

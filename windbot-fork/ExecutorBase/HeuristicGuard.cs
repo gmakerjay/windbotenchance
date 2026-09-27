@@ -105,14 +105,7 @@ namespace WindBot
                         {
                             var viableEnemy = enemyPool.Where(c => !c.IsDisabled() && !c.IsShouldNotBeTarget()).ToList();
                             var candidateEnemy = viableEnemy.Count >= min ? viableEnemy : enemyPool;
-                            var sortedEnemy = candidateEnemy.OrderByDescending(c => {
-                                int score = 0;
-                                if (WindBot.Game.AI.CardIntelligence.IsKnownNegator(c.Id) || WindBot.Game.AI.CardIntelligence.IsKnownNegator(c.GetNonAltartCode())) score += 10000;
-                                if (WindBot.Game.AI.CardIntelligence.IsFloodgateMonster(c.Id)) score += 9500;
-                                if (c.IsExtraCard()) score += 5000;
-                                score += c.Attack;
-                                return score;
-                            }).ToList();
+                            var sortedEnemy = candidateEnemy.OrderByDescending(c => WindBot.Game.AI.CardIntelligence.GetCardThreatScore(c, hint)).ToList();
 
                             var sanitized = sortedEnemy.Take(Math.Min(max, sortedEnemy.Count)).ToList();
                             if (sanitized.Count >= min)
@@ -143,14 +136,7 @@ namespace WindBot
                         {
                             var viableEnemy = enemyPool.Where(c => !c.IsShouldNotBeTarget()).ToList();
                             var candidateEnemy = viableEnemy.Count >= min ? viableEnemy : enemyPool;
-                            var sortedEnemy = candidateEnemy.OrderByDescending(c => {
-                                int score = 0;
-                                if (WindBot.Game.AI.CardIntelligence.IsKnownNegator(c.Id)) score += 10000;
-                                if (WindBot.Game.AI.CardIntelligence.IsFloodgateMonster(c.Id) || WindBot.Game.AI.CardIntelligence.IsFloodgateSpellTrap(c.Id)) score += 9500;
-                                if (c.IsExtraCard()) score += 4000;
-                                score += c.Attack;
-                                return score;
-                            }).ToList();
+                            var sortedEnemy = candidateEnemy.OrderByDescending(c => WindBot.Game.AI.CardIntelligence.GetCardThreatScore(c, hint)).ToList();
 
                             var sanitized = sortedEnemy.Take(Math.Min(max, sortedEnemy.Count)).ToList();
                             if (sanitized.Count >= min)
@@ -174,7 +160,8 @@ namespace WindBot
         /// </summary>
         public static void ValidateSelection(
             IList<ClientCard> selected, long hint, int turn,
-            ClientField bot, ClientField enemy)
+            ClientField bot, ClientField enemy,
+            IList<ClientCard> options = null)
         {
             if (!Enabled || selected == null || selected.Count == 0) return;
 
@@ -197,31 +184,42 @@ namespace WindBot
                 if (hint == HINTMSG_FMATERIAL || hint == HINTMSG_SMATERIAL ||
                     hint == HINTMSG_XMATERIAL || hint == HINTMSG_LMATERIAL)
                 {
-                    var aceCards = selected.Where(c => c != null && _aceCardIds.Contains(c.Id)).ToList();
-                    if (aceCards.Count > 0)
+                    // Only flag warning if the player actually had alternative non-ace options to choose from!
+                    bool hadAlternativeNonAce = options != null && options.Count(c => c != null && !_aceCardIds.Contains(c.Id)) >= selected.Count;
+                    if (options == null || hadAlternativeNonAce)
                     {
-                        string materialType = "Unknown";
-                        if (hint == HINTMSG_FMATERIAL) materialType = "Fusion";
-                        else if (hint == HINTMSG_SMATERIAL) materialType = "Synchro";
-                        else if (hint == HINTMSG_XMATERIAL) materialType = "Xyz";
-                        else if (hint == HINTMSG_LMATERIAL) materialType = "Link";
+                        var aceCards = selected.Where(c => c != null && _aceCardIds.Contains(c.Id)).ToList();
+                        if (aceCards.Count > 0)
+                        {
+                            string materialType = "Unknown";
+                            if (hint == HINTMSG_FMATERIAL) materialType = "Fusion";
+                            else if (hint == HINTMSG_SMATERIAL) materialType = "Synchro";
+                            else if (hint == HINTMSG_XMATERIAL) materialType = "Xyz";
+                            else if (hint == HINTMSG_LMATERIAL) materialType = "Link";
 
-                        string cardNames = string.Join(", ", aceCards.Select(c => $"{c.Name ?? "?"} ({c.Id})"));
-                        LogWarning(turn, $"Ace-as-Material: Boss monster used as {materialType} material: {cardNames}");
+                            string cardNames = string.Join(", ", aceCards.Select(c => $"{c.Name ?? "?"} ({c.Id})"));
+                            LogWarning(turn, $"Ace-as-Material: Boss monster used as {materialType} material: {cardNames}");
+                        }
                     }
                 }
 
-                // Rule 3: Self-Target (destruction) when enemy has targets
+                // Rule 3: Self-Target (destruction/removal) when options offered enemy targets
                 if (hint == HINTMSG_DESTROY || hint == HINTMSG_REMOVE || hint == HINTMSG_TODECK)
                 {
-                    var ownCards = selected.Where(c => c != null && c.Controller == 0 &&
-                        (c.Location == CardLocation.MonsterZone || c.Location == CardLocation.SpellZone)).ToList();
-                    bool enemyHasTargets = enemy.GetMonsters().Any(c => c != null && c.IsFaceup()) ||
-                                           enemy.GetSpells().Any(c => c != null);
-                    if (ownCards.Count == selected.Count && ownCards.Count > 0 && enemyHasTargets)
+                    // Only flag as warning if the options presented to the AI actually included enemy targets!
+                    // If the card effect forced selecting own cards (e.g. Ice Dragon's Prison banishing from own field, Big Welcome self-bounce, Daruma Cannon), options only contain controller 0 cards.
+                    bool optionsHadEnemyTargets = options == null || options.Any(c => c != null && c.Controller == 1);
+                    if (optionsHadEnemyTargets)
                     {
-                        string cardNames = string.Join(", ", ownCards.Select(c => $"{c.Name ?? "?"} ({c.Id})"));
-                        LogWarning(turn, $"Self-Target: AI targeting own card(s) while enemy has targets: {cardNames}");
+                        var ownCards = selected.Where(c => c != null && c.Controller == 0 && c.Owner == 0 &&
+                            (c.Location == CardLocation.MonsterZone || c.Location == CardLocation.SpellZone)).ToList();
+                        bool enemyHasTargets = enemy.GetMonsters().Any(c => c != null && c.IsFaceup()) ||
+                                               enemy.GetSpells().Any(c => c != null);
+                        if (ownCards.Count == selected.Count && ownCards.Count > 0 && enemyHasTargets)
+                        {
+                            string cardNames = string.Join(", ", ownCards.Select(c => $"{c.Name ?? "?"} ({c.Id})"));
+                            LogWarning(turn, $"Self-Target: AI targeting own card(s) while enemy has targets: {cardNames}");
+                        }
                     }
                 }
 

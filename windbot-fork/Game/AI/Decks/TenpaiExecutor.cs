@@ -23,6 +23,7 @@ using System.Linq;
 using WindBot;
 using WindBot.Game;
 using WindBot.Game.AI;
+using WindBot.Game.AI.Plugins;
 using YGOSharp.OCGWrapper.Enums;
 
 namespace WindBot.Game.AI.Decks
@@ -67,9 +68,12 @@ namespace WindBot.Game.AI.Decks
             public const int StarvingVenom = 41209827;
         }
 
+        internal TenpaiPlugin Plugin { get; }
+
         public TenpaiExecutor(GameAI ai, Duel duel)
             : base(ai, duel)
         {
+            Plugin = new TenpaiPlugin(this);
             RegisterComboLines();
             RegisterExecutors();
         }
@@ -582,9 +586,52 @@ namespace WindBot.Game.AI.Decks
 
         private bool RepositionStrategy()
         {
-            if (Card.Attack < 1500 && Card.IsAttack()) return true;
-            if (Card.Attack >= 2000 && Card.IsDefense()) return true;
+            if (Card == null) return false;
+
+            // 1. Handtraps or Low ATK walls stranded in Attack -> Switch to Defense!
+            if (Card.IsAttack() && (Card.Attack == 0 || (Card.Defense > Card.Attack && Card.Defense >= 1800)))
+            {
+                return true;
+            }
+
+            // 2. High ATK Tenpai dragons in Defense -> Switch to Attack for OTK
+            if (Card.IsDefense() && Card.Attack >= 1500 && Duel.Phase == DuelPhase.Main1 && Duel.Player == 0)
+            {
+                return true;
+            }
+
             return false;
+        }
+
+        public override CardPosition OnSelectPosition(int cardId, IList<CardPosition> positions)
+        {
+            // All Tenpai attacking dragons -> Strictly FaceUpAttack
+            int[] forceAttackDragons = {
+                CardId.TenpaiDragonPaidra,
+                CardId.TenpaiDragonChundra,
+                CardId.TenpaiDragonFadra,
+                CardId.SangenpaiBidentDragion,
+                CardId.SangenpaiTranscendentDragion,
+                CardId.TridentDragion,
+                CardId.HiSpeedroidChanbara,
+                CardId.BystialDisPater,
+                CardId.KuibeltTheBladeDragon,
+                CardId.MoonlightRoseDragon
+            };
+
+            if (forceAttackDragons.Contains(cardId) && positions.Contains(CardPosition.FaceUpAttack))
+            {
+                return CardPosition.FaceUpAttack;
+            }
+
+            // Genroku (0/0) & Handtraps -> Strictly Defense
+            if (cardId == CardId.TenpaiDragonGenroku || CardIntelligence.IsHandtrap(cardId))
+            {
+                if (positions.Contains(CardPosition.FaceUpDefence)) return CardPosition.FaceUpDefence;
+                if (positions.Contains(CardPosition.FaceDownDefence)) return CardPosition.FaceDownDefence;
+            }
+
+            return base.OnSelectPosition(cardId, positions);
         }
 
         public override bool OnSelectYesNo(long desc)
@@ -605,7 +652,8 @@ namespace WindBot.Game.AI.Decks
                                                     c.Id == CardId.SangenKaimen).ToList();
                     if (preferred.Count >= min)
                     {
-                        return preferred.Take(max).ToList();
+                        int takeCount = Math.Min(max, Math.Max(min, preferred.Count));
+                        return preferred.Take(takeCount).ToList();
                     }
                 }
 
@@ -615,11 +663,18 @@ namespace WindBot.Game.AI.Decks
                     var enemyTargets = cards.Where(c => c.Controller == 1).ToList();
                     if (enemyTargets.Count >= min)
                     {
-                        return enemyTargets.OrderByDescending(c => c.Attack).Take(max).ToList();
+                        var sorted = enemyTargets.OrderByDescending(c => c.Attack).ToList();
+                        int takeCount = Math.Min(max, sorted.Count);
+                        return sorted.Take(takeCount).ToList();
                     }
                 }
             }
             return base.OnSelectCard(cards, min, max, hint, cancelable);
         }
     }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  DEDICATED DOMAIN PLUGIN ARCHITECTURE FOR TENPAI
+    // ════════════════════════════════════════════════════════════════════════
 }
+

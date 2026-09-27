@@ -113,6 +113,21 @@ namespace WindBot.Game.AI
             return CardIntelligence.IsFloodgate(card.Id) || Enum.IsDefined(typeof(Floodgate), card.Id);
         }
 
+        public static bool IsDestructionImmune(this ClientCard card)
+        {
+            return CardIntelligence.IsDestructionImmune(card);
+        }
+
+        public static bool IsEngineGenerator(this ClientCard card)
+        {
+            return CardIntelligence.IsEngineGenerator(card);
+        }
+
+        public static int GetThreatScore(this ClientCard card, long hint = 0)
+        {
+            return CardIntelligence.GetCardThreatScore(card, hint);
+        }
+
         public static bool IsOneForXyz(this ClientCard card)
         {
             if (card == null) return false;

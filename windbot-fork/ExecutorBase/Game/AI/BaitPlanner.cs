@@ -118,40 +118,25 @@ namespace WindBot.Game.AI
 
         /// <summary>
         /// Estimate the probability that the opponent has at least one hand trap.
-        /// Based on: hand size, game phase, whether they've responded yet.
+        /// Computed using the Hypergeometric Distribution model from DeckProbability.
         /// </summary>
         public double EstimateHandTrapLikelihood(
             int opponentHandCount,
             int turn,
             bool opponentHasChainedThisTurn,
-            bool isGoingFirst)
+            bool isGoingFirst,
+            int opponentDeckCount = 35,
+            int estimatedHandtrapsInDeck = 9)
         {
             if (opponentHandCount == 0) return 0.0;
 
-            // Base probability scales with hand size
-            // In a typical 40-card deck with ~6 hand traps: P(≥1 in 5 cards) ≈ 57%
-            double baseProbability;
-            if (opponentHandCount >= 6) baseProbability = 0.75;
-            else if (opponentHandCount >= 5) baseProbability = 0.60;
-            else if (opponentHandCount >= 4) baseProbability = 0.50;
-            else if (opponentHandCount >= 3) baseProbability = 0.35;
-            else if (opponentHandCount >= 2) baseProbability = 0.20;
-            else baseProbability = 0.10;
-
-            // Adjustments
-            // Turn 1 going first → opponent hasn't drawn yet, but has opening hand
-            if (isGoingFirst && turn <= 1)
-                baseProbability *= 0.7; // Lower — they might not have started yet
-
-            // If opponent already responded (chained something), they burned one
-            if (opponentHasChainedThisTurn)
-                baseProbability *= 0.5; // They already used one — less likely to have more
-
-            // Late game (turn 5+) → hand is likely combo pieces, not hand traps
-            if (turn >= 5)
-                baseProbability *= 0.6;
-
-            return Math.Max(0.0, Math.Min(1.0, baseProbability));
+            return DeckProbability.EstimateHandTrapLikelihood(
+                opponentHandCount,
+                opponentDeckCount,
+                estimatedHandtrapsInDeck,
+                opponentHasChainedThisTurn,
+                isGoingFirst,
+                turn);
         }
 
         // ═══════════════════════════════════════

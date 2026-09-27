@@ -89,6 +89,10 @@ namespace WindBot.Game.AI
         {
             if (!Enabled) return 0;
 
+            // When we have ZERO monsters on field, we CANNOT be overextending!
+            // We must be allowed to summon/set to build a board.
+            if (ourMonsterCount == 0) return 0;
+
             int risk = 0;
 
             // Monster count factor — more monsters = more vulnerable to board wipes
@@ -100,14 +104,18 @@ namespace WindBot.Game.AI
                 risk += 10;
 
             // Opponent backrow factor — set cards might be Torrential/Mirror Force
-            risk += opponentBackrowCount * 10;
+            // Only scales heavily if we already control multiple monsters
+            if (ourMonsterCount >= 2)
+                risk += opponentBackrowCount * 10;
+            else
+                risk += opponentBackrowCount * 5;
 
             // Opponent is control deck — higher board wipe likelihood
-            if (opponentIsControlDeck)
+            if (opponentIsControlDeck && ourMonsterCount >= 2)
                 risk += 15;
 
             // If opponent has no monsters, they might have used resources on traps
-            if (opponentMonsterCount == 0 && opponentBackrowCount >= 2)
+            if (opponentMonsterCount == 0 && opponentBackrowCount >= 2 && ourMonsterCount >= 2)
                 risk += 10;
 
             return Math.Min(100, risk);

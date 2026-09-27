@@ -34,6 +34,7 @@ using System.Linq;
 using WindBot;
 using WindBot.Game;
 using WindBot.Game.AI;
+using WindBot.Game.AI.Plugins;
 using YGOSharp.OCGWrapper.Enums;
 
 namespace WindBot.Game.AI.Decks
@@ -93,8 +94,12 @@ namespace WindBot.Game.AI.Decks
             return card != null && BossMonsters.Contains(card.Id);
         }
 
+        internal MikankoPlugin Plugin { get; }
+
         public MikankoExecutor(GameAI ai, Duel duel) : base(ai, duel)
         {
+            Plugin = new MikankoPlugin(this);
+
             // ── 1. Handtraps ──
             AddExecutor(ExecutorType.Activate, CardId.AshBlossom, DefaultAshBlossomAndJoyousSpring);
 
@@ -198,7 +203,7 @@ namespace WindBot.Game.AI.Decks
             if (hint == HINTMSG_TOGRAVE)
             {
                 var herald = cards.FirstOrDefault(c => c.IsCode(CardId.HeraldOfTheArcLight));
-                if (herald != null) return new List<ClientCard> { herald };
+                if (herald != null && min <= 1 && 1 <= max) return new List<ClientCard> { herald };
             }
 
             // 4. Search / Add to Hand (Preparation of Rites / Herald / Ohime / Ha-Re / Hu-Li):
@@ -221,7 +226,7 @@ namespace WindBot.Game.AI.Decks
                 }).ToList();
 
                 if (searchPicks.Count >= min)
-                    return searchPicks.Take(min).ToList();
+                    return searchPicks.Take(Math.Min(max, searchPicks.Count)).ToList();
             }
 
             // 5. Special Summon (Arabesque / Fire Dance / Ceremony / Promise):
@@ -238,42 +243,48 @@ namespace WindBot.Game.AI.Decks
                 }).ToList();
 
                 if (spTargets.Count >= min)
-                    return spTargets.Take(min).ToList();
+                    return spTargets.Take(Math.Min(max, spTargets.Count)).ToList();
             }
 
             // 6. Equip Target Selection:
             if (hint == HINTMSG_EQUIP)
             {
-                // Double-Edged Sword: Equip to opponent's highest ATK monster (e.g. Kaiju) for 10k reflect OTK!
-                if (Card != null && Card.IsCode(CardId.DoubleEdgedSword))
+                if (min <= 1 && 1 <= max)
                 {
-                    var oppHighAtk = cards.Where(c => c.Controller == 1 && c.Location == CardLocation.MonsterZone)
-                        .OrderByDescending(c => c.Attack).FirstOrDefault();
-                    if (oppHighAtk != null) return new List<ClientCard> { oppHighAtk };
+                    // Double-Edged Sword: Equip to opponent's highest ATK monster (e.g. Kaiju) for 10k reflect OTK!
+                    if (Card != null && Card.IsCode(CardId.DoubleEdgedSword))
+                    {
+                        var oppHighAtk = cards.Where(c => c.Controller == 1 && c.Location == CardLocation.MonsterZone)
+                            .OrderByDescending(c => c.Attack).FirstOrDefault();
+                        if (oppHighAtk != null) return new List<ClientCard> { oppHighAtk };
+                    }
+
+                    // Water Arabesque: Equip to opponent's monster to bounce it!
+                    if (Card != null && Card.IsCode(CardId.MikankoWaterArabesque))
+                    {
+                        var oppTarget = cards.Where(c => c.Controller == 1 && c.Location == CardLocation.MonsterZone)
+                            .OrderByDescending(c => c.Attack).FirstOrDefault();
+                        if (oppTarget != null) return new List<ClientCard> { oppTarget };
+                    }
+
+                    // Generic Equips: Equip to Hu-Li first (to trigger untargetable lock)
+                    var huli = cards.FirstOrDefault(c => c.Controller == 0 && c.IsCode(CardId.HuLiTheJewelMikanko));
+                    if (huli != null) return new List<ClientCard> { huli };
+
+                    var anyMikanko = cards.Where(c => c.Controller == 0 && c.Location == CardLocation.MonsterZone)
+                        .OrderBy(c => c.EquipCards.Count).FirstOrDefault();
+                    if (anyMikanko != null) return new List<ClientCard> { anyMikanko };
                 }
-
-                // Water Arabesque: Equip to opponent's monster to bounce it!
-                if (Card != null && Card.IsCode(CardId.MikankoWaterArabesque))
-                {
-                    var oppTarget = cards.Where(c => c.Controller == 1 && c.Location == CardLocation.MonsterZone)
-                        .OrderByDescending(c => c.Attack).FirstOrDefault();
-                    if (oppTarget != null) return new List<ClientCard> { oppTarget };
-                }
-
-                // Generic Equips: Equip to Hu-Li first (to trigger untargetable lock)
-                var huli = cards.FirstOrDefault(c => c.Controller == 0 && c.IsCode(CardId.HuLiTheJewelMikanko));
-                if (huli != null) return new List<ClientCard> { huli };
-
-                var anyMikanko = cards.Where(c => c.Controller == 0 && c.Location == CardLocation.MonsterZone)
-                    .OrderBy(c => c.EquipCards.Count).FirstOrDefault();
-                if (anyMikanko != null) return new List<ClientCard> { anyMikanko };
             }
 
             // 7. Bounce target (Water Arabesque): Bounce opponent monster
             if (hint == HINTMSG_RTOHAND)
             {
-                var oppMon = cards.Where(c => c.Controller == 1).OrderByDescending(c => c.Attack).FirstOrDefault();
-                if (oppMon != null) return new List<ClientCard> { oppMon };
+                if (min <= 1 && 1 <= max)
+                {
+                    var oppMon = cards.Where(c => c.Controller == 1).OrderByDescending(c => c.Attack).FirstOrDefault();
+                    if (oppMon != null) return new List<ClientCard> { oppMon };
+                }
             }
 
             return base.OnSelectCard(cards, min, max, hint, cancelable);
@@ -283,15 +294,18 @@ namespace WindBot.Game.AI.Decks
         {
             // Mikanko monsters should always be in Attack Position (they take 0 damage and reflect it to opp!)
             if (cardId == CardId.HuLiTheJewelMikanko || cardId == CardId.HaReTheSwordMikanko ||
-                cardId == CardId.NiNiTheMirrorMikanko || cardId == CardId.OhimeTheManifestedMikanko)
+                cardId == CardId.NiNiTheMirrorMikanko || cardId == CardId.OhimeTheManifestedMikanko ||
+                cardId == CardId.ArahimeTheManifestedMikanko)
             {
                 if (positions.Contains(CardPosition.Attack)) return CardPosition.Attack;
                 if (positions.Contains(CardPosition.FaceUpAttack)) return CardPosition.FaceUpAttack;
             }
 
-            if (cardId == CardId.DivinerOfTheHerald)
+            // Handtraps and Diviner strictly Defense
+            if (CardIntelligence.IsHandtrap(cardId) || cardId == CardId.DivinerOfTheHerald || cardId == CardId.HeraldOfTheArcLight)
             {
-                if (positions.Contains(CardPosition.Defence)) return CardPosition.Defence;
+                if (positions.Contains(CardPosition.FaceUpDefence)) return CardPosition.FaceUpDefence;
+                if (positions.Contains(CardPosition.FaceDownDefence)) return CardPosition.FaceDownDefence;
             }
 
             return base.OnSelectPosition(cardId, positions);
@@ -504,13 +518,27 @@ namespace WindBot.Game.AI.Decks
 
         private bool MonsterRepos()
         {
-            // Always keep Mikanko in Attack Position to reflect damage
+            if (Card == null) return false;
+
+            // 1. Always keep Mikanko in Attack Position to reflect battle damage!
             if (IsAceCard(Card))
             {
                 if (Card.IsDefense() && Card.IsFaceup()) return true;
                 return false;
             }
-            return DefaultMonsterRepos();
+
+            // 2. Handtraps or Diviner (500/300) stranded in Attack -> Switch to Defense!
+            if (Card.IsAttack() && (Card.Attack < 1800 || Card.Id == CardId.DivinerOfTheHerald))
+            {
+                return true;
+            }
+
+            return false;
         }
     }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  DEDICATED DOMAIN PLUGIN ARCHITECTURE FOR MIKANKO
+    // ════════════════════════════════════════════════════════════════════════
 }
+

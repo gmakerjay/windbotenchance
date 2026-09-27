@@ -22,6 +22,7 @@ using System.Linq;
 using WindBot;
 using WindBot.Game;
 using WindBot.Game.AI;
+using WindBot.Game.AI.Plugins;
 using YGOSharp.OCGWrapper.Enums;
 
 namespace WindBot.Game.AI.Decks
@@ -71,9 +72,12 @@ namespace WindBot.Game.AI.Decks
             public const int Garura = 11765832;
         }
 
+        internal VoicelessVoicePlugin Plugin { get; }
+
         public VoicelessVoiceExecutor(GameAI ai, Duel duel)
             : base(ai, duel)
         {
+            Plugin = new VoicelessVoicePlugin(this);
             RegisterComboLines();
             RegisterExecutors();
         }
@@ -532,9 +536,56 @@ namespace WindBot.Game.AI.Decks
 
         private bool RepositionStrategy()
         {
-            if (Card.Attack < 1500 && Card.IsAttack()) return true;
-            if (Card.Attack >= 2000 && Card.IsDefense()) return true;
+            if (Card == null) return false;
+
+            // 1. Lo (0/0), Diviner (500/300), or Handtraps stranded in Attack -> Switch to Defense!
+            if (Card.IsAttack() && (Card.Attack < 1800 || Card.Id == CardId.LoThePrayers || Card.Id == CardId.DivinerOfTheHerald))
+            {
+                return true;
+            }
+
+            // 2. High ATK Skull Guardian or Saffira in Defense -> Switch to Attack for offensive pushes
+            if (Card.IsDefense() && Card.Attack >= 2000 && Duel.Phase == DuelPhase.Main1 && Duel.Player == 0)
+            {
+                if (Card.Id != CardId.LoThePrayers && Card.Id != CardId.DivinerOfTheHerald)
+                    return true;
+            }
+
             return false;
+        }
+
+        public override CardPosition OnSelectPosition(int cardId, IList<CardPosition> positions)
+        {
+            // Low-ATK utility & searchers strictly FaceUpDefence (Lo 0/0, Diviner 500/300, Herald 600/1000)
+            int[] forceDefenceCards = {
+                CardId.LoThePrayers,
+                CardId.DivinerOfTheHerald,
+                CardId.HeraldOfTheArcLight,
+                CardId.AshBlossom,
+                CardId.InfiniteImpermanence
+            };
+
+            if (forceDefenceCards.Contains(cardId))
+            {
+                if (positions.Contains(CardPosition.FaceUpDefence)) return CardPosition.FaceUpDefence;
+                if (positions.Contains(CardPosition.FaceDownDefence)) return CardPosition.FaceDownDefence;
+            }
+
+            // High-ATK Boss monsters strictly FaceUpAttack
+            int[] forceAttackBosses = {
+                CardId.SkullGuardian,
+                CardId.SaffiraDivineDragon,
+                CardId.SauravisAncientAscended,
+                CardId.BaronneDeFleur,
+                CardId.AccesscodeTalker
+            };
+
+            if (forceAttackBosses.Contains(cardId) && positions.Contains(CardPosition.FaceUpAttack))
+            {
+                return CardPosition.FaceUpAttack;
+            }
+
+            return base.OnSelectPosition(cardId, positions);
         }
 
         public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
@@ -551,7 +602,8 @@ namespace WindBot.Game.AI.Decks
                                                     c.Id == CardId.SaffiraDragonQueen).ToList();
                     if (preferred.Count >= min)
                     {
-                        return preferred.Take(max).ToList();
+                        int takeCount = Math.Min(max, Math.Max(min, preferred.Count));
+                        return preferred.Take(takeCount).ToList();
                     }
                 }
 
@@ -561,11 +613,18 @@ namespace WindBot.Game.AI.Decks
                     var enemyTargets = cards.Where(c => c.Controller == 1).ToList();
                     if (enemyTargets.Count >= min)
                     {
-                        return enemyTargets.OrderByDescending(c => c.Attack).Take(max).ToList();
+                        var sorted = enemyTargets.OrderByDescending(c => c.Attack).ToList();
+                        int takeCount = Math.Min(max, sorted.Count);
+                        return sorted.Take(takeCount).ToList();
                     }
                 }
             }
             return base.OnSelectCard(cards, min, max, hint, cancelable);
         }
     }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  DEDICATED DOMAIN PLUGIN ARCHITECTURE FOR VOICELESS VOICE
+    // ════════════════════════════════════════════════════════════════════════
 }
+

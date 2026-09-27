@@ -10,11 +10,12 @@ using System.Linq;
 using WindBot;
 using WindBot.Game;
 using WindBot.Game.AI;
+using WindBot.Game.AI.Plugins;
 using YGOSharp.OCGWrapper.Enums;
 
 namespace WindBot.Game.AI.Decks
 {
-    [Deck("Yubel2", "Yubel2")]
+    [Deck("Yubel", "Yubel2", "Yubel")]
     public class Yubel2Executor : ModernExecutor
     {
         public class CardId
@@ -1354,7 +1355,7 @@ namespace WindBot.Game.AI.Decks
                 foreach (int did in dumpPriority)
                 {
                     var match = cards.FirstOrDefault(c => c != null && c.Id == did);
-                    if (match != null) return new List<ClientCard> { match };
+                    if (match != null && min <= 1 && 1 <= max) return new List<ClientCard> { match };
                 }
             }
 
@@ -1376,7 +1377,7 @@ namespace WindBot.Game.AI.Decks
                 foreach (int pid in preferred)
                 {
                     var match = cards.FirstOrDefault(c => c != null && c.Id == pid);
-                    if (match != null) return new List<ClientCard> { match };
+                    if (match != null && min <= 1 && 1 <= max) return new List<ClientCard> { match };
                 }
             }
 
@@ -1384,27 +1385,29 @@ namespace WindBot.Game.AI.Decks
             if (hint == 518)
             {
                 var sorted = cards.OrderBy(c => c.Attack > c.Defense ? 0 : 1).ToList();
-                return sorted.Take(max).ToList();
+                if (sorted.Count >= min)
+                    return Util.CheckSelectCount(sorted.Take(max).ToList(), cards, min, max);
             }
 
             // Hint 519: HINTMSG_XMATERIAL (Detach non-Ace / fodder materials first)
             if (hint == 519)
             {
                 var sorted = cards.OrderBy(c => GetMaterialPriority(c)).ToList();
-                return sorted.Take(max).ToList();
+                if (sorted.Count >= min)
+                    return Util.CheckSelectCount(sorted.Take(max).ToList(), cards, min, max);
             }
 
             // Hint 552 / 572: HINTMSG_DISABLE / NEGATE (Target key chokepoint or negator, not the first card seen)
             if (hint == 552 || hint == 572)
             {
                 var enemyTargets = cards.Where(c => c != null && c.Controller == 1).ToList();
-                if (enemyTargets.Count > 0)
+                if (enemyTargets.Count >= min)
                 {
                     var sorted = enemyTargets.OrderByDescending(c => 
                         CardIntelligence.IsHighThreatChokepoint(c.Id) ? 1000 :
                         CardIntelligence.IsKnownNegator(c.Id) ? 900 :
                         GetCardThreatScore(c)).ToList();
-                    return sorted.Take(max).ToList();
+                    return Util.CheckSelectCount(sorted.Take(max).ToList(), cards, min, max);
                 }
             }
 
@@ -1413,7 +1416,8 @@ namespace WindBot.Game.AI.Decks
             {
                 // Prioritize absorbing opponent monsters for Loving Defender or Super Poly
                 var sorted = cards.OrderBy(c => c.Controller == 1 ? 0 : GetMaterialPriority(c)).ToList();
-                return sorted.Take(max).ToList();
+                if (sorted.Count >= min)
+                    return Util.CheckSelectCount(sorted.Take(max).ToList(), cards, min, max);
             }
 
             return base.OnSelectCard(cards, min, max, hint, cancelable);
@@ -1510,3 +1514,4 @@ namespace WindBot.Game.AI.Decks
         }
     }
 }
+

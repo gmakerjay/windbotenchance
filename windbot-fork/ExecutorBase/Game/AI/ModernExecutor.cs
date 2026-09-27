@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using YGOSharp.OCGWrapper.Enums;
 using WindBot.Game.AI.DecisionEngine;
+using WindBot.Game.AI.Plugin;
 
 namespace WindBot.Game.AI
 {
@@ -66,6 +67,12 @@ namespace WindBot.Game.AI
             }
         }
         protected ClientCard LastChainCard => Util.GetLastChainCard();
+
+        /// <summary>
+        /// Optional Decoupled Domain Deck Plugin (Layer 3) providing specialized sub-helpers
+        /// (ResourceEvaluator, MaterialEvaluator, ScaleResolver, ActionScorer, ThreatEvaluator, Strategy).
+        /// </summary>
+        public IDeckPlugin DeckPlugin { get; set; }
 
         private bool _comboStepNegatedThisChain = false;
         private int _negatedComboStepCardId = -1;
@@ -1114,6 +1121,14 @@ namespace WindBot.Game.AI
                 return true;
             }
 
+            // Never stop extending if we have no monsters on board or desperately need board presence!
+            if (Bot.GetMonsterCount() == 0 || NeedsBoardPresence()) return false;
+
+            // Never stop extending if opponent has an attack-lock or stall floodgate (Gravity Bind, Level Limit, Chain Energy)
+            // We must continue playing / setting to survive and dig for removal!
+            if (Enemy.GetSpells().Any(s => s != null && s.IsFaceup() && (s.Id == 85742772 || s.Id == 3136426 || s.Id == 79323590)))
+                return false;
+
             // ═══ ResourcePlanner integration: Nibiru + overextension check ═══
             if (ResourcePlan != null && ResourcePlan.Enabled)
             {
@@ -1577,6 +1592,62 @@ namespace WindBot.Game.AI
         public override bool ShouldAllowSpSummon(ClientCard card)
         {
             if (card == null) return true;
+
+            int totalFieldATK = GetTotalFieldATK();
+            int enemyMonsters = Enemy.GetMonsterCount();
+
+            // ══════════════════════════════════════════════════════════════════
+            //  UNIVERSAL S:P LITTLE KNIGHT (29301450) STRATEGIC GUARD
+            // ══════════════════════════════════════════════════════════════════
+            if (card.Id == 29301450)
+            {
+                // 1. Direct Attack Lockout Prevention in Main Phase 1:
+                // S:P Little Knight restricts direct attacks for the rest of the turn:
+                // "Also, for the rest of this turn, your monsters cannot attack directly."
+                if (Duel.Phase == DuelPhase.Main1 && Duel.Turn > 1)
+                {
+                    // Opponent monster zone is empty → any attack would be direct attack!
+                    // Summoning S:P here locks us out of dealing damage this turn.
+                    if (enemyMonsters == 0 && totalFieldATK > 0)
+                    {
+                        LogPhaseGuard("BLOCKED", "SpSummon", card, "S:P Little Knight direct attack lockout — opponent board is open, attack first in BP then summon in MP2");
+                        return false;
+                    }
+
+                    // We already have lethal damage on board → rush to battle, don't lock attacks
+                    if (CanDealLethal())
+                    {
+                        LogPhaseGuard("BLOCKED", "SpSummon", card, "S:P Little Knight direct attack lockout — lethal available on board, rush to battle");
+                        return false;
+                    }
+
+                    // No opponent cards to banish on field or in GY → zero removal value in MP1
+                    if (Enemy.GetFieldCount() == 0 && Enemy.Graveyard.Count == 0)
+                    {
+                        LogPhaseGuard("BLOCKED", "SpSummon", card, "S:P Little Knight — no opponent cards on field or in GY to banish");
+                        return false;
+                    }
+                }
+
+                // 2. Ace & High-ATK Boss Downgrade Protection (All Phases):
+                // S:P is a utility Link-2 (1600 ATK). Never sacrifice Boss monsters / Ace cards!
+                var candidateMaterials = Bot.GetMonsters().Where(m => m != null && m.IsFaceup()).ToList();
+                var safeMaterials = candidateMaterials.Where(m => !IsAceCard(m) && m.Attack < 2000).ToList();
+
+                // S:P requires 2 Effect monsters. If we don't have at least 2 safe materials (non-Ace, ATK < 2000),
+                // summoning S:P would consume a boss or high-ATK attacker.
+                if (safeMaterials.Count < 2)
+                {
+                    // Only allow if opponent has an active floodgate that we MUST remove immediately
+                    bool isEmergencyRemoval = Enemy.MonsterZone.Any(m => m != null && m.IsFaceup() && !m.IsDisabled() && m.IsFloodgate());
+                    if (!isEmergencyRemoval)
+                    {
+                        LogPhaseGuard("BLOCKED", "SpSummon", card, "S:P Little Knight would consume Ace monster(s) or 2000+ ATK boss as Link material");
+                        return false;
+                    }
+                }
+            }
+
             if (Duel.Phase != DuelPhase.Main1) return true;
 
             // Main Deck SS (from hand/GY) = adding monsters to board → always OK
@@ -1590,9 +1661,6 @@ namespace WindBot.Game.AI
                 LogPhaseGuard("BLOCKED", "SpSummon", card, "Rush mode — lethal confirmed, skip ED summon");
                 return false;
             }
-
-            int totalFieldATK = GetTotalFieldATK();
-            int enemyMonsters = Enemy.GetMonsterCount();
 
             if (Duel.Turn > 1)
             {
@@ -1828,6 +1896,7 @@ namespace WindBot.Game.AI
             // Reset per-turn state in enhancement modules
             ComboRouter?.OnNewTurn();
             BaitPlanner?.OnNewTurn();
+            DeckPlugin?.ResetTurnState();
 
             // Reset profiler for a new duel
             if (Duel.Turn == 1)
@@ -2103,36 +2172,23 @@ namespace WindBot.Game.AI
 
         protected virtual int GetCardThreatScore(ClientCard c)
         {
+            return GetCardThreatScore(c, 0);
+        }
+
+        protected virtual int GetCardThreatScore(ClientCard c, long hint)
+        {
             if (c == null) return 0;
-            int score = 0;
+            int score = CardIntelligence.GetCardThreatScore(c, hint);
 
-            // High-threat floodgates and omni-negates
-            if (_negateMonsters.Contains(c.Id) || CardIntelligence.IsKnownNegator(c.Id) || CardIntelligence.IsKnownNegator(c.GetNonAltartCode())) score += 10000;
-            if (_spSummonBlockMonsters.Contains(c.Id) || CardIntelligence.IsFloodgateMonster(c.Id)) score += 9500;
-            if (CardIntelligence.IsFloodgateSpellTrap(c.Id)) score += 9500;
-            if (CardIntelligence.IsHighThreatChokepoint(c.Id) || CardIntelligence.IsHighThreatChokepoint(c.GetNonAltartCode())) score += 8000;
+            // Layer 3 Plugin Threat Evaluator extension
+            if (DeckPlugin?.ThreatEvaluator != null)
+            {
+                score += DeckPlugin.ThreatEvaluator.EvaluateThreatScore(c);
+            }
 
-            if (c.IsSpell() || c.IsTrap())
-            {
-                if (c.IsFaceup())
-                {
-                    if (c.Id == 48680970) score += 12000; // Eternal Soul (destroying wipes monsters!)
-                    else if (c.Id == 82732047) score += 11000; // Skill Drain
-                    else if (c.Id == 38009249) score += 9500;  // Runick Fountain
-                    else if (c.Id == 38033121) score += 9000;  // Dark Magical Circle
-                    else if (c.HasType(CardType.Continuous) || c.HasType(CardType.Field)) score += 6000;
-                    else score += 3000;
-                }
-                else
-                {
-                    score += 4500; // Unknown set backrow
-                }
-            }
-            else if (c.IsMonster())
-            {
-                if (c.IsExtraCard()) score += 4000;
-                score += c.Attack;
-            }
+            // Also check executor-registered lists
+            if (_negateMonsters.Contains(c.Id)) score += 5000;
+            if (_spSummonBlockMonsters.Contains(c.Id)) score += 5000;
 
             return score;
         }
@@ -2231,13 +2287,13 @@ namespace WindBot.Game.AI
             // ── 1. Removal & Disruption against Enemy Cards ──
             if (hint == HINTMSG_DESTROY || hint == HINTMSG_REMOVE || hint == 504 /* old remove alias */ ||
                 hint == HINTMSG_RTOHAND || hint == HINTMSG_TODECK || hint == HINTMSG_CONTROL ||
-                hint == HINTMSG_TARGET || hint == HINTMSG_NEGATE || hint == HINTMSG_FACEUP || hint == 552 || hint == 572)
+                hint == HINTMSG_TARGET || hint == HINTMSG_NEGATE || hint == HINTMSG_FACEUP || hint == 552)
             {
                 if (enemyCards.Count >= min)
                 {
                     var viable = enemyCards.Where(c => !IsTargetImmune(c) && !c.IsShouldNotBeTarget()).ToList();
                     var candidatePool = viable.Count >= min ? viable : enemyCards;
-                    var sorted = candidatePool.OrderByDescending(c => GetCardThreatScore(c)).ToList();
+                    var sorted = candidatePool.OrderByDescending(c => GetCardThreatScore(c, hint)).ToList();
                     return sorted.Take(Math.Min(max, sorted.Count)).ToList();
                 }
             }
@@ -2247,6 +2303,22 @@ namespace WindBot.Game.AI
             {
                 if (ourCards.Count >= min)
                 {
+                    if (DeckPlugin?.MaterialEvaluator != null)
+                    {
+                        if (min == 1)
+                        {
+                            var pluginTarget = DeckPlugin.MaterialEvaluator.PickDiscardTarget(ourCards, min);
+                            if (pluginTarget != null) return new List<ClientCard> { pluginTarget };
+                        }
+                        else
+                        {
+                            var sortedByPlugin = DeckPlugin.MaterialEvaluator.SortMaterials(ourCards, min);
+                            if (sortedByPlugin != null && sortedByPlugin.Count >= min)
+                            {
+                                return sortedByPlugin.Take(min).ToList();
+                            }
+                        }
+                    }
                     var sorted = ourCards.OrderBy(c => GetCardDiscardSacrificeCost(c)).ToList();
                     return sorted.Take(min).ToList();
                 }
@@ -2313,6 +2385,11 @@ namespace WindBot.Game.AI
         public override IList<ClientCard> OnSelectFusionMaterial(IList<ClientCard> cards, int min, int max)
         {
             if (cards == null || cards.Count == 0) return base.OnSelectFusionMaterial(cards, min, max);
+            if (DeckPlugin?.MaterialEvaluator != null)
+            {
+                var scored = DeckPlugin.MaterialEvaluator.SortMaterials(cards, min);
+                if (scored != null && scored.Count >= min) return scored.Take(min).ToList();
+            }
             var sorted = cards.OrderBy(c => GetMaterialSacrificePriority(c)).ToList();
             return sorted.Take(min).ToList();
         }
@@ -2320,6 +2397,11 @@ namespace WindBot.Game.AI
         public override IList<ClientCard> OnSelectLinkMaterial(IList<ClientCard> cards, int min, int max)
         {
             if (cards == null || cards.Count == 0) return base.OnSelectLinkMaterial(cards, min, max);
+            if (DeckPlugin?.MaterialEvaluator != null)
+            {
+                var scored = DeckPlugin.MaterialEvaluator.SortMaterials(cards, min);
+                if (scored != null && scored.Count >= min) return scored.Take(min).ToList();
+            }
             var sorted = cards.OrderBy(c => GetMaterialSacrificePriority(c)).ToList();
             return sorted.Take(min).ToList();
         }
@@ -2327,8 +2409,23 @@ namespace WindBot.Game.AI
         public override IList<ClientCard> OnSelectXyzMaterial(IList<ClientCard> cards, int min, int max)
         {
             if (cards == null || cards.Count == 0) return base.OnSelectXyzMaterial(cards, min, max);
+            if (DeckPlugin?.MaterialEvaluator != null)
+            {
+                var scored = DeckPlugin.MaterialEvaluator.SortMaterials(cards, min);
+                if (scored != null && scored.Count >= min) return scored.Take(min).ToList();
+            }
             var sorted = cards.OrderBy(c => GetMaterialSacrificePriority(c)).ToList();
             return sorted.Take(min).ToList();
+        }
+
+        public override IList<int> OnSelectCounter(int type, int quantity, IList<ClientCard> cards, IList<int> counters)
+        {
+            if (DeckPlugin?.ResourceEvaluator != null)
+            {
+                var result = DeckPlugin.ResourceEvaluator.SelectCounters(quantity, cards, counters);
+                if (result != null) return result;
+            }
+            return base.OnSelectCounter(type, quantity, cards, counters);
         }
 
         /// <summary>

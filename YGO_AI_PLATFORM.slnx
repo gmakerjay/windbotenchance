@@ -6,5 +6,4 @@
   <Project Path="Client_Headless_Fortest/Client_Headless_Fortest.csproj" />
   <Project Path="core/core.csproj" />
   <Project Path="dashbot/dashbot.csproj" />
-  <Project Path="windbot_launcher/windbot_launcher.csproj" />
 </Solution>

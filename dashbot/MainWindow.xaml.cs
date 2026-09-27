@@ -325,9 +325,19 @@ namespace dashbot
             };
         }
 
+        private static readonly HashSet<string> GoatArchetypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "GoatControl", "ChaosTurbo", "ReasoningGate", "Goat", "GOAT"
+        };
+
+        private static readonly HashSet<string> SpecialArchetypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "HorusExodia", "HorusRa", "ExodiaRaHorus"
+        };
+
         private static readonly HashSet<string> ModernArchetypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            "ADML", "AFS", "ArtMage",
+            "ADML", "AFS", "ArtMage", "AntiMeta", "Dinomorphia", "Madolche",
             "Tenpai", "VoicelessVoice", "Centurion", "CenturIon",
             "Branded", "Purrely", "Yummy", "RyuGe", "Runick", "Spright", "WCParisKewlTune", "Kwtune", "KewlTune",
             "SnakeEye", "FireKing", "Tearla", "Tearlaments", "Kashtira", "Labrynth",
@@ -346,7 +356,21 @@ namespace dashbot
             string tagText;
             string tagBg;
 
-            if (originalName.StartsWith("2026_") || originalName.StartsWith("Expert_2026_") || originalName.StartsWith("Neural_2026_") || ModernArchetypes.Contains(cleanName))
+            if (GoatArchetypes.Contains(cleanName) || originalName.StartsWith("GOAT_"))
+            {
+                category = "GOAT";
+                tagText = "GOAT";
+                tagBg = "#047857"; // Emerald Green
+                if (cleanName.StartsWith("GOAT_")) cleanName = cleanName.Substring(5);
+            }
+            else if (SpecialArchetypes.Contains(cleanName) || originalName.StartsWith("Special_"))
+            {
+                category = "Special";
+                tagText = "Special";
+                tagBg = "#6D28D9"; // Purple
+                if (cleanName.StartsWith("Special_")) cleanName = cleanName.Substring(8);
+            }
+            else if (originalName.StartsWith("2026_") || originalName.StartsWith("Expert_2026_") || originalName.StartsWith("Neural_2026_") || ModernArchetypes.Contains(cleanName))
             {
                 category = "Modern";
                 tagText = "Modern";
@@ -368,13 +392,6 @@ namespace dashbot
                 tagText = "Legacy";
                 tagBg = "#1D4ED8"; // Royal Blue
                 cleanName = cleanName.Substring(3);
-            }
-            else if (originalName.StartsWith("GOAT_"))
-            {
-                category = "GOAT";
-                tagText = "GOAT";
-                tagBg = "#047857"; // Emerald Green
-                cleanName = cleanName.Substring(5);
             }
             else
             {

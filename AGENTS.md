@@ -58,6 +58,8 @@ powershell -ExecutionPolicy Bypass -File .\BUILD_AND_DEPLOY.ps1
    - ห้ามสร้าง NeuralExecutor หรือโค้ดที่เกี่ยวกับ AI Training
 2. **สถาปัตยกรรม Central Core & ModernExecutor**:
    - พัฒนาผ่าน `CardIntelligence` (ฐานข้อมูล O(1) กลาง), `ModernExecutor`, `ComboRouter`, `BaitPlanner`, `ChainAdvisor`, `HeuristicGuard`, `ResourcePlan`, และ universal heuristics `FallbackSelectCard`
+3. **Decoupled Domain Plugin Architecture เสมอ (MANDATORY)**:
+   - ทุกครั้งที่สร้างหรือ Refactor เด็ค **ต้องเชื่อมต่อและใช้งานสถาปัตยกรรม Decoupled Domain Plugin (`ExecutorBase/Game/AI/Plugin`) เสมอ** โดยสืบทอดจาก `DeckPluginBase` หรือ implement `IDeckPlugin` (แยก `IDeckStrategy`, `IDeckMaterialEvaluator`, `IDeckThreatEvaluator`, ฯลฯ) เพื่อแยก Domain Logic ออกจาก Executor Router อย่างชัดเจน 100% **โดยไม่ต้องรอให้ผู้ใช้สั่งซ้ำ**
 3. **Headless Text Duel Simulation**:
    - เครื่องมือ `Client_Headless_Fortest` มีไว้เพื่อทดสอบตรรกะการเล่น (0 Violations / 0 Crash / Win Rate Audit) เท่านั้น
 
@@ -122,3 +124,8 @@ powershell -ExecutionPolicy Bypass -File .\BUILD_AND_DEPLOY.ps1
    - ห้ามโยน Ash Blossom, Maxx "C", Droll & Lock Bird, หรือ Negate ใบเดิมซ้ำในเชนเดียวกันโดยเด็ดขาด
 14. **ห้ามตอบรับ (Accept) เอฟเฟกต์ทางเลือกของการ์ดฝ่ายตรงข้ามโดยไม่ตั้งใจ**:
    - ใน `OnSelectEffectYn` หากเป็นการ์ดของฝ่ายตรงข้าม (`card.Controller == 1`) ต้องปฏิเสธ (false) เป็นค่าเริ่มต้นเสมอ เพื่อป้องกันการหลงกลติดกับดักหรือเสียเปรียบฟรี
+15. **ห้าม Activate Ignition Removal Effect เมื่อฝ่ายตรงข้ามไม่มีเป้าหมายที่ถูกต้อง (Target Verification Safeguard)**:
+   - ในเอฟเฟกต์ที่เลือกเป้าหมายเพื่อทำลาย/รีมูฟ/เด้ง (เช่น `BLS`, `Chaos Sorcerer`, `Exiled Force`) ฟังก์ชันต้องตรวจสอบว่า `Enemy.GetMonsters().Any(...)` หรือเป้าหมายของศัตรูมีอยู่จริงก่อน `return true` เสมอ
+   - หากไม่มีการ์ดศัตรูให้ทำลาย ต้อง `return false` ทันทีเด็ดขาด ห้ามคืนค่า `true` เพื่อหวังผลอื่น เพราะตัวเกมจะบังคับให้เล็งการ์ดพวกเดียวกันเองหรือเล็งตัวเองจนสนามพัง (เช่น กรณี BLS สั่งแบนตัวเอง)
+16. **ห้ามจ่าย Flat LP Cost จน Life Points ลดลงต่ำกว่าจุดปลอดภัยวิกฤต (LP Cost Safety Threshold)**:
+   - การ์ดที่ต้องจ่าย LP เป็นค่าคงที่ เช่น `Delinquent Duo` (1000 LP), `Premature Burial` (800 LP), `Solemn Warning` (2000 LP) ต้องเช็ค `Bot.LifePoints > 2000` (หรือเกณฑ์ปลอดภัย) เสมอ โดยเฉพาะเมื่อมีฟลัดเกตอย่าง `Chain Energy` (500 LP/action) เพื่อป้องกันไม่ให้ LP เหลือน้อยกว่า 500 จนติด Engine Hard-Lock เล่นการ์ดจากมือไม่ได้

@@ -346,7 +346,68 @@ namespace WindBot.Game.AI
             if (card.IsDisabled()) return false;
             if (IsTargetImmune(card.Id)) return true;
             if (card.IsShouldNotBeTarget()) return true;
+            if (CardTextSemantics.GetProfile(card)?.IsTargetImmune == true) return true;
             return false;
+        }
+
+        public static bool IsDestructionImmune(ClientCard card)
+        {
+            if (card == null) return false;
+            if (card.IsDisabled()) return false;
+            return CardTextSemantics.GetProfile(card)?.IsDestructionImmune ?? false;
+        }
+
+        public static bool IsEngineGenerator(ClientCard card)
+        {
+            if (card == null) return false;
+            var profile = CardTextSemantics.GetProfile(card);
+            if (profile == null) return false;
+            return profile.IsCounterGenerator || profile.IsContinuousSearcher || profile.IsContinuousSummoner;
+        }
+
+        /// <summary>
+        /// Universal threat score computation combining O(1) intelligence databases with dynamic text semantics.
+        /// </summary>
+        public static int GetCardThreatScore(ClientCard card, long hint = 0)
+        {
+            if (card == null) return 0;
+            int score = 0;
+
+            int id = card.Id;
+            int nonAltId = card.GetNonAltartCode();
+
+            // 1. O(1) Central Intelligence Checks (Staples / Known Bosses)
+            if (KnownNegators.Contains(id) || KnownNegators.Contains(nonAltId)) score += 10000;
+            if (FloodgateMonsters.Contains(id) || FloodgateMonsters.Contains(nonAltId)) score += 9500;
+            if (FloodgateSpellsTraps.Contains(id)) score += 9500;
+            if (HighThreatChokepoints.Contains(id) || HighThreatChokepoints.Contains(nonAltId)) score += 8000;
+
+            // 2. Dynamic Card Text Semantics (Counter engines, searchers, decoys, immunities)
+            score += CardTextSemantics.EvaluateCardThreat(card, hint);
+
+            // 3. Spell / Trap / Monster baseline
+            if (card.IsSpell() || card.IsTrap())
+            {
+                if (card.IsFaceup())
+                {
+                    if (id == 48680970) score += 12000; // Eternal Soul
+                    else if (id == 82732047) score += 11000; // Skill Drain
+                    else if (id == 38009249) score += 9500;  // Runick Fountain
+                    else if (id == 38033121) score += 9000;  // Dark Magical Circle
+                    else if (card.HasType(CardType.Continuous) || card.HasType(CardType.Field)) score += 2000;
+                    else score += 1000;
+                }
+                else
+                {
+                    score += 4500; // Unknown set backrow
+                }
+            }
+            else if (card.IsMonster())
+            {
+                score += card.Attack;
+            }
+
+            return score;
         }
 
         public static bool IsInvincibleBattle(int cardId)

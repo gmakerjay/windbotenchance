@@ -45,6 +45,7 @@ using System.Linq;
 using WindBot;
 using WindBot.Game;
 using WindBot.Game.AI;
+using WindBot.Game.AI.Plugins;
 using YGOSharp.OCGWrapper.Enums;
 
 namespace WindBot.Game.AI.Decks
@@ -1181,11 +1182,20 @@ namespace WindBot.Game.AI.Decks
             if (cardId == 27204312 && positions.Contains(CardPosition.FaceUpDefence))
                 return CardPosition.FaceUpDefence;
 
-            // When summoning 0 ATK starters, choose FaceUpDefence if not attacking
-            if (cardId == CardId.AstellarOfTheWhiteForest || cardId == CardId.ElzetteOfTheWhiteForest || cardId == CardId.PoplarOfTheWhiteForest)
+            // Handtraps and 0 ATK starters choose FaceUpDefence
+            if (cardId == CardId.AstellarOfTheWhiteForest || cardId == CardId.ElzetteOfTheWhiteForest ||
+                cardId == CardId.GhostOgreAndSnowRabbit || cardId == CardId.EffectVeiler || cardId == CardId.DDCrow)
             {
                 if (positions.Contains(CardPosition.FaceUpDefence))
                     return CardPosition.FaceUpDefence;
+            }
+
+            // Boss beaters
+            if (cardId == CardId.DiabellQueenOfTheWhiteForest || cardId == CardId.DracoBerserkerOfTheTenyi ||
+                cardId == CardId.DiabellstarVengeance || cardId == CardId.TheIrisSwordsoul)
+            {
+                if (positions.Contains(CardPosition.FaceUpAttack))
+                    return CardPosition.FaceUpAttack;
             }
             return base.OnSelectPosition(cardId, positions);
         }
@@ -1195,14 +1205,14 @@ namespace WindBot.Game.AI.Decks
         // =====================================================================
         public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
         {
-            // 🚫 Rule 1: Hint 502 (Destroy), 503/504 (Remove/Banish), 508 (ToGrave removal):
+            // Rule 1: Hint 502 (Destroy), 503/504 (Remove/Banish), 508 (ToGrave removal):
             // MUST target ENEMY cards (Controller == 1) if available!
             if (hint == 502 || hint == 503 || hint == 504 || hint == 508)
             {
-                var enemyCards = cards.Where(c => c.Controller == 1).ToList();
+                var enemyCards = cards.Where(c => c != null && c.Controller == 1).ToList();
                 if (enemyCards.Count >= min)
                 {
-                    return enemyCards.OrderByDescending(c => c.Attack).Take(max).ToList();
+                    return Util.CheckSelectCount(enemyCards.OrderByDescending(c => c.Attack).Take(max).ToList(), cards, min, max);
                 }
             }
 
@@ -1222,37 +1232,38 @@ namespace WindBot.Game.AI.Decks
                     CardId.ScourgeOfTheWhiteForest
                 };
 
-                var ordered = cards.OrderBy(c =>
+                var ordered = cards.Where(c => c != null).OrderBy(c =>
                 {
                     int idx = Array.IndexOf(searchPriority, c.Id);
                     return idx >= 0 ? idx : 100;
                 }).ToList();
 
-                return ordered.Take(max).ToList();
+                if (ordered.Count >= min)
+                    return Util.CheckSelectCount(ordered.Take(max).ToList(), cards, min, max);
             }
 
             // Hint 500 (Release / Tribute): Never tribute Diabell Queen or Diabellze
             if (hint == 500)
             {
-                var safeFodder = cards.Where(c => !IsWhiteForestBoss(c)).ToList();
+                var safeFodder = cards.Where(c => c != null && !IsWhiteForestBoss(c)).ToList();
                 if (safeFodder.Count >= min)
                 {
-                    return safeFodder.OrderBy(c => c.Attack).Take(min).ToList();
+                    return Util.CheckSelectCount(safeFodder.OrderBy(c => c.Attack).Take(min).ToList(), cards, min, max);
                 }
             }
 
             // Hint 513 / 519 (Xyz Material): Strictly protect Diabell Queen & Diabellze!
             if (hint == 513 || hint == 519)
             {
-                var safeFodder = cards.Where(c => c.Id != CardId.DiabellQueenOfTheWhiteForest && c.Id != CardId.DiabellzeTheWhiteWitch && !IsWhiteForestBoss(c)).ToList();
+                var safeFodder = cards.Where(c => c != null && c.Id != CardId.DiabellQueenOfTheWhiteForest && c.Id != CardId.DiabellzeTheWhiteWitch && !IsWhiteForestBoss(c)).ToList();
                 if (safeFodder.Count >= min)
                 {
-                    return safeFodder.OrderBy(c => c.Attack).Take(min).ToList();
+                    return Util.CheckSelectCount(safeFodder.OrderBy(c => c.Attack).Take(min).ToList(), cards, min, max);
                 }
-                var nonQueen = cards.Where(c => c.Id != CardId.DiabellQueenOfTheWhiteForest && c.Id != CardId.DiabellzeTheWhiteWitch).ToList();
+                var nonQueen = cards.Where(c => c != null && c.Id != CardId.DiabellQueenOfTheWhiteForest && c.Id != CardId.DiabellzeTheWhiteWitch).ToList();
                 if (nonQueen.Count >= min)
                 {
-                    return nonQueen.OrderBy(c => c.Attack).Take(min).ToList();
+                    return Util.CheckSelectCount(nonQueen.OrderBy(c => c.Attack).Take(min).ToList(), cards, min, max);
                 }
             }
 
@@ -1260,7 +1271,7 @@ namespace WindBot.Game.AI.Decks
             // Protect Bosses! Lowest stats / Tuners / non-bosses first!
             if (hint == 512 || hint == 507 || hint == 0)
             {
-                var sortedMaterials = cards.OrderBy(c =>
+                var sortedMaterials = cards.Where(c => c != null).OrderBy(c =>
                 {
                     if (IsWhiteForestBoss(c)) return 999;
                     if (c.Id == CardId.RcielaSinisterSoulOfTheWhiteForest || c.Id == CardId.SilveraWolfTamerOfTheWhiteForest)
@@ -1268,10 +1279,12 @@ namespace WindBot.Game.AI.Decks
                     return c.Attack; // Smallest attack first (Astellar 0, Elzette 0, Rucia 800, Silvy 1500)
                 }).ToList();
 
-                return sortedMaterials.Take(min).ToList();
+                if (sortedMaterials.Count >= min)
+                    return Util.CheckSelectCount(sortedMaterials.Take(min).ToList(), cards, min, max);
             }
 
             return base.OnSelectCard(cards, min, max, hint, cancelable);
         }
     }
 }
+

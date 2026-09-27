@@ -158,7 +158,20 @@ namespace WindBot.Game.AI
         public ClientCard GetProblematicEnemySpell()
         {
             ClientCard card = Enemy.SpellZone.GetFloodgate();
-            return card;
+            if (card != null)
+                return card;
+
+            var faceupSpells = Enemy.GetSpells().Where(s => s != null && s.IsFaceup()).ToList();
+            if (faceupSpells.Count > 0)
+            {
+                var highest = faceupSpells
+                    .OrderByDescending(s => CardIntelligence.GetCardThreatScore(s, 502 /* HINTMSG_DESTROY */))
+                    .FirstOrDefault();
+                if (highest != null && CardIntelligence.GetCardThreatScore(highest, 502) >= 5000)
+                    return highest;
+            }
+
+            return null;
         }
 
         public ClientCard GetBestEnemyCard(bool onlyFaceup = false, bool canBeTarget = false)
@@ -209,9 +222,15 @@ namespace WindBot.Game.AI
 
             var spells = Enemy.GetSpells();
 
-            card = spells.FirstOrDefault(ecard => ecard.IsFaceup() && (ecard.HasType(CardType.Continuous) || ecard.HasType(CardType.Field)));
-            if (card != null)
-                return card;
+            var faceupSpells = spells.Where(ecard => ecard != null && ecard.IsFaceup()).ToList();
+            if (faceupSpells.Count > 0)
+            {
+                var bestFaceup = faceupSpells
+                    .OrderByDescending(ecard => CardIntelligence.GetCardThreatScore(ecard, 502))
+                    .FirstOrDefault();
+                if (bestFaceup != null && CardIntelligence.GetCardThreatScore(bestFaceup, 502) > 0)
+                    return bestFaceup;
+            }
 
             if (spells.Count > 0 && !onlyFaceup)
                 return spells[0];
@@ -424,18 +443,18 @@ namespace WindBot.Game.AI
         /// </summary>
         public IList<ClientCard> CheckSelectCount(IList<ClientCard> _selected, IList<ClientCard> cards, int min, int max)
         {
-            var selected = _selected.ToList();
-            if (selected.Count < min)
+            var selected = _selected == null ? new List<ClientCard>() : _selected.ToList();
+            if (selected.Count < min && cards != null)
             {
                 foreach (ClientCard card in cards)
                 {
-                    if (!selected.Contains(card))
+                    if (card != null && !selected.Contains(card))
                         selected.Add(card);
                     if (selected.Count >= max)
                         break;
                 }
             }
-            while (selected.Count > max)
+            while (selected.Count > max && selected.Count > 0)
             {
                 selected.RemoveAt(selected.Count - 1);
             }

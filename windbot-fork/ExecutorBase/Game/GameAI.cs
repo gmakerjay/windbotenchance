@@ -314,7 +314,7 @@ namespace WindBot.Game
             {
                 try { Log(LogLevel.Info, $"[DEBUG-DECISION] OnSelectCard -> Selected ({source}): " + string.Join(", ", sel.Select(c => c == null ? "null" : $"{c.Id}"))); } catch {}
                 try { sel = WindBot.HeuristicGuard.SanitizeSelection(sel, cards, min, max, hint, cancelable, Duel.Turn, Duel.Fields[0], Duel.Fields[1]); } catch {}
-                try { WindBot.HeuristicGuard.ValidateSelection(sel, hint, Duel.Turn, Duel.Fields[0], Duel.Fields[1]); } catch {}
+                try { WindBot.HeuristicGuard.ValidateSelection(sel, hint, Duel.Turn, Duel.Fields[0], Duel.Fields[1], cards); } catch {}
                 return sel;
             }
 
