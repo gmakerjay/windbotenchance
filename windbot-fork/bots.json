@@ -1,5 +1,11 @@
 [
   {
+    "name": "Synchron",
+    "deck": "Synchron",
+    "difficulty": 3,
+    "masterRules": [ 3, 4, 5 ]
+  },
+  {
     "name": "GoatControl",
     "deck": "GoatControl",
     "difficulty": 3,
