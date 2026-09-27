@@ -346,7 +346,8 @@ namespace dashbot
             "Yubel", "Chimera", "GoblinBiker", "GoldPride", "Mikanko",
             "SuperHeavySamurai", "Mathmech", "Cyberse", "Synchron", "Exosister",
             "SacrBeatsMach", "ScarbeatMach", "SacredBeats", "Machina",
-            "PhantomKnight", "PhantomKnights"
+            "PhantomKnight", "PhantomKnights",
+            "SkyStrikerZero"
         };
 
         private static DeckItem ParseDeckItem(string originalName)
@@ -434,6 +435,7 @@ namespace dashbot
                 { "BlueEyesMaxDragon", "Blue-Eyes Max" },
                 { "DarkMagician", "Dark Magician" },
                 { "RedDragon", "Red Dragon Archfiend" },
+                { "SkyStrikerZero", "Sky Striker Zero" },
                 { "SkyStriker", "Sky Striker" },
                 { "CyberDragon", "Cyber Dragon" },
                 { "Blackwings", "Blackwing" },
