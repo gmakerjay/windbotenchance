@@ -53,13 +53,13 @@ namespace WindBot.Game.AI.Plugins
         public void Reset() { }
 
         /// <summary>
-        /// Selects the best Level 5+ or boss monster to Special Summon from face-down banished zone or Extra Deck.
+        /// Selects the best Level 5+ or boss monster to Special Summon from face-down banished zone.
         /// </summary>
         public ClientCard PickSpecialSummonTarget(IList<ClientCard> candidates)
         {
             if (candidates == null || candidates.Count == 0) return null;
 
-            // In Opponent turn: Yomi (for monster negate) > Helheim (for board protection) > Ploutonion (for spin) > Darkness
+            // In Opponent turn: Yomi (Monster Quick Negate) > Helheim (Protection) > Ploutonion (Spin) > Darkness > Naraka
             if (_exec.Duel.Player != 0)
             {
                 int[] enemyTurnPriorities = {
@@ -77,14 +77,14 @@ namespace WindBot.Game.AI.Plugins
                 }
             }
 
-            // In Bot turn: Helheim (protects combo) > Yomi > Darkness (high ATK) > Ploutonion > Gehenna > Sheol
+            // In Bot turn: Helheim (protects board & other Trirealms) > Darkness (3000 Beatdown) > Yomi > Ploutonion > Gehenna > Sheol
             int[] botTurnPriorities = {
                 TrirealmRiftExecutor.CardId.BurialSummitTrirealmRiftHelheim,
-                TrirealmRiftExecutor.CardId.SkyThunderTrirealmRiftYomi,
                 TrirealmRiftExecutor.CardId.TrirealmRiftDarkness,
+                TrirealmRiftExecutor.CardId.SkyThunderTrirealmRiftYomi,
                 TrirealmRiftExecutor.CardId.MadTempestTrirealmRiftPloutonion,
-                TrirealmRiftExecutor.CardId.TrirealmRiftOfEmptinessGehenna,
                 TrirealmRiftExecutor.CardId.TrirealmRiftOfSkySheol,
+                TrirealmRiftExecutor.CardId.TrirealmRiftOfEmptinessGehenna,
                 TrirealmRiftExecutor.CardId.TrirealmRiftOfScarletNaraka,
                 TrirealmRiftExecutor.CardId.TrirealmRiftOfBlueTuonela,
                 TrirealmRiftExecutor.CardId.SPLittleKnight,
@@ -101,16 +101,27 @@ namespace WindBot.Game.AI.Plugins
         }
 
         /// <summary>
-        /// Selects the best Trirealm Rift card to add to hand from face-down banished cards.
+        /// Selects the best single Trirealm Rift card to add to hand from face-down banished cards.
         /// </summary>
         public ClientCard PickSearchTarget(IList<ClientCard> candidates, ClientCard context)
         {
-            if (candidates == null || candidates.Count == 0) return null;
+            var list = PickSearchTargets(candidates, context, 1);
+            return list?.FirstOrDefault();
+        }
 
-            // Context 1: Sheol (Searches Spell / Trap)
+        /// <summary>
+        /// Selects up to `max` cards (supporting Gehenna & Sheol multi-add up to 2 cards with different names).
+        /// </summary>
+        public IList<ClientCard> PickSearchTargets(IList<ClientCard> candidates, ClientCard context, int max)
+        {
+            if (candidates == null || candidates.Count == 0) return new List<ClientCard>();
+
+            var result = new List<ClientCard>();
+            var usedCodes = new HashSet<int>();
+
+            // Context 1: Sheol (Adds up to 2 Spells/Traps with DIFFERENT names)
             if (context != null && context.IsCode(TrirealmRiftExecutor.CardId.TrirealmRiftOfSkySheol))
             {
-                // Prioritize Gospel (combos/extenders) > Valvols (field spell) > Judgment (counter trap)
                 int[] stPriorities = {
                     TrirealmRiftExecutor.CardId.TrirealmRiftGospel,
                     TrirealmRiftExecutor.CardId.TrirealmRiftTerritoryValvols,
@@ -119,33 +130,76 @@ namespace WindBot.Game.AI.Plugins
 
                 foreach (int id in stPriorities)
                 {
-                    var match = candidates.FirstOrDefault(c => c != null && c.IsCode(id));
-                    if (match != null) return match;
+                    var match = candidates.FirstOrDefault(c => c != null && c.IsCode(id) && !usedCodes.Contains(c.Id));
+                    if (match != null)
+                    {
+                        result.Add(match);
+                        usedCodes.Add(match.Id);
+                        if (result.Count >= max) return result;
+                    }
                 }
             }
 
-            // Context 2: Yomi (Searches any Trirealm Rift card except Level 5)
-            // Context 3: Gehenna (Searches 2 Monsters)
-            // Context 4: Valvols (Searches 1 Trirealm Rift card)
+            // Context 2: Gehenna (Adds up to 2 Monsters with DIFFERENT names)
+            if (context != null && context.IsCode(TrirealmRiftExecutor.CardId.TrirealmRiftOfEmptinessGehenna))
+            {
+                int[] monsterPriorities = {
+                    TrirealmRiftExecutor.CardId.TrirealmRiftOfSkySheol,
+                    TrirealmRiftExecutor.CardId.BurialSummitTrirealmRiftHelheim,
+                    TrirealmRiftExecutor.CardId.SkyThunderTrirealmRiftYomi,
+                    TrirealmRiftExecutor.CardId.TrirealmRiftOfScarletNaraka,
+                    TrirealmRiftExecutor.CardId.MadTempestTrirealmRiftPloutonion,
+                    TrirealmRiftExecutor.CardId.TrirealmRiftDarkness,
+                    TrirealmRiftExecutor.CardId.TrirealmRiftOfBlueTuonela
+                };
+
+                foreach (int id in monsterPriorities)
+                {
+                    var match = candidates.FirstOrDefault(c => c != null && c.IsCode(id) && !usedCodes.Contains(c.Id));
+                    if (match != null)
+                    {
+                        result.Add(match);
+                        usedCodes.Add(match.Id);
+                        if (result.Count >= max) return result;
+                    }
+                }
+            }
+
+            // Context 3: General priorities (Yomi, Valvols, Gospel)
             int[] generalPriorities = {
-                TrirealmRiftExecutor.CardId.BurialSummitTrirealmRiftHelheim,
-                TrirealmRiftExecutor.CardId.TrirealmRiftOfScarletNaraka,
                 TrirealmRiftExecutor.CardId.TrirealmRiftTerritoryValvols,
                 TrirealmRiftExecutor.CardId.TrirealmRiftGospel,
-                TrirealmRiftExecutor.CardId.TrirealmRiftJudgment,
-                TrirealmRiftExecutor.CardId.MadTempestTrirealmRiftPloutonion,
+                TrirealmRiftExecutor.CardId.BurialSummitTrirealmRiftHelheim,
                 TrirealmRiftExecutor.CardId.TrirealmRiftOfSkySheol,
+                TrirealmRiftExecutor.CardId.TrirealmRiftJudgment,
+                TrirealmRiftExecutor.CardId.TrirealmRiftOfScarletNaraka,
+                TrirealmRiftExecutor.CardId.MadTempestTrirealmRiftPloutonion,
                 TrirealmRiftExecutor.CardId.TrirealmRiftOfEmptinessGehenna,
                 TrirealmRiftExecutor.CardId.TrirealmRiftDarkness
             };
 
             foreach (int id in generalPriorities)
             {
-                var match = candidates.FirstOrDefault(c => c != null && c.IsCode(id));
-                if (match != null) return match;
+                var match = candidates.FirstOrDefault(c => c != null && c.IsCode(id) && !usedCodes.Contains(c.Id));
+                if (match != null)
+                {
+                    result.Add(match);
+                    usedCodes.Add(match.Id);
+                    if (result.Count >= max) return result;
+                }
             }
 
-            return candidates.FirstOrDefault();
+            foreach (var c in candidates)
+            {
+                if (c != null && !usedCodes.Contains(c.Id))
+                {
+                    result.Add(c);
+                    usedCodes.Add(c.Id);
+                    if (result.Count >= max) break;
+                }
+            }
+
+            return result;
         }
     }
 
@@ -171,7 +225,8 @@ namespace WindBot.Game.AI.Plugins
 
             // 2. High Value Backrow Locks
             if (card.IsCode(TrirealmRiftExecutor.CardId.TrirealmRiftTerritoryValvols,
-                            TrirealmRiftExecutor.CardId.TrirealmRiftJudgment))
+                            TrirealmRiftExecutor.CardId.TrirealmRiftJudgment,
+                            TrirealmRiftExecutor.CardId.TrirealmRiftGospel))
             {
                 return 800;
             }
@@ -197,8 +252,8 @@ namespace WindBot.Game.AI.Plugins
         {
             if (candidates == null || candidates.Count == 0) return null;
 
-            // Lowest value cards to discard / send to grave
             int[] discardPriority = {
+                TrirealmRiftExecutor.CardId.GizmekOrochi, // Loves being in GY!
                 TrirealmRiftExecutor.CardId.TrirealmRiftOfBlueTuonela,
                 TrirealmRiftExecutor.CardId.PotOfDesires,
                 TrirealmRiftExecutor.CardId.TrirealmRiftOfSkySheol,
@@ -228,7 +283,6 @@ namespace WindBot.Game.AI.Plugins
         {
             if (candidates == null || candidates.Count == 0) return null;
 
-            // Preserve Yomi, Helheim, Darkness! Use low-level monsters as Link material
             int[] linkFodderPriorities = {
                 TrirealmRiftExecutor.CardId.TrirealmRiftOfBlueTuonela,
                 TrirealmRiftExecutor.CardId.TrirealmRiftOfSkySheol,
@@ -269,11 +323,9 @@ namespace WindBot.Game.AI.Plugins
         {
             if (candidates == null || candidates.Count == 0) return null;
 
-            // Target high ATK or floodgate / dangerous boss monsters first
             var threat = candidates.FirstOrDefault(c => c != null && c.IsFaceup() && (c.Attack >= 2500 || CardIntelligence.IsFloodgate(c.Id) || CardIntelligence.IsHighThreatChokepoint(c.Id) || CardIntelligence.IsKnownNegator(c.Id)));
             if (threat != null) return threat;
 
-            // Target Backrow
             var backrow = candidates.FirstOrDefault(c => c != null && (c.Location == CardLocation.SpellZone || c.IsFacedown()));
             if (backrow != null) return backrow;
 

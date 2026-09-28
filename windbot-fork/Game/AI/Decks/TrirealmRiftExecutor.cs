@@ -17,14 +17,15 @@ namespace WindBot.Game.AI.Decks
         public static class CardId
         {
             // Main Deck Monsters
-            public const int TrirealmRiftOfEmptinessGehenna = 100458031; // Lv 1 DARK
-            public const int TrirealmRiftOfSkySheol = 100458032;        // Lv 2 LIGHT
-            public const int TrirealmRiftOfBlueTuonela = 100458033;     // Lv 3 WATER
-            public const int TrirealmRiftOfScarletNaraka = 100458034;   // Lv 4 FIRE
-            public const int SkyThunderTrirealmRiftYomi = 100458035;    // Lv 5 WIND (Core Boss / Negate)
-            public const int BurialSummitTrirealmRiftHelheim = 100458036; // Lv 6 EARTH (Protection Boss)
-            public const int MadTempestTrirealmRiftPloutonion = 100458037; // Lv 7 WATER (Draw & Removal)
-            public const int TrirealmRiftDarkness = 100458038;          // Lv 8 DARK (Giant Finisher)
+            public const int TrirealmRiftOfEmptinessGehenna = 100458031; // Lv 1 DARK (Free SS / Search 2 Monsters)
+            public const int TrirealmRiftOfSkySheol = 100458032;        // Lv 2 LIGHT (SS with Trirealm / Search 2 S/T)
+            public const int TrirealmRiftOfBlueTuonela = 100458033;     // Lv 3 WATER (SS if outnumbered / SS Lv 5+)
+            public const int TrirealmRiftOfScarletNaraka = 100458034;   // Lv 4 FIRE (SS on enemy SS / Quick SS Lv 5+)
+            public const int SkyThunderTrirealmRiftYomi = 100458035;    // Lv 5 WIND (Core Boss / Hand Search / Quick Negate)
+            public const int BurialSummitTrirealmRiftHelheim = 100458036; // Lv 6 EARTH (Hand SS Boss / Full Field Protection)
+            public const int MadTempestTrirealmRiftPloutonion = 100458037; // Lv 7 WATER (Hand Draw 2 / Quick Spin)
+            public const int TrirealmRiftDarkness = 100458038;          // Lv 8 DARK (3000 ATK Finisher / Quick Pop / Draw Skip)
+            public const int GizmekOrochi = 71197066;                   // Lv 8 DARK (Quick SS Banish 8 face-down / Pop monster)
 
             // Staples / Handtraps
             public const int AshBlossom = 14558127;
@@ -33,11 +34,12 @@ namespace WindBot.Game.AI.Decks
             public const int CalledByTheGrave = 24224830;
             public const int CalledByTheGraveAlt = 24224831;
             public const int PotOfDesires = 35261759;
+            public const int Terraforming = 73628505;
 
             // Spells & Traps
-            public const int TrirealmRiftTerritoryValvols = 100458039; // Field Spell
-            public const int TrirealmRiftGospel = 100458040;          // Quick-Play Spell
-            public const int TrirealmRiftJudgment = 100458041;        // Counter Trap
+            public const int TrirealmRiftTerritoryValvols = 100458039; // Field Spell (Banish 5 / Search 1 / Turn Lockout)
+            public const int TrirealmRiftGospel = 100458040;          // Continuous Spell (Banish 5 / Double NS / Morph Lv 4-)
+            public const int TrirealmRiftJudgment = 100458041;        // Counter Trap (Summon Intercept / ATK 0)
 
             // Extra Deck
             public const int SPLittleKnight = 29301450;
@@ -76,7 +78,9 @@ namespace WindBot.Game.AI.Decks
         private bool _valvolsSearchedThisTurn = false;
         private bool _gehennaSearchedThisTurn = false;
         private bool _sheolSearchedThisTurn = false;
-
+        private bool _tuonelaSpSummonUsedThisTurn = false;
+        private bool _gospelMorphedThisTurn = false;
+        private bool _gizmekSummonedThisTurn = false;
 
         public TrirealmRiftExecutor(GameAI ai, Duel duel)
             : base(ai, duel)
@@ -85,7 +89,9 @@ namespace WindBot.Game.AI.Decks
             DeckPlugin = new TrirealmRiftPlugin(this);
             Plugin = (TrirealmRiftPlugin)DeckPlugin;
 
-            // 1. Counter Traps & Quick Negates (Priority 1)
+            // ═══════════════════════════════════════════════════════════════
+            //  PHASE 1: QUICK COUNTERS & HANDTRAPS (Chain Priority)
+            // ═══════════════════════════════════════════════════════════════
             AddExecutor(ExecutorType.Activate, CardId.TrirealmRiftJudgment, OnTrirealmJudgment);
             AddExecutor(ExecutorType.Activate, CardId.SkyThunderTrirealmRiftYomi, OnYomiQuickNegate);
             AddExecutor(ExecutorType.Activate, CardId.CalledByTheGrave, DefaultCalledByTheGrave);
@@ -94,34 +100,64 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.Activate, CardId.AshBlossomAlt, DefaultAshBlossomAndJoyousSpring);
             AddExecutor(ExecutorType.Activate, CardId.InfiniteImpermanence, DefaultInfiniteImpermanence);
 
-            // 2. Opponent Turn Disruptions (Priority 2)
-            AddExecutor(ExecutorType.Activate, CardId.TrirealmRiftOfScarletNaraka, OnNarakaOpponentSummon);
+            // ═══════════════════════════════════════════════════════════════
+            //  PHASE 2: OPPONENT TURN DISRUPTIONS & QUICK REMOVALS
+            // ═══════════════════════════════════════════════════════════════
             AddExecutor(ExecutorType.Activate, CardId.MadTempestTrirealmRiftPloutonion, OnPloutonionQuickSpin);
             AddExecutor(ExecutorType.Activate, CardId.TrirealmRiftDarkness, OnDarknessQuickDestroy);
-            AddExecutor(ExecutorType.Activate, CardId.BurialSummitTrirealmRiftHelheim, OnHelheimQuickSummon);
+            AddExecutor(ExecutorType.Activate, CardId.TrirealmRiftOfScarletNaraka, OnNarakaOpponentSummon);
+            AddExecutor(ExecutorType.Activate, CardId.GizmekOrochi, OnGizmekOrochiQuick);
             AddExecutor(ExecutorType.Activate, CardId.SPLittleKnight, OnSPLittleKnightActivate);
             AddExecutor(ExecutorType.Activate, CardId.IPMasquerena, OnIPMasquerenaActivate);
 
-            // 3. Field & Hand Draw Engines (Priority 3)
+            // ═══════════════════════════════════════════════════════════════
+            //  PHASE 3: ON-SUMMON TRIGGER EFFECTS (All Monsters Banish Top Cards!)
+            // ═══════════════════════════════════════════════════════════════
+            AddExecutor(ExecutorType.Activate, CardId.TrirealmRiftOfEmptinessGehenna, OnSummonBanishTrigger);
+            AddExecutor(ExecutorType.Activate, CardId.TrirealmRiftOfSkySheol, OnSummonBanishTrigger);
+            AddExecutor(ExecutorType.Activate, CardId.TrirealmRiftOfBlueTuonela, OnSummonBanishTrigger);
+            AddExecutor(ExecutorType.Activate, CardId.TrirealmRiftOfScarletNaraka, OnSummonBanishTrigger);
+            AddExecutor(ExecutorType.Activate, CardId.SkyThunderTrirealmRiftYomi, OnSummonBanishTrigger);
+            AddExecutor(ExecutorType.Activate, CardId.BurialSummitTrirealmRiftHelheim, OnSummonBanishTrigger);
+            AddExecutor(ExecutorType.Activate, CardId.MadTempestTrirealmRiftPloutonion, OnSummonBanishTrigger);
+            AddExecutor(ExecutorType.Activate, CardId.TrirealmRiftDarkness, OnSummonBanishTrigger);
+
+            // ═══════════════════════════════════════════════════════════════
+            //  PHASE 4: BANISH ACCELERATORS & DRAW ENGINES (Fill Banished Pool!)
+            // ═══════════════════════════════════════════════════════════════
             AddExecutor(ExecutorType.Activate, CardId.PotOfDesires, OnPotOfDesires);
-            AddExecutor(ExecutorType.Activate, CardId.TrirealmRiftTerritoryValvols, OnValvolsActivate);
+            AddExecutor(ExecutorType.Activate, CardId.Terraforming, OnTerraforming);
+            AddExecutor(ExecutorType.Activate, CardId.GizmekOrochi, OnGizmekOrochiSpSummon);
+            AddExecutor(ExecutorType.Activate, CardId.TrirealmRiftTerritoryValvols, OnValvolsHandActivate);
+            AddExecutor(ExecutorType.Activate, CardId.TrirealmRiftGospel, OnGospelHandActivate);
             AddExecutor(ExecutorType.Activate, CardId.MadTempestTrirealmRiftPloutonion, OnPloutonionHandDraw);
             AddExecutor(ExecutorType.Activate, CardId.SkyThunderTrirealmRiftYomi, OnYomiHandSearch);
-            AddExecutor(ExecutorType.Activate, CardId.TrirealmRiftGospel, OnGospelActivate);
 
-            // 4. Starters & Special Summons from Hand (Priority 4)
-            AddExecutor(ExecutorType.Activate, CardId.TrirealmRiftOfEmptinessGehenna, OnGehennaActivate);
-            AddExecutor(ExecutorType.Activate, CardId.TrirealmRiftOfSkySheol, OnSheolActivate);
-            AddExecutor(ExecutorType.Activate, CardId.TrirealmRiftOfBlueTuonela, OnTuonelaActivate);
+            // ═══════════════════════════════════════════════════════════════
+            //  PHASE 5: MAIN PHASE STARTERS, EXTENDERS & SEARCHES
+            // ═══════════════════════════════════════════════════════════════
+            AddExecutor(ExecutorType.Activate, CardId.TrirealmRiftOfEmptinessGehenna, OnGehennaHandSummon);
+            AddExecutor(ExecutorType.Activate, CardId.TrirealmRiftOfEmptinessGehenna, OnGehennaFieldSearch);
+            AddExecutor(ExecutorType.Activate, CardId.TrirealmRiftOfSkySheol, OnSheolHandSummon);
+            AddExecutor(ExecutorType.Activate, CardId.TrirealmRiftOfSkySheol, OnSheolFieldSearch);
+            AddExecutor(ExecutorType.Activate, CardId.TrirealmRiftOfBlueTuonela, OnTuonelaHandSummon);
+            AddExecutor(ExecutorType.Activate, CardId.TrirealmRiftOfBlueTuonela, OnTuonelaFieldSpSummon);
+            AddExecutor(ExecutorType.Activate, CardId.TrirealmRiftTerritoryValvols, OnValvolsFieldSearch);
+            AddExecutor(ExecutorType.Activate, CardId.TrirealmRiftGospel, OnGospelFieldMorph);
+            AddExecutor(ExecutorType.Activate, CardId.BurialSummitTrirealmRiftHelheim, OnHelheimQuickSummon);
             AddExecutor(ExecutorType.Activate, CardId.TrirealmRiftOfScarletNaraka, OnNarakaHandSummon);
 
-            // 5. Normal Summons
+            // ═══════════════════════════════════════════════════════════════
+            //  PHASE 6: NORMAL SUMMONS
+            // ═══════════════════════════════════════════════════════════════
             AddExecutor(ExecutorType.Summon, CardId.TrirealmRiftOfScarletNaraka);
-            AddExecutor(ExecutorType.Summon, CardId.TrirealmRiftOfEmptinessGehenna);
             AddExecutor(ExecutorType.Summon, CardId.TrirealmRiftOfSkySheol);
+            AddExecutor(ExecutorType.Summon, CardId.TrirealmRiftOfEmptinessGehenna);
             AddExecutor(ExecutorType.Summon, CardId.TrirealmRiftOfBlueTuonela);
 
-            // 6. Extra Deck Toolbox
+            // ═══════════════════════════════════════════════════════════════
+            //  PHASE 7: EXTRA DECK TOOLBOX (Only when Xenolock is not active)
+            // ═══════════════════════════════════════════════════════════════
             AddExecutor(ExecutorType.SpSummon, CardId.AccesscodeTalker, OnAccesscodeSummon);
             AddExecutor(ExecutorType.Activate, CardId.AccesscodeTalker);
             AddExecutor(ExecutorType.SpSummon, CardId.KnightmareUnicorn, OnKnightmareUnicornSummon);
@@ -131,17 +167,18 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.SpSummon, CardId.AbyssDweller, OnAbyssDwellerSummon);
             AddExecutor(ExecutorType.Activate, CardId.AbyssDweller);
             AddExecutor(ExecutorType.SpSummon, CardId.IPMasquerena, OnIPMasquerenaSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.Linkuriboh, OnLinkuribohSummon);
-            AddExecutor(ExecutorType.Activate, CardId.Linkuriboh);
 
-            // 7. Spell & Trap Backrow Placement
+            // ═══════════════════════════════════════════════════════════════
+            //  PHASE 8: SPELL & TRAP BACKROW PLACEMENT
+            // ═══════════════════════════════════════════════════════════════
             AddExecutor(ExecutorType.SpellSet, CardId.TrirealmRiftJudgment);
             AddExecutor(ExecutorType.SpellSet, CardId.InfiniteImpermanence);
             AddExecutor(ExecutorType.SpellSet, CardId.CalledByTheGrave);
             AddExecutor(ExecutorType.SpellSet, CardId.CalledByTheGraveAlt);
-            AddExecutor(ExecutorType.SpellSet, CardId.TrirealmRiftGospel);
 
-            // 8. Repositioning
+            // ═══════════════════════════════════════════════════════════════
+            //  PHASE 9: REPOSITIONING
+            // ═══════════════════════════════════════════════════════════════
             AddExecutor(ExecutorType.Repos, DefaultMonsterRepos);
         }
 
@@ -160,15 +197,35 @@ namespace WindBot.Game.AI.Decks
             _valvolsSearchedThisTurn = false;
             _gehennaSearchedThisTurn = false;
             _sheolSearchedThisTurn = false;
+            _tuonelaSpSummonUsedThisTurn = false;
+            _gospelMorphedThisTurn = false;
+            _gizmekSummonedThisTurn = false;
         }
 
         // ═══════════════════════════════════════════════════════════════
         // DISRUPTIONS & COMBOS
         // ═══════════════════════════════════════════════════════════════
 
+        private bool OnTrirealmJudgment()
+        {
+            // Counter Trap: when opponent normal or special summons a monster OR in damage step
+            if (Duel.Phase == DuelPhase.BattleStart || Duel.Phase == DuelPhase.Damage)
+            {
+                return Bot.Deck.Count == 0;
+            }
+
+            // Must respond to opponent summoning
+            if (Duel.LastSummonPlayer == 1 || Duel.LastChainPlayer == 1)
+            {
+                // Check if we have face-down banished Trirealm monsters
+                return Bot.Banished.Any(c => c != null && c.IsFacedown() && IsTrirealmMonster(c));
+            }
+
+            return false;
+        }
+
         private bool OnYomiQuickNegate()
         {
-            // Only on field
             if (Card.Location != CardLocation.MonsterZone) return false;
             if (Duel.LastChainPlayer != 1) return false;
 
@@ -177,25 +234,16 @@ namespace WindBot.Game.AI.Decks
 
             // Check if we have a face-down banished Trirealm Rift monster with the same attribute
             int enemyAttr = (int)lastCard.Attribute;
-            var banishedMatch = Bot.Banished.Any(c => c != null && c.IsFacedown() && IsTrirealmMonster(c) && ((int)c.Attribute & enemyAttr) > 0);
-            return banishedMatch;
-        }
-
-        private bool OnTrirealmJudgment()
-        {
-            // Counter Trap: when opponent summons or damage step ATK = 0
-            return Duel.LastChainPlayer == 1 || Duel.Phase == DuelPhase.BattleStart || Duel.Phase == DuelPhase.Damage;
+            return Bot.Banished.Any(c => c != null && c.IsFacedown() && IsTrirealmMonster(c) && ((int)c.Attribute & enemyAttr) > 0);
         }
 
         private bool OnPloutonionQuickSpin()
         {
-            // On field: spin opponent monster with same attribute
             if (Card.Location != CardLocation.MonsterZone) return false;
 
             var enemyMonsters = Enemy.GetMonsters().Where(c => c != null && c.IsFaceup() && !c.IsShouldNotBeTarget()).ToList();
             if (enemyMonsters.Count == 0) return false;
 
-            // Check if we have face-down banished Trirealm monster matching attribute
             foreach (var em in enemyMonsters)
             {
                 int attr = (int)em.Attribute;
@@ -210,7 +258,6 @@ namespace WindBot.Game.AI.Decks
         private bool OnDarknessQuickDestroy()
         {
             if (Card.Location != CardLocation.MonsterZone) return false;
-            // 20+ face-down banished cards required for quick effect destroy
             int facedownCount = Bot.Banished.Count(c => c != null && c.IsFacedown());
             if (facedownCount < 20) return false;
 
@@ -220,7 +267,6 @@ namespace WindBot.Game.AI.Decks
 
         private bool OnNarakaOpponentSummon()
         {
-            // During opponent's Main Phase, Special Summon Level 5+ from face-down banished
             if (Card.Location == CardLocation.MonsterZone && Duel.Player != 0)
             {
                 return Bot.Banished.Any(c => c != null && c.IsFacedown() && IsTrirealmMonster(c) && c.Level >= 5);
@@ -228,50 +274,85 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
-        private bool OnHelheimQuickSummon()
+        private bool OnGizmekOrochiQuick()
         {
-            // In Hand: Quick Effect during Main Phase to reveal & banish face-down -> Special Summon Lv 5+
-            if (Card.Location == CardLocation.Hand && !_helheimSummonedThisTurn)
+            // In MonsterZone: Quick Destroy 1 face-up monster on field
+            if (Card.Location == CardLocation.MonsterZone)
             {
-                bool hasBanishedTarget = Bot.Banished.Any(c => c != null && c.IsFacedown() && IsTrirealmMonster(c) && c.Level != 6);
-                if (hasBanishedTarget && Bot.GetMonsterCount() < 5)
+                return Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsShouldNotBeTarget() && (c.Attack >= 2000 || CardIntelligence.IsFloodgate(c.Id)));
+            }
+            return false;
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // ON-SUMMON TRIGGER EFFECTS (All Monsters)
+        // ═══════════════════════════════════════════════════════════════
+        private bool OnSummonBanishTrigger()
+        {
+            // Triggers automatically upon Normal or Special Summon
+            // Always activate to mill & feed face-down banished pool!
+            if (Card.Location == CardLocation.MonsterZone)
+            {
+                // In chain responding to summon
+                return true;
+            }
+            return false;
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // BANISH ACCELERATORS & DRAW ENGINES
+        // ═══════════════════════════════════════════════════════════════
+
+        private bool OnPotOfDesires()
+        {
+            return Bot.Deck.Count >= 12;
+        }
+
+        private bool OnTerraforming()
+        {
+            return !Bot.Hand.Any(c => c != null && c.IsCode(CardId.TrirealmRiftTerritoryValvols))
+                && !Bot.SpellZone.Any(c => c != null && c.IsCode(CardId.TrirealmRiftTerritoryValvols));
+        }
+
+        private bool OnGizmekOrochiSpSummon()
+        {
+            if ((Card.Location == CardLocation.Hand || Card.Location == CardLocation.Grave) && !_gizmekSummonedThisTurn)
+            {
+                if (Bot.Deck.Count >= 12 && Bot.GetMonsterCount() < 5)
                 {
-                    _helheimSummonedThisTurn = true;
+                    _gizmekSummonedThisTurn = true;
                     return true;
                 }
             }
             return false;
         }
 
-        private bool OnPotOfDesires()
+        private bool OnValvolsHandActivate()
         {
-            // Banishes 10 cards face-down and draws 2 -> Fuels the entire Trirealm Rift engine!
-            return Bot.Deck.Count >= 15;
-        }
-
-        private bool OnValvolsActivate()
-        {
+            // Activate Field Spell from hand by banishing 5 cards face-down
             if (Card.Location == CardLocation.Hand)
             {
-                // Can activate by banishing 5 cards from GY/top of Deck face-down
                 return Bot.Deck.Count + Bot.Graveyard.Count >= 5;
             }
-            if (Card.Location == CardLocation.SpellZone && !_valvolsSearchedThisTurn)
+            return false;
+        }
+
+        private bool OnGospelHandActivate()
+        {
+            // Activate Continuous Spell from hand by banishing 5 cards face-down
+            if (Card.Location == CardLocation.Hand)
             {
-                // Search 1 face-down banished Trirealm Rift card
-                _valvolsSearchedThisTurn = true;
-                return Bot.Banished.Any(c => c != null && c.IsFacedown() && IsTrirealm(c));
+                return Bot.Deck.Count + Bot.Graveyard.Count >= 5;
             }
             return false;
         }
 
         private bool OnPloutonionHandDraw()
         {
-            // In Hand: reveal Ploutonion + 1 other Trirealm card -> banish both face-down -> draw 2
             if (Card.Location == CardLocation.Hand && !_ploutonionDrawnThisTurn)
             {
                 var other = Bot.Hand.FirstOrDefault(c => c != null && c != Card && IsTrirealm(c));
-                if (other != null)
+                if (other != null && Bot.Deck.Count >= 2)
                 {
                     _ploutonionDrawnThisTurn = true;
                     return true;
@@ -282,7 +363,6 @@ namespace WindBot.Game.AI.Decks
 
         private bool OnYomiHandSearch()
         {
-            // In Hand: reveal Yomi -> banish face-down -> add 1 face-down banished Trirealm card (except Lv 5) to hand
             if (Card.Location == CardLocation.Hand && !_yomiSearchedThisTurn)
             {
                 bool hasTarget = Bot.Banished.Any(c => c != null && c.IsFacedown() && IsTrirealm(c) && c.Level != 5);
@@ -295,70 +375,123 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
-        private bool OnGospelActivate()
+        // ═══════════════════════════════════════════════════════════════
+        // MAIN PHASE STARTERS, EXTENDERS & SEARCHES
+        // ═══════════════════════════════════════════════════════════════
+
+        private bool OnGehennaHandSummon()
         {
-            if (Card.Location == CardLocation.Hand || Card.Location == CardLocation.SpellZone)
+            return Card.Location == CardLocation.Hand && Bot.GetMonsterCount() == 0;
+        }
+
+        private bool OnGehennaFieldSearch()
+        {
+            if (Card.Location == CardLocation.MonsterZone && !_gehennaSearchedThisTurn && (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Main2))
             {
-                // Banish 5 from GY/Deck -> extra normal summon or convert Lv 4 to Lv 5+
-                return Bot.Deck.Count + Bot.Graveyard.Count >= 5;
+                bool hasTargets = Bot.Banished.Any(c => c != null && c.IsFacedown() && IsTrirealmMonster(c) && !c.IsCode(CardId.TrirealmRiftOfEmptinessGehenna));
+                if (hasTargets)
+                {
+                    _gehennaSearchedThisTurn = true;
+                    return true;
+                }
             }
             return false;
         }
 
-        private bool OnGehennaActivate()
+        private bool OnSheolHandSummon()
         {
-            if (Card.Location == CardLocation.Hand)
+            return Card.Location == CardLocation.Hand
+                && Bot.GetMonsters().Any(c => c != null && IsTrirealmMonster(c))
+                && Bot.GetMonsterCount() < 5;
+        }
+
+        private bool OnSheolFieldSearch()
+        {
+            if (Card.Location == CardLocation.MonsterZone && !_sheolSearchedThisTurn && (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Main2))
             {
-                // Free Special Summon when 0 monsters
-                return Bot.GetMonsterCount() == 0;
-            }
-            if (Card.Location == CardLocation.MonsterZone && !_gehennaSearchedThisTurn)
-            {
-                // Add up to 2 face-down banished Trirealm monsters with different names
-                _gehennaSearchedThisTurn = true;
-                return true;
+                bool hasTargets = Bot.Banished.Any(c => c != null && c.IsFacedown() && (c.IsCode(CardId.TrirealmRiftTerritoryValvols) || c.IsCode(CardId.TrirealmRiftGospel) || c.IsCode(CardId.TrirealmRiftJudgment)));
+                if (hasTargets)
+                {
+                    _sheolSearchedThisTurn = true;
+                    return true;
+                }
             }
             return false;
         }
 
-        private bool OnSheolActivate()
+        private bool OnTuonelaHandSummon()
         {
-            if (Card.Location == CardLocation.Hand)
+            return Card.Location == CardLocation.Hand
+                && Enemy.GetMonsterCount() > Bot.GetMonsterCount()
+                && Bot.GetMonsterCount() < 5;
+        }
+
+        private bool OnTuonelaFieldSpSummon()
+        {
+            if (Card.Location == CardLocation.MonsterZone && !_tuonelaSpSummonUsedThisTurn && (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Main2))
             {
-                // Free Special Summon when controlling Trirealm monster
-                return Bot.GetMonsters().Any(c => c != null && IsTrirealmMonster(c)) && Bot.GetMonsterCount() < 5;
-            }
-            if (Card.Location == CardLocation.MonsterZone && !_sheolSearchedThisTurn)
-            {
-                // Add up to 2 face-down banished Trirealm Spells/Traps
-                _sheolSearchedThisTurn = true;
-                return true;
+                bool hasTarget = Bot.Banished.Any(c => c != null && c.IsFacedown() && IsTrirealmMonster(c) && c.Level >= 5);
+                if (hasTarget && Bot.GetMonsterCount() < 5)
+                {
+                    _tuonelaSpSummonUsedThisTurn = true;
+                    return true;
+                }
             }
             return false;
         }
 
-        private bool OnTuonelaActivate()
+        private bool OnValvolsFieldSearch()
         {
-            if (Card.Location == CardLocation.Hand)
+            if (Card.Location == CardLocation.SpellZone && !_valvolsSearchedThisTurn && (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Main2))
             {
-                // Special summon when opponent controls more monsters
-                return Enemy.GetMonsterCount() > Bot.GetMonsterCount() && Bot.GetMonsterCount() < 5;
+                bool hasTarget = Bot.Banished.Any(c => c != null && c.IsFacedown() && IsTrirealm(c));
+                if (hasTarget)
+                {
+                    _valvolsSearchedThisTurn = true;
+                    return true;
+                }
             }
-            if (Card.Location == CardLocation.MonsterZone)
+            return false;
+        }
+
+        private bool OnGospelFieldMorph()
+        {
+            if (Card.Location == CardLocation.SpellZone && !_gospelMorphedThisTurn && (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Main2))
             {
-                // Special summon 1 Lv 5+ face-down banished Trirealm monster
-                return Bot.Banished.Any(c => c != null && c.IsFacedown() && IsTrirealmMonster(c) && c.Level >= 5);
+                var lv4Fodder = Bot.GetMonsters().FirstOrDefault(c => c != null && IsTrirealmMonster(c) && c.Level <= 4);
+                bool hasBanishedBoss = Bot.Banished.Any(c => c != null && c.IsFacedown() && IsTrirealmMonster(c) && c.Level >= 5);
+                if (lv4Fodder != null && hasBanishedBoss)
+                {
+                    _gospelMorphedThisTurn = true;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private bool OnHelheimQuickSummon()
+        {
+            if (Card.Location == CardLocation.Hand && !_helheimSummonedThisTurn)
+            {
+                bool hasBanishedTarget = Bot.Banished.Any(c => c != null && c.IsFacedown() && IsTrirealmMonster(c) && c.Level != 6);
+                if (hasBanishedTarget && Bot.GetMonsterCount() < 5)
+                {
+                    _helheimSummonedThisTurn = true;
+                    return true;
+                }
             }
             return false;
         }
 
         private bool OnNarakaHandSummon()
         {
-            // When opponent special summons a monster, special summon Naraka
             return Card.Location == CardLocation.Hand && Bot.GetMonsterCount() < 5;
         }
 
-        // Extra Deck Summons
+        // ═══════════════════════════════════════════════════════════════
+        // EXTRA DECK SUMMONS (Only when not locked)
+        // ═══════════════════════════════════════════════════════════════
+
         private bool OnAccesscodeSummon()
         {
             return Util.IsTurn1OrMain2() && Bot.GetMonsterCount() >= 3;
@@ -397,12 +530,6 @@ namespace WindBot.Game.AI.Decks
         private bool OnAbyssDwellerSummon()
         {
             return Duel.Turn == 1 && Bot.GetMonsters().Count(c => c != null && c.Level == 4) >= 2;
-        }
-
-        private bool OnLinkuribohSummon()
-        {
-            var lv1 = Bot.GetMonsters().FirstOrDefault(c => c != null && c.Level == 1 && c.IsCode(CardId.TrirealmRiftOfEmptinessGehenna));
-            return lv1 != null;
         }
 
         private bool IsTrirealm(ClientCard card)
@@ -444,7 +571,9 @@ namespace WindBot.Game.AI.Decks
             // 2. High ATK Bosses -> Attack
             if (cardId == CardId.TrirealmRiftDarkness // 3000 ATK
                 || cardId == CardId.BurialSummitTrirealmRiftHelheim // 2400 ATK
+                || cardId == CardId.GizmekOrochi // 2450 ATK
                 || cardId == CardId.MadTempestTrirealmRiftPloutonion // 2100 ATK
+                || cardId == CardId.TrirealmRiftOfScarletNaraka // 1700 ATK
                 || cardId == CardId.AccesscodeTalker)
             {
                 if (positions.Contains(CardPosition.FaceUpAttack)) return CardPosition.FaceUpAttack;
@@ -460,17 +589,17 @@ namespace WindBot.Game.AI.Decks
             // 1. Hint 506: ATOHAND (Search target from banished)
             if (hint == 506)
             {
-                var target = Plugin.Strategy.PickSearchTarget(cards, Card);
-                if (target != null)
+                var targets = Plugin.StrategyImpl.PickSearchTargets(cards, Card, max);
+                if (targets != null && targets.Count >= min)
                 {
-                    return new List<ClientCard> { target };
+                    return targets;
                 }
             }
 
             // 2. Hint 509: SPSUMMON (Special Summon target from banished)
             if (hint == 509)
             {
-                var target = Plugin.Strategy.PickSpecialSummonTarget(cards);
+                var target = Plugin.StrategyImpl.PickSpecialSummonTarget(cards);
                 if (target != null)
                 {
                     return new List<ClientCard> { target };
@@ -480,7 +609,7 @@ namespace WindBot.Game.AI.Decks
             // 3. Hint 501 / 504: DISCARD / TOGRAVE
             if (hint == 501 || hint == 504)
             {
-                var discardTarget = Plugin.MaterialEvaluator.PickDiscardTarget(cards, min);
+                var discardTarget = Plugin.MaterialImpl.PickDiscardTarget(cards, min);
                 if (discardTarget != null)
                 {
                     return new List<ClientCard> { discardTarget };
