@@ -36,7 +36,7 @@
 // | Number 100: Numeron Dragon         | Xyz R1       | Yes  | No    | Detach  | Gains combined Ranks x 1000 (9000-17000 ATK)  | Battle Phase lethal attack                   | Opponent has battle fader/negate            |
 // | Hieratic Seal of Heavenly Spheres  | Link-2       | Yes  | Yes   | Tribute | Non-target bounce 1 face-up; SS Jet from deck | Quick disruption on opp turn / setup         | No tribute fodder                           |
 // | Relinquished Anima                 | Link-1       | Yes  | No    | Target  | Equip opp monster pointed to                  | Opponent has monster in column facing EMZ    | No monster in column                        |
-// | S:P Little Knight                  | Link-2       | Yes  | Yes   | Banish  | Banish 1 card on field/GY; Quick temp banish  | Opponent key card on field/GY or disruption  | No targets                                  |
+// | S:P Little Knight                  | Link-2       | Yes  | Yes   | Banish  | Banish 1 card on field/GY; Quick temp banish  | Opponent key card on field/GY or disruption  | No targets / Main Phase 1 direct attack     |
 // ============================================================================
 
 using System;
@@ -45,6 +45,7 @@ using System.Linq;
 using WindBot;
 using WindBot.Game;
 using WindBot.Game.AI;
+using WindBot.Game.AI.Plugins;
 using YGOSharp.OCGWrapper.Enums;
 
 namespace WindBot.Game.AI.Decks
@@ -100,7 +101,16 @@ namespace WindBot.Game.AI.Decks
         public Anime_KaibaExecutor(GameAI ai, Duel duel)
             : base(ai, duel)
         {
+            // 0. Connect Decoupled Domain Plugin Architecture (MANDATORY)
+            DeckPlugin = new Anime_KaibaPlugin(this);
+
             RegisterExecutors();
+        }
+
+        public override bool OnSelectHand()
+        {
+            // True = First Turn (Set up Spirit Dragon / Hope Harbinger / True Light + Jet Dragon)
+            return true;
         }
 
         private void RegisterExecutors()
@@ -212,12 +222,10 @@ namespace WindBot.Game.AI.Decks
 
         private bool JetDragonActivate()
         {
-            // Activate when in GY or hand to revive upon card destruction
             if (Card.Location == CardLocation.Grave || Card.Location == CardLocation.Hand)
             {
                 return HasBEWDInFieldOrGrave();
             }
-            // Battle Step bounce effect
             if (Card.Location == CardLocation.MonsterZone)
             {
                 ClientCard bestTarget = Enemy.GetMonsters().FirstOrDefault(m => m.IsFaceup() && !m.IsDisabled())
@@ -238,7 +246,7 @@ namespace WindBot.Game.AI.Decks
             if (Duel.LastChainPlayer == 1 && Duel.CurrentChain.Count > 0)
             {
                 ClientCard lastCard = Duel.CurrentChain.Last();
-                if (lastCard.Location == CardLocation.Grave)
+                if (lastCard != null && lastCard.Location == CardLocation.Grave)
                 {
                     return true;
                 }
@@ -263,7 +271,6 @@ namespace WindBot.Game.AI.Decks
 
         private bool AzureEyesActivate()
         {
-            // Revive Normal Monster (BEWD) in Standby Phase
             AI.SelectCard(CardId.BlueEyesWhiteDragon);
             return true;
         }
@@ -305,7 +312,6 @@ namespace WindBot.Game.AI.Decks
 
         private bool HeavenlySpheresActivate()
         {
-            // Quick Effect bounce on opponent turn
             if (Duel.Player == 1 && Enemy.GetMonsterCount() > 0)
             {
                 ClientCard tributeTarget = Bot.GetMonsters().FirstOrDefault(m => m.Id == CardId.HieraticSealOfTheHeavenlySpheres || m.Id == CardId.SageWithEyesOfBlue || m.Id == CardId.TheWhiteStoneOfAncients);
@@ -320,7 +326,6 @@ namespace WindBot.Game.AI.Decks
                     }
                 }
             }
-            // When tributed: Special summon Blue-Eyes Jet Dragon or Abyss Dragon from Deck
             if (Card.Location == CardLocation.Grave)
             {
                 AI.SelectCard(CardId.BlueEyesJetDragon, CardId.BlueEyesAbyssDragon, CardId.BlueEyesWhiteDragon);
@@ -333,14 +338,12 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location == CardLocation.SpellZone && Card.IsFaceup())
             {
-                // Option 1: Special Summon BEWD from hand or GY
                 if (Bot.Hand.Any(c => c.Id == CardId.BlueEyesWhiteDragon) || Bot.Graveyard.Any(c => c.Id == CardId.BlueEyesWhiteDragon))
                 {
                     AI.SelectOption(0);
                     AI.SelectCard(CardId.BlueEyesWhiteDragon);
                     return true;
                 }
-                // Option 2: Set Ultimate Fusion directly from deck
                 AI.SelectOption(1);
                 AI.SelectCard(CardId.UltimateFusion);
                 return true;
@@ -350,8 +353,6 @@ namespace WindBot.Game.AI.Decks
 
         private bool UltimateFusionActivate()
         {
-            // Fusion Summon during Main Phase (Quick-Play)
-            // Can make Neo Blue-Eyes Ultimate Dragon (3 BEWD), Blue-Eyes Tyrant (BEWD + monster), or Twin Burst (2 BEWD)
             int bewdCount = Bot.Graveyard.Count(c => c.Id == CardId.BlueEyesWhiteDragon)
                           + Bot.Hand.Count(c => c.Id == CardId.BlueEyesWhiteDragon)
                           + Bot.GetMonsters().Count(c => c.Id == CardId.BlueEyesWhiteDragon);
@@ -376,10 +377,12 @@ namespace WindBot.Game.AI.Decks
 
         private bool MelodyActivate()
         {
-            // Discard 1 card to add Alternative + Jet Dragon
-            ClientCard discard = Bot.Hand.FirstOrDefault(c => c.Id == CardId.TheWhiteStoneOfAncients || c.Id == CardId.TheWhiteStoneOfLegend)
-                              ?? Bot.Hand.FirstOrDefault(c => c.Id == CardId.BlueEyesWhiteDragon && Bot.Hand.Count(x => x.Id == CardId.BlueEyesWhiteDragon) > 1)
-                              ?? Bot.Hand.FirstOrDefault(c => c.Id != CardId.TheMelodyOfAwakeningDragon && c.Id != CardId.DictatorOfD && c.Id != CardId.SageWithEyesOfBlue);
+            ClientCard discard = DeckPlugin?.MaterialEvaluator?.PickDiscardTarget(Bot.Hand);
+            if (discard == null || discard.Id == CardId.TheMelodyOfAwakeningDragon)
+            {
+                discard = Bot.Hand.FirstOrDefault(c => c.Id == CardId.TheWhiteStoneOfAncients || c.Id == CardId.TheWhiteStoneOfLegend)
+                       ?? Bot.Hand.FirstOrDefault(c => c.Id != CardId.TheMelodyOfAwakeningDragon && c.Id != CardId.DictatorOfD && c.Id != CardId.SageWithEyesOfBlue);
+            }
 
             if (discard != null)
             {
@@ -424,15 +427,14 @@ namespace WindBot.Game.AI.Decks
 
         private bool TripleTacticsTalentActivate()
         {
-            // If going second and enemy has monster, take control; else draw 2
             if (Enemy.GetMonsterCount() > 0 && Duel.Turn > 1)
             {
-                AI.SelectOption(1); // Change of Heart effect
+                AI.SelectOption(1);
                 ClientCard target = Enemy.GetMonsters().OrderByDescending(m => m.Attack).FirstOrDefault();
                 if (target != null) AI.SelectCard(target);
                 return true;
             }
-            AI.SelectOption(0); // Draw 2
+            AI.SelectOption(0);
             return true;
         }
 
@@ -444,24 +446,19 @@ namespace WindBot.Game.AI.Decks
         private bool IsHighValueBoss(ClientCard c)
         {
             if (c == null) return false;
-            if (c.Attack >= 2500) return true;
-            if (c.HasType(CardType.Xyz) || c.HasType(CardType.Synchro) || c.HasType(CardType.Fusion)) return true;
-            if (c.Id == CardId.BlueEyesWhiteDragon || c.Id == CardId.BlueEyesAlternativeWhiteDragon ||
-                c.Id == CardId.BlueEyesJetDragon || c.Id == CardId.BlueEyesAbyssDragon) return true;
-            return false;
+            int cost = DeckPlugin?.MaterialEvaluator?.GetMaterialCost(c) ?? 0;
+            return cost >= 60;
         }
 
         private bool SageEffectActivate()
         {
             if (Card.Location == CardLocation.MonsterZone)
             {
-                // Target L1 Tuner from Deck: search White Stone of Ancients or Effect Veiler
                 AI.SelectCard(CardId.TheWhiteStoneOfAncients, CardId.EffectVeiler);
                 return true;
             }
             if (Card.Location == CardLocation.Hand)
             {
-                // Hand effect: target a spent low-stat monster on field, send to GY, SS Blue-Eyes from deck!
                 ClientCard target = Bot.GetMonsters().FirstOrDefault(m => m.IsFaceup() && (m.Id == CardId.TheWhiteStoneOfAncients || m.Id == CardId.TheWhiteStoneOfLegend || m.Id == CardId.DictatorOfD || m.Id == CardId.RelinquishedAnima || m.Id == CardId.SageWithEyesOfBlue));
                 if (target != null)
                 {
@@ -475,7 +472,6 @@ namespace WindBot.Game.AI.Decks
 
         private bool StoneNormalSummon()
         {
-            // Only normal summon stone if we have no other play or need a tuner on field
             return Bot.GetMonsterCount() == 0 || Bot.GetMonsters().Any(m => m.Level == 8);
         }
 
@@ -488,15 +484,13 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location == CardLocation.Hand)
             {
-                // Send BEWD from deck to GY to Special Summon Dictator from hand
                 AI.SelectCard(CardId.BlueEyesWhiteDragon);
                 return true;
             }
             if (Card.Location == CardLocation.MonsterZone)
             {
-                // Discard 1 BEWD or related card to SS BEWD/Jet/Abyss from GY
-                ClientCard discard = Bot.Hand.FirstOrDefault(c => c.Id == CardId.TheWhiteStoneOfAncients || c.Id == CardId.TheWhiteStoneOfLegend || c.Id == CardId.BlueEyesWhiteDragon)
-                                  ?? Bot.Hand.FirstOrDefault(c => c.Id != CardId.DictatorOfD && c.Level == 8);
+                ClientCard discard = DeckPlugin?.MaterialEvaluator?.PickDiscardTarget(Bot.Hand)
+                                  ?? Bot.Hand.FirstOrDefault(c => c.Id == CardId.TheWhiteStoneOfAncients || c.Id == CardId.TheWhiteStoneOfLegend || c.Id == CardId.BlueEyesWhiteDragon);
                 if (discard != null && Bot.Graveyard.Any(c => c.Id == CardId.BlueEyesWhiteDragon || c.Id == CardId.BlueEyesJetDragon || c.Id == CardId.BlueEyesAbyssDragon))
                 {
                     AI.SelectCard(discard);
@@ -515,7 +509,6 @@ namespace WindBot.Game.AI.Decks
 
         private bool AlternativePopActivate()
         {
-            // Target opponent monster to pop
             ClientCard target = Enemy.GetMonsters().FirstOrDefault(m => m.IsFaceup() && (m.Attack >= 2000 || AntiFloodgateHelper.NegateMonsterIds.Contains(m.Id)))
                              ?? Enemy.GetMonsters().FirstOrDefault(m => m.IsFaceup())
                              ?? Enemy.GetMonsters().FirstOrDefault();
@@ -531,11 +524,9 @@ namespace WindBot.Game.AI.Decks
         {
             if (Duel.Phase == DuelPhase.End)
             {
-                // End Phase: SS Blue-Eyes from Deck
                 AI.SelectCard(CardId.BlueEyesJetDragon, CardId.BlueEyesAbyssDragon, CardId.BlueEyesWhiteDragon);
                 return true;
             }
-            // Banish from GY to recycle BEWD to hand
             if (Bot.Graveyard.Any(c => c.Id == CardId.BlueEyesWhiteDragon) && Bot.Hand.Count <= 2)
             {
                 AI.SelectCard(CardId.BlueEyesWhiteDragon, CardId.BlueEyesAlternativeWhiteDragon);
@@ -552,16 +543,13 @@ namespace WindBot.Game.AI.Decks
 
         private bool AbyssDragonActivate()
         {
-            // On SS: search Ultimate Fusion
             AI.SelectCard(CardId.UltimateFusion);
-            // In EP: search Jet Dragon or Alternative
             AI.SelectNextCard(CardId.BlueEyesJetDragon, CardId.BlueEyesAlternativeWhiteDragon);
             return true;
         }
 
         private bool RelinquishedAnimaSummon()
         {
-            // Summon ONLY with Level 1 Tuner (Sage/Stone) and if opponent has monster facing EMZ
             ClientCard tunerFodder = Bot.GetMonsters().FirstOrDefault(m => m.Level == 1 && (m.Id == CardId.SageWithEyesOfBlue || m.Id == CardId.TheWhiteStoneOfAncients || m.Id == CardId.TheWhiteStoneOfLegend));
             return tunerFodder != null && Enemy.GetMonsterCount() > 0;
         }
@@ -579,11 +567,13 @@ namespace WindBot.Game.AI.Decks
 
         private bool SPLittleKnightSummon()
         {
-            // Rule: NEVER sacrifice high-ATK healthy bosses (ATK >= 2500) for a 1600 ATK Link monster!
-            int totalAtk = Bot.GetMonsters().Where(m => m.IsAttack()).Sum(m => m.Attack);
-            if (totalAtk >= 8000 && Enemy.GetMonsterCount() == 0) return false;
+            // CRITICAL RULE 350: NEVER summon S:P in Main Phase 1 if enemy has no monsters or if we can direct attack!
+            // S:P prevents all monsters from attacking directly for the rest of the turn!
+            if (Duel.Phase == DuelPhase.Main1 && (Enemy.GetMonsterCount() == 0 || Bot.GetMonsters().Any(m => m.Attack >= 2500)))
+            {
+                return false;
+            }
 
-            // S:P needs 2 Effect Monsters
             // Only summon if opponent has a critical card on field or GY that needs banishing
             bool oppHasTarget = Enemy.GetMonsters().Any(m => m.IsFaceup() && (m.Attack >= 2500 || AntiFloodgateHelper.NegateMonsterIds.Contains(m.Id) || !m.IsDisabled()))
                              || Enemy.GetSpells().Any(s => s.IsFaceup())
@@ -591,19 +581,9 @@ namespace WindBot.Game.AI.Decks
 
             if (!oppHasTarget) return false;
 
-            // Ensure we have at least 2 non-boss or expendable effect monsters
-            // Fodder: Sage (0 ATK), White Stone of Ancients (600 ATK), White Stone of Legend (300 ATK),
-            // Dictator of D. (1200 ATK), Relinquished Anima (0 ATK, Link-1), or a spent/disabled monster.
+            // Fodder MUST be low cost (NEVER sacrifice BEWD, Jet, or Xyz/Synchro bosses!)
             var availableFodder = Bot.GetMonsters().Where(m => m.HasType(CardType.Effect) && !IsHighValueBoss(m)).ToList();
             if (availableFodder.Count >= 2) return true;
-
-            // Only allow 1 boss sacrifice if opponent controls an unbeatable threat (e.g. towers or floodgate)
-            bool oppHasImmuneBoss = Enemy.GetMonsters().Any(m => m.IsFaceup() && (m.Attack >= 3500 || AntiFloodgateHelper.NegateMonsterIds.Contains(m.Id)));
-            if (oppHasImmuneBoss && availableFodder.Count >= 1 && Bot.GetMonsterCount() >= 2)
-            {
-                var sacrificialBoss = Bot.GetMonsters().FirstOrDefault(m => m.IsDisabled() || (m.Id != CardId.BlueEyesJetDragon && m.Id != CardId.NeoBlueEyesUltimateDragon));
-                return sacrificialBoss != null;
-            }
 
             return false;
         }
@@ -612,7 +592,6 @@ namespace WindBot.Game.AI.Decks
         {
             if (Duel.LastChainPlayer == 1)
             {
-                // Quick temporary banish to dodge or interrupt
                 ClientCard botCard = Bot.GetMonsters().FirstOrDefault(m => m.Id == CardId.SPLittleKnight);
                 ClientCard oppCard = Enemy.GetMonsters().FirstOrDefault(m => m.IsFaceup());
                 if (botCard != null && oppCard != null)
@@ -622,7 +601,6 @@ namespace WindBot.Game.AI.Decks
                     return true;
                 }
             }
-            // On Link Summon: banish 1 card on field or GY
             ClientCard target = Enemy.GetMonsters().FirstOrDefault(m => m.IsFaceup() && (m.Attack >= 2500 || AntiFloodgateHelper.NegateMonsterIds.Contains(m.Id)))
                              ?? Enemy.GetSpells().FirstOrDefault(s => s.IsFaceup())
                              ?? Enemy.GetMonsters().FirstOrDefault();
@@ -636,19 +614,16 @@ namespace WindBot.Game.AI.Decks
 
         private bool HeavenlySpheresSummon()
         {
-            // 2 Dragon monsters -> 0 ATK Link-2
             // Rule: NEVER summon Heavenly Spheres in Main Phase 1 of an attacking turn!
-            if (Duel.Player == 0 && Duel.Turn > 1 && Bot.GetMonsters().Any(m => m.Attack >= 2500))
+            if (Duel.Phase == DuelPhase.Main1 && Duel.Turn > 1 && Bot.GetMonsters().Any(m => m.Attack >= 2500))
             {
                 return false;
             }
 
             // Must NOT use 2 high-ATK bosses (e.g. 2 BEWD)!
-            // Look for low-stat dragons: White Stone of Ancients (600 ATK), White Stone of Legend (300 ATK), Dictator of D. (1200 ATK)
             var fodderDragons = Bot.GetMonsters().Where(m => m.HasRace(CardRace.Dragon) && !IsHighValueBoss(m)).ToList();
             var allDragons = Bot.GetMonsters().Where(m => m.HasRace(CardRace.Dragon)).ToList();
 
-            // Only summon on Turn 1 (setup for enemy turn bounce + Jet summon) or MP2 if we have small dragon fodder
             if (fodderDragons.Count >= 1 && allDragons.Count >= 2)
             {
                 if (Duel.Turn == 1 || Duel.Phase == DuelPhase.Main2)
@@ -662,18 +637,15 @@ namespace WindBot.Game.AI.Decks
 
         private bool SpiritDragonSummon()
         {
-            // 1 Tuner + 1+ non-Tuner LIGHT Dragon (Sage/Stone + BEWD)
             return true;
         }
 
         private bool TwinBurstSummon()
         {
-            // Contact fuse if we have 2 BEWD on field and need double attack or banish
-            // NEVER summon Twin Burst if we can summon Draglubion -> Numeron Dragon (9000-17000 ATK OTK) or already have lethal!
             int bewdOnField = Bot.GetMonsters().Count(m => m.Id == CardId.BlueEyesWhiteDragon || m.Id == CardId.BlueEyesAlternativeWhiteDragon);
             if (bewdOnField < 2) return false;
 
-            // Only summon if opponent has a monster that cannot be destroyed by battle, or high DEF wall, or Draglubion is already used
+            // Only summon if opponent has a monster that cannot be destroyed by battle or high DEF wall
             bool oppHasBattleImmuneOrWall = Enemy.GetMonsters().Any(m => m.IsFaceup() && (m.Attack >= 3000 || m.IsDefense()));
             return oppHasBattleImmuneOrWall && Bot.ExtraDeck.Any(c => c.Id == CardId.BlueEyesTwinBurstDragon);
         }
@@ -685,14 +657,12 @@ namespace WindBot.Game.AI.Decks
 
         private bool DraglubionSummon()
         {
-            // 2 Level 8 monsters -> Primary OTK engine
             int l8Count = Bot.GetMonsters().Count(m => m.Level == 8);
             return l8Count >= 2;
         }
 
         private bool DraglubionActivate()
         {
-            // SS Numeron Dragon and attach Hope Harbinger
             AI.SelectCard(CardId.Number100NumeronDragon);
             AI.SelectNextCard(CardId.Number38HopeHarbinger);
             return true;
@@ -700,7 +670,6 @@ namespace WindBot.Game.AI.Decks
 
         private bool NumeronDragonActivate()
         {
-            // Detach to gain 1000 ATK x combined ranks on field (OTK boost)
             return true;
         }
 
@@ -718,13 +687,11 @@ namespace WindBot.Game.AI.Decks
 
         private bool NeoBlueEyesEffect()
         {
-            // Send Blue-Eyes Ultimate from Extra Deck to attack again
             return true;
         }
 
         private bool TyrantDragonEffect()
         {
-            // Set Trap from GY
             AI.SelectCard(CardId.InfiniteImpermanence, CardId.TrueLight);
             return true;
         }
@@ -803,7 +770,6 @@ namespace WindBot.Game.AI.Decks
 
         private bool RepositionStrategy()
         {
-            // Keep beaters in ATK, small tuners in DEF
             if (Card.Attack >= 2500 && Card.IsDefense()) return true;
             if (Card.Attack < 1500 && Card.IsAttack()) return true;
             return false;
@@ -814,29 +780,15 @@ namespace WindBot.Game.AI.Decks
             // Anti-Pattern Rule 1: Isolation of HINTMSG_ATOHAND (506)
             if (hint == 506)
             {
-                var preferred = new List<int>
+                var target = DeckPlugin?.Strategy?.PickSearchTarget(cards, Card);
+                if (target != null && cards.Contains(target))
                 {
-                    CardId.TheMelodyOfAwakeningDragon,
-                    CardId.BlueEyesAlternativeWhiteDragon,
-                    CardId.BlueEyesJetDragon,
-                    CardId.UltimateFusion,
-                    CardId.BlueEyesWhiteDragon,
-                    CardId.TheWhiteStoneOfAncients,
-                    CardId.DictatorOfD,
-                    CardId.SageWithEyesOfBlue,
-                    CardId.EffectVeiler
-                };
-
-                var matches = cards.Where(c => preferred.Contains(c.Id))
-                                   .OrderBy(c => preferred.IndexOf(c.Id))
-                                   .ToList();
-
-                if (matches.Count >= min)
-                    return matches.Take(max).ToList();
+                    return new List<ClientCard> { target };
+                }
             }
 
-            // Anti-Pattern Rule 2: Destruction (502) or Banish (503) must target enemy cards (c.Controller == 1)
-            if (hint == 502 || hint == 503)
+            // Anti-Pattern Rule 2: Destruction (502) or Banish (503/504) must target enemy cards (c.Controller == 1)
+            if (hint == 502 || hint == 503 || hint == 504)
             {
                 var enemyTargets = cards.Where(c => c.Controller == 1).ToList();
                 if (enemyTargets.Count >= min)
@@ -845,27 +797,14 @@ namespace WindBot.Game.AI.Decks
                 }
             }
 
-            // Link Material Selection: ALWAYS prioritize low ATK fodder first; NEVER sacrifice bosses (ATK >= 2500) if fodder exists!
-            if (hint == 507 || (Duel.Phase != DuelPhase.Battle && cards.All(c => c.Location == CardLocation.MonsterZone && c.Controller == 0)))
+            // Hint 500 (Release/Tribute) or Hint 507 (Material Selection) or Extra Deck Material Sort
+            if (hint == 500 || hint == 507 || (Duel.Phase != DuelPhase.Battle && cards.All(c => c.Location == CardLocation.MonsterZone && c.Controller == 0)))
             {
-                var fodderOrder = cards.OrderBy(c =>
+                var sorted = DeckPlugin?.MaterialEvaluator?.SortMaterials(cards, min);
+                if (sorted != null && sorted.Count >= min)
                 {
-                    if (c.Id == CardId.TheWhiteStoneOfLegend) return 1;
-                    if (c.Id == CardId.TheWhiteStoneOfAncients) return 2;
-                    if (c.Id == CardId.SageWithEyesOfBlue) return 3;
-                    if (c.Id == CardId.RelinquishedAnima) return 4;
-                    if (c.Id == CardId.DictatorOfD) return 5;
-                    if (c.Attack < 2000) return 6;
-                    if (c.IsDisabled()) return 7;
-                    if (c.Id == CardId.BlueEyesAbyssDragon) return 8;
-                    if (c.Id == CardId.BlueEyesWhiteDragon) return 9;
-                    if (c.Id == CardId.BlueEyesAlternativeWhiteDragon) return 10;
-                    if (c.Id == CardId.BlueEyesJetDragon) return 11;
-                    return 20; // Bosses last
-                }).ToList();
-
-                if (fodderOrder.Count >= min)
-                    return fodderOrder.Take(max).ToList();
+                    return sorted.Take(max).ToList();
+                }
             }
 
             return base.OnSelectCard(cards, min, max, hint, cancelable);

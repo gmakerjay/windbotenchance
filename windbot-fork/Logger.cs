@@ -100,6 +100,9 @@ namespace WindBot
 
                     string logsDir = Path.Combine(logsParentDir, "logs");
                     
+                    // Auto-cleanup old logs to prevent disk bloat (retain latest 20 matches)
+                    YgoAiPlatform.Core.LogCleanupUtility.CleanupOldLogs(logsParentDir, 20);
+                    
                     // Find or create the shared duel folder
                     string sharedDuelFolder;
                     string existingDuelDir = FindRecentSessionDir(logsDir, cleanName0, cleanName1);

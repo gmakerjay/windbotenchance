@@ -1,6 +1,6 @@
 --調和ノ天救竜
 --Fydraulis Harmonia
---scripted by pyrQ
+--scripted by pyrQ (patched for stable group lifetime)
 local s,id=GetID()
 function s.initial_effect(c)
 	--When your opponent activates a monster effect on the field (Quick Effect): You can reveal this card in your hand and up to 5 Synchro Monsters in your Extra Deck; apply these effects in sequence based on the total number revealed, also you cannot activate the effects of monsters Special Summoned from the Extra Deck until the end of your next turn, except Synchro Monsters
@@ -43,8 +43,6 @@ function s.effcost(e,tp,eg,ep,ev,re,r,rp,chk)
 	end
 	local cd=e:GetChainData()
 	cd.reveal_count=#sg+1
-	sg:KeepAlive()
-	cd.revealed_synchros=sg
 end
 function s.efftg(e,tp,eg,ep,ev,re,r,rp,chk)
 	local c=e:GetHandler()
@@ -70,13 +68,9 @@ function s.effop(e,tp,eg,ep,ev,re,r,rp)
 	end
 	if cd.reveal_count>=4 then
 		--● 4+: Send 1 of the revealed Synchro Monsters to the GY
-		local rev_g=cd.revealed_synchros
-		local valid=false
-		pcall(function() valid = rev_g and #rev_g>0 end)
-		if not valid then
-			rev_g=Duel.GetMatchingGroup(Card.IsRelateToEffect,tp,LOCATION_EXTRA,0,nil,e)
-		else
-			rev_g:Match(Card.IsRelateToEffect,nil,e)
+		local rev_g=Duel.GetMatchingGroup(Card.IsRelateToEffect,tp,LOCATION_EXTRA,0,nil,e)
+		if #rev_g==0 then
+			rev_g=Duel.GetMatchingGroup(s.revealfilter,tp,LOCATION_EXTRA,0,nil)
 		end
 		Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_TOGRAVE)
 		local g=rev_g:FilterSelect(tp,Card.IsAbleToGrave,1,1,nil)
@@ -85,9 +79,6 @@ function s.effop(e,tp,eg,ep,ev,re,r,rp)
 			break_chk=true
 			Duel.SendtoGrave(g,REASON_EFFECT)
 		end
-	end
-	if cd.revealed_synchros then
-		pcall(function() cd.revealed_synchros:DeleteGroup() end)
 	end
 	if cd.reveal_count==6 then
 		--● 6: Destroy 1 monster your opponent controls

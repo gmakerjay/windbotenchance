@@ -3,337 +3,590 @@
     "name": "SkyStrikerZero",
     "deck": "SkyStrikerZero",
     "difficulty": 3,
-    "masterRules": [ 4, 5 ]
+    "masterRules": [
+      4,
+      5
+    ]
   },
   {
     "name": "Synchron",
     "deck": "Synchron",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "GoatControl",
     "deck": "GoatControl",
     "difficulty": 3,
-    "masterRules": [ 1, 2, 3, 4, 5 ]
+    "masterRules": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "WaterMonarch",
+    "deck": "WaterMonarch",
+    "difficulty": 3,
+    "masterRules": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "GOAT_WaterMonarch",
+    "deck": "WaterMonarch",
+    "difficulty": 3,
+    "masterRules": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "ChaosTurbo",
     "deck": "ChaosTurbo",
     "difficulty": 3,
-    "masterRules": [ 1, 2, 3, 4, 5 ]
+    "masterRules": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "ReasoningGate",
     "deck": "ReasoningGate",
     "difficulty": 3,
-    "masterRules": [ 1, 2, 3, 4, 5 ]
+    "masterRules": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "AntiMeta",
     "deck": "AntiMeta",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "HorusExodia",
     "deck": "HorusExodia",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "HorusRa",
     "deck": "HorusRa",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "ExodiaRaHorus",
     "deck": "ExodiaRaHorus",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "Endymion",
     "deck": "Endymion",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "2026_Endymion",
     "deck": "Endymion",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "SixSamurai",
     "deck": "SixSamurai",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "2026_SixSamurai",
     "deck": "SixSamurai",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "Speedroid",
     "deck": "Speedroid",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "2026_Speedroid",
     "deck": "Speedroid",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "Plant",
     "deck": "Plant",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "2026_Plant",
     "deck": "Plant",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "Mimighoul",
     "deck": "Mimighoul",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "2026_Mimighoul",
     "deck": "Mimighoul",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "FireKing",
     "deck": "FireKing",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "Fireking",
     "deck": "FireKing",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "ModernSkyStriker",
     "deck": "2026_SkyStriker",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "EvilTwin",
     "deck": "EvilTwin",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "LiveTwin",
     "deck": "EvilTwin",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "WhiteForest",
     "deck": "WhiteForest",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "Yubel",
     "deck": "Yubel",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "Yubel2",
     "deck": "Yubel",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "Runick",
     "deck": "Runick",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "2026_Runick",
     "deck": "Runick",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "MorganiteStun",
     "deck": "MorganiteStun",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "Morganite Stun",
     "deck": "MorganiteStun",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "2026_MorganiteStun",
     "deck": "MorganiteStun",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "DrytronTour",
     "deck": "DrytronTour",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "Drytron Tour",
     "deck": "DrytronTour",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "Drytron",
     "deck": "DrytronTour",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "2026_Drytron",
     "deck": "DrytronTour",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "Madolche",
     "deck": "Madolche",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "2026_Madolche",
     "deck": "Madolche",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "Madolche Vernusylph",
     "deck": "Madolche",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "2026_Endymion",
     "deck": "2026_Endymion",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "Endymion",
     "deck": "2026_Endymion",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "2026_CenturIon",
     "deck": "Centurion",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "Centurion",
     "deck": "Centurion",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "Centur-Ion",
     "deck": "Centurion",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "2026_DDD",
     "deck": "2026_DDD",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "DDD",
     "deck": "2026_DDD",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "D/D/D",
     "deck": "2026_DDD",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "2026_SixSamurai",
     "deck": "2026_SixSamurai",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "Six Samurai",
     "deck": "2026_SixSamurai",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "SixSamurai",
     "deck": "2026_SixSamurai",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "ADML",
     "deck": "ADML",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "Azamina Dark Magician",
     "deck": "ADML",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "AFS",
     "deck": "AFS",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "Azamina Fiendsmith Snake-Eye",
     "deck": "AFS",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "Azamina Fiendsmith",
     "deck": "AFS",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "2026_AFS",
     "deck": "2026_AFS",
     "difficulty": 3,
-    "masterRules": [ 3, 4, 5 ]
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   },
   {
     "name": "PhantomKnight",
@@ -2438,6 +2691,123 @@
       3,
       4,
       5
+    ]
+  },
+  {
+    "name": "Elfnote",
+    "deck": "Elfnote",
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ]
+  },
+  {
+    "name": "2026_Elfnote",
+    "deck": "Elfnote",
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ]
+  },
+  {
+    "name": "ElfnotePowerPatron",
+    "deck": "Elfnote",
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ]
+  },
+  {
+    "name": "MermailAtlantean",
+    "deck": "MermailAtlantean",
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ]
+  },
+  {
+    "name": "2026_MermailAtlantean",
+    "deck": "MermailAtlantean",
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ]
+  },
+  {
+    "name": "Mermail",
+    "deck": "MermailAtlantean",
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ]
+  },
+  {
+    "name": "PoseidraAbyss",
+    "deck": "MermailAtlantean",
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ]
+  },
+  {
+    "name": "Melodious",
+    "deck": "Melodious",
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ]
+  },
+  {
+    "name": "2026_Melodious",
+    "deck": "Melodious",
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ]
+  },
+  {
+    "name": "MelodiousMaestra",
+    "deck": "Melodious",
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ]
+  },
+  {
+    "name": "FloweringEtoile",
+    "deck": "Melodious",
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ]
+  },
+  {
+    "name": "PendulumMagician",
+    "deck": "PendulumMagician",
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ]
+  },
+  {
+    "name": "SupremeMagician",
+    "deck": "PendulumMagician",
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
     ]
   }
 ]

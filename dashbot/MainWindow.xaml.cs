@@ -156,6 +156,7 @@ namespace dashbot
         private DeckItem? _selectedBot1Deck;
         private DeckItem? _selectedBot2Deck;
         private bool _isAssigningBot2 = false;
+        private bool _isConsoleCollapsed = false;
         private string _currentCategory = "All";
 
         public MainWindow()
@@ -164,6 +165,9 @@ namespace dashbot
             ResolvePaths();
 
             DeckItemsHost.ItemsSource = _filteredDecks;
+
+            // Auto-cleanup logs on startup, keeping only the latest 20 matches
+            int initialCleaned = LogCleanupUtility.CleanupOldLogs(AppContext.BaseDirectory, 20);
 
             // Real-time clock updater
             _timer = new System.Windows.Threading.DispatcherTimer
@@ -181,7 +185,8 @@ namespace dashbot
                               $"WindBot Engine: {_windbotDllPath}\n" +
                               "---------------------------------------------------\n" +
                               "Select a deck from the library on the left, then click 'Start & Connect Bot to Room'.\n" +
-                              "For Bot vs Bot testing: Enable 'Spawn 2 Bots' and select decks for Bot 1 & Bot 2.\n\n";
+                              "For Bot vs Bot testing: Enable 'Bot Vs Bot' and select decks for Bot 1 & Bot 2.\n" +
+                              (initialCleaned > 0 ? $"[Auto-Cleanup] Pruned {initialCleaned} old log item(s) (retaining latest 20 matches).\n\n" : "\n");
 
             PopulateDeckLibrary();
         }
@@ -327,7 +332,7 @@ namespace dashbot
 
         private static readonly HashSet<string> GoatArchetypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            "GoatControl", "ChaosTurbo", "ReasoningGate", "Goat", "GOAT"
+            "GoatControl", "ChaosTurbo", "ReasoningGate", "WaterMonarch", "Goat", "GOAT"
         };
 
         private static readonly HashSet<string> SpecialArchetypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -448,6 +453,7 @@ namespace dashbot
                 { "GemKnight", "Gem-Knight" },
                 { "KaijuCrusadia", "Kaiju Crusadia" },
                 { "Kwtune", "Kewl Tune" },
+                { "WaterMonarch", "Water Monarch" },
                 { "RexRaptor", "Rex Raptor" },
                 { "TrueDraco", "True Draco" },
                 { "ChainBurn", "Chain Burn" },
@@ -726,8 +732,33 @@ namespace dashbot
                     TxtConsole.Text = TxtConsole.Text.Substring(40000);
                 }
                 TxtConsole.AppendText(message + "\n");
-                TxtConsole.ScrollToEnd();
+                if (!_isConsoleCollapsed)
+                {
+                    TxtConsole.ScrollToEnd();
+                }
             });
+        }
+
+        private void BtnToggleConsole_Click(object sender, RoutedEventArgs e)
+        {
+            _isConsoleCollapsed = !_isConsoleCollapsed;
+            if (_isConsoleCollapsed)
+            {
+                TxtConsole.Visibility = Visibility.Collapsed;
+                TxtConsoleFooter.Visibility = Visibility.Collapsed;
+                RowConsole.Height = GridLength.Auto;
+                RowConsoleBody.Height = GridLength.Auto;
+                BtnToggleConsole.Content = "กาง Console ▼";
+            }
+            else
+            {
+                TxtConsole.Visibility = Visibility.Visible;
+                TxtConsoleFooter.Visibility = Visibility.Visible;
+                RowConsole.Height = new GridLength(1, GridUnitType.Star);
+                RowConsoleBody.Height = new GridLength(1, GridUnitType.Star);
+                BtnToggleConsole.Content = "หุบ Console ▲";
+                TxtConsole.ScrollToEnd();
+            }
         }
 
         private void BtnClearConsole_Click(object sender, RoutedEventArgs e)
@@ -781,13 +812,13 @@ namespace dashbot
             bool isDev = (ChkDevMode?.IsChecked == true);
             if (isDev)
             {
-                LogToConsole("[โหมดนักพัฒนา] เปิดใช้งาน: แสดง Trace ละเอียด และบันทึก Logs ลงไฟล์");
-                TxtConsoleStatus.Text = "Dev Mode: ON (Logging)";
+                LogToConsole("[โหมดบันทึก Logs] เปิดใช้งาน: บันทึก Trace ละเอียด และบันทึก Logs ลงไฟล์");
+                TxtConsoleStatus.Text = "Logs: ON";
             }
             else
             {
-                LogToConsole("[โหมดนักพัฒนา] ปิดใช้งาน: ซ่อน Trace ละเอียด และระงับการบันทึกไฟล์ Logs");
-                TxtConsoleStatus.Text = "Dev Mode: OFF (Clean)";
+                LogToConsole("[โหมดบันทึก Logs] ปิดใช้งาน: ระงับการบันทึกไฟล์ Logs (Clean Mode)");
+                TxtConsoleStatus.Text = "Logs: OFF (Clean)";
             }
         }
 
@@ -813,6 +844,7 @@ namespace dashbot
 
             bool isBotVsBot = (RbModeDual?.IsChecked == true);
             bool isDevMode = (ChkDevMode?.IsChecked == true);
+            bool isExternalCmd = (ChkExternalCmd?.IsChecked == true);
 
             if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(portStr))
             {
@@ -838,12 +870,12 @@ namespace dashbot
             {
                 LogToConsole($"Spawning WindBot: {bot1DisplayName} [{bot1FileName}]");
             }
-            LogToConsole($"Mode: {(isDevMode ? "โหมดนักพัฒนา (บันทึก Logs)" : "โหมดปกติ (ไม่บันทึก Logs)")}");
+            LogToConsole($"Logs: {(isDevMode ? "เปิดบันทึกไฟล์ (Dev Mode)" : "ปิดการบันทึกไฟล์ (Clean Mode)")} | Console: {(isExternalCmd ? "หน้าต่าง CMD แยก" : "ฝังใน Launcher")}");
             LogToConsole($"Connecting to {host}:{port}...");
             LogToConsole($"---------------------------------------------------\n");
 
             BtnConnectAi.IsEnabled = false;
-            TxtConsoleStatus.Text = "Running WindBot client...";
+            TxtConsoleStatus.Text = isExternalCmd ? "Running WindBot in CMD..." : "Running WindBot client...";
 
             await Task.Run(() =>
             {
@@ -858,20 +890,26 @@ namespace dashbot
                         Deck = bot1FileName,
                         Host = host,
                         Port = port,
-                        EnableFileLog = isDevMode
+                        EnableFileLog = isDevMode,
+                        ShowConsoleWindow = isExternalCmd
                     };
 
-                    wrapper1.OnOutputReceived += (line) =>
+                    if (!isExternalCmd)
                     {
-                        if (isDevMode || ShouldShowInCleanMode(line))
+                        wrapper1.OnOutputReceived += (line) =>
                         {
-                            LogToConsole($"[{bot1DisplayName}] {line}");
-                        }
-                    };
-                    wrapper1.OnErrorReceived += (line) => LogToConsole($"[{bot1DisplayName} Warning] {line}");
+                            if (isDevMode || ShouldShowInCleanMode(line))
+                            {
+                                LogToConsole($"[{bot1DisplayName}] {line}");
+                            }
+                        };
+                        wrapper1.OnErrorReceived += (line) => LogToConsole($"[{bot1DisplayName} Warning] {line}");
+                    }
 
                     wrapper1.Start();
-                    LogToConsole($"Bot {bot1DisplayName} started successfully (PID: {wrapper1.ProcessId}).");
+                    LogToConsole(isExternalCmd
+                        ? $"Bot {bot1DisplayName} launched in external CMD window (PID: {wrapper1.ProcessId})."
+                        : $"Bot {bot1DisplayName} started successfully (PID: {wrapper1.ProcessId}).");
 
                     if (isBotVsBot)
                     {
@@ -883,20 +921,26 @@ namespace dashbot
                             Deck = bot2FileName,
                             Host = host,
                             Port = port,
-                            EnableFileLog = isDevMode
+                            EnableFileLog = isDevMode,
+                            ShowConsoleWindow = isExternalCmd
                         };
 
-                        wrapper2.OnOutputReceived += (line) =>
+                        if (!isExternalCmd)
                         {
-                            if (isDevMode || ShouldShowInCleanMode(line))
+                            wrapper2.OnOutputReceived += (line) =>
                             {
-                                LogToConsole($"[{botBName}] {line}");
-                            }
-                        };
-                        wrapper2.OnErrorReceived += (line) => LogToConsole($"[{botBName} Warning] {line}");
+                                if (isDevMode || ShouldShowInCleanMode(line))
+                                {
+                                    LogToConsole($"[{botBName}] {line}");
+                                }
+                            };
+                            wrapper2.OnErrorReceived += (line) => LogToConsole($"[{botBName} Warning] {line}");
+                        }
 
                         wrapper2.Start();
-                        LogToConsole($"P2 Bot {botBName} started successfully (PID: {wrapper2.ProcessId}).");
+                        LogToConsole(isExternalCmd
+                            ? $"P2 Bot {botBName} launched in external CMD window (PID: {wrapper2.ProcessId})."
+                            : $"P2 Bot {botBName} started successfully (PID: {wrapper2.ProcessId}).");
                     }
 
                     int secondsElapsed = 0;
@@ -917,6 +961,9 @@ namespace dashbot
                         wrapper2.Stop();
                     }
                     LogToConsole("WindBot process stopped.\n");
+
+                    // Auto-cleanup logs to retain only 20 latest matches
+                    LogCleanupUtility.CleanupOldLogs(AppContext.BaseDirectory, 20);
                 }
                 catch (Exception ex)
                 {

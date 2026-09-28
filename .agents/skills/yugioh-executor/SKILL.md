@@ -599,3 +599,51 @@ powershell -ExecutionPolicy Bypass -File .\BUILD_AND_DEPLOY.ps1
   - ไฟล์ [PROGRESS.md](file:///C:/Users/admin/Documents/EdoGame/PROGRESS.md) ต้องรักษาขนาดให้อยู่ในช่วง **~200–400 บรรทัด** เสมอ (เก็บเฉพาะ 5–10 รายการล่าสุด) เพื่อให้อ่านได้สมบูรณ์ใน 1 Tool Call
 - **เกณฑ์การแยก Archive**:
   - เมื่อเกิน **~500–800 บรรทัด** ให้ตัดประวัติชุดเก่าไปบันทึกต่อท้ายไว้ใน [Docs/PROGRESS_ARCHIVE.md](file:///C:/Users/admin/Documents/EdoGame/Docs/PROGRESS_ARCHIVE.md) ทันที
+
+---
+
+## 10. Senior Game AI Engineer & Deck Architect 3-Step Protocol (MANDATORY STANDARD)
+
+เมื่อได้รับมอบหมายให้วิเคราะห์, ปรับปรุงเด็ค, หรือเขียน AI Executor สำหรับ WindBot ให้ปฏิบัติตามมาตรฐาน 3 ขั้นตอนนี้เสมอ:
+
+### ขั้นตอนที่ 1: วิเคราะห์เปรียบเทียบ (Human vs Bot Logic) & Deck Optimization
+1. **คัดกรองการ์ดที่ไม่เหมาะกับบอท (Identify High-Cognitive Traps)**:
+   - **Chokepoint Handtraps ลึกๆ**: การ์ดที่ต้องอาศัยการอ่านเกมล่วงหน้าสูง หรือมีเงื่อนไขการใช้แคบมาก
+   - **Trade-off ทำลายการ์ดตัวเองโดยไม่มี Check ชัดเจน**: เช่น การ์ดที่ทำลายการ์ดบนสนามฝั่งเราเพื่อส่งผล หากไม่มี Guard ตรวจสอบความปลอดภัย บอทจะเผลอทำลายบอสหรือสเกลสำคัญของตัวเอง
+   - **คอมโบที่แตกกิ่งก้านสาขามากเกินไป (Branching Explosion)**: คอมโบที่มีเงื่อนไขข้าม Phase หรือพึ่งพา Action ของคู่แข่งในเทิร์นฝ่ายตรงข้าม (เช่น Dagda + Scythe + Halq + Wonder Magician) ซึ่งเสี่ยงต่อการผิดพลาดของ Chain Priority
+   - **Self-Harm / Resource Depletion**: การ์ดจ่าย LP ก้อนโตหรือทิ้งการ์ดหมดมือ (Allure of Darkness เมื่อไม่มี DARK สำรอง)
+2. **การปรับ Decklist (Bot-Friendly Tuning)**:
+   - **Deterministic & High-Value Replacements**: แทนที่ด้วยการ์ดที่มีเงื่อนไขชัดเจน 100% เช่น Counter Trap (Solemn Series), Non-Target Removal, Omni-Negate Bosses (Vortex Dragon, Baronne, Crystal Wing), หรือ Floodgate ที่ไม่ขัดคอมโบตัวเอง (Abyss Dweller, Bagooska)
+   - **Linear & Consistent Engines**: มุ่งเน้น Route A / Route B ที่เดินคอมโบเป็นเส้นตรง บอร์ดจบมีความสม่ำเสมอสูง
+   - **Anti-Brick Optimization**: ปรับสัดส่วน Starters (อย่างน้อย 9-12 ใบ), Extenders, และ Interruption Density (9-15 ใบสำหรับเด็ค 40 ใบ) ลดการใส่การ์ดที่ต้องรอการ์ดอื่นเพื่อคอมโบเพียงอย่างเดียว
+3. **สรุป Decklist ฉบับปรับปรุง**:
+   - ระบุ Card ID, ชื่อการ์ด, และจำนวนใบอย่างเป็นทางการในรูปแบบตารางและ `.ydk` format
+
+### ขั้นตอนที่ 2: วางโครงสร้างตรรกะการเล่น (Playstyle & Decision Hierarchy)
+อธิบายลำดับความสำคัญก่อนเขียนโค้ด:
+1. **ลำดับการเล่น Going First vs Going Second**:
+   - **Going First**: เน้นตั้งเสา Omni-Negate, Quick Disruption, และ Search Resources เพื่อเทิร์น 3
+   - **Going Second**: เน้น Board Breaking (Harpie, Raigeki, Dark Rebellion, Clear Wing) เคลียร์ Threat ก่อนเดิน Engine เพื่อปิดเกม (Lethal Check)
+2. **เงื่อนไขความปลอดภัย (Safety Safeguards)**:
+   - **Lethal Check**: เมื่อดาเมจบนสนามรวมกันชนะ LP ศัตรูได้ และทางโล่ง ให้มุ่งหน้าสู่ Battle Phase ทันที ห้าม Overextend
+   - **Field Spell / Continuous Protection**: ห้ามเปิดร่าย Field Spell หรือ Continuous Card ใบใหม่ทับใบเดิมที่มีประโยชน์อยู่แล้ว
+   - **Chaining Guard (1 Negate = 1 Problem)**: เช็ค `IsChainAlreadyNeutralized()` เสมอ ห้ามโซ่ขัดจังหวะทับการ์ดพวกเดียวกันเอง และห้ามโซ่ Negate ซ้อนกันหลายใบใส่ Action เดียวของศัตรู
+   - **Cost & LP Guard**: เช็ค LP และมือสำรองก่อนจ่ายเสมอ
+3. **เกณฑ์การเลือกเป้าหมาย (Card Selector Priority)**:
+   - **Targeting Hierarchy**: เล็งทำลาย Threat สูงสุดของศัตรู (Continuous Floodgate -> Negator -> Monster ATK สูงสุด)
+   - **Target Verification**: เอฟเฟกต์ Ignition Removal ต้องตรวจว่ามีเป้าหมายของฝ่ายตรงข้ามอยู่จริงก่อน `return true` เพื่อป้องกันการระเบิดพวกเดียวกันเอง
+
+### ขั้นตอนที่ 3: C# Executor Code Implementation
+เขียนโค้ดตามมาตรฐาน Decoupled Domain Architecture ให้สมบูรณ์ 100%:
+1. **CardId Constants**: ระบุ Card ID จาก `cards.cdb` อย่างครบถ้วนใน `public static class CardId`
+2. **Initialize() / Pipeline Registration**:
+   - ติดตั้ง `DeckPlugin = new XxxPlugin(this);`
+   - กำหนด `AddExecutor` ตามระดับความสำคัญ (Tier 0: Negates -> Tier 1: Board Breakers -> Tier 2: Starters -> Tier 3: Searchers -> Tier 4: Climbs -> Tier 5: S/T Set)
+3. **Callback Implementations**:
+   - `OnSelectCard()`: แยกตาม Hint ID (506 Search -> Strategy, 509 SpSummon -> Strategy, 501 Discard -> MaterialEvaluator, 502/503 Removal -> Enemy Target / Self-pop Resolver)
+   - `OnSelectOption()` & `OnSelectEffectYn()`: ปฏิเสธเอฟเฟกต์ของศัตรู (`card.Controller == 1 => false`) และเปิดรับเอฟเฟกต์ที่เป็นประโยชน์ของฝั่งเรา
+   - `OnSelectPosition()`: มอนสเตอร์ ATK >= 1800 ตั้งโจมตี, มอนสเตอร์ 0 ATK / Handtraps / Bagooska บังคับตั้งป้องกัน
+4. **Build, Deploy & Verify**:
+   - Deploy ไปยัง `C:\Users\admin\Documents\EdoGame\` ผ่าน `BUILD_AND_DEPLOY.ps1`
+   - บันทึกการเปลี่ยนแปลงใน `PROGRESS.md`
+   - รอคำสั่ง "Text Duel" ก่อนรัน Headless Simulation เสมอ

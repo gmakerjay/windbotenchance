@@ -5,10 +5,10 @@
 // |------------------------------------|--------------|------|-------|---------|-----------------------------------------------|----------------------------------------------|---------------------------------------------|
 // | Ghost Ogre & Snow Rabbit           | Monster L3 T | Yes  | Yes   | Send GY | Handtrap: destroy face-up card activating eff | Opponent activates card/eff on field         | Bot controls no hand or target is immune    |
 // | Mind Over Matter                   | Trap Counter | No   | No    | Tribute | Negate Normal/Sp Summon or S/T activation     | Opponent summons or activates S/T            | No Psychic monster on field to tribute       |
-// | Thought Ruler Archfiend            | Synchro L8   | No   | No    | 1000 LP | Quick: Negate S/T targeting 1 Psychic; LP gain| Opponent targets Psychic with S/T; on kill   | LP < 1000                                   |
+// | Thought Ruler Archfiend            | Synchro L8   | No   | No    | 1000 LP | Quick: Negate S/T targeting 1 Psychic; LP gain| Opponent targets Psychic with S/T; on kill   | LP < 1000 & no Lab                          |
 // | PSY-Framelord Omega                | Synchro L8   | Yes  | No    | None    | Quick: Banish self + 1 random opp card in hand| Opponent turn or during Main Phase           | Opponent has 0 cards in hand                |
 // | Psychic Blaster Mk-II              | Synchro L9   | Yes  | Yes   | Banish  | Quick: Banish 1 monster from GY & field; heal | Main Phase, enemy monster on field to banish | No monster in GY or enemy field empty       |
-// | Psychic End Punisher               | Synchro L11  | Yes  | No    | 1000 LP | Immune if LP<=opp; banish 1 mine + 1 opp card | Enemy controls card to banish; Battle Phase  | LP < 1000 or enemy field empty              |
+// | Psychic End Punisher               | Synchro L11  | Yes  | No    | 1000 LP | Immune if LP<=opp; banish 1 mine + 1 opp card | Enemy controls card to banish; Battle Phase  | LP < 1000 or alone on field without threat  |
 // | Hyper Psychic Riser                | Synchro L6   | No   | No    | None    | Floodgate: monsters with ATK>2000 cannot eff  | On field, locks big threats from activating  | Bot needs to activate higher ATK monster eff|
 // | HTS Psyhemuth                      | Synchro L6   | No   | No    | None    | After damage calc: banish both battling mons  | Battling dangerous opponent monster          | Battling direct or negligible enemy         |
 // | Mind Castlin                       | Synchro L6   | Yes  | Yes   | None    | Switch control with target enemy monster      | Opponent controls strong face-up monster     | Enemy has 0 face-up monsters                |
@@ -22,17 +22,17 @@
 // | Psychokinesis                      | Spell Normal | No   | No    | 1000 dmg| Control Psychic: destroy 1 card on field      | Opponent controls dangerous threat           | Bot controls no Psychic or opp board empty  |
 // | Brain Control                      | Spell Normal | No   | No    | 800 LP  | Steal 1 opponent face-up normal summonable mon| Opponent has monster; steal for Synchro/push | Opponent has no valid monsters              |
 // | Telekinetic Power Well             | Spell Quick  | No   | No    | Damage  | Special Summon any number of L2 Psychics from | Need Synchro material or board presence      | Graveyard has no Level 2 Psychics           |
-// | Overdrive Teleporter               | Monster L6   | Yes  | No    | 2000 LP | Normal Summon: SS 2 Level 3 Psychics from Deck| Main Phase after Normal Summon               | Deck has < 2 Level 3 Psychics               |
+// | Overdrive Teleporter               | Monster L6   | Yes  | No    | 2000 LP | Normal Summon: SS 2 Level 3 Psychics from Deck| Main Phase after Normal Summon               | Deck has < 2 Level 3 Psychics or low LP     |
 // | Master Gig                         | Monster L8   | Yes  | No    | 1000 LP | Destroy opponent monsters up to Psychic count | Opponent controls monsters                   | Opponent controls 0 monsters                |
 // | Armored Axon Kicker                | Monster L6   | No   | No    | None    | Normal Summon without tribute if control Psych| Need Level 6 body on field                   | Bot controls no Psychic monsters            |
 // | Psychic Wheeleder                  | Monster L3 T | Yes  | Yes   | None    | SS if control Level 3; pop monster on Synchro | Control Level 3 monster; sent as Synchro mat | Already Special Summoned this turn          |
 // | Psychic Tracker                    | Monster L3   | Yes  | Yes   | None    | SS if control Level 3; +600 ATK to Synchro    | Control Level 3 monster; Synchro extender    | Already Special Summoned this turn          |
 // | Hushed Psychic Minister            | Monster L3   | Yes  | Yes   | None    | SS if control Psychic; GY banish search L3-   | Control Psychic monster; in GY for search    | Already used effect this turn               |
 // | Serene Psychic Girl                | Monster L2 T | Yes  | Yes   | None    | SS if control Psychic; GY banish recycle GY   | Control Psychic monster; in GY for recycle   | Already used effect this turn               |
-// | Krebons                            | Monster L2 T | No   | No    | 800 LP  | Negate attack targeting this card             | Targeted for attack                          | LP < 800                                    |
+// | Krebons                            | Monster L2 T | No   | No    | 800 LP  | Negate attack targeting this card             | Targeted for attack                          | LP < 800 & no Lab                           |
 // | Psychic Commander                  | Monster L3 T | No   | No    | LP cost | Damage Step: reduce enemy monster ATK/DEF     | Battling enemy monster with higher ATK       | Enemy monster already weaker                |
 // | Silent Psychic Wizard              | Monster L4   | No   | No    | None    | On NS: banish 1 Psychic from GY; float on send| Normal Summon; sent to GY to revive target   | Graveyard empty                             |
-// | Psychic Snail                      | Monster L4   | Yes  | No    | 800 LP  | Give another Psychic monster double attack    | Battle Phase setup with high ATK Psychic     | Alone on field or LP < 800                  |
+// | Psychic Snail                      | Monster L4   | Yes  | No    | 800 LP  | Give another Psychic monster double attack    | Battle Phase setup with high ATK Psychic     | Alone on field or LP < 800 & no Lab         |
 // | Psychic Jumper                     | Monster L2 T | Yes  | No    | 1000 LP | Switch control of 1 opp monster with 1 mine   | Opponent has high threat to steal            | Bot controls no other Psychic               |
 // | Psi-Blocker                        | Monster L4   | Yes  | No    | None    | Declare card name: lock that card for 1 turn  | Main Phase 1: lock key enemy card/handtrap   | None                                        |
 // | Mind Procedure                     | Monster L3 T | Yes  | Yes   | None    | Reveal top 5: add 1 Psychic monster to hand   | Main Phase search                            | Already used this turn                      |
@@ -45,6 +45,7 @@ using System.Linq;
 using WindBot;
 using WindBot.Game;
 using WindBot.Game.AI;
+using WindBot.Game.AI.Plugins;
 using YGOSharp.OCGWrapper.Enums;
 
 namespace WindBot.Game.AI.Decks
@@ -78,8 +79,6 @@ namespace WindBot.Game.AI.Decks
             public const int Psychokinesis = 32180819;
             public const int BrainControl = 87910978;
             public const int TelekineticPowerWell = 28741524;
-            public const int TelekineticChargingCell = 68392533; // Fallback
-            public const int PsychicSword = 92346415; // Fallback
 
             // Traps
             public const int MindOverMatter = 59718521;
@@ -102,12 +101,19 @@ namespace WindBot.Game.AI.Decks
             public const int MagicalAndroid = 43385557;
         }
 
-        // _normalSummonUsedThisTurn
-
         public Anime_SayerExecutor(GameAI ai, Duel duel)
             : base(ai, duel)
         {
+            // 0. Connect Decoupled Domain Plugin Architecture (MANDATORY)
+            DeckPlugin = new Anime_SayerPlugin(this);
+
             RegisterExecutors();
+        }
+
+        public override bool OnSelectHand()
+        {
+            // True = Go First (Set up Thought Ruler / Omega / Riser floodgate + Mind Over Matter)
+            return true;
         }
 
         private void RegisterExecutors()
@@ -224,10 +230,9 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.Repos, RepositionStrategy);
         }
 
-        public override void OnNewTurn()
+        private bool HasBrainResearchLab()
         {
-            
-            base.OnNewTurn();
+            return Bot.HasInSpellZone(CardId.BrainResearchLab);
         }
 
         // =====================================================================
@@ -235,14 +240,13 @@ namespace WindBot.Game.AI.Decks
         // =====================================================================
         private bool GhostOgreActivate()
         {
-            // Handtrap check: activate from hand when opponent card on field activates
             if (Card.Location != CardLocation.Hand && Card.Location != CardLocation.MonsterZone)
                 return false;
 
             if (Duel.LastChainPlayer == 1)
             {
                 ClientCard lastCard = LastChainCard;
-                if (lastCard != null && lastCard.Location == CardLocation.MonsterZone || lastCard?.Location == CardLocation.SpellZone)
+                if (lastCard != null && (lastCard.Location == CardLocation.MonsterZone || lastCard.Location == CardLocation.SpellZone))
                 {
                     return true;
                 }
@@ -254,14 +258,11 @@ namespace WindBot.Game.AI.Decks
         {
             if (Duel.LastChainPlayer != 1) return false;
 
-            // Tribute fodder: Krebons, Girl, Token, or non-boss
-            ClientCard tribute = Bot.GetMonsters().FirstOrDefault(m => m.Race == (int)CardRace.Psycho &&
-                m.Id != CardId.PsychicEndPunisher &&
-                m.Id != CardId.ThoughtRulerArchfiend &&
-                m.Id != CardId.PSYFramelordOmega);
+            // Pick lowest cost Psychic monster to tribute
+            var psychicMonsters = Bot.GetMonsters().Where(m => m.Race == (int)CardRace.Psycho).ToList();
+            if (psychicMonsters.Count == 0) return false;
 
-            if (tribute == null) tribute = Bot.GetMonsters().FirstOrDefault(m => m.Race == (int)CardRace.Psycho);
-
+            ClientCard tribute = DeckPlugin?.MaterialEvaluator?.SortMaterials(psychicMonsters).FirstOrDefault();
             if (tribute != null)
             {
                 AI.SelectCard(tribute);
@@ -273,7 +274,7 @@ namespace WindBot.Game.AI.Decks
         private bool ThoughtRulerProtectActivate()
         {
             // Negate Spell/Trap targeting 1 Psychic monster
-            if (Duel.LastChainPlayer == 1 && Bot.LifePoints > 1000)
+            if (Duel.LastChainPlayer == 1 && (Bot.LifePoints > 1000 || HasBrainResearchLab()))
             {
                 return true;
             }
@@ -287,7 +288,6 @@ namespace WindBot.Game.AI.Decks
             // Banish self + 1 random card from opponent hand
             if (Enemy.Hand.Count > 0)
             {
-                // In enemy turn, or in MP2 of our turn before passing
                 if (Duel.Player == 1 || Duel.Phase == DuelPhase.Main2)
                 {
                     return true;
@@ -303,7 +303,8 @@ namespace WindBot.Game.AI.Decks
             // Quick effect during Main Phase: Banish 1 monster from GY, banish 1 face-up monster on field
             if (Bot.Graveyard.Any(c => c.IsMonster()) && Enemy.GetMonsters().Any(m => m.IsFaceup()))
             {
-                ClientCard gyTarget = Bot.Graveyard.FirstOrDefault(c => c.IsMonster() && c.Id != CardId.PsychicEndPunisher);
+                ClientCard gyTarget = Bot.Graveyard.Where(c => c.IsMonster() && c.Id != CardId.PsychicEndPunisher)
+                    .OrderBy(c => DeckPlugin?.MaterialEvaluator?.GetMaterialCost(c) ?? 0).FirstOrDefault();
                 ClientCard fieldTarget = Enemy.GetMonsters().Where(m => m.IsFaceup()).OrderByDescending(m => m.Attack).FirstOrDefault();
                 if (gyTarget != null && fieldTarget != null)
                 {
@@ -320,11 +321,26 @@ namespace WindBot.Game.AI.Decks
             if (Card.Location != CardLocation.MonsterZone) return false;
 
             // Effect 1: Banish 1 monster you control and 1 card opponent controls (Pay 1000 LP)
-            if (Bot.LifePoints > 1000 && Enemy.GetMonsterCount() + Enemy.GetSpellCount() > 0)
+            if ((Bot.LifePoints > 1000 || HasBrainResearchLab()) && (Enemy.GetMonsterCount() + Enemy.GetSpellCount() > 0))
             {
-                ClientCard myFodder = Bot.GetMonsters().FirstOrDefault(m => m != Card) ?? Card;
-                ClientCard oppTarget = Enemy.GetMonsters().OrderByDescending(m => m.Attack).FirstOrDefault();
-                if (oppTarget == null) oppTarget = Enemy.GetSpells().FirstOrDefault();
+                // Find fodder other than PEP itself!
+                ClientCard myFodder = Bot.GetMonsters().Where(m => m != Card && m.Id != CardId.PsychicEndPunisher && m.Id != CardId.ThoughtRulerArchfiend)
+                    .OrderBy(m => DeckPlugin?.MaterialEvaluator?.GetMaterialCost(m) ?? 0).FirstOrDefault();
+
+                // If alone on field: DO NOT banish self unless opponent has a critical towers threat!
+                if (myFodder == null)
+                {
+                    bool oppHasTowers = Enemy.GetMonsters().Any(m => m.IsFaceup() && (m.Attack >= 3500 || m.IsFloodgate()));
+                    if (!oppHasTowers)
+                    {
+                        return false;
+                    }
+                    myFodder = Card;
+                }
+
+                ClientCard oppTarget = Enemy.GetMonsters().Where(m => !m.IsShouldNotBeSpellTrapTarget()).OrderByDescending(m => m.Attack).FirstOrDefault()
+                                    ?? Enemy.GetSpells().FirstOrDefault(s => s.IsFaceup())
+                                    ?? Enemy.GetSpells().FirstOrDefault();
 
                 if (myFodder != null && oppTarget != null)
                 {
@@ -345,17 +361,15 @@ namespace WindBot.Game.AI.Decks
 
         private bool KrebonsNegateAttack()
         {
-            // Negate attack targeting Krebons if LP > 800
-            return Bot.LifePoints > 800;
+            return Bot.LifePoints > 800 || HasBrainResearchLab();
         }
 
         private bool PsychicCommanderCombatActivate()
         {
-            // Reduce opponent monster ATK/DEF by up to 500
             if (Duel.Phase == DuelPhase.Damage)
             {
                 ClientCard battling = Enemy.BattlingMonster;
-                if (battling != null && battling.Attack >= Card.Attack && Bot.LifePoints > 500)
+                if (battling != null && battling.Attack >= Card.Attack && (Bot.LifePoints > 500 || HasBrainResearchLab()))
                 {
                     return true;
                 }
@@ -387,7 +401,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool BrainControlActivate()
         {
-            if (Bot.LifePoints <= 800) return false;
+            if (Bot.LifePoints <= 800 && !HasBrainResearchLab()) return false;
             var validTargets = Enemy.GetMonsters().Where(m => m.IsFaceup() && !m.IsShouldNotBeSpellTrapTarget()).OrderByDescending(m => m.Attack).ToList();
             if (validTargets.Count == 0) return false;
 
@@ -398,16 +412,13 @@ namespace WindBot.Game.AI.Decks
 
             foreach (var target in validTargets)
             {
-                // If target is a Tuner: we MUST be able to pair it with a Non-Tuner
                 if (target.IsTuner())
                 {
-                    // If we have no Non-Tuner on field and no Non-Tuner in hand to summon, and target cannot deal lethal, skip!
                     if (botNonTunerCount == 0 && !hasNonTunerInHand && target.Attack < 2000)
                         continue;
                 }
                 else
                 {
-                    // Target is Non-Tuner: we should have a Tuner on field or in hand to tune with it, or high ATK
                     if (botTunerCount == 0 && !hasTunerInHand && target.Attack < 2000)
                         continue;
                 }
@@ -420,10 +431,13 @@ namespace WindBot.Game.AI.Decks
 
         private bool PsychokinesisActivate()
         {
+            if (Bot.LifePoints <= 1000 && !HasBrainResearchLab()) return false;
+
             if (Bot.GetMonsters().Any(m => m.Race == (int)CardRace.Psycho))
             {
-                ClientCard target = Enemy.GetMonsters().OrderByDescending(m => m.Attack).FirstOrDefault();
-                if (target == null) target = Enemy.GetSpells().FirstOrDefault();
+                ClientCard target = Enemy.GetMonsters().Where(m => !m.IsShouldNotBeSpellTrapTarget()).OrderByDescending(m => m.Attack).FirstOrDefault()
+                                 ?? Enemy.GetSpells().FirstOrDefault(s => s.IsFaceup())
+                                 ?? Enemy.GetSpells().FirstOrDefault();
                 if (target != null)
                 {
                     AI.SelectCard(target);
@@ -435,7 +449,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool MasterGigActivate()
         {
-            if (Bot.LifePoints > 1000 && Enemy.GetMonsterCount() > 0)
+            if ((Bot.LifePoints > 1000 || HasBrainResearchLab()) && Enemy.GetMonsterCount() > 0)
             {
                 return true;
             }
@@ -461,7 +475,8 @@ namespace WindBot.Game.AI.Decks
             int psychicInGrave = Bot.Graveyard.Count(c => c.Race == (int)CardRace.Psycho && c.IsMonster());
             if (psychicInGrave >= 3)
             {
-                var targets = Bot.Graveyard.Where(c => c.Race == (int)CardRace.Psycho && c.IsMonster()).Take(3).ToList();
+                var targets = Bot.Graveyard.Where(c => c.Race == (int)CardRace.Psycho && c.IsMonster())
+                    .OrderBy(c => DeckPlugin?.MaterialEvaluator?.GetMaterialCost(c) ?? 0).Take(3).ToList();
                 AI.SelectCard(targets);
                 return true;
             }
@@ -470,7 +485,6 @@ namespace WindBot.Game.AI.Decks
 
         private bool TelekineticPowerWellActivate()
         {
-            // Revive Level 2 Psychics from Graveyard (Krebons, Serene Psychic Girl, Psychic Jumper)
             if (Bot.Graveyard.Any(c => c.Race == (int)CardRace.Psycho && c.Level <= 2 && c.IsMonster()))
             {
                 var targets = Bot.Graveyard.Where(c => c.Race == (int)CardRace.Psycho && c.Level <= 2 && c.IsMonster()).Take(2).ToList();
@@ -482,18 +496,15 @@ namespace WindBot.Game.AI.Decks
 
         private bool EmergencyTeleportActivate()
         {
-            // Summon Level 3 or lower Psychic from Hand/Deck
-            // Priority: Tuner if we have non-Tuner, Non-Tuner if we have Tuner
             bool hasTuner = Bot.GetMonsters().Any(m => m.IsTuner());
-            bool hasNonTuner = Bot.GetMonsters().Any(m => !m.IsTuner());
 
             if (!hasTuner)
             {
                 AI.SelectCard(new[] {
                     CardId.PsychicWheeleder,
                     CardId.GhostOgreAndSnowRabbit,
-                    CardId.Krebons,
                     CardId.PsychicCommander,
+                    CardId.Krebons,
                     CardId.SerenePsychicGirl
                 });
             }
@@ -515,8 +526,8 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location == CardLocation.MonsterZone)
             {
-                // On NS: Banish 1 Psychic from GY
-                ClientCard target = Bot.Graveyard.FirstOrDefault(c => c.Race == (int)CardRace.Psycho && c.IsMonster());
+                ClientCard target = Bot.Graveyard.Where(c => c.Race == (int)CardRace.Psycho && c.IsMonster())
+                    .OrderByDescending(c => c.Attack).FirstOrDefault();
                 if (target != null)
                 {
                     AI.SelectCard(target);
@@ -525,7 +536,6 @@ namespace WindBot.Game.AI.Decks
             }
             else if (Card.Location == CardLocation.Grave)
             {
-                // When sent from field to GY: SS the banished target
                 return true;
             }
             return false;
@@ -533,7 +543,6 @@ namespace WindBot.Game.AI.Decks
 
         private bool PsychicWheelederGraveEffect()
         {
-            // On sent as Synchro material: Pop monster with less ATK than the Synchro
             ClientCard target = Enemy.GetMonsters().Where(m => m.IsFaceup()).OrderByDescending(m => m.Attack).FirstOrDefault();
             if (target != null)
             {
@@ -547,7 +556,12 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location == CardLocation.Grave)
             {
-                // Banish to search Level 3 or lower Psychic
+                ClientCard target = DeckPlugin?.Strategy?.PickSearchTarget(Bot.Deck, Card);
+                if (target != null)
+                {
+                    AI.SelectCard(target);
+                    return true;
+                }
                 AI.SelectCard(new[] {
                     CardId.PsychicWheeleder,
                     CardId.PsychicTracker,
@@ -564,8 +578,8 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location == CardLocation.Grave)
             {
-                // Banish from GY: Add 1 Psychic from GY to hand
-                ClientCard target = Bot.Graveyard.FirstOrDefault(c => c.Race == (int)CardRace.Psycho && c.IsMonster() && c != Card);
+                ClientCard target = Bot.Graveyard.Where(c => c.Race == (int)CardRace.Psycho && c.IsMonster() && c != Card)
+                    .OrderByDescending(c => c.Attack).FirstOrDefault();
                 if (target != null)
                 {
                     AI.SelectCard(target);
@@ -579,8 +593,8 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location == CardLocation.Grave)
             {
-                // Banish from GY to revive 1 Psychic from GY
-                ClientCard target = Bot.Graveyard.FirstOrDefault(c => c.Race == (int)CardRace.Psycho && c.IsMonster() && c != Card);
+                ClientCard target = Bot.Graveyard.Where(c => c.Race == (int)CardRace.Psycho && c.IsMonster() && c != Card)
+                    .OrderByDescending(c => c.Attack).FirstOrDefault();
                 if (target != null)
                 {
                     AI.SelectCard(target);
@@ -594,7 +608,6 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location == CardLocation.MonsterZone)
             {
-                // Banish 1 Psychic from GY
                 ClientCard target = Bot.Graveyard.FirstOrDefault(c => c.Race == (int)CardRace.Psycho && c.IsMonster());
                 if (target != null)
                 {
@@ -604,7 +617,6 @@ namespace WindBot.Game.AI.Decks
             }
             else if (Card.Location == CardLocation.Grave)
             {
-                // Float when sent to GY
                 return true;
             }
             return false;
@@ -612,7 +624,6 @@ namespace WindBot.Game.AI.Decks
 
         private bool HyperPsychicRiserEffect()
         {
-            // Destroyed by opponent: recover 1 tuner + 1 non-tuner
             return true;
         }
 
@@ -620,7 +631,6 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location == CardLocation.MonsterZone)
             {
-                // Switch control of this card and 1 opponent face-up monster
                 ClientCard target = Enemy.GetMonsters().Where(m => m.IsFaceup()).OrderByDescending(m => m.Attack).FirstOrDefault();
                 if (target != null && target.Attack > Card.Attack)
                 {
@@ -636,25 +646,21 @@ namespace WindBot.Game.AI.Decks
         // =====================================================================
         private bool PsychicWheelederSpSummon()
         {
-            // SS if control Level 3 monster other than Psychic Wheeleder
             return Bot.GetMonsters().Any(m => m.Level == 3 && m.Id != CardId.PsychicWheeleder);
         }
 
         private bool PsychicTrackerSpSummon()
         {
-            // SS if control Level 3 monster other than Psychic Tracker
             return Bot.GetMonsters().Any(m => m.Level == 3 && m.Id != CardId.PsychicTracker);
         }
 
         private bool HushedPsychicMinisterSpSummon()
         {
-            // SS if control any Psychic monster
             return Bot.GetMonsters().Any(m => m.Race == (int)CardRace.Psycho);
         }
 
         private bool SerenePsychicGirlSpSummon()
         {
-            // SS if control any Psychic monster
             return Bot.GetMonsters().Any(m => m.Race == (int)CardRace.Psycho);
         }
 
@@ -663,21 +669,20 @@ namespace WindBot.Game.AI.Decks
         // =====================================================================
         private bool ArmoredAxonKickerSummon()
         {
-            // Normal summon without tribute if we control face-up Psychic
             return Bot.GetMonsters().Any(m => m.IsFaceup() && m.Race == (int)CardRace.Psycho);
         }
 
         private bool OverdriveTeleporterSummon()
         {
-            // Needs 1 tribute: Ensure we have fodder on field! (Strict Anti-Pattern 3)
             if (Bot.GetMonsterCount() < 1) return false;
 
-            // Don't tribute boss
-            ClientCard fodder = Bot.GetMonsters().FirstOrDefault(m => m.Level <= 4 && !m.HasType(CardType.Synchro));
+            // Pick expendable low-cost fodder for tribute
+            ClientCard fodder = DeckPlugin?.MaterialEvaluator?.SortMaterials(Bot.GetMonsters())
+                .FirstOrDefault(m => !m.HasType(CardType.Synchro) && m.Id != CardId.OverdriveTeleporter);
+
             if (fodder != null)
             {
                 AI.SelectCard(fodder);
-                
                 return true;
             }
             return false;
@@ -685,32 +690,31 @@ namespace WindBot.Game.AI.Decks
 
         private bool OverdriveTeleporterActivate()
         {
-            // Pay 2000 LP to SS 2 Level 3 Psychics from Deck!
-            // Need at least 1 Tuner + 1 Non-Tuner
+            if (Bot.LifePoints <= 2000 && !HasBrainResearchLab()) return false;
+
+            // Special Summon 1 Tuner + 1 Non-Tuner Level 3 Psychics from Deck!
             AI.SelectCard(new[] {
                 CardId.PsychicWheeleder,
                 CardId.PsychicTracker,
-                CardId.PsychicCommander,
-                CardId.HushedPsychicMinister
+                CardId.GhostOgreAndSnowRabbit,
+                CardId.HushedPsychicMinister,
+                CardId.PsychicCommander
             });
             return true;
         }
 
         private bool SilentPsychicWizardSummon()
         {
-            
             return true;
         }
 
         private bool PsiBlockerSummon()
         {
-            
             return true;
         }
 
         private bool PsiBlockerActivate()
         {
-            // Lock key opponent card: Ash Blossom or prominent opponent card
             AI.SelectAnnounceID(14558127); // Ash Blossom
             return true;
         }
@@ -720,22 +724,17 @@ namespace WindBot.Game.AI.Decks
             int tunerCount = Bot.GetMonsters().Count(m => m.IsFaceup() && m.IsTuner());
             int nonTunerCount = Bot.GetMonsters().Count(m => m.IsFaceup() && !m.IsTuner());
 
-            // 1. If board is empty, summoning a starter Tuner is fine
             if (Bot.GetMonsterCount() == 0) return true;
 
-            // 2. If we already have a Tuner on field and NO Non-Tuners:
             if (tunerCount >= 1 && nonTunerCount == 0)
             {
-                // Check if we have a Non-Tuner special summonable from hand (Tracker or Hushed Minister)
                 bool hasSpecialNonTunerInHand = Bot.Hand.Any(c => c.Id == CardId.PsychicTracker || c.Id == CardId.HushedPsychicMinister);
                 if (!hasSpecialNonTunerInHand)
                 {
-                    // DO NOT summon another Tuner to be stuck on field!
                     return false;
                 }
             }
 
-            // 3. If we already have 2 or more Tuners, strictly refuse another Tuner
             if (tunerCount >= 2) return false;
 
             return true;
@@ -795,7 +794,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool PsychicSnailActivate()
         {
-            // Give double attack to highest ATK Psychic monster (other than Snail)
+            if (Bot.LifePoints <= 800 && !HasBrainResearchLab()) return false;
             ClientCard target = Bot.GetMonsters().Where(m => m != Card && m.Race == (int)CardRace.Psycho).OrderByDescending(m => m.Attack).FirstOrDefault();
             if (target != null && target.Attack >= 2400)
             {
@@ -812,7 +811,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool PsychicJumperActivate()
         {
-            if (Bot.LifePoints <= 1000) return false;
+            if (Bot.LifePoints <= 1000 && !HasBrainResearchLab()) return false;
             ClientCard oppMonster = Enemy.GetMonsters().Where(m => m.IsFaceup()).OrderByDescending(m => m.Attack).FirstOrDefault();
             ClientCard myFodder = Bot.GetMonsters().FirstOrDefault(m => m != Card && m.Level <= 3 && !m.HasType(CardType.Synchro));
 
@@ -827,14 +826,12 @@ namespace WindBot.Game.AI.Decks
 
         private bool MasterGigSummon()
         {
-            // Needs 2 tributes: strictly check Bot.GetMonsterCount() >= 2
             if (Bot.GetMonsterCount() < 2) return false;
 
             var fodders = Bot.GetMonsters().Where(m => m.Level <= 4 && !m.HasType(CardType.Synchro)).Take(2).ToList();
             if (fodders.Count == 2)
             {
                 AI.SelectCard(fodders);
-                
                 return true;
             }
             return false;
@@ -845,13 +842,11 @@ namespace WindBot.Game.AI.Decks
         // =====================================================================
         private bool PsychicEndPunisherSummon()
         {
-            // Level 11 Finisher OTK
             return true;
         }
 
         private bool PsychicBlasterMkIISummon()
         {
-            // Level 9 Quick-banish boss
             return true;
         }
 
@@ -867,13 +862,11 @@ namespace WindBot.Game.AI.Decks
 
         private bool ThoughtRulerArchfiendSummon()
         {
-            // Core Sayer Ace (Level 8)
             return true;
         }
 
         private bool PSYFramelordOmegaSummon()
         {
-            // Hand rip & banish recycle (Level 8)
             return true;
         }
 
@@ -889,7 +882,6 @@ namespace WindBot.Game.AI.Decks
 
         private bool PsychicLifetrancerActivate()
         {
-            // Banish 1 Psychic from GY to gain 1200 LP
             ClientCard target = Bot.Graveyard.FirstOrDefault(c => c.Race == (int)CardRace.Psycho && c.IsMonster());
             if (target != null)
             {
@@ -901,19 +893,16 @@ namespace WindBot.Game.AI.Decks
 
         private bool HyperPsychicRiserSummon()
         {
-            // Level 6 Floodgate
             return true;
         }
 
         private bool HTSPsyhemuthSummon()
         {
-            // Level 6 Combat Banish
             return true;
         }
 
         private bool MindCastlinSummon()
         {
-            // Level 6 Control Swap
             return Enemy.GetMonsters().Any(m => m.IsFaceup() && m.Attack > 1500);
         }
 
@@ -929,14 +918,12 @@ namespace WindBot.Game.AI.Decks
 
         private bool PsychicNightmareActivate()
         {
-            // Guess card type in opponent hand: usually Monster
             AI.SelectOption(0);
             return true;
         }
 
         private bool MagicalAndroidSummon()
         {
-            // Level 5 Sustain
             return true;
         }
 
@@ -945,13 +932,11 @@ namespace WindBot.Game.AI.Decks
         // =====================================================================
         private bool SpellSetStrategy()
         {
-            // Strictly NO handtraps in MP1 (Strict Anti-Pattern 5)
             if (Card.Id == CardId.GhostOgreAndSnowRabbit) return false;
 
             if (Card.IsTrap()) return true;
             if (Card.IsSpell() && Card.HasType(CardType.QuickPlay))
             {
-                // Quick-play spells set only in Main Phase 2
                 return Duel.Phase == DuelPhase.Main2;
             }
             return false;
@@ -959,12 +944,10 @@ namespace WindBot.Game.AI.Decks
 
         private bool RepositionStrategy()
         {
-            // Switch low ATK attack monsters to Defense
             if (Card.Attack < 1500 && Card.IsAttack())
             {
                 return true;
             }
-            // Switch high ATK defense monsters to Attack
             if (Card.Attack >= 2000 && Card.IsDefense())
             {
                 return true;
@@ -977,27 +960,33 @@ namespace WindBot.Game.AI.Decks
         // =====================================================================
         public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
         {
-            // 🚫 Rule 1: Hint 502 (Destroy), 503/504 (Remove/Banish), 508 (ToGrave removal):
-            // MUST target ENEMY cards (Controller == 1) if available! Never target our own cards!
-            if (hint == 502 || hint == 503 || hint == 504)
+            // Hint 502 (Destroy), 503/504 (Remove/Banish), 508 (ToGrave): target enemy cards first
+            if (hint == 502 || hint == 503 || hint == 504 || hint == 508)
             {
                 var enemyCards = cards.Where(c => c.Controller == 1).ToList();
                 if (enemyCards.Count >= min)
                 {
-                    // Pick the highest threat enemy card
                     return enemyCards.OrderByDescending(c => c.Attack).Take(max).ToList();
                 }
             }
 
-            // 🚫 Rule 4: Hint 506 (Return to deck) / Tribute cost (Hint 500): Never return/tribute Ace
-            if (hint == 500) // Release / Tribute
+            // Hint 506 (ATOHAND search): delegate to DeckPlugin strategy
+            if (hint == 506)
             {
-                var nonAce = cards.Where(c => c.Id != CardId.PsychicEndPunisher &&
-                                              c.Id != CardId.ThoughtRulerArchfiend &&
-                                              c.Id != CardId.PSYFramelordOmega).ToList();
-                if (nonAce.Count >= min)
+                var target = DeckPlugin?.Strategy?.PickSearchTarget(cards, Card);
+                if (target != null && cards.Contains(target))
                 {
-                    return nonAce.OrderBy(c => c.Attack).Take(min).ToList();
+                    return new List<ClientCard> { target };
+                }
+            }
+
+            // Hint 500 (Release / Tribute): protect Ace bosses and Field Spell
+            if (hint == 500)
+            {
+                var sorted = DeckPlugin?.MaterialEvaluator?.SortMaterials(cards, min);
+                if (sorted != null && sorted.Count >= min)
+                {
+                    return sorted.Take(min).ToList();
                 }
             }
 

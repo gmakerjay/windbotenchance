@@ -24,6 +24,7 @@ namespace YgoAiPlatform.Core
         public string? Dialog { get; set; }
         public bool DebugMode { get; set; } = false;
         public bool EnableFileLog { get; set; } = true;
+        public bool ShowConsoleWindow { get; set; } = false;
         public bool Chat { get; set; } = false;
         public string? ReplayPath { get; set; }
         public string? DuelId { get; set; }
@@ -127,66 +128,90 @@ namespace YgoAiPlatform.Core
                     argsBuilder.Append($" DuelId=\"{DuelId}\"");
                 }
 
-                var startInfo = new ProcessStartInfo
+                ProcessStartInfo startInfo;
+                if (ShowConsoleWindow)
                 {
-                    FileName = "dotnet",
-                    Arguments = argsBuilder.ToString(),
-                    WorkingDirectory = Path.GetDirectoryName(windbotDllPath),
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    StandardOutputEncoding = Encoding.UTF8,
-                    StandardErrorEncoding = Encoding.UTF8
-                };
+                    // Launch in external CMD window with title
+                    startInfo = new ProcessStartInfo
+                    {
+                        FileName = "cmd.exe",
+                        Arguments = $"/c title WindBot - {CleanFileName(Name)} && dotnet {argsBuilder.ToString()}",
+                        WorkingDirectory = Path.GetDirectoryName(windbotDllPath),
+                        UseShellExecute = true,
+                        CreateNoWindow = false
+                    };
+                }
+                else
+                {
+                    startInfo = new ProcessStartInfo
+                    {
+                        FileName = "dotnet",
+                        Arguments = argsBuilder.ToString(),
+                        WorkingDirectory = Path.GetDirectoryName(windbotDllPath),
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        StandardOutputEncoding = Encoding.UTF8,
+                        StandardErrorEncoding = Encoding.UTF8
+                    };
+                }
 
                 _process = new Process { StartInfo = startInfo };
                 _process.EnableRaisingEvents = true;
 
-                _process.OutputDataReceived += (sender, e) =>
+                if (!ShowConsoleWindow)
                 {
-                    if (e.Data != null)
+                    _process.OutputDataReceived += (sender, e) =>
                     {
-                        OnOutputReceived?.Invoke(e.Data);
-                        lock (_lock)
+                        if (e.Data != null)
                         {
-                            try
+                            OnOutputReceived?.Invoke(e.Data);
+                            lock (_lock)
                             {
-                                _logWriter?.WriteLine($"[{DateTime.Now:HH:mm:ss}] {e.Data}");
-                                _logWriter?.Flush();
+                                try
+                                {
+                                    _logWriter?.WriteLine($"[{DateTime.Now:HH:mm:ss}] {e.Data}");
+                                    _logWriter?.Flush();
+                                }
+                                catch {}
                             }
-                            catch {}
                         }
-                    }
-                };
+                    };
 
-                _process.ErrorDataReceived += (sender, e) =>
-                {
-                    if (e.Data != null)
+                    _process.ErrorDataReceived += (sender, e) =>
                     {
-                        OnErrorReceived?.Invoke(e.Data);
-                        lock (_lock)
+                        if (e.Data != null)
                         {
-                            try
+                            OnErrorReceived?.Invoke(e.Data);
+                            lock (_lock)
                             {
-                                _logWriter?.WriteLine($"[{DateTime.Now:HH:mm:ss}] [ERR] {e.Data}");
-                                _logWriter?.Flush();
+                                try
+                                {
+                                    _logWriter?.WriteLine($"[{DateTime.Now:HH:mm:ss}] [ERR] {e.Data}");
+                                    _logWriter?.Flush();
+                                }
+                                catch {}
                             }
-                            catch {}
                         }
-                    }
-                };
+                    };
+                }
 
                 _process.Exited += (sender, e) =>
                 {
-                    int code = _process?.ExitCode ?? -1;
+                    int code = -1;
+                    try { code = _process?.ExitCode ?? -1; } catch {}
                     OnProcessExited?.Invoke(code);
                     CloseLogWriter(code);
                 };
 
                 _process.Start();
-                _process.BeginOutputReadLine();
-                _process.BeginErrorReadLine();
+
+                if (!ShowConsoleWindow)
+                {
+                    _process.BeginOutputReadLine();
+                    _process.BeginErrorReadLine();
+                }
             }
         }
 
@@ -207,7 +232,7 @@ namespace YgoAiPlatform.Core
                     procToKill.EnableRaisingEvents = false;
                     if (!procToKill.HasExited)
                     {
-                        procToKill.Kill();
+                        procToKill.Kill(entireProcessTree: true);
                         try { procToKill.WaitForExit(3000); } catch {}
                     }
                 }

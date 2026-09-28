@@ -379,7 +379,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="12"/>
-                    <RowDefinition Height="*"/>
+                    <RowDefinition x:Name="RowConsole" Height="*"/>
                 </Grid.RowDefinitions>
 
                 <!-- Connection Settings Card -->
@@ -453,25 +453,27 @@
                 </Border>
 
                 <!-- Console Logs Box -->
-                <Border Grid.Row="2" Background="#F8FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1.5" CornerRadius="6" Padding="14">
+                <Border x:Name="ConsoleCardBorder" Grid.Row="2" Background="#F8FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1.5" CornerRadius="6" Padding="14">
                     <Border.Effect>
                         <DropShadowEffect BlurRadius="12" ShadowDepth="2" Direction="270" Color="#000000" Opacity="0.18"/>
                     </Border.Effect>
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
-                            <RowDefinition Height="Auto"/>
+                            <RowDefinition x:Name="RowConsoleBody" Height="*"/>
+                            <RowDefinition x:Name="RowConsoleFoot" Height="Auto"/>
                         </Grid.RowDefinitions>
 
                         <!-- Log Header -->
                         <Grid Grid.Row="0" Margin="0,0,0,8">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <TextBlock Text="Console Output Logs" FontSize="13" FontWeight="Bold" Foreground="#111111"/>
-                                <CheckBox x:Name="ChkDevMode" Content="โหมดนักพัฒนา (บันทึก Logs)" IsChecked="True" FontWeight="SemiBold" FontSize="11" Foreground="#444444" Margin="14,0,0,0" VerticalAlignment="Center" Cursor="Hand" Click="ChkDevMode_Click" ToolTip="เปิด: แสดงผลและบันทึก Logs ละเอียดทั้งหมด / ปิด: ซ่อน Log ละเอียดและไม่บันทึกไฟล์ลงดิสก์"/>
+                                <CheckBox x:Name="ChkDevMode" Content="บันทึก Logs" IsChecked="False" FontWeight="SemiBold" FontSize="11" Foreground="#444444" Margin="12,0,0,0" VerticalAlignment="Center" Cursor="Hand" Click="ChkDevMode_Click" ToolTip="เปิด: บันทึก Logs ละเอียดลงดิสก์ / ปิด: ไม่บันทึกไฟล์ Logs (ประหยัดดิสก์และทำงานเร็วสุด)"/>
+                                <CheckBox x:Name="ChkExternalCmd" Content="เปิด CMD แยก" IsChecked="False" FontWeight="SemiBold" FontSize="11" Foreground="#444444" Margin="10,0,0,0" VerticalAlignment="Center" Cursor="Hand" ToolTip="เปิด: รัน WindBot ในหน้าต่าง Command Prompt แยกสำหรับการดู Log และการทำงานแบบสด / ปิด: รันแบบปกติ"/>
                                 <TextBlock x:Name="TxtConsoleStatus" Text="Ready." FontSize="11" Foreground="#059669" FontWeight="Bold" Margin="10,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button x:Name="BtnToggleConsole" Content="หุบ Console ▲" Style="{StaticResource SecondaryWhiteBtn}" Padding="10,3" Margin="0,0,6,0" Click="BtnToggleConsole_Click" ToolTip="หุบหรือกางหน้าต่าง Console Output"/>
                                 <Button x:Name="BtnOpenLogs" Content="Open Logs" Style="{StaticResource SecondaryWhiteBtn}" Padding="10,3" Margin="0,0,6,0" Click="BtnOpenLogs_Click"/>
                                 <Button x:Name="BtnCopyConsole" Content="Copy" Style="{StaticResource SecondaryWhiteBtn}" Padding="10,3" Margin="0,0,6,0" Click="BtnCopyConsole_Click"/>
                                 <Button x:Name="BtnClearConsole" Content="Clear" Style="{StaticResource SecondaryWhiteBtn}" Padding="10,3" Click="BtnClearConsole_Click"/>
@@ -485,7 +487,7 @@
                                  Padding="8" BorderBrush="#CCCCCC" BorderThickness="1.5"
                                  AcceptsReturn="True" TextWrapping="NoWrap"/>
 
-                        <TextBlock Grid.Row="2" Text="Rule-based ModernExecutor client strictly follows official rules." FontSize="10.5" Foreground="#666666" Margin="0,6,0,0"/>
+                        <TextBlock x:Name="TxtConsoleFooter" Grid.Row="2" Text="Rule-based ModernExecutor client strictly follows official rules." FontSize="10.5" Foreground="#666666" Margin="0,6,0,0"/>
                     </Grid>
                 </Border>
             </Grid>
