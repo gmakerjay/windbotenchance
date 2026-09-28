@@ -1,5 +1,79 @@
 # Progress Log: Central Core Architecture & Universal Heuristics Overhaul
 
+## 0.058. Trirealm Rift (Yomi) Archetype Analysis, Domain Plugin & ModernExecutor Implementation (2026-09-28)
+
+### 1. Archetype Architecture & Mechanics Integration
+1. **Audited Trirealm Rift Archetype (11 cards, IDs 100458031 - 100458041)**:
+   - Extracted official metadata, effects, and Lua scripts (`prerelease-dbgv.cdb` & `c100458031.lua` - `c100458041.lua`).
+   - Integrated into `cards.cdb` across workspace roots, `WindBot\`, and `src\YGO_SOURCE_CLEAN\`.
+2. **Theme Identity & Resource Engine**:
+   - Built around the **Face-down Banish Pool** as an active recycling engine.
+   - When Trirealm monsters are summoned, they banish cards face-down from top of deck equal to Level.
+   - 6-Attribute synergy: `Gehenna` (DARK Lv 1), `Sheol` (LIGHT Lv 2), `Tuonela` (WATER Lv 3), `Naraka` (FIRE Lv 4), `Yomi` (WIND Lv 5), `Helheim` (EARTH Lv 6), `Ploutonion` (WATER Lv 7), `Darkness` (DARK Lv 8).
+3. **Decoupled Domain Plugin (`TrirealmRiftPlugin.cs`)**:
+   - Created decoupled plugin implementing `IDeckPlugin`, `TrirealmRiftStrategy`, `TrirealmRiftMaterialEvaluator`, and `TrirealmRiftThreatEvaluator`.
+   - Real-time attribute coverage analysis: maps opponent monster attributes to available face-down banished Trirealm monsters for `Yomi` Quick Negate and `Ploutonion` Quick Spin.
+4. **ModernExecutor Implementation (`TrirealmRiftExecutor.cs`)**:
+   - Priority 1: Quick Negates (`TrirealmRiftJudgment`, `Yomi` Attribute Negate, Handtraps).
+   - Priority 2: Field Spell (`Trirealm Rift Territory - Valvols`) and continuous banish engines.
+   - Priority 3: Hand Searchers & Draw Engines (`Yomi`, `Ploutonion`, `Gospel`).
+   - Priority 4: Free Swarm Extenders (`Gehenna`, `Sheol`, `Naraka`, `Helheim`).
+   - Priority 5: Extra Deck board breakers (`Accesscode Talker`, `Knightmare Unicorn`, `S:P Little Knight`).
+5. **Deck Construction & Registration (`TrirealmRift.ydk` & `bots.json`)**:
+   - Built optimized 40 Main / 15 Extra deck list utilizing high synergy cards (Pot of Desires, Handtraps, Link staples).
+   - Registered bot `TrirealmRift` / `2026_TrirealmRift` in `bots.json`.
+6. **Build & Exclusive Target Deployment**:
+   - `BUILD_AND_DEPLOY.ps1` compiled with 0 errors.
+   - Deployed all updated binaries, deck lists, CDBs, and launcher to `C:\Users\admin\Documents\EdoGame\`.
+
+## 0.057. Pendulum Magician Omni-Negate End-Board & Anti-Dark Magician Optimization (2026-09-28)
+
+
+### 1. Root Cause Analysis (Why Pendulum Magicians Lost to Dark Magician)
+1. **Zero Omni-Negates on Turn 1 Board**:
+   - `Crystal Wing Synchro Dragon` was literally unsummonable (demands non-tuner *Synchro* monster, which does not exist in the deck).
+   - `Odd-Eyes Absolute Dragon -> Odd-Eyes Vortex Dragon` was unachievable (only 1 Astrograph and 1 Dragonpit in deck; plus Absolute was registered as an Ace Card with 9000 material cost, so it was never linked away to trigger its GY effect).
+   - `Baronne de Fleur` was never summoned because Harmonizing's target selector prioritized Level 4 Magicians (Purple Poison 900, Double Iris 850) and had Oafdragon (Level 6) at default 100, while `Timestar Magician` was registered in the executor pipeline *before* Synchros, instantly devouring the Tuner.
+   - Result: Turn 1 end board was literally just a lone `Timestar Magician` (2400 ATK, 0 negates).
+2. **Backrow Wipe Vulnerability (`Dark Magic Attack` / `Harpie's Feather Duster`)**:
+   - Opponent's `Eternal Soul` searched `Dark Magic Attack` (pops all Spells/Traps).
+   - With 0 Omni-Negates, `Dark Magic Attack` resolved completely unopposed, obliterating all Pendulum Scales and Pendulumgraphs.
+   - Timestar Magician only replaces destruction of Pendulum *monsters* or *scales* once by sending from deck, but cannot negate Spells or protect Continuous Spells/Traps like Star/Time Pendulumgraph.
+3. **Flawed Targeting Heuristics in `OnSelectCard`**:
+   - Old code targeted enemy cards by `OrderByDescending(c => c.Attack)`.
+   - When facing Dark Magician with `Eternal Soul` active: it targeted `Dark Magician` (2500 ATK), which was completely immune to card effects due to Eternal Soul! The removal effect was completely wasted!
+   - `Eternal Soul` (0 ATK Trap) was ignored, allowing Dark Magician to maintain full immunity and continue searching `Dark Magic Attack`.
+   - Furthermore, `Dark Magical Circle` then banished Timestar Magician, leaving the bot with 0 cards and no recovery.
+
+### 2. Strategic Solutions & Architectural Enhancements
+1. **Extra Deck Overhaul (`PendulumMagician.ydk`)**:
+   - Replaced dead `Crystal Wing Synchro Dragon` (50954680) with **`Borreload Savage Dragon`** (27548199) — 3900 ATK, equips Electrumite from GY, provides **2x Omni-Negate**!
+   - Replaced redundant 2nd Timestar and rarely-summoned Absolute/Vortex with:
+     - **`Tornado Dragon`** (6983839) — Rank 4 Quick Effect Spell/Trap pop (targets and destroys `Eternal Soul` on chain!).
+     - **`Number 41: Bagooska the Terribly Tired Tapir`** (90590303) — Rank 4 Defense Position floodgate shutting down activated monster effects.
+     - **`Accesscode Talker`** (86066372) — 5300 ATK Link-4 board wiper and finisher.
+2. **Execution Pipeline Re-sequencing (`PendulumMagicianExecutor.cs`)**:
+   - **Synchros Before Xyz**: Evaluated and summoned `Baronne de Fleur` and `Borreload Savage Dragon` *before* Xyz summons to prevent eating Harmonizing prematurely.
+   - **Harmonizing Target Selection (`PendulumMagicianPlugin.cs`)**: If Baronne is in Extra Deck, Harmonizing prioritizes `Oafdragon Magician` (Level 6) with score 1200 -> Level 4 Tuner + Level 6 non-Tuner = instant **Baronne de Fleur (Omni-Negate)**! If Baronne is already summoned, summons Level 4 Magician -> **Borreload Savage Dragon (2x Omni-Negate)**!
+   - **Post-Pendulum Electrumite Loop**: Added `ElectrumitePostPendulumSpSummon` that preserves Harmonizing if a Tuner is present, enabling the Electrumite + Astrograph + Double Iris advantage loop (+3 cards) even when Electrumite could not be made pre-pendulum.
+   - **`OnSelectCard` Threat-Based Targeting**:
+     - `Eternal Soul` (48680970) assigned absolute top priority (score 999,999) — destroying it instantly triggers Eternal Soul's self-destruct effect to wipe all opponent monsters!
+     - `Dark Magician` penalized with -10,000 score when `Eternal Soul` is active to prevent wasting effects on an immune target.
+     - Target-immune cards penalized with -5,000 score.
+     - Integrated `CardIntelligence.GetCardThreatScore(c, hint)` for optimal target selection.
+   - **`Tornado Dragon` & `Time Pendulumgraph` Enhancements**:
+     - Quick effect triggers immediately to pop `Eternal Soul` or dangerous backrow.
+   - **Star Pendulumgraph Targeting Protection**:
+     - Activated face-up to grant all Spellcasters complete targeting immunity against Spell effects (e.g. `Dark Magical Circle` cannot target any of our Magicians).
+   - **Bagooska Guard**: Guaranteed `FaceUpDefence` summon position per Rule 14.
+
+### 3. Build & Deployment
+- Compiled cleanly with 0 Errors via `BUILD_AND_DEPLOY.ps1`.
+- Synchronized `.ydk` files across `windbot-fork/Decks/`, `WindBot/Decks/`, and `deck/`.
+- Deployed all updated binaries to `C:\Users\admin\Documents\EdoGame\`.
+
+---
+
 ## 0.056. Pendulum Magician (Supreme King Z-ARC & Synchro/Xyz/Link Engine) Architecture & Optimization (2026-09-28)
 
 ### 1. Human vs Bot Comparative Analysis & Deck Structure

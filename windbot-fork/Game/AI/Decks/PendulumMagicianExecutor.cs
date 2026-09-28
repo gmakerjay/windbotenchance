@@ -77,15 +77,12 @@ namespace WindBot.Game.AI.Decks
             public const int AbyssDweller = 21044178;
             public const int TornadoDragon = 6983839;
             public const int SupremeKingDragonDarkRebellion = 42160203;
-            public const int OddEyesAbsoluteDragon = 16691074;
-            public const int OddEyesVortexDragon = 53262004;
             public const int SupremeKingDragonClearWing = 70771599;
-            public const int CrystalWingSynchroDragon = 50954680;
-            public const int ClearWingSynchroDragon = 82044279;
-            public const int CrystalClearWingSynchroDragon = 59765225;
-            public const int SwordsoulChengying = 96633955;
             public const int IgnisterProminence = 18239909;
             public const int BaronneDeFleur = 84815190;
+            public const int BorreloadSavageDragon = 27548199;
+            public const int Number41Bagooska = 90590303;
+            public const int AccesscodeTalker = 86066372;
             public const int HeavymetalfoesElectrumite = 24094258;
             public const int BeyondThePendulum = 22125101;
             public const int SPLittleKnight = 29301450;
@@ -108,10 +105,8 @@ namespace WindBot.Game.AI.Decks
         private bool _pendulumCallUsed = false;
         private bool _duelistAllianceUsed = false;
         private bool _timestarSearchUsed = false;
-        private bool _absoluteDragonUsed = false;
-        private bool _vortexNegateUsed = false;
-        private bool _crystalWingNegateUsed = false;
         private bool _baronneNegateUsed = false;
+        private bool _baronnePopUsed = false;
         private bool _timePendulumgraphUsed = false;
         private bool _hasPendulumSummoned = false;
         private bool _astrographSSUsed = false;
@@ -135,20 +130,24 @@ namespace WindBot.Game.AI.Decks
             // Layer 2 Central Core Ace Card Protection
             ResourcePlan.RegisterAceCards(
                 CardId.SupremeKingZARC,
-                CardId.CrystalWingSynchroDragon,
-                CardId.OddEyesVortexDragon,
                 CardId.BaronneDeFleur,
+                CardId.BorreloadSavageDragon,
+                CardId.AccesscodeTalker,
                 CardId.Apollousa,
+                CardId.Number41Bagooska,
+                CardId.TornadoDragon,
                 CardId.TimestarMagician,
                 CardId.SupremeKingDragonClearWing,
                 CardId.SupremeKingDragonDarkRebellion
             );
             HeuristicGuard.RegisterAceCards(
                 CardId.SupremeKingZARC,
-                CardId.CrystalWingSynchroDragon,
-                CardId.OddEyesVortexDragon,
                 CardId.BaronneDeFleur,
+                CardId.BorreloadSavageDragon,
+                CardId.AccesscodeTalker,
                 CardId.Apollousa,
+                CardId.Number41Bagooska,
+                CardId.TornadoDragon,
                 CardId.TimestarMagician,
                 CardId.SupremeKingDragonClearWing,
                 CardId.SupremeKingDragonDarkRebellion
@@ -171,15 +170,28 @@ namespace WindBot.Game.AI.Decks
             ChainAdvisor.RegisterHighValueTargets(
                 CardId.HeavymetalfoesElectrumite,
                 CardId.BeyondThePendulum,
+                CardId.BaronneDeFleur,
+                CardId.BorreloadSavageDragon,
                 CardId.TimestarMagician,
-                CardId.OddEyesAbsoluteDragon,
-                CardId.OddEyesVortexDragon,
-                CardId.CrystalWingSynchroDragon
+                CardId.AccesscodeTalker
             );
         }
 
         private void RegisterComboLines()
         {
+            ComboRouter.RegisterLine(new ComboRouter.ComboLine
+            {
+                Name = "Magician-Harmonizing-Baronne",
+                RequiredCards = new List<int> { CardId.HarmonizingMagician },
+                EndBoardScore = 98,
+                Steps = new List<ComboRouter.ComboStep>
+                {
+                    new() { CardId = CardId.HarmonizingMagician, ActionType = ExecutorType.SpSummon, Description = "Pendulum Summon Harmonizing from Hand" },
+                    new() { CardId = CardId.HarmonizingMagician, ActionType = ExecutorType.Activate, Description = "Special Summon Oafdragon from Deck" },
+                    new() { CardId = CardId.BaronneDeFleur, ActionType = ExecutorType.SpSummon, Description = "Synchro Summon Baronne de Fleur (Omni-Negate)" }
+                }
+            });
+
             ComboRouter.RegisterLine(new ComboRouter.ComboLine
             {
                 Name = "Magician-Electrumite-Astrograph-Loop",
@@ -195,25 +207,14 @@ namespace WindBot.Game.AI.Decks
 
             ComboRouter.RegisterLine(new ComboRouter.ComboLine
             {
-                Name = "Magician-Harmonizing-ExtraClimb",
+                Name = "Magician-Harmonizing-BorreloadSavage",
                 RequiredCards = new List<int> { CardId.HarmonizingMagician },
-                EndBoardScore = 90,
+                EndBoardScore = 94,
                 Steps = new List<ComboRouter.ComboStep>
                 {
                     new() { CardId = CardId.HarmonizingMagician, ActionType = ExecutorType.SpSummon, Description = "Pendulum Summon Harmonizing from Hand" },
-                    new() { CardId = CardId.HarmonizingMagician, ActionType = ExecutorType.Activate, Description = "Special Summon Magician from Deck" }
-                }
-            });
-
-            ComboRouter.RegisterLine(new ComboRouter.ComboLine
-            {
-                Name = "Magician-Absolute-Vortex-Negate",
-                RequiredCards = new List<int> { CardId.OddEyesAbsoluteDragon },
-                EndBoardScore = 92,
-                Steps = new List<ComboRouter.ComboStep>
-                {
-                    new() { CardId = CardId.OddEyesAbsoluteDragon, ActionType = ExecutorType.SpSummon, Description = "Xyz Summon Absolute Dragon" },
-                    new() { CardId = CardId.OddEyesAbsoluteDragon, ActionType = ExecutorType.Activate, Description = "Send Absolute to GY -> SS Vortex Dragon" }
+                    new() { CardId = CardId.HarmonizingMagician, ActionType = ExecutorType.Activate, Description = "Special Summon Level 4 Magician from Deck" },
+                    new() { CardId = CardId.BorreloadSavageDragon, ActionType = ExecutorType.SpSummon, Description = "Synchro Summon Borreload Savage Dragon (2x Omni-Negate)" }
                 }
             });
         }
@@ -227,10 +228,8 @@ namespace WindBot.Game.AI.Decks
             _pendulumCallUsed = false;
             _duelistAllianceUsed = false;
             _timestarSearchUsed = false;
-            _absoluteDragonUsed = false;
-            _vortexNegateUsed = false;
-            _crystalWingNegateUsed = false;
             _baronneNegateUsed = false;
+            _baronnePopUsed = false;
             _timePendulumgraphUsed = false;
             _hasPendulumSummoned = false;
             _astrographSSUsed = false;
@@ -252,25 +251,25 @@ namespace WindBot.Game.AI.Decks
         private void RegisterExecutors()
         {
             // ── Tier 0: Quick Negations & Handtraps ──
-            AddExecutor(ExecutorType.Activate, CardId.OddEyesVortexDragon, VortexNegate);
-            AddExecutor(ExecutorType.Activate, CardId.CrystalWingSynchroDragon, CrystalWingNegate);
+            AddExecutor(ExecutorType.Activate, CardId.BorreloadSavageDragon, BorreloadSavageEffect);
             AddExecutor(ExecutorType.Activate, CardId.BaronneDeFleur, BaronneNegate);
             AddExecutor(ExecutorType.Activate, CardId.Apollousa, ApollousaNegate);
             AddExecutor(ExecutorType.Activate, CardId.AshBlossom, AshBlossomActivate);
             AddExecutor(ExecutorType.Activate, CardId.MaxxC, MaxxCActivate);
             AddExecutor(ExecutorType.Activate, CardId.InfiniteImpermanence, ImpermActivate);
             AddExecutor(ExecutorType.Activate, CardId.CalledByTheGrave, CalledByTheGraveActivate);
+            AddExecutor(ExecutorType.Activate, CardId.TornadoDragon, TornadoDragonActivate);
             AddExecutor(ExecutorType.Activate, CardId.TimePendulumgraph, TimePendulumgraphActivate);
             AddExecutor(ExecutorType.Activate, CardId.AbyssDweller, AbyssDwellerActivate);
-            AddExecutor(ExecutorType.Activate, CardId.TornadoDragon, TornadoDragonActivate);
 
-            // ── Tier 1: Board Breakers (Going 2nd) ──
+            // ── Tier 1: Board Breakers (Going 2nd & Ignition Pops) ──
             AddExecutor(ExecutorType.Activate, CardId.HarpiesFeatherDuster, HarpiesFeatherDusterActivate);
             AddExecutor(ExecutorType.Activate, CardId.SupremeKingDragonClearWing, SKClearWingBoardWipe);
             AddExecutor(ExecutorType.Activate, CardId.SupremeKingDragonDarkRebellion, SKDarkRebellionOTK);
             AddExecutor(ExecutorType.Activate, CardId.IgnisterProminence, IgnisterActivate);
             AddExecutor(ExecutorType.Activate, CardId.PurplePoisonMagician, PurplePoisonMonsterPop);
             AddExecutor(ExecutorType.Activate, CardId.BlackFangMagician, BlackFangMonsterRevive);
+            AddExecutor(ExecutorType.Activate, CardId.BaronneDeFleur, BaronnePopCard);
 
             // ── Tier 2: Supreme King Z-ARC Summoning (Ultimate Wipe) ──
             AddExecutor(ExecutorType.Activate, CardId.AstrographSorcerer, AstrographZARCSummon);
@@ -313,21 +312,30 @@ namespace WindBot.Game.AI.Decks
 
             // ── Tier 7: Post-Pendulum Extra Deck Combinations ──
             AddExecutor(ExecutorType.Activate, CardId.HarmonizingMagician, HarmonizingOnSummon);
+            AddExecutor(ExecutorType.Activate, CardId.AstrographSorcerer, AstrographHandSS);
+            AddExecutor(ExecutorType.Activate, CardId.ChronographSorcerer, ChronographHandSS);
+
+            // 1. Synchro Summons First (consumes Tuner while available!)
+            AddExecutor(ExecutorType.SpSummon, CardId.BaronneDeFleur, BaronneSpSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.BorreloadSavageDragon, BorreloadSavageSpSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.SupremeKingDragonClearWing, SKClearWingSpSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.IgnisterProminence, IgnisterSpSummon);
+
+            // 2. Post-Pendulum Electrumite Loop (if not summoned pre-pendulum!)
+            AddExecutor(ExecutorType.SpSummon, CardId.HeavymetalfoesElectrumite, ElectrumitePostPendulumSpSummon);
+            AddExecutor(ExecutorType.Activate, CardId.HeavymetalfoesElectrumite, ElectrumiteActivate);
+
+            // 3. Xyz Summons (using remaining Level 4s)
+            AddExecutor(ExecutorType.SpSummon, CardId.TornadoDragon, TornadoDragonSpSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.AbyssDweller, AbyssDwellerSpSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.TimestarMagician, TimestarSpSummon);
             AddExecutor(ExecutorType.Activate, CardId.TimestarMagician, TimestarActivate);
-
-            AddExecutor(ExecutorType.SpSummon, CardId.SupremeKingDragonClearWing, SKClearWingSpSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.CrystalWingSynchroDragon, CrystalWingSpSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.IgnisterProminence, IgnisterSpSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.BaronneDeFleur, BaronneSpSummon);
-
-            AddExecutor(ExecutorType.SpSummon, CardId.OddEyesAbsoluteDragon, AbsoluteDragonSpSummon);
-            AddExecutor(ExecutorType.Activate, CardId.OddEyesAbsoluteDragon, AbsoluteDragonGYEffect);
-            AddExecutor(ExecutorType.Activate, CardId.OddEyesVortexDragon, VortexOnSummonBounce);
-
-            AddExecutor(ExecutorType.SpSummon, CardId.AbyssDweller, AbyssDwellerSpSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.TornadoDragon, TornadoDragonSpSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.Number41Bagooska, BagooskaSpSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.SupremeKingDragonDarkRebellion, SKDarkRebellionSpSummon);
+
+            // 4. Link Finishers & Controls
+            AddExecutor(ExecutorType.SpSummon, CardId.AccesscodeTalker, AccesscodeSpSummon);
+            AddExecutor(ExecutorType.Activate, CardId.AccesscodeTalker, AccesscodeActivate);
             AddExecutor(ExecutorType.SpSummon, CardId.SPLittleKnight, SPLittleKnightSpSummon);
             AddExecutor(ExecutorType.Activate, CardId.SPLittleKnight, SPLittleKnightActivate);
             AddExecutor(ExecutorType.SpSummon, CardId.Apollousa, ApollousaSpSummon);
@@ -407,30 +415,22 @@ namespace WindBot.Game.AI.Decks
         // ============================================================================
         // QUICK NEGATES & DISRUPTIONS
         // ============================================================================
-        private bool VortexNegate()
+        private bool BorreloadSavageEffect()
         {
-            if (Card.Location != CardLocation.MonsterZone) return false;
-            if (_vortexNegateUsed) return false;
-            if (IsChainAlreadyNeutralized()) return false;
-
-            // Check if Extra Deck has face-up Pendulum monsters to shuffle
-            if (!Bot.ExtraDeck.Any(c => c.IsFaceup() && c.HasType(CardType.Pendulum))) return false;
-
-            _vortexNegateUsed = true;
-            return true;
-        }
-
-        private bool CrystalWingNegate()
-        {
-            if (Card.Location != CardLocation.MonsterZone) return false;
-            if (_crystalWingNegateUsed) return false;
-            if (IsChainAlreadyNeutralized()) return false;
-
-            ClientCard last = LastChainCard;
-            if (last == null || !last.IsMonster() || last.Controller != 1) return false;
-
-            _crystalWingNegateUsed = true;
-            return true;
+            if (Duel.CurrentChain.Count == 0)
+            {
+                // Equip effect on summon: prioritize highest rating Link in GY
+                AI.SelectCard(new[] { CardId.HeavymetalfoesElectrumite, CardId.BeyondThePendulum, CardId.SPLittleKnight });
+                return true;
+            }
+            else
+            {
+                // Quick Effect Omni-Negate
+                if (IsChainAlreadyNeutralized()) return false;
+                ClientCard last = LastChainCard;
+                if (last == null || last.Controller != 1) return false;
+                return true;
+            }
         }
 
         private bool BaronneNegate()
@@ -491,14 +491,22 @@ namespace WindBot.Game.AI.Decks
         {
             if (_timePendulumgraphUsed) return false;
 
-            // Best during opponent turn or going 2nd to break board
+            // Must have friendly Magician card to target
+            bool hasFriendlyTarget = Bot.GetMonsters().Concat(Bot.GetSpells())
+                .Any(c => c != null && c.IsFaceup() && c.HasType(CardType.Pendulum));
+            if (!hasFriendlyTarget) return false;
+
+            // Immediate reaction: If opponent has Eternal Soul (48680970) face-up, POP IT NOW!
+            if (Enemy.GetSpells().Any(s => s != null && s.IsFaceup() && s.Id == 48680970))
+            {
+                _timePendulumgraphUsed = true;
+                return true;
+            }
+
+            // During opponent turn or going 2nd to break board
             if (Duel.Player == 1 || Enemy.GetMonsterCount() > 0 || Enemy.GetSpellCount() > 0)
             {
-                // Must have friendly Magician card to target
-                bool hasFriendlyTarget = Bot.GetMonsters().Concat(Bot.GetSpells())
-                    .Any(c => c != null && c.IsFaceup() && c.HasType(CardType.Pendulum));
-
-                if (hasFriendlyTarget && (Enemy.GetMonsterCount() > 0 || Enemy.GetSpellCount() > 0))
+                if (Enemy.GetMonsterCount() > 0 || Enemy.GetSpellCount() > 0)
                 {
                     _timePendulumgraphUsed = true;
                     return true;
@@ -518,8 +526,24 @@ namespace WindBot.Game.AI.Decks
         private bool TornadoDragonActivate()
         {
             if (Card.Location != CardLocation.MonsterZone || Card.Overlays.Count == 0) return false;
-            // Pop face-up or set spell/trap of opponent
-            return Enemy.GetSpells().Any(s => s != null);
+
+            // Absolute #1: Pop opponent's Eternal Soul (48680970) immediately!
+            if (Enemy.GetSpells().Any(s => s != null && s.IsFaceup() && s.Id == 48680970))
+                return true;
+
+            // Pop any opponent continuous/field/floodgate spells or traps
+            if (Enemy.GetSpells().Any(s => s != null && s.IsFaceup() && (CardIntelligence.IsFloodgate(s.Id) || s.HasType(CardType.Continuous) || s.HasType(CardType.Field))))
+                return true;
+
+            // During opponent's turn, pop any face-up or set backrow
+            if (Duel.Player == 1 && Enemy.GetSpellCount() > 0)
+                return true;
+
+            // Main Phase 2 before end
+            if (Duel.Phase == DuelPhase.Main2 && Enemy.GetSpellCount() > 0)
+                return true;
+
+            return false;
         }
 
         // ============================================================================
@@ -559,6 +583,19 @@ namespace WindBot.Game.AI.Decks
         {
             // When destroyed: revive 1 DARK Spellcaster from GY
             return Bot.Graveyard.Any(c => c.IsMonster() && c.HasRace(CardRace.SpellCaster) && c.HasAttribute(CardAttribute.Dark));
+        }
+
+        private bool BaronnePopCard()
+        {
+            if (Card.Location != CardLocation.MonsterZone) return false;
+            if (_baronnePopUsed) return false;
+            // Target 1 card on field to destroy
+            if (Enemy.GetMonsterCount() > 0 || Enemy.GetSpellCount() > 0)
+            {
+                _baronnePopUsed = true;
+                return true;
+            }
+            return false;
         }
 
         // ============================================================================
@@ -673,7 +710,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool StarPendulumgraphActivate()
         {
-            if (Card.Location == CardLocation.Hand)
+            if (Card.Location == CardLocation.Hand || (Card.Location == CardLocation.SpellZone && Card.IsFacedown()))
             {
                 // Activate Continuous Spell
                 return Bot.GetSpellCount() < 5;
@@ -809,21 +846,25 @@ namespace WindBot.Game.AI.Decks
             return true;
         }
 
-        private bool TimestarSpSummon()
+        private bool BaronneSpSummon()
         {
-            if (_timestarSearchUsed) return false;
-            // 2 Level 4 Magician Pendulum Monsters
-            var lv4s = Bot.GetMonsters().Where(m => m.IsFaceup() && m.Level == 4 && m.HasType(CardType.Pendulum) && !IsAceCard(m)).ToList();
-            return lv4s.Count >= 2;
+            if (Bot.GetMonsters().Any(m => m.Id == CardId.BaronneDeFleur)) return false;
+            // Level 10 Synchro (Level 4 Tuner Harmonizing + Level 6 non-Tuner Oafdragon)
+            return Bot.GetMonsters().Any(m => m.IsFaceup() && m.IsTuner() && m.Level == 4) &&
+                   Bot.GetMonsters().Any(m => m.IsFaceup() && !m.IsTuner() && m.Level == 6);
         }
 
-        private bool TimestarActivate()
+        private bool BorreloadSavageSpSummon()
         {
-            if (Card.Location != CardLocation.MonsterZone) return false;
-            if (_timestarSearchUsed) return false;
+            if (Bot.GetMonsters().Any(m => m.Id == CardId.BorreloadSavageDragon)) return false;
+            // Requires 1 Tuner + 1+ non-Tuner monsters
+            // In Pendulum Magicians: Harmonizing (4 Tuner) + Level 4 non-Tuner Magician = Level 8
+            // Must have a Link monster in GY to equip!
+            bool hasLinkInGY = Bot.Graveyard.Any(c => c.HasType(CardType.Link));
+            if (!hasLinkInGY) return false;
 
-            _timestarSearchUsed = true;
-            return true;
+            return Bot.GetMonsters().Any(m => m.IsFaceup() && m.IsTuner() && m.Level == 4) &&
+                   Bot.GetMonsters().Any(m => m.IsFaceup() && !m.IsTuner() && m.Level == 4 && m.HasType(CardType.Pendulum));
         }
 
         private bool SKClearWingSpSummon()
@@ -839,14 +880,6 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
-        private bool CrystalWingSpSummon()
-        {
-            // Level 8 Synchro for Turn 1 monster negate
-            // 1 Tuner + 1+ non-Tuner Synchro Monsters
-            return Bot.GetMonsters().Any(m => m.IsFaceup() && m.IsTuner() && m.Level == 4) &&
-                   Bot.GetMonsters().Any(m => m.IsFaceup() && !m.IsTuner() && m.Level == 4);
-        }
-
         private bool IgnisterSpSummon()
         {
             // Level 8 Synchro (1 Tuner + 1+ non-Tuner Pendulum Monsters)
@@ -854,45 +887,69 @@ namespace WindBot.Game.AI.Decks
                    Bot.GetMonsters().Any(m => m.IsFaceup() && !m.IsTuner() && m.Level == 4 && m.HasType(CardType.Pendulum));
         }
 
-        private bool BaronneSpSummon()
+        private bool ElectrumitePostPendulumSpSummon()
         {
-            // Level 10 Synchro (Level 4 Tuner + Level 6 or Level 7 + Level 3)
-            return Bot.GetMonsters().Any(m => m.IsFaceup() && m.IsTuner() && m.Level == 4) &&
-                   Bot.GetMonsters().Any(m => m.IsFaceup() && !m.IsTuner() && m.Level == 6);
+            if (_electrumiteSendUsed) return false;
+            if (Bot.GetMonsters().Any(m => m.Id == CardId.HeavymetalfoesElectrumite)) return false;
+
+            // Use 2 non-Tuner Pendulum monsters so we preserve Harmonizing for Synchro!
+            bool hasTuner = Bot.GetMonsters().Any(m => m.IsFaceup() && m.IsTuner());
+            List<ClientCard> pends;
+            if (hasTuner)
+            {
+                pends = Bot.GetMonsters().Where(m => m.IsFaceup() && m.HasType(CardType.Pendulum) && !m.IsTuner() && !IsAceCard(m)).ToList();
+            }
+            else
+            {
+                pends = Bot.GetMonsters().Where(m => m.IsFaceup() && m.HasType(CardType.Pendulum) && !IsAceCard(m)).ToList();
+            }
+
+            return pends.Count >= 2;
         }
 
-        private bool AbsoluteDragonSpSummon()
+        private bool TimestarSpSummon()
         {
-            if (_absoluteDragonUsed) return false;
-            // 2 Level 7 monsters (Astrograph + Dragonpit)
-            var lv7s = Bot.GetMonsters().Where(m => m.IsFaceup() && m.Level == 7 && !IsAceCard(m)).ToList();
-            return lv7s.Count >= 2;
+            if (_timestarSearchUsed) return false;
+            if (Bot.GetMonsters().Any(m => m.Id == CardId.TimestarMagician)) return false;
+            // 2 Level 4 Magician Pendulum Monsters
+            var lv4s = Bot.GetMonsters().Where(m => m.IsFaceup() && m.Level == 4 && m.HasType(CardType.Pendulum) && !IsAceCard(m)).ToList();
+            return lv4s.Count >= 2;
         }
 
-        private bool AbsoluteDragonGYEffect()
+        private bool TimestarActivate()
         {
-            // When sent to GY: Special Summon Odd-Eyes Vortex Dragon!
-            _absoluteDragonUsed = true;
-            AI.SelectCard(CardId.OddEyesVortexDragon);
+            if (Card.Location != CardLocation.MonsterZone) return false;
+            if (_timestarSearchUsed) return false;
+
+            _timestarSearchUsed = true;
             return true;
-        }
-
-        private bool VortexOnSummonBounce()
-        {
-            // Bounce 1 face-up attack monster of opponent
-            return Enemy.GetMonsters().Any(m => m.IsFaceup() && m.IsAttack());
-        }
-
-        private bool AbyssDwellerSpSummon()
-        {
-            var lv4s = Bot.GetMonsters().Where(m => m.IsFaceup() && m.Level == 4 && !IsAceCard(m)).ToList();
-            return lv4s.Count >= 2 && !Bot.GetMonsters().Any(m => m.Id == CardId.AbyssDweller);
         }
 
         private bool TornadoDragonSpSummon()
         {
+            if (Bot.GetMonsters().Any(m => m.Id == CardId.TornadoDragon)) return false;
             var lv4s = Bot.GetMonsters().Where(m => m.IsFaceup() && m.Level == 4 && !IsAceCard(m)).ToList();
-            return lv4s.Count >= 2 && Enemy.GetSpellCount() > 0 && !Bot.GetMonsters().Any(m => m.Id == CardId.TornadoDragon);
+            if (lv4s.Count < 2) return false;
+
+            // Summon if opponent has Spells/Traps or against backrow decks
+            return Enemy.GetSpellCount() > 0 || Enemy.GetSpells().Any(s => s != null && s.Id == 48680970);
+        }
+
+        private bool AbyssDwellerSpSummon()
+        {
+            if (Bot.GetMonsters().Any(m => m.Id == CardId.AbyssDweller)) return false;
+            var lv4s = Bot.GetMonsters().Where(m => m.IsFaceup() && m.Level == 4 && !IsAceCard(m)).ToList();
+            return lv4s.Count >= 2 && (Duel.Turn == 1 || Enemy.Graveyard.Count >= 2);
+        }
+
+        private bool BagooskaSpSummon()
+        {
+            if (Bot.GetMonsters().Any(m => m.Id == CardId.Number41Bagooska)) return false;
+            var lv4s = Bot.GetMonsters().Where(m => m.IsFaceup() && m.Level == 4 && !IsAceCard(m)).ToList();
+            if (lv4s.Count < 2) return false;
+
+            // Defense floodgate when Turn 1 or stalling
+            return Duel.Turn == 1 || Enemy.GetMonsterCount() >= 2;
         }
 
         private bool SKDarkRebellionSpSummon()
@@ -904,6 +961,22 @@ namespace WindBot.Game.AI.Decks
                 return lv4s.Count >= 2;
             }
             return false;
+        }
+
+        private bool AccesscodeSpSummon()
+        {
+            if (Duel.Turn == 1) return false; // Finisher for Turn 2+
+            var linkMonsters = Bot.GetMonsters().Where(m => m.IsFaceup() && m.HasType(CardType.Link)).ToList();
+            if (linkMonsters.Count == 0) return false;
+
+            var nonAceMats = Bot.GetMonsters().Where(m => m.IsFaceup() && !IsAceCard(m)).ToList();
+            return nonAceMats.Count >= 2;
+        }
+
+        private bool AccesscodeActivate()
+        {
+            // Boost ATK / Banish to pop opponent card
+            return true;
         }
 
         private bool SPLittleKnightSpSummon()
@@ -1019,18 +1092,51 @@ namespace WindBot.Game.AI.Decks
                         if (sub != null) return new List<ClientCard> { sub };
                     }
 
+                    // Self-pop targeting (when all candidates are friendly, e.g. Electrumite or Ignister cost)
+                    if (cards.All(c => c.Controller == 0))
+                    {
+                        var selfPop = (DeckPlugin?.ScaleResolver as PendulumMagicianScaleResolver)?.PickScalePopTarget();
+                        if (selfPop != null && cards.Contains(selfPop))
+                        {
+                            return new List<ClientCard> { selfPop };
+                        }
+                    }
+
                     // Enemy cards targeting
                     var enemyTargets = cards.Where(c => c.Controller == 1).ToList();
                     if (enemyTargets.Count >= min)
                     {
-                        return enemyTargets.OrderByDescending(c => c.Attack).Take(max).ToList();
+                        bool enemyHasEternalSoul = Enemy.GetSpells().Any(s => s != null && s.IsFaceup() && s.Id == 48680970);
+
+                        return enemyTargets.OrderByDescending(c =>
+                        {
+                            // 1. Eternal Soul: Destroying this card automatically wipes all opponent monsters!
+                            if (c.Id == 48680970) return 999999;
+
+                            // 2. Dark Magical Circle: Banishing removal engine
+                            if (c.Id == 47222536) return 80000;
+
+                            // 3. Floodgates & Negators
+                            if (CardIntelligence.IsFloodgate(c.Id)) return 70000;
+                            if (CardIntelligence.IsKnownNegator(c.Id)) return 60000;
+
+                            // 4. Immune checks: Never target cards immune to targeting or card effects!
+                            if (CardIntelligence.IsTargetImmune(c)) return -5000;
+
+                            // If Eternal Soul is active, Dark Magician monsters are unaffected by card effects!
+                            if (enemyHasEternalSoul && (c.Id == 46986414 || c.Name?.Contains("Dark Magician") == true))
+                                return -10000; // Do NOT target Dark Magician while Eternal Soul protects it!
+
+                            // 5. Threat score via CardIntelligence
+                            return CardIntelligence.GetCardThreatScore(c, hint);
+                        }).Take(max).ToList();
                     }
 
-                    // Self-pop targeting (Electrumite, Ignister, Time Pendulumgraph)
-                    var selfPop = (DeckPlugin?.ScaleResolver as PendulumMagicianScaleResolver)?.PickScalePopTarget();
-                    if (selfPop != null && cards.Contains(selfPop))
+                    // Fallback self-pop
+                    var fallbackSelfPop = (DeckPlugin?.ScaleResolver as PendulumMagicianScaleResolver)?.PickScalePopTarget();
+                    if (fallbackSelfPop != null && cards.Contains(fallbackSelfPop))
                     {
-                        return new List<ClientCard> { selfPop };
+                        return new List<ClientCard> { fallbackSelfPop };
                     }
                 }
             }
@@ -1051,6 +1157,12 @@ namespace WindBot.Game.AI.Decks
         {
             if (positions == null || positions.Count == 0) return CardPosition.FaceUpAttack;
             if (positions.Count == 1) return positions[0];
+
+            // Rule 14: Number 41: Bagooska MUST always be summoned in FaceUpDefence!
+            if (cardId == CardId.Number41Bagooska)
+            {
+                if (positions.Contains(CardPosition.FaceUpDefence)) return CardPosition.FaceUpDefence;
+            }
 
             var cardData = YGOSharp.OCGWrapper.NamedCard.Get(cardId);
             if (cardData != null)

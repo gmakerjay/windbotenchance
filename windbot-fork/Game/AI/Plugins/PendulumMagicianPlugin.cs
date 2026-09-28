@@ -57,15 +57,20 @@ namespace WindBot.Game.AI.Plugins
             if (candidates == null || candidates.Count == 0) return null;
 
             // Harmonizing Magician pull from deck
-            // Priority: Timegazer (Level 3 for Synchro 7) or Level 4 Magician for Rank 4 / Level 8 Synchro
+            // If Baronne is in Extra Deck and not on field:
+            // Harmonizing (4 Tuner) + Oafdragon (6 non-Tuner Magician) = Baronne de Fleur (Level 10 Omni-Negate)!
+            bool needBaronne = _exec.Bot.HasInExtra(PendulumMagicianExecutor.CardId.BaronneDeFleur)
+                               && !_exec.Bot.GetMonsters().Any(m => m.Id == PendulumMagicianExecutor.CardId.BaronneDeFleur);
+
             return candidates.OrderByDescending(c =>
             {
+                if (needBaronne && c.Id == PendulumMagicianExecutor.CardId.OafdragonMagician) return 1200;
                 if (c.Id == PendulumMagicianExecutor.CardId.PurplePoisonMagician) return 900;
                 if (c.Id == PendulumMagicianExecutor.CardId.DoubleIrisMagician) return 850;
                 if (c.Id == PendulumMagicianExecutor.CardId.BlackFangMagician) return 800;
+                if (c.Id == PendulumMagicianExecutor.CardId.OafdragonMagician) return 780;
                 if (c.Id == PendulumMagicianExecutor.CardId.TimegazerMagician) return 750;
                 if (c.Id == PendulumMagicianExecutor.CardId.WhiteWingMagician) return 700;
-                if (c.Id == PendulumMagicianExecutor.CardId.OddEyesVortexDragon) return 1000;
                 if (c.Id == PendulumMagicianExecutor.CardId.SupremeKingZARC) return 990;
                 return 100;
             }).FirstOrDefault();
@@ -221,10 +226,12 @@ namespace WindBot.Game.AI.Plugins
 
             // Tier 1: Absolute Ace Protection (Never link away or tribute)
             if (card.Id == PendulumMagicianExecutor.CardId.SupremeKingZARC) return 10000;
-            if (card.Id == PendulumMagicianExecutor.CardId.OddEyesVortexDragon) return 9500;
-            if (card.Id == PendulumMagicianExecutor.CardId.CrystalWingSynchroDragon) return 9000;
-            if (card.Id == PendulumMagicianExecutor.CardId.BaronneDeFleur) return 9000;
+            if (card.Id == PendulumMagicianExecutor.CardId.BaronneDeFleur) return 9500;
+            if (card.Id == PendulumMagicianExecutor.CardId.BorreloadSavageDragon) return 9500;
+            if (card.Id == PendulumMagicianExecutor.CardId.AccesscodeTalker) return 9500;
             if (card.Id == PendulumMagicianExecutor.CardId.Apollousa) return 8500;
+            if (card.Id == PendulumMagicianExecutor.CardId.Number41Bagooska) return 8500;
+            if (card.Id == PendulumMagicianExecutor.CardId.TornadoDragon) return 8000;
             if (card.Id == PendulumMagicianExecutor.CardId.TimestarMagician) return 8000;
             if (card.Id == PendulumMagicianExecutor.CardId.AbyssDweller) return 7500;
             if (card.Id == PendulumMagicianExecutor.CardId.SupremeKingDragonClearWing) return 7000;
@@ -306,6 +313,11 @@ namespace WindBot.Game.AI.Plugins
             if (card == null || card.Controller == 0) return 0;
 
             int score = 0;
+            // Eternal Soul: Destroying this card automatically wipes all opponent monsters!
+            if (card.Id == 48680970) score += 500;
+            // Dark Magical Circle: Banishing removal engine
+            if (card.Id == 47222536) score += 200;
+
             // Anti-Special Summon floodgates (Skill Drain, Anti-Spell Fragrance)
             if (CardIntelligence.IsFloodgate(card.Id) || card.Id == 58921041) // Anti-Spell Fragrance is fatal for Pendulums!
                 score += 100;

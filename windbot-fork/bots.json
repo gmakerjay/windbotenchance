@@ -2809,5 +2809,35 @@
       "OCG",
       "TCG"
     ]
+  },
+  {
+    "name": "TrirealmRift",
+    "deck": "TrirealmRift",
+    "difficulty": 3,
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ],
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_TrirealmRift",
+    "deck": "TrirealmRift",
+    "difficulty": 3,
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ],
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   }
 ]
