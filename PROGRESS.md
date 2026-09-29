@@ -1,4 +1,41 @@
-# Progress Log: Central Core Architecture & Universal Heuristics Overhaul
+﻿# Progress Log: Central Core Architecture & Universal Heuristics Overhaul
+
+## 0.064. Trirealm Rift Gren Maju OTK Engine Optimization, Soul Absorption Banish LP Cushion & Multi-Layer Protection (2026-09-29)
+
+### 1. Architectural Strategy & Problem Formulation
+1. **User Objective**:
+   - Maximize synergy between Trirealm Rift's massive face-down banish milling and `Gren Maju Da Eiza` (400 ATK per banished card).
+   - Integrate cards that thrive on banishment, specifically Life Point regeneration engines.
+   - Design and implement comprehensive countermeasures to protect Gren Maju against destruction, targeting negation, and removal, as well as recursion mechanisms if destroyed.
+2. **Key Engine Enhancements**:
+   - **`Soul Absorption` (68073522) Integration**: Continuous Spell yielding +500 LP for EACH banished card. Because Trirealm Rift banishes 20-35+ cards in early turns (via Desires, Extravagance, Orochi, Valvols, Gospel, and in-archetype summon triggers), LP rapidly escalates to **20,000 - 40,000+ LP**, creating an unbreachable survival cushion.
+   - **`Pot of Desires` (35261759) x2 & `Pot of Extravagance` (49238328) x2**: Balanced dual-pot engine fueling Gren Maju with +4,000 ATK / +2,400 ATK and triggering +5,000 LP / +3,000 LP from Soul Absorption.
+   - **Multi-Layer Gren Maju Protection Engine**:
+     - **`Forbidden Lance` (27243130)**: Quick-Play protection reducing ATK by 800 (negligible for 8000+ ATK Maju) while making Gren Maju **unaffected by all opponent Spells & Traps** (Torrential, Mirror Force, Imperm, Bottomless, Compulsory).
+     - **`Sauravis, the Ancient and Ascended` (4810828)**: Handtrap discarding to negate opponent's effects targeting monsters we control (Imperm, Veiler, S:P Little Knight, ABC-Dragon Buster).
+     - **`Dingirsu, the Orcust of the Evening Star` (93854893)**: Extra Deck Rank 8 detaching material to protect any card from destruction by battle or card effects.
+     - **`Monster Reborn` (83764718)**: Instantly resurrects Gren Maju from the GY at full lethal ATK if destroyed.
+     - **`Virtual World Hime - Nyannyan` (8736823)**: Banished trigger recycles a banished Gren Maju or key spell back into the deck.
+     - **`Small World` (89558743) Bridge Optimization**: 100% path to Gren Maju (Naraka/Tuonela/Radian/Sauravis bridges); when Maju is already secured, searches `Sauravis` to guarantee targeting immunity!
+
+### 2. Implementation & Code Changes
+1. **Decklist Update (`TrirealmRift.ydk`)**:
+   - 44-card Main Deck containing 3x Gren Maju, 2x Soul Absorption, 2x Pot of Desires, 2x Pot of Extravagance, 1x Forbidden Lance, 1x Sauravis, 2x Called by the Grave, 2x Forbidden Droplet, 1x Monster Reborn, 1x Raigeki, 1x Duster, 3x Small World, 2x Orochi, 1x Eater, 1x Kaiju, 1x Nyannyan, and full Trirealm core.
+2. **AI ModernExecutor Router (`TrirealmRiftExecutor.cs`)**:
+   - Registered `CardId.SoulAbsorption`, `CardId.PotOfDesires`, `CardId.ForbiddenLance`, `CardId.Sauravis`.
+   - `OnSoulAbsorption`: Activated early in MP1 to capture all subsequent banish triggers.
+   - `OnForbiddenLance`: Reactive Spell/Trap chain protection and Battle Phase offensive coverage.
+   - `OnSauravis`: Discard targeting negation against hostile activations.
+   - `OnSelectCard`: Safeguarded Soul Absorption, Lance, Sauravis, and Gren Maju from being used as Droplet costs; added targeting logic for Lance and Sauravis discard.
+   - `Small World` Step C: Prioritizes searching `Sauravis` when Gren Maju is already in hand.
+3. **Decoupled Domain Plugin (`TrirealmRiftPlugin.cs`)**:
+   - Elevated material protection score for `SoulAbsorption`, `ForbiddenLance`, `Sauravis` in `TrirealmRiftMaterialEvaluator` to prevent sacrificing or discarding key tech cards.
+
+### 3. Build & Exclusive Deployment
+- Executed `BUILD_AND_DEPLOY.ps1` successfully with 0 errors.
+- Deployed all updated binaries, decks, scripts, and databases to `C:\Users\admin\Documents\EdoGame\`.
+
+---
 
 ## 0.063. Trirealm Rift 44-Card Tournament OTK, Negator Targeting & Complete 4-Deck Benchmark Overhaul (2026-09-29)
 
@@ -64,7 +101,7 @@
 1. **Decklist Optimization (`TrirealmRift.ydk`) - Exactly 40 Cards**:
    - **`Small World` (89558743) x3**: Guaranteed 100% pre-banish search for Gren Maju via bridges (`Naraka`, `Tuonela`, `Nyannyan`).
    - **`Virtual World Hime - Nyannyan` (8736823) x1**: Target 1 banished card (including face-down banished Gren Maju!) upon being banished to shuffle it back into the deck!
-   - **`Necroface` (28297833) x1**: Emergency deck reset button—Normal Summon shuffles ALL banished cards into the deck and boosts ATK.
+   - **`Necroface` (28297833) x1**: Emergency deck reset buttonโ€”Normal Summon shuffles ALL banished cards into the deck and boosts ATK.
    - **`Soul Absorption` (68073522) x1**: Continuous LP generation gaining +500 LP per banished card, propelling bot's LP past 20,000+.
    - **`Harpie's Feather Duster` (18144506) & `Lightning Storm` (14532163)**: Instant backrow & monster wipes; popping `Eternal Soul` destroys all opponent monsters in one hit.
    - **`Trirealm Rift Darkness` (100458038) x2**: 3000 ATK in-archetype boss, battle-immune, Quick Destroy any card on field (20+ banished).
@@ -117,7 +154,7 @@
      - Documented Route A (Gehenna/Sheol), Route B (Valvols/Terraforming), Route C (Gospel Morph), and Route D (Fast Banish Surge).
      - Formulated First Turn Fortress End Board (Yomi Quick Negate + Helheim Full Protection + Gospel + Valvols Hard Lock + Judgment) and Second Turn Board Breaker & OTK math ($28 \times 400 = 11,200$ ATK).
    - **WindBot 9-Phase Pipeline & Decoupled Domain Plugin Specification**:
-     - Full mapping of `TrirealmRiftExecutor.cs` phases (Phase 1–9) and callback overrides (`OnSelectPosition`, `OnSelectCard` Hint handling, `OnSelectOption`).
+     - Full mapping of `TrirealmRiftExecutor.cs` phases (Phase 1โ€“9) and callback overrides (`OnSelectPosition`, `OnSelectCard` Hint handling, `OnSelectOption`).
      - Decoupled Plugin domain sub-helpers: `TrirealmRiftStrategy` (dynamic turn priority & multi-target picking), `TrirealmRiftMaterialEvaluator` (1000-cost Ace protection & discard order), `TrirealmRiftThreatEvaluator`.
    - **Toolbox Integration & Developer Checklist**:
      - Detailed 15 Extra Deck toolbox monsters and timing considerations.
@@ -136,9 +173,9 @@
    - Added `Gizmek Orochi` Quick Effect banish-8 accelerator and `Terraforming` engine into `TrirealmRift.ydk`.
    - Prevented illegal Link climbing while under archetype Xenolock.
 3. **Hybridization & Synergy Analysis (Gren Maju / Necroface / Necrofear)**:
-   - **Gren Maju Da Eiza (Recommended ⭐⭐⭐⭐⭐)**: Continuous effect unaffected by Xenolock, counts face-down banished cards, delivers 8,000 - 12,000 ATK OTK supported by Gospel's extra Normal Summon.
-   - **Necroface (Niche Safety Net ⭐⭐ / Anti-Synergy in Main Engine)**: Face-down banish does not trigger mill-5; Normal Summon shuffles back all banished cards, wiping Trirealm resources. Viable only as emergency late-game anti-deckout reset.
-   - **Dark Necrofear / Curse Necrofear (Incompatible ❌)**: All Trirealm monsters are Psychic (0x100000), not Fiend; empty GY; blocked by archetype Xenolock.
+   - **Gren Maju Da Eiza (Recommended โญโญโญโญโญ)**: Continuous effect unaffected by Xenolock, counts face-down banished cards, delivers 8,000 - 12,000 ATK OTK supported by Gospel's extra Normal Summon.
+   - **Necroface (Niche Safety Net โญโญ / Anti-Synergy in Main Engine)**: Face-down banish does not trigger mill-5; Normal Summon shuffles back all banished cards, wiping Trirealm resources. Viable only as emergency late-game anti-deckout reset.
+   - **Dark Necrofear / Curse Necrofear (Incompatible โ)**: All Trirealm monsters are Psychic (0x100000), not Fiend; empty GY; blocked by archetype Xenolock.
 4. **Documentation & Handoff**:
    - Created `Docs/Trirealm_Rift_Strategy_Hybrid_And_Handoff_Guide.md` providing comprehensive strategy, official rulings, and developer handoff guidelines.
    - Built and deployed all binaries to `C:\Users\admin\Documents\EdoGame\`.
@@ -190,17 +227,17 @@
 
 ### 2. Strategic Solutions & Architectural Enhancements
 1. **Extra Deck Overhaul (`PendulumMagician.ydk`)**:
-   - Replaced dead `Crystal Wing Synchro Dragon` (50954680) with **`Borreload Savage Dragon`** (27548199) — 3900 ATK, equips Electrumite from GY, provides **2x Omni-Negate**!
+   - Replaced dead `Crystal Wing Synchro Dragon` (50954680) with **`Borreload Savage Dragon`** (27548199) โ€” 3900 ATK, equips Electrumite from GY, provides **2x Omni-Negate**!
    - Replaced redundant 2nd Timestar and rarely-summoned Absolute/Vortex with:
-     - **`Tornado Dragon`** (6983839) — Rank 4 Quick Effect Spell/Trap pop (targets and destroys `Eternal Soul` on chain!).
-     - **`Number 41: Bagooska the Terribly Tired Tapir`** (90590303) — Rank 4 Defense Position floodgate shutting down activated monster effects.
-     - **`Accesscode Talker`** (86066372) — 5300 ATK Link-4 board wiper and finisher.
+     - **`Tornado Dragon`** (6983839) โ€” Rank 4 Quick Effect Spell/Trap pop (targets and destroys `Eternal Soul` on chain!).
+     - **`Number 41: Bagooska the Terribly Tired Tapir`** (90590303) โ€” Rank 4 Defense Position floodgate shutting down activated monster effects.
+     - **`Accesscode Talker`** (86066372) โ€” 5300 ATK Link-4 board wiper and finisher.
 2. **Execution Pipeline Re-sequencing (`PendulumMagicianExecutor.cs`)**:
    - **Synchros Before Xyz**: Evaluated and summoned `Baronne de Fleur` and `Borreload Savage Dragon` *before* Xyz summons to prevent eating Harmonizing prematurely.
    - **Harmonizing Target Selection (`PendulumMagicianPlugin.cs`)**: If Baronne is in Extra Deck, Harmonizing prioritizes `Oafdragon Magician` (Level 6) with score 1200 -> Level 4 Tuner + Level 6 non-Tuner = instant **Baronne de Fleur (Omni-Negate)**! If Baronne is already summoned, summons Level 4 Magician -> **Borreload Savage Dragon (2x Omni-Negate)**!
    - **Post-Pendulum Electrumite Loop**: Added `ElectrumitePostPendulumSpSummon` that preserves Harmonizing if a Tuner is present, enabling the Electrumite + Astrograph + Double Iris advantage loop (+3 cards) even when Electrumite could not be made pre-pendulum.
    - **`OnSelectCard` Threat-Based Targeting**:
-     - `Eternal Soul` (48680970) assigned absolute top priority (score 999,999) — destroying it instantly triggers Eternal Soul's self-destruct effect to wipe all opponent monsters!
+     - `Eternal Soul` (48680970) assigned absolute top priority (score 999,999) โ€” destroying it instantly triggers Eternal Soul's self-destruct effect to wipe all opponent monsters!
      - `Dark Magician` penalized with -10,000 score when `Eternal Soul` is active to prevent wasting effects on an immune target.
      - Target-immune cards penalized with -5,000 score.
      - Integrated `CardIntelligence.GetCardThreatScore(c, hint)` for optimal target selection.
@@ -318,7 +355,7 @@
 ## 0.053. OCGCore Lua Garbage Collection Bugfix & Mermail Atlantean ModernExecutor Architecture (2026-09-28)
 
 ### 1. OCGCore Lua Crash Root Cause Analysis & Resolution
-- **Error in Screenshot**: `[สคริปต์การ์ดผิดพลาด]: [string "c70088809.lua"]:72: Attempting to access deleted object.`
+- **Error in Screenshot**: `[เธชเธเธฃเธดเธเธ•เนเธเธฒเธฃเนเธ”เธเธดเธ”เธเธฅเธฒเธ”]: [string "c70088809.lua"]:72: Attempting to access deleted object.`
 - **Root Cause**:
   - `c70088809.lua` (`Fydraulis Harmonia`, Card ID: 70088809) effect 1 cost (`effcost`) created a temporary Lua `Group` (`Duel.SelectMatchingCard(tp, s.revealfilter, tp, LOCATION_EXTRA, 0, 1, 2, nil)`) and stored it into `e:SetLabelObject(g)` / chain data (`cd.revealed_synchros = g`).
   - In OCGCore / ygopro C++ engine, transient `Group` pointers created within cost resolution are automatically freed/reclaimed by the internal Lua garbage collector when the cost function stack returns.
@@ -393,539 +430,7 @@
   - Registered in `bots.json` under names `"Elfnote"`, `"2026_Elfnote"`, and `"ElfnotePowerPatron"`.
   - Created canonical deck list `Elfnote.ydk` in `windbot-fork/Decks/`, `deck/`, and `WindBot/Decks/`.
   - Built and deployed via `BUILD_AND_DEPLOY.ps1` with 0 Errors to `C:\Users\admin\Documents\EdoGame\`.
-  - In accordance with testing policy and user request ("เดี๋ยวผมทดสอบเอง"), Headless Simulator was not executed.
+  - In accordance with testing policy and user request ("เน€เธ”เธตเนเธขเธงเธเธกเธ—เธ”เธชเธญเธเน€เธญเธ"), Headless Simulator was not executed.
 
 ---
 
-## 0.049. Binary Protocol Disassembly & Universal SelectCounter Engine Fix (2026-09-26)
-
-### Breakthrough Discovery: OCGCore MSG_SELECT_COUNTER Binary Protocol Misalignment
-A critical root-cause bug in the foundational network layer of WindBot (`GameBehavior.cs`) was uncovered through binary disassembly of `ocgcore.dll` (at offset `0x10079ba0` - `0x10079e86`):
-
-1. **OCGCore Binary Protocol Structure**:
-   - `0x10079d5b`: `write_buffer(player, 1)` $\rightarrow$ **1 byte** (`byte`)
-   - `0x10079d6e`: `write_buffer(type, 2)` $\rightarrow$ **2 bytes** (`int16`)
-   - `0x10079d85`: `write_buffer(quantity, 2)` $\rightarrow$ **2 bytes** (`int16`)
-   - `0x10079d9e`: `write_buffer(count, 4)` $\rightarrow$ **4 bytes** (`int32`)
-   - Loop `1..count` at `0x10079df0`:
-     - `0x10079e00`: `cardId` (4 bytes, `int32`)
-     - `0x10079e19`: `player` (1 byte, `byte`)
-     - `0x10079e32`: `loc` (1 byte, `byte`)
-     - `0x10079e4b`: `seq` (1 byte, `byte`)
-     - `0x10079e66`: `available_counters` (2 bytes, `int16`)
-
-2. **The Flaw in WindBot's Implementation**:
-   In `GameBehavior.cs`, `OnSelectCounter` was implemented as:
-   ```csharp
-   int type = packet.ReadInt16();     // 2 bytes
-   int quantity = packet.ReadInt32(); // 4 bytes (WRONG: read quantity + lower 2 bytes of count!)
-   int count = packet.ReadByte();     // 1 byte (WRONG: read upper byte of count!)
-   ```
-   - When 2 cards had counters on the field (e.g. Gateway + Dojo, or Citadel + Servant):
-     - `quantity = (count << 16) | real_quantity` $\rightarrow$ `(2 << 16) | 4 = 131076`!
-     - `count` was read from the high zero-byte $\rightarrow$ `count = 0`!
-     - The cards list was empty, returning `payload=[]` (sum = 0 / 131076).
-     - OCGCore compared `cx != ax` at `0x10079f2e`, emitted `MSG_RETRY`, WindBot disconnected, and EDOPro threw GUI modal **`"เกิดข้อผิดพลาด!"`**.
-
-3. **Definitive Fix Applied**:
-   - Corrected `quantity` to `packet.ReadInt16()` (2 bytes).
-   - Corrected `count` to `packet.ReadInt32()` (4 bytes).
-   - Validated live via session log:
-     ```text
-     [OnSelectCounter] type=0x3, quantity=4, count=2
-     [OnSelectCounter] Response: sum=4/4, payload=[1,3]
-     ```
-     Zero retries, zero disconnects, and 100% protocol adherence!
-
----
-
-### Audit & Hardening Scope Across All 7 Dedicated Plugin Decks
-Following the Endymion `OnSelectCounter` investigation, a comprehensive audit was executed across all 7 decks in the codebase that implement dedicated/custom domain modules (`*Plugin`):
-
-1. **`Endymion` (`_2026_EndymionExecutor.cs` & `EndymionPlugin`)**:
-   - **Root Cause Verified**: Duplicate counter tracking (`_cardCounters` dictionary in executor vs `_trackedCounters` in `EndymionCounterEconomy`) caused desynchronization. In addition, `GameBehavior.OnSelectCounter` discarded card ID packets, causing null lookups when selecting counters on newly summoned/moved cards.
-   - **Hardening**:
-     - Removed redundant `_cardCounters` dictionary completely; all counter lookups, additions, and removals now query `Plugin.CounterEconomy` as the single source of truth.
-     - Added `c.Location == CardLocation.MonsterZone` check for monster-effect counter generation (Jackal King, Master Cerberus).
-     - Guarded `GravityController` Special Summon to strictly require Extra Monster Zone sequence (`m.Sequence == 5 || m.Sequence == 6`).
-     - Added strict opponent board requirement for `MightyMasterBoardBreak` (`Enemy.GetMonsterCount() > 0 || Enemy.GetSpellCount() > 0`), stopping Turn 1 counter-draining against empty fields.
-     - Headless simulation verified: 8-turn full match vs `DarkMagician` with 0 Violations and 0 Crashes.
-
-2. **`Six Samurai` (`_2026_SixSamuraiExecutor.cs` & `SixSamuraiPlugin`)**:
-   - **Issue Found**: `OnSelectCounter` directly accessed `Plugin.CounterEconomy.SelectCounters` without null-propagation and lacked length-match safety guards on the input lists.
-   - **Hardening**:
-     - Added null-safe fallback: `Plugin?.CounterEconomy?.SelectCounters(cards, counters, quantity) ?? base.OnSelectCounter(cards, counters, quantity)`.
-     - Added defensive list boundary guard: `if (cards == null || counters == null || cards.Count != counters.Count) return null;`.
-     - Headless simulation verified: full 3-game match (2-1 win rate) with 0 Violations and 0 Crashes.
-
-3. **`D/D/D` (`_2026_DDDExecutor.cs` & `DDDPlugin`)**:
-   - **Issue Found**:
-     - `OnSelectSynchroMaterial` returned `sorted.Take(max)`, completely ignoring the exact `sum` (Level) requirement specified by OCGCore. This caused illegal material selection and engine level-mismatch violations.
-     - `OnSelectFusionMaterial` and `OnSelectXyzMaterial` returned `sorted.Take(max)` instead of `sorted.Take(min)`, unnecessarily consuming excess materials.
-   - **Hardening**:
-     - Delegated `OnSelectSynchroMaterial` to `base.OnSelectSynchroMaterial(cards, sum, min, max)` to leverage the exact subset-sum level solver.
-     - Fixed `OnSelectFusionMaterial` and `OnSelectXyzMaterial` to select `sorted.Take(min)` with graceful fallbacks when `cards.Count < min`.
-     - Headless simulation verified: 100% win rate (5 turns) vs `DarkMagician` with 0 Violations.
-
-4. **`Morganite Stun` (`MorganiteStunExecutor.cs` & `MorganiteStunPlugin`)**:
-   - **Issue Found**: In `OnSelectCard`, returning `new List<ClientCard> { card }` without checking `min <= 1 && 1 <= max` posed violation risks if OCGCore requested multi-card selection.
-   - **Hardening**: Wrapped single-card selections with `if (min <= 1 && 1 <= max)` and null-safe plugin access.
-
-5. **`Drytron Tour` (`DrytronTourExecutor.cs` & `DrytronTourPlugin`)**:
-   - **Issue Found**: Single-card search/mill returns in `OnSelectCard` lacked `min <= 1 && 1 <= max` boundary guards.
-   - **Hardening**: Wrapped all single-card returns with `if (min <= 1 && 1 <= max)` and null-safe plugin access.
-
-6. **`Madolche` (`MadolcheExecutor.cs` & `MadolchePlugin`)**:
-   - **Issue Found**: Single-card search returns in `OnSelectCard` lacked `min <= 1 && 1 <= max` boundary guards.
-   - **Hardening**: Wrapped all single-card returns with `if (min <= 1 && 1 <= max)` and null-safe plugin access.
-
-7. **`Centur-Ion` (`CenturionExecutor.cs` & `CenturionPlugin`)**:
-   - **Audit Result**: Clean. Does not override `OnSelectCard`, `OnSelectCounter`, or material selectors; safely uses base `ModernExecutor` heuristics and OCGCore protocol.
-
-### Verification Results
-- All 7 decks compiled and published cleanly with 0 Errors via `BUILD_AND_DEPLOY.ps1`.
-- Headless simulation verified: `2026_Endymion` (0 Violations, 0 Crashes), `2026_DDD` (0 Violations, 100% Win Rate), `2026_SixSamurai` (0 Violations, 66.7% Win Rate over 3 matches).
-- Deployed exclusively to `C:\Users\admin\Documents\EdoGame\`.
-
----
-
-## 0.048. Endymion SelectCounter Engine Crash Resolution & Universal Counter Safety (2026-09-26)
-
-### Incident & Root Cause Analysis
-- **Symptom**: In EDOPro vs `Endymion` bot on Turn 1, the duel engine halted with popup `"เกิดข้อผิดพลาด!"` (An error occurred!). Duel log recorded:
-  ```
-  [TRACE][Activate] ✓ 'Endymion, the Mighty Master of Magic' (3611830) → MightyMasterBoardBreak from SpellZone
-  [BOARD SCORE] Idle Command Decision | Score: 0 | Action: Activate (Index: 1)
-  [ERROR] Got MSG_RETRY. Last message is SelectCounter
-  Connection closed by remote host.
-  ```
-- **Primary Root Causes**:
-  1. **Premature Turn 1 Board-Break Activation**:
-     `_2026_EndymionExecutor.MightyMasterBoardBreak` contained condition `Duel.Player == 0` which falsely evaluated to `true` on Turn 1 when bot was Player 0. This triggered Mighty Master to remove 6 Spell Counters to destroy opponent cards when the opponent's field was 100% empty, draining vital counter reserves.
-  2. **Invalid Pendulum Scale Sequence Checks**:
-     Scale placement conditions in `_2026_EndymionExecutor` checked `SpellZone[1]` and `SpellZone[5]`. In MR4/2020, Pendulum scales are in `SpellZone[0]` and `SpellZone[4]`, while `SpellZone[5]` is the Field Spell zone.
-  3. **Packet ClientCard Deserialization Incomplete in GameBehavior**:
-     `GameBehavior.OnSelectCounter` read the card id from packet via `packet.ReadInt32();` but discarded it, calling `_duel.GetCard(player, loc, seq)` directly. If the field card was untracked or returned null, `cards[i]` became null and card ID matching failed.
-  4. **Missing Sum & Boundary Enforcement in Engine Protocol**:
-     Neither `GameBehavior.OnSelectCounter` nor `GameAI.OnSelectCounter` verified that `sum(used) == quantity` or guarded against bounds errors. If any executor returned unbalanced distributions, OCGCore rejected the CTOS response packet with `MSG_RETRY` and disconnected.
-
-### Comprehensive Fixes Applied
-- **1. GameBehavior.OnSelectCounter Engine Hardening (`GameBehavior.cs`)**:
-  - Automatically initializes `ClientCard(cardId, loc, seq, player)` or sets `card.SetId(cardId)` so `cards[i]` is never null and `cards[i].Id` is guaranteed authentic from OCGCore.
-  - Implements an infallible mathematical safety allocator: clamps `0 <= used[i] <= counters[i]`, and dynamically distributes any remainder or trims any excess so `sum(used) == quantity` is guaranteed 100% of the time.
-  - Added comprehensive diagnostic trace logging for every `OnSelectCounter` packet.
-- **2. GameAI Fallback Loop Safety (`GameAI.cs`)**:
-  - Replaced unsafe `while (quantity > 0)` loop with a bounded `for` loop, eliminating `IndexOutOfRangeException` risk.
-- **3. Endymion Pendulum & Scale Architecture Fix (`_2026_EndymionExecutor.cs`)**:
-  - Standardized all scale zone checks to `Bot.SpellZone[0]` and `Bot.SpellZone[4]`.
-  - Added strict opponent board check: `MightyMasterBoardBreak` will **NEVER** activate unless opponent controls at least 1 monster or spell/trap to destroy (`Enemy.GetMonsterCount() > 0 || Enemy.GetSpellCount() > 0`).
-  - `MasterCerberusPendulum` now strictly verifies that both scales or the other scale is completely empty before activation.
-  - Delegated `OnSelectCounter` cleanly to `EndymionCounterEconomy.SelectCounters` with Jackal King 2-counter negate protection and full decision tracing.
-- **Build & Deployment**:
-  - Built and verified with 0 errors via `BUILD_AND_DEPLOY.ps1`.
-  - Deployed exclusively to `C:\Users\admin\Documents\EdoGame\`.
-
----
-
-## 0.047. Three Advanced Deck Implementations: MorganiteStun, DrytronTour & Madolche (2026-09-26)
-
-### Overview
-- **MorganiteStun (`MorganiteStunExecutor.cs`) — Anti-Meta Stun & Super Poly Board Breaker**:
-  - Implements `MorganiteStunPlugin`, `MorganiteStunStrategy`, `MorganiteFloodgateManager`, `SuperPolyAdvisor`, `MorganiteMaterialScorer`, `MorganiteActionScorer`, and `MorganiteBoardAssessor`.
-  - Normal Summons `Vanity's Ruler` (one-sided Special Summon lockout) or `Majesty's Fiend` without tribute under `Guilt-Gripping Morganite` with zero LP costs for `Solemn Judgment`, `Solemn Strike`, and `Iron Thunder`.
-  - Double Normal Summon & double draw under `Time-Tearing Morganite`, with `Seventh Tachyon` search engine via Number 104/107.
-  - Spell Speed 4 board clearing via `Super Polymerization` targeting Mudragon, Garura, Starving Venom, Dragostapelia, Earth Golem, or Triphyoverutum.
-  - Trap Handtraps (`Songs of the Dominators`, `Dominus Purge`, `Dominus Impulse`) bypass Morganite's restriction.
-- **DrytronTour (`DrytronTourExecutor.cs`) — Machine Ritual Engine & Rank 1 Xyz**:
-  - Implements `DrytronTourPlugin`, `DrytronStrategy`, `DrytronTributeManager`, `DrytronRitualAdvisor`, `DrytronMaterialScorer`, and `DrytronBoardAssessor`.
-  - Boss `Drytron Meteonis DA Draconids` (5000/5000) provides 2x quick monster effect negations per turn fueled by GY Drytrons.
-  - `Drytron Mu Beta Fafnir` mills missing combo pieces and detaches materials as tribute for Ritual Summons.
-  - Going second board break via `Dark Ruler No More` or `Gordian Slicer` followed by `Lyrilusc - Assembled Nightingale` direct attack into 4-material `AA-ZEUS`.
-- **Madolche (`MadolcheExecutor.cs`) — Non-Targeting Shuffle Control & Vernusylph Engine**:
-  - Implements `MadolchePlugin`, `MadolcheStrategy`, `MadolcheGraveyardManager`, `MadolcheMaterialScorer`, and `MadolcheBoardAssessor`.
-  - `Madolche Petingcessoeur` start $\rightarrow$ `Anjelly` $\rightarrow$ `Hootcake` $\rightarrow$ `Messengelato` search loop for Chateau, Promenade, and Ticket.
-  - Double spin loop: `Queen Tiaramisu` non-targeting spins 2 opponent cards on our turn $\rightarrow$ overlays into `Queen Tiarafraise` which quick-spins 2 more opponent cards on their turn.
-  - `Madolche Promenade` omni-negates while `Madolche Teacher Glassouffle` protects from monster effects and purges GY to enable Petingcessoeur.
-- **Universal Standards & Skill Update**:
-  - Updated `SKILL.md` Section 6.2 & 6.3 with mandatory standard: Every new deck must use Deck + Deck-Specific Helper Modules, Smart Position Control (0 ATK, Handtraps, and DEF > ATK in Defense), and Desperation MonsterSet without withholding handtraps from their primary disruption duties.
-  - Registered all 3 decks in `bots.json` with difficulty 3 (Master / Hard) and full aliases.
-  - Deployed exclusively via `BUILD_AND_DEPLOY.ps1` to `C:\Users\admin\Documents\EdoGame\` with 0 Errors.
-
----
-
-## 0.046. Deck Domain Plugin Architecture Elevation & Smart Position Handtrap Survival Overhaul (2026-09-26)
-
-### Overview
-- **Domain Plugin Architecture Elevation (Matching Six Samurai Benchmark)**:
-  - **Endymion (`_2026_EndymionExecutor.cs`)**: Refactored with decoupled domain classes: `EndymionPlugin`, `EndymionStrategy`, `EndymionCounterEconomy`, `EndymionScaleResolver`, `EndymionMaterialScorer` (-10,000 boss sacrifice penalty), `EndymionActionScorer`, and `EndymionBoardAssessor`.
-  - **Centur-Ion (`CenturionExecutor.cs`)**: Refactored with decoupled domain classes: `CenturionPlugin`, `CenturionStrategy`, `CenturionTimingAdvisor` (opponent-turn Quick Synchro choke-point detection & Cosmic Blazar Dragon gating), `CenturionResourceLoop` (End Phase S/T zone recovery & board-clog prevention), `CenturionMaterialScorer`, `CenturionActionScorer`, and `CenturionBoardAssessor`.
-  - **D/D/D (`_2026_DDDExecutor.cs`)**: Refactored with decoupled domain classes: `DDDPlugin`, `DDDStrategy`, `DDDContractBurnManager` (Standby burn danger assessment & Contract Clearance protocol when LP $\le 2000$), `DDDScaleAndSearchResolver`, `DDDMaterialScorer` (Deus Machinex, High King Caesar, Siegfried boss protection), `DDDActionScorer`, and `DDDBoardAssessor`.
-  - **Six Samurai (`_2026_SixSamuraiExecutor.cs`)**: Unified with `SmartMonsterRepos` and `OnSelectPosition` survival wall safeguards.
-- **Smart Position & Handtrap Survival System**:
-  - **Problem Solved**: Normal Summons are always in Face-up Attack. Low ATK/high DEF handtraps (Ash Blossom 0/1800, Ghost Belle 0/1800, Veiler 0/0) or searchers/walls (Kepler 0/0, Fuma 200/1800) stranded in Attack position invited lethal/OTK battle damage.
-  - **Tier 1 (`OnSelectPosition`)**: Overridden to return `FaceUpDefence` or `FaceDownDefence` for all 0 ATK, Handtrap, and DEF > ATK survival monsters.
-  - **Tier 2 (`SmartMonsterRepos`)**: Registered via `ExecutorType.Repos` to actively reposition 0 ATK and high-DEF monsters stranded in Attack position to Defense.
-- **Policy Established for Future vs Legacy Decks**:
-  - **New Decks**: MUST implement Decoupled Domain Plugin Architecture (Layer 3) and Smart Position/Handtrap defense.
-  - **Legacy Working Decks**: Preserved intact without unnecessary modifications to ensure 100% backward compatibility and stability.
-- **Build & Deployment Pipeline**:
-  - Successfully published and deployed via `BUILD_AND_DEPLOY.ps1` with 0 Errors to `C:\Users\admin\Documents\EdoGame\`.
-
----
-
-## 0.045. Three Modern Bot Implementations: Endymion, Centur-Ion & D/D/D (2026-09-26)
-
-### Overview
-- **1. Endymion (Spell Counter Control) — New Bot & Deck Plugin**:
-  - **Canonical Deck**: `2026_Endymion.ydk` (40 Main, 15 Extra, 15 Side) with Mythical Beast engine, Spellbook engine, Selene Queen of Master Magicians, Electrumite, Beyond the Pendulum, and Odd-Eyes Absolute -> Vortex dragon combo.
-  - **Executor Architecture**: `_2026_EndymionExecutor.cs` implementing full **Spell Counter Economy**:
-    - Five-tier counter reserve level: `Critical` (0-1), `Low` (2-3), `Ready` (4-5), `ComboReady` (6-7), `Surplus` (8+).
-    - `Jackal King` monster negate priority: 2-counter budget with threat evaluation (`IsBoss` > `IsHighThreatChokepoint` > `IsKnownNegator`). Rule: 1 Negate = 1 Problem (avoids double-negating already disabled chains).
-    - `Mighty Master of Magic`: Quick S/T negate with smart recycling priority (used `Servant` > used `Magister` > `Reflection` > highest counter holder to transfer counters). 6-counter board wipe on Going 2nd/breakout.
-    - `Servant of Endymion` & `Magister of Endymion`: 3-counter check ensures extension only when board value or disruption is added.
-    - `OnSelectCounter` engine hook: Prioritizes `Magical Citadel` (global fuel) and `Mythical Institution` / surplus monsters, protecting cards building toward 3 counters.
-- **2. Centur-Ion (Synchro Control) — Timing Decision & Resource Loop Upgrade**:
-  - **Canonical Deck**: `Centurion.ydk` synced and mapped to `Centurion`, `Centur-Ion`, and `2026_CenturIon`.
-  - **Executor Upgrade**: `CenturionExecutor.cs`:
-    - **Timing Decision**: `StandUpCenturIon` opponent-turn Quick Synchro no longer activates blindly; it monitors the opponent's combo and strikes at the **critical moment** (summon of monster with ATK $\ge 1800$, high-threat starter/chokepoint/boss, 2+ monsters on board, or chain activation).
-    - **Crimson Dragon -> Cosmic Blazar Dragon Loop**: Tags out Level 12 Synchros (Legatia/Auxila) into Cosmic Blazar Dragon at the optimal threat window.
-    - **Resource Loop**: End Phase triggers for `Primera` and `Trudea` placing themselves into the S/T Zone from GY/banished zone.
-- **3. D/D/D (Combo Monster) — Integration & Deployment**:
-  - **Canonical Deck**: `2026_DDD.ydk` registered and synced to `deck/2026_DDD.ydk`.
-  - **Executor Architecture**: `_2026_DDDExecutor.cs` registered across `2026_DDD`, `DDD`, and `D/D/D`.
-  - Combines Pendulum, Fusion, Synchro, Xyz, and Link routes ending on Deus Machinex, High King Caesar, Siegfried, and Sky King Zeus Ragnarok.
-- **bots.json Registration**:
-  - Registered all 3 bots with official canonical and alias names (`2026_Endymion`, `Endymion`, `2026_CenturIon`, `Centurion`, `Centur-Ion`, `2026_DDD`, `DDD`, `D/D/D`).
-- **Deck Synchronization**:
-  - Synced `2026_Endymion.ydk`, `Centurion.ydk`, and `2026_DDD.ydk` to `C:\Users\admin\Documents\EdoGame\deck\`.
-- **Build & Exclusive Deployment Pipeline**:
-  - Executed `BUILD_AND_DEPLOY.ps1` with 0 Errors; deployed to `C:\Users\admin\Documents\EdoGame\`.
-
----
-
-## 0.044. Developer Mode (โหมดนักพัฒนา) & Logging Control Integration (2026-09-26)
-
-### Overview
-- **DashBot Developer Mode Toggle ("โหมดนักพัฒนา")**:
-  - Added `ChkDevMode` toggle checkbox to DashBot UI (`MainWindow.xaml`), positioned right beside "Console Output Logs" with `IsChecked="True"` as the default state.
-  - **Developer Mode ON (Default)**: Full verbose engine decision traces (`DecisionTracer`, `Logger.WriteTraceLine`) shown in UI console and written to session log files (`WindBot\logs\duel_*.log` and `logs\headless\*.log`).
-  - **Developer Mode OFF (Clean Mode)**:
-    - Passes `EnableFileLog = false` (`Log=false`) to WindBot and HeadlessClientWrapper, completely suppressing file log writing to keep the disk clean.
-    - Filters high-frequency noisy traces (`[DEBUG]`, `[TRACE]`, `Candidate card`, `Score:`) in the DashBot console window, keeping only turn milestones, results, and critical notifications.
-- **Engine Core & WindBot Plumbing**:
-  - `Logger.cs`: Added `public static bool FileLogEnabled { get; set; } = true;` guarding `StartDuelSession`, `EndDuelSession`, `WriteToLogFile`, and `WriteErrorToLogFile`.
-  - `Program.cs`: Configured CLI parameter `Log=bool` to toggle `Logger.FileLogEnabled` and `DecisionTracer.Enabled`.
-  - `HeadlessClientWrapper.cs`: Added `EnableFileLog` property to control whether `_logWriter` is created and whether `Log=true/false` is passed to the WindBot process.
-- **Deck Taxonomy & Anti-Duplication Standards**:
-  - Cleaned up duplicate `.ydk` files (removed duplicate `_2026_SixSamurai.ydk`, preserving single canonical `2026_SixSamurai.ydk`).
-  - Enforced strict Anti-Duplication Rule in Section 0 (Rule 6) and Section 8 of `SKILL.md` (Modern `2026_`, Anime `Anime_`, Legacy `AI_`, GOAT `GOAT_`, Special).
-- **Log Sanitation**:
-  - Cleared all historical duel logs in `WindBot\logs\`, `logs\`, and `src\YGO_SOURCE_CLEAN\logs\`.
-- **Build & Deploy Pipeline**:
-  - Successfully compiled and deployed via `BUILD_AND_DEPLOY.ps1` with 0 Errors; deployed to `C:\Users\admin\Documents\EdoGame\`.
-
----
-
-## 0.043. Six Samurai Gateway Engine Audit & DashBot Logs Integration (2026-09-26)
-
-### Overview
-- **Six Samurai Engine Optimization & Bugfixes**:
-  - **Gateway of the Six Multi-Effect Discrimination**: Added `ActivateDescription` routing in `_2026_SixSamuraiExecutor.cs` to distinguish Effect 1 (Search, cost 4 Bushido counters), Effect 0 (+500 ATK, cost 2 counters), and Effect 2 (Revive Shien, cost 6 counters). Blocks Effect 0 during Main Phase 1 setup to guarantee counters reach $\ge 4$ for loop searching.
-  - **SelectCounters Safety Fallback**: Enhanced `SixSamCounterEconomy.SelectCounters` with strict Gateway card checks and residual fallback drain, ensuring `sum(used) == quantity` and eliminating `MSG_RETRY` engine disconnects.
-  - **HeuristicGuard Self-Negate False Positive Fix**: Removed `hint == HINTMSG_FACEUP` from `ValidateSelection` Rule 1 in `HeuristicGuard.cs`. Eliminates false self-negate violations on friendly stat buffs and equip targets.
-- **DashBot Launcher Quality of Life**:
-  - Added **"Open Logs"** button (`BtnOpenLogs`) in `MainWindow.xaml` and `MainWindow.xaml.cs` to open `WindBot\logs\` directly in File Explorer.
-- **Build & Deploy Pipeline**:
-  - Compiled and deployed via `BUILD_AND_DEPLOY.ps1` with 0 Errors; deployed to `C:\Users\admin\Documents\EdoGame\`.
-
----
-
-## 0.042. Six Samurai Decoupled Deck Plugin AI Architecture (v11.0 Audited) (2026-09-26)
-
-### Overview
-- **Decks Created**:
-  - `windbot-fork/Decks/2026_SixSamurai.ydk` & `_2026_SixSamurai.ydk` (2026 Master Duel ROTA Six Samurai Core)
-  - Synced to `C:\Users\admin\Documents\EdoGame\deck/`
-- **New AI Architecture**:
-  - `windbot-fork/Game/AI/Decks/_2026_SixSamuraiExecutor.cs` (Rule-Based ModernExecutor with 5-Layer Decoupled Deck Plugin Model)
-  - Coordinated by `SixSamuraiPlugin` with 7 sub-helpers: `SixSamStrategy`, `SixSamCounterEconomy`, `SixSamKizaruResolver`, `SixSamMaterialScorer`, `SixSamActionScorer`, `SixSamRecoveryPlanner`, `SixSamBoardAssessor`.
-- **Core Engine Upgrade**:
-  - Enhanced `Executor.cs` & `GameAI.cs` with `OnSelectCounter` virtual callback, granting counter-based decks full control over counter spending priorities.
-  - Upgraded `SKILL.md` to **v11.0 (Audited Decoupled Plugin & Contextual Reasoning Architecture)**, eliminating incorrect Hint 573, establishing Contextual Removal Evaluation, Compensated Advantage Gate, and Repo-native API Signature rules.
-- **Bots Registration**:
-  - Added `2026_SixSamurai`, `Six Samurai`, `SixSamurai` to `bots.json`
-- **Build & Deploy Pipeline**:
-  - Compiled via `BUILD_AND_DEPLOY.ps1` (0 Errors). Deployed exclusively to `C:\Users\admin\Documents\EdoGame\`.
-
-### Key Intelligence & Domain-Specific Implementation
-1. **Bushido Counter Economy & Management (`SixSamCounterEconomy`)**:
-   - Manages Bushido Counter removal via `OnSelectCounter` override: drains counters from `Battle Shogun` (vulnerable monster body) first, then `Shien's Dojo`, while preserving `Gateway of the Six` counters.
-   - Loop cutoff guard prevents infinite activation loops and timeouts (hard safety limit at 20 activations per turn or immediate cutoff when lethal OTK is reached).
-2. **Missing Resource Search Routing (`PickSearchTarget`)**:
-   - Dynamic search decisions based on hand & board state:
-     - Missing Gateway $\to$ `Gateway of the Six` (via Battle Shogun)
-     - Missing Starter $\to$ `Kageki` / `Shien's Smoke Signal`
-     - 2+ Six Sam on board $\to$ `Great Shogun Shien` (Spell/Trap lockout floodgate)
-     - Missing Tuner for Synchro $\to$ `Tactical Trainer` (Lv2) / `Anarchist Monk` (Lv3) / `Fuma` (Lv1)
-     - Extender / Loop Continuation $\to$ `Kizan` (free SS, no OPT)
-3. **Material Valuation & Boss Monster Protection (`SixSamMaterialScorer`)**:
-   - Custom scoring in `OnSelectCard` for `HINT_LMATERIAL` and `HINT_SMATERIAL`:
-     - Maximum penalty (10000) for `Legendary Lord Shi En`, `Legendary Shi En`, `Great Shogun Shien`, `Naturia Beast`, `Apollousa`.
-     - Preserves `Fuma` for destruction protection if it is our sole Tuner.
-     - Selects low-ATK or spent bodies (`Kageki` 200 ATK, `Shinai`, `Mizuho`, duplicate `Kizan`) as link/synchro fodder.
-4. **Layered End Board & Going 2nd Board Breaking**:
-   - **Going 1st**: `Legendary Lord Shi En` (Monster effect negate), `Legendary Shi En` (Spell/Trap negate), `Great Shogun Shien` (limits opponent to 1 S/T per turn), `Naturia Beast` (unlimited Spell negate via mill), `Apollousa` (multi-monster negate).
-   - **Going 2nd**: `Legendary Lord Enishi` (bounce monsters up to banished Six Sam), `Mizuho` (tribute fodder to pop enemy cards).
-   - **OTK Cutoff**: Automatically disables combo loop and directs resources to battle phase when lethal damage is secured.
-
----
-
-## 0.041. Dinomorphia Undying Trap Stun & Kashtira Macro Stun Integration (2026-09-25)
-
-### Overview
-- **Decks Created**:
-  - `windbot-fork/Decks/2026_Dinomorphia.ydk` (Undying Low-LP Trap Stun)
-  - `windbot-fork/Decks/2026_Kashtira.ydk` (Walking Macro Cosmos & Zone Lock Stun)
-- **New AI Executor**:
-  - `windbot-fork/Game/AI/Decks/_2026_DinomorphiaExecutor.cs` (Rule-Based ModernExecutor)
-- **Bots Registration**:
-  - Added `2026_Dinomorphia`, `Dinomorphia Stun`, `2026_Kashtira`, `Kashtira Stun` to `bots.json`
-- **Build & Deploy Pipeline**: Compiled via `BUILD_AND_DEPLOY.ps1` (0 Errors). Deployed exclusively to `C:\Users\admin\Documents\EdoGame\`.
-
-### Key Intelligence & Strategic Implementation
-1. **Dinomorphia Fusion Engine**:
-   - `Dinomorphia Frenzy`: Activates strictly in opponent's Main Phase, sending `Kentregina`/`Stealthbergia` from Extra Deck + `Therizia`/`Diplos` from Main Deck to summon `Dinomorphia Rexterm` (3000 ATK).
-   - `Dinomorphia Domain`: Activates in Main Phase to fuse Kentregina or Rexterm from hand/field/deck.
-2. **Rexterm Lockout & ATK Suppression**:
-   - Continuous floodgate prevents opponent monsters with ATK >= LP from activating effects.
-   - Quick effect pays half LP to reduce all opponent monsters' ATK to current LP, achieving complete monster lockout.
-3. **Graveyard Damage Nullification**:
-   - Banishes Counter Traps from GY during damage calculation to make battle damage 0.
-   - Banishes Normal Traps from GY in response to card effects to negate effect damage.
-4. **Undying Floating Loops**:
-   - Rexterm, Kentregina, Stealthbergia, Therizia, and Diplos float into Level 4 Dinomorphia upon destruction.
-5. **Miscellaneousaurus Integration**:
-   - Quick effect from hand grants all Dinosaurs complete immunity to opponent activated effects throughout the Main Phase.
-
----
-
-## 0.040. ADML Intelligent Combo Bridge & Dynamic Placement Cognitive Upgrade (2026-09-22)
-
-### Overview
-- **Deck**: `ADML.ydk` (Azamina Dark Magician Light and Darkness Ritual)
-- **Philosophy**: แทนที่จะใช้วิธีฮาร์ดโค้ดสั่งห้ามหรือปิดกั้นการอัญเชิญ Link Monster (`Cross-Sheep`), ระบบได้รับการยกระดับความฉลาด (Situational Awareness, Synergy Valuation, Precise Zone Placement, และ Advanced Link Climbing) เพื่อให้ AI เข้าใจจังหวะและมูลค่าของ `Cross-Sheep` อย่างแท้จริง
-- **Build & Deploy Pipeline**: คอมไพล์ผ่าน `BUILD_AND_DEPLOY.ps1` (0 Errors). Deploy มาที่ `C:\Users\admin\Documents\EdoGame\` โดยตรง
-
-### Key Intelligence Enhancements
-1. **Strategic Combo Sequencing (จัดลำดับตาม Value Curve)**:
-   - สลับลำดับใน `RegisterExecutors`: ให้ Starters ค้นหาทรัพยากร (`Illusion of Chaos`, `WANTED`, `Diabellstar`, `Deception`, `Magicians' Souls`, `Magician's Rod`) ทำงานก่อนเพื่อนำ fodder ที่หมดบทบาทลงมาบนสนามและเซ็ตอัปสุสาน
-   - วาง `Cross-Sheep` เป็น **Combo Bridge Enabler** ก่อนหน้าการสั่งใช้เวทฟิวชัน (`The Hallowed Azamina`, `The Gaze of Timaeus`) และเวทพิธีกรรม (`Light and Darkness Ritual`)
-   - ผลลัพธ์: มอนสเตอร์บอส Fusion หรือ Ritual ที่ถูกอัญเชิญตามหลัง จะลงมาทับตำแหน่งลูกศรของ `Cross-Sheep` พอดี ทำให้ทริกเกอร์เอฟเฟกต์ชุบชีวิตหรือจั่วการ์ดทำงาน 100% (แก้ปัญหาบอทเรียก Cross-Sheep มายืนเฉยๆ หลังฟิวชันเสร็จสิ้น)
-2. **Proactive Activation Verification (`CanTriggerCrossSheepThisTurn`)**:
-   - ประเมินก่อนอัญเชิญเสมอว่าในเทิร์นนี้มีเวท Fusion/Ritual ในมือพร้อมเล่นจริงหรือไม่
-   - ตรวจสอบเป้าหมายชุบชีวิตเลเวล 4 หรือต่ำกว่า (`Magicians' Souls`, `Magician's Rod`, `Griffoh`) ทั้งในสุสานหรือตัวที่จะถูกส่งลงสุสานเป็นวัตถุดิบของ `Cross-Sheep`
-3. **Strict Material Value Guard (`CrossSheepSpSummon`)**:
-   - บังคับใช้เฉพาะมอนสเตอร์ตัวเล็กที่หมดบทบาทแล้ว (ATK < 2000 เช่น Souls 0 ATK, Rod 1600 ATK, Griffoh 300 ATK)
-   - ปกป้องบอสตัวหลัก (`Red-Eyes Dark Dragoon`, `Azamina Ilia Silvia`, `Magician of Dark Chaos`, `Black Luster Soldier`, `Black Chaos`) อย่างเด็ดขาด ห้ามนำไปเป็นวัตถุดิบคอร์สชีพ
-   - ตรวจสอบเงื่อนไขชื่อต่างกัน 2 ตัว (`Distinct().Count() >= 2`) เพื่อป้องกันปัญหาเลือกตัวซ้ำแล้วเกมปฏิเสธ
-4. **Engine-Native Zone Guidance (`OnSelectPlace`)**:
-   - ใช้งาน `crossSheep.GetLinkedZones() & 0x1F` จากระดับ Central Core เพื่อคำนวณตำแหน่งช่องว่างบนสนามที่ลูกศรของ `Cross-Sheep` ชี้ลงมาอย่างแม่นยำ (ช่อง 0, 2 หรือ 4)
-   - นำทางมอนสเตอร์ Fusion / Ritual ลงมาในตำแหน่งลูกศรโดยตรง ทำให้ทริกเกอร์ทำงานโดยอัตโนมัติ
-5. **Seamless Link Climb & Field Recycling**:
-   - `Cross-Sheep` ทริกเกอร์ชุบ `Magicians' Souls` ขึ้นมา
-   - `Magicians' Souls` ส่งการ์ดเวทที่ใช้งานเสร็จแล้ว (`Deception`, `Wanted`) ลงสุสานเพื่อจั่วการ์ดเพิ่มสูงสุด 2 ใบ
-   - เชื่อมต่อไปยัง `Selene, Queen of the Master Magicians` (Link-3) โดยใช้ `Cross-Sheep` (Link-2) + `Souls` (Spellcaster)
-   - `Selene` ถอด 3 เคาน์เตอร์เวทมนตร์เพื่อชุบ `Dark Magician` หรือ `Diabellstar the Black Witch` กลับคืนสู่สนาม
-   - `Dark Magician` บนสนามพร้อมให้ `The Gaze of Timaeus` สั่งฟิวชันต่อยอดเป็น `Red-Eyes Dark Dragoon` ทันที
-
----
-
-## 0.039. ADML Rule-Based ModernExecutor Implementation & Architecture Integration (2026-09-22)
-
-### Overview
-- **Deck**: `ADML.ydk` (Azamina Dark Magician Light and Darkness Ritual)
-- **Files Created / Modified**:
-  - `windbot-fork/Game/AI/Decks/ADMLExecutor.cs` (New Rule-Based ModernExecutor)
-  - `windbot-fork/Decks/ADML.ydk` (Synchronized from player deck)
-  - `windbot-fork/bots.json` (Registered "ADML" and "Azamina Dark Magician")
-  - `windbot-fork/ExecutorBase/Game/AI/CardIntelligence.cs` (Added Red-Eyes Dark Dragoon [37818794], Azamina Ilia Silvia [46396218], W:P Fancy Ball [4993187], and Boss Immunities)
-  - `dashbot/MainWindow.xaml.cs` (Added "ADML" to `ModernArchetypes`)
-- **Build & Deploy Pipeline**: Compiled via `BUILD_AND_DEPLOY.ps1` with 0 Errors. Deployed exclusively to `C:\Users\admin\Documents\EdoGame\`.
-
-### Key Architecture & Strategic Implementation
-1. **Multi-Engine Synergy (4 Core Pillars)**:
-   - *Azamina Engine*: `WANTED` ➔ `Diabellstar` ➔ `Deception` ➔ `The Hallowed Azamina` ➔ `Azamina Ilia Silvia` (Early Omni-Negate to insulate against Nibiru & handtraps before 5 summons).
-   - *Dark Magician Engine*: `Illusion of Chaos` (Searcher + Field Quick Monster Negate) ➔ `Magicians' Souls` (Dump DM/Skull Archfiend & Draw 2) ➔ `The Gaze of Timaeus` (Quick Fusion into `Red-Eyes Dark Dragoon`).
-   - *Light & Darkness Ritual Engine*: `Ragged Records of Rites` ➔ `Black Chaos` (Discards to place `Mind Shuffle` face-up) ➔ `Mind Shuffle` (Continuous Trap: Searches Ritual monsters every turn and tags out Level 7+ monsters during opponent turn to summon `Magician of Dark Chaos - Black Chaos` or `Black Luster Soldier - Soldier of Light and Darkness` ignoring summoning conditions!).
-   - *Extra Deck Support*: `Cross-Sheep` (Revives Level 4- on Fusion; Draw 2/Discard 2 on Ritual), `Selene` (Revives Spellcasters), `S:P Little Knight`, `W:P Fancy Ball` (Quick Monster Negate), and `Relinquished Anima` (Link-1 monster steal).
-2. **Rule & Anti-Pattern Compliance**:
-   - `OnSelectCard`: Hint 506 deck searches strictly prioritized. Hint 502/503/504/505/507 removals enforce `c.Controller == 1` only. `Illusion of Chaos` deck placement protects searched cards.
-   - `OnSelectPlace`: Master Rule 5 compliance reserves Extra Monster Zone (0x20) exclusively for Link Monsters.
-   - `OnSelectEffectYn`: Rejects hostile opponent effect offers (`card.Controller == 1 -> false`).
-   - Handtraps (`Ash Blossom`, `Mulcharmy Fuwalos/Purulia`, `Droll & Lock Bird`) preserved in hand.
-
----
-
-## 0.038. Central Core Human-Like Board Evaluation Engine (2026-09-22)
-
-### Overview
-- **Scope**: Central AI Engine (`Executor.cs`, `GameAI.cs`, `ModernExecutor.cs`, `DefaultExecutor.cs`, `BoardScorer.cs`) affecting all 140+ deck executors.
-- **Problem Addressed**:
-  - Previously, AI lacked human-like situational awareness when completing combos or bricking, leaving an empty board and passing turn blindly without evaluating threat clock or remaining Normal Summon/Set resources.
-  - Naive monster setting would sacrifice critical handtraps (e.g. `Effect Veiler`, `Ash Blossom`) uselessly on Turn 1 or during non-lethal situations.
-  - In addition, low-ATK monsters were left in Attack position after combo, hand-activatable traps (`Infinite Impermanence`, `Dominus Impulse`) were vulnerable to backrow wipes when set on empty fields, and Quick-Play disruption spells were not set in Main Phase 2.
-- **Build & Deployment**: Compiled via `BUILD_AND_DEPLOY.ps1` with 0 Errors. Deployed exclusively to `C:\Users\admin\Documents\EdoGame\`.
-
-### 5 Core Human Cognitive Layers Implemented in Central Core
-1. **Opponent Combat Clock & Imminent Lethal Matrix (`BoardScorer.cs`)**:
-   - Implemented `CalculateOpponentCombatClock()`:
-     - Calculates visible enemy attack power $\sum \text{Attack}$ of active attack-position monsters.
-     - Computes turn clock $\text{Clock} = \frac{\text{Bot LP}}{\text{Visible Enemy ATK}}$.
-     - Flags `isImminentLethal` when visible ATK $\ge$ Bot LP or when board is empty under critical pressure.
-   - Upgraded `BoardSufficiencyScore` to use `CardIntelligence.IsHandtrap` dynamically across all universal handtraps.
-2. **Desperation Defense Guard (`ModernExecutor.cs`, `GameAI.cs`)**:
-   - Universal Fallback Idle Command hooked directly before `ToEndPhase` in `GameAI.cs`.
-   - Strictly gated:
-     - **Turn 1 Protection**: Never sets monsters on Turn 1 (`Duel.Turn <= 1`) as opponent cannot attack; handtraps remain in hand for interruption.
-     - **Empty Field Only**: Triggers only when `Bot.GetMonsterCount() == 0` and Normal Set is available.
-   - **4-Tier Sacrifice Hierarchy**:
-     - *Tier 1 (Safe Wall)*: Non-handtrap monster with highest DEF or vanilla fodder without hand effects.
-     - *Tier 2 (Redundant Handtraps)*: If holding 2+ handtraps (e.g. 2x Veiler, or Veiler + Imperm) and under threat, sets 1 as a shield while retaining the other to disrupt.
-     - *Tier 3 (Critical Sole Handtrap Sacrifice)*: Sacrifices sole handtrap **only** if opponent has visible lethal on board (100% defeat without a shield).
-     - *Tier 4 (Non-Lethal Retention)*: If opponent ATK < Bot LP, strictly retains sole handtrap in hand to negate enemy combo starter on their turn.
-3. **Handtrap Trap Preservation Guard (`ModernExecutor.cs`)**:
-   - `ShouldAllowSpellSet`: Strictly prevents setting `Infinite Impermanence` (10045474) or `Dominus Impulse` (40366667) when `Bot.GetFieldCount() == 0`.
-   - Keeps them safely in hand where they activate from hand and are immune to `Harpie's Feather Duster`, `Lightning Storm`, or `S:P Little Knight`.
-   - Prevents face-down setting of Normal Spells / Ritual Spells without discard pressure (hand $\le$ 6).
-4. **Post-Combo Repositioning Optimizer (`ModernExecutor.cs`, `GameAI.cs`)**:
-   - Evaluates `ReposableCards` in MP2 or when ending turn.
-   - Automatically repositions low-ATK monsters (ATK < 1500 or DEF > ATK) to Defense position to absorb attacks safely.
-   - Enforces Rule 12 for `Number 41: Bagooska` (switches to Defense position to activate floodgate effect).
-5. **Smart Backrow MP2 Stewardship (`ModernExecutor.cs`)**:
-   - Before ending turn, automatically sets Traps and Quick-Play Spells (`Called by the Grave`, `Super Poly`, `Forbidden Droplet`, `Book of Moon`, `Cosmic Cyclone`) in MP2 so they are armed for the opponent's turn.
-
----
-
-## 0.037. ArtMage Deep Audit & Multi-Constraint Rule Compliance Patch (2026-09-22)
-
-### Overview
-- **Deck**: `ArtMage.ydk`
-- **Files Audited & Patched**: `ArtMageExecutor.cs`, `bots.json`
-- **Build & Deploy**: Successful with 0 errors via `BUILD_AND_DEPLOY.ps1`
-- **Deployment Location**: `C:\Users\admin\Documents\EdoGame\`
-
-### Issues Identified & Fixed in Deep Audit
-1. **Nerva Board-Wipe Overriding Combo Setup**:
-   - `Nerva the Power Patron of Creation` replaces the chained monster's effect with `"Destroy all cards your opponent controls"`.
-   - When `Shadow Beast Nervedo` triggered in the Extra Deck to summon `Artmage Finmel` from Deck, Nerva previously could chain and replace Nervedo's trigger, cancelling Finmel's summon, losing 2400 ATK, a Draw 1, and the 3rd Monster Type.
-   - Fixed by explicitly guarding against chaining Nerva to `ShadowBeastNervedo`'s Extra Deck trigger, `Medius` on summon, and `Power Patron`'s GY search.
-2. **Extra Deck Fusion Lock Ignored for Link Monsters**:
-   - `Artmage Power Patron` (23829452) continuous effect locks Extra Deck Special Summons to Fusion Monsters only while face-up on field.
-   - Link summon routines (`CrossSheep`, `SPLittleKnight`, `KnightmareCerberus`, `Accesscode`) lacked this check and could attempt illegal Link summons.
-   - Fixed by adding `!Bot.HasInMonstersZone(CardId.ArtmagePowerPatron)` to all Link summon conditions.
-3. **Rule 11 Compliance (`OnSelectPlace`)**:
-   - Added `OnSelectPlace` override ensuring Fusion and Main Deck monsters are never placed in the Extra Monster Zone (EMZ) while Main Monster Zones are available (`available & 0x1F`), reserving EMZ exclusively for Link Monsters.
-4. **Level 7 2-Tribute Bug in `FinmelTributeSummon`**:
-   - Level 7 `Artmage Finmel` requires 2 tributes. Code previously checked only `Bot.GetMonsterCount() == 0` fallback and any monster, causing failed tribute attempts with 1 monster.
-   - Fixed by requiring `Bot.GetMonsterCount() >= 2` and 2+ valid low-ATK non-Ace tributes.
-5. **`PactGYPopEffect` Hard Once-Per-Turn Violation**:
-   - `Artmage Pact` shares a hard once-per-turn limit between field activation and GY effect. The GY effect was missing `_pactUsed` checking and tracking.
-   - Fixed with strict mutual exclusion.
-6. **Acropolis Deck Target Validation**:
-   - `AcropolisEffect` announced card names without verifying presence in Deck, risking illegal announcement when cards were already drawn.
-   - Fixed by selecting only candidates actually present in `Bot.Deck` and not on field.
-7. **S:P Little Knight Target Legality**:
-   - `SPLittleKnightQuickEffect` fell back to targeting Spells/Traps, which is illegal for S:P's Quick Effect (monsters only).
-   - Fixed to target only face-up enemy monsters.
-8. **Diactorus Field Negation Scope**:
-   - Expanded from `MonsterZone | SpellZone` to `lastCard.IsOnField()` to properly negate Field Spells (FieldZone) and Pendulums.
-9. **Duplicate Registration Cleaned**:
-   - Removed redundant duplicate entry for `ArtMage` in `bots.json`.
-
----
-
-## 0.036. ArtMage Rule-Based ModernExecutor Complete Refactor & Strategic Optimization (2026-09-22)
-
-### Overview
-- **Deck**: `ArtMage.ydk` (40 Main Deck, 15 Extra Deck)
-- **Executors Modified**: `ArtMageExecutor.cs`, `bots.json`
-- **Build & Deploy Pipeline**: `BUILD_AND_DEPLOY.ps1` (Release win-x64 self-contained)
-- **Exclusive Deploy Target**: `C:\Users\admin\Documents\EdoGame\`
-
-### Root Causes & Key Flaws Identified in Previous Code
-1. **Broken 1-Card Primary Combo (`Medius the Pure` + `aux.ToHandOrElse`)**:
-   - `Medius the Pure`'s on-summon trigger uses `aux.ToHandOrElse` prompting `Duel.SelectOption(573, str)` (0 = Add to Hand, 1 = Special Summon).
-   - Without overriding `OnSelectOption`, WindBot defaulted to 0 (Add to Hand), putting `Shadow Beast Nervedo` in the hand instead of the Monster Zone.
-   - Because Nervedo was not on the field, its ignition effect (banish 3 top deck cards face-down to Special Summon `Nerva the Power Patron of Creation`) could never activate, breaking the bot's turn 1 setup immediately.
-2. **Missing `OnSelectYesNo` Confirmations**:
-   - Multiple key continuous/trigger effects in OCGCore Lua call `SelectYesNo`:
-     - `Artmage Finmel` (draw 1 card upon Special Summon)
-     - `Artmage Graflare` (Set 1 Artmage Spell from Deck upon Special Summon)
-     - `Artmage Litera` (Add 1 Artmage card from GY upon Special Summon)
-     - `Artmage Vandalism` (Search Medius upon activation)
-     - `Artmage Impasto` (Bounce all opponent Spells/Traps upon monster effect negate)
-     - `Shadow Beast Nervedo` (Pendulum Zone monster effect negate)
-     - `Vandalism` (Protect Acropolis from destruction)
-   - With no `OnSelectYesNo` override, these prompts were unhandled or refused.
-3. **Card Effect Hallucination (`Artmage Power Patron` 23829452)**:
-   - The legacy executor assigned a non-existent discard-from-hand search effect to `Artmage Power Patron`.
-   - Real Card Effects:
-     - Field Quick Effect (Main Phase): Fusion Summon 1 Artmage Fusion or Nerva using this card + hand/field.
-     - GY Trigger: When sent from hand or field to GY (e.g. as Fusion material, discarded by Acropolis/Super Poly), search 1 Artmage Spell/Trap with a different name from cards in GY.
-4. **Suboptimal Board-Wipe Timing for `Nerva the Power Patron of Creation` (53589300)**:
-   - Nerva replaces an activated Artmage monster effect with `"Destroy all cards your opponent controls"`.
-   - Chaining Nerva overrides the original effect; previously, it lacked turn-phase intelligence, occasionally destroying opponent's empty field or overriding critical setup searches.
-5. **Missing Bot Registration**:
-   - `ArtMage` and `Artmage` were missing in `bots.json`.
-
----
-
-## 0.035. Scalable 3-Tier Card Intelligence Architecture & Lua Engine DelayedOperation Fix (2026-09-22)
-
-### Overview
-- **Core Architecture Upgraded**: `CardIntelligence.cs`, `CardIntelligence.Generated.cs`, `CardExtension.cs`
-- **New Tooling**: `tools/scan_card_intelligence.py` (Automated Lua & CDB metadata extractor)
-- **Lua Engine Bugfix**: `repositories/delta-bagooska/script/utility.lua`, `script/utility.lua`
-- **Exclusive Deploy Target**: `C:\Users\admin\Documents\EdoGame\`
-
-### Enhancements & Fixes Implemented
-1. **Automated Lua & CDB Intelligence Scanner (`tools/scan_card_intelligence.py`)**:
-   - Replaced manual, error-prone enum maintenance with an automated scanner that parses official scripts in `script/official/*.lua` (13,478+ files) and `cards.cdb` in under 2 seconds.
-   - Extracts exact OCGCore effect constants: Target-Immune (202), Battle-Immune (377), Dangerous Battle (40), Fusion Spells (145).
-2. **Central Database & Query API Integration (`CardIntelligence.cs`)**:
-   - Converted `CardIntelligence` into a partial class.
-   - Integrated generated sets into query methods: `IsTargetImmune`, `IsInvincibleBattle`, `IsDangerousBattleTarget`, `IsFusionSpell`.
-3. **CardExtension Dynamic Bridging (`CardExtension.cs`)**:
-   - Upgraded core extension methods used across all 30+ executors to query `CardIntelligence` $O(1)$ HashSets first.
-
----
-
-## 0.034. AFS (Azamina Fiendsmith Snake-Eye) Decision Engine Overhaul & Game-Stall Fix (2026-09-22)
-
-### Overview
-- **Deck**: `AFS.ydk` & `2026_AFS.ydk` (40 Main Deck, 15 Extra Deck, 15 Side Deck)
-- **Executors Modified**: `AFSExecutor.cs`, `ModernExecutor.cs` (Rule-Based C# .NET 10)
-- **Exclusive Deploy Target**: `C:\Users\admin\Documents\EdoGame\`
-
-### Root Causes & Fixes Implemented
-1. **`Deception of the Sinful Spoils` Hand Activation Lock**: Enabled free hand activation and expanded tribute targets.
-2. **`Forbidden Droplet` Self-Interruption**: Added `Duel.LastChainPlayer == 0` guard to prevent self-interruption.
-3. **`Fiendsmith's Lacrima` SelectOption Bug**: Overrode `OnSelectOption` returning 1 (Special Summon).
-4. **`Fiendsmith's Sequence` GY Material Shuffling**: Preserved Engraver in GY.
-5. **`DDDWaveHighKingCaesar` Priority & Sequence / Princess Guard**: Promoted Caesar to Tier 3.
-
----
-
-## 0.032. Central Core Architecture & Universal Heuristics Overhaul (2026-09-21)
-
-### Overview
-- **Scope**: Central AI Engine (`ExecutorBase`, `GameAI`, `ModernExecutor`, `DefaultExecutor`, `CardIntelligence`, `AntiFloodgateHelper`) affecting all 140+ deck executors.
-- **Objective**: Maximize AI tactical execution and eliminate systemic misplays (EMZ clogging, Bagooska position bugs, duplicate handtraps, harmful opponent prompt acceptance, missed direct attack lethals).
-- **Exclusive Deploy Target**: `C:\Users\admin\Documents\EdoGame\`
-
-### Key Architectural Enhancements
-1. **Master Rule 5 EMZ Preservation & Column Safeguards (`Executor.cs`)**: Restricted EMZ auto-routing strictly to Link and face-up Pendulum monsters.
-2. **Floodgate Card ID Corrections & Bagooska Defense Safeguard (`ModernExecutor.cs`, `CardIntelligence.cs`)**: Enforced `FaceUpDefence` for Bagooska.
-3. **Universal Duplicate Handtrap & Negate Prevention (`GameAI.cs`, `ModernExecutor.cs`, `DefaultExecutor.cs`)**: Skips duplicate once-per-turn handtraps in the same chain.
-4. **Lethal & Archetype Direct Attack Optimization (`DefaultExecutor.cs`)**: Direct attack lethal checks and Hayate direct attack priorities.
-5. **Hostile Opponent Prompt Safeguard (`GameAI.cs`)**: `OnSelectEffectYn` automatically declines unhandled opponent card prompts.

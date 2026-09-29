@@ -1473,7 +1473,7 @@ namespace WindBot.Game.AI
             int enemyMonsterCount = Enemy.GetMonsterCount();
             if (enemyMonsterCount == 0) return null; // Opponent has no monsters, no shield needed
 
-            var setCandidates = main.MonsterSetableCards.Where(c => c != null).ToList();
+            var setCandidates = main.MonsterSetableCards.Where(c => c != null && !IsAceCard(c)).ToList();
             if (setCandidates.Count == 0) return null;
 
             // Tier 1: Non-Handtrap, Non-Tribute monsters (safe shields, high DEF, or useless in hand)

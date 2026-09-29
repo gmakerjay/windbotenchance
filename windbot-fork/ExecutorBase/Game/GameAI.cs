@@ -1012,9 +1012,25 @@ namespace WindBot.Game
             if (announced > 0)
             {
                 NamedCard card = NamedCard.Get(announced);
-                if (card != null && card.Alias > 0 && NamedCard.IsAltartAlias(card.Id, card.Alias))
-                    return card.Alias;
-                return announced;
+                int finalCode = (card != null && card.Alias > 0 && NamedCard.IsAltartAlias(card.Id, card.Alias)) ? card.Alias : announced;
+                // Extra Deck monsters cannot be in Main Deck (e.g. for Crossout Designator)
+                if (card != null && (card.Type & (int)(CardType.Fusion | CardType.Synchro | CardType.Xyz | CardType.Link)) != 0)
+                {
+                    if (Executor != null && Executor.StartingDeck != null && Executor.StartingDeck.Cards != null)
+                    {
+                        foreach (int id in Executor.StartingDeck.Cards)
+                        {
+                            if (Executor.GetRemainingInDeckCount(id) > 0)
+                            {
+                                NamedCard deckCard = NamedCard.Get(id);
+                                if (deckCard != null && deckCard.Alias > 0 && NamedCard.IsAltartAlias(deckCard.Id, deckCard.Alias))
+                                    return deckCard.Alias;
+                                return id;
+                            }
+                        }
+                    }
+                }
+                return finalCode;
             }
 
             // Fallback: If no card announced, choose a remaining card from bot's own deck to satisfy OCGCore filter
@@ -1022,7 +1038,7 @@ namespace WindBot.Game
             {
                 foreach (int id in Executor.StartingDeck.Cards)
                 {
-                    if (Executor.GetRemainingCount(id) > 0)
+                    if (Executor.GetRemainingInDeckCount(id) > 0)
                     {
                         NamedCard card = NamedCard.Get(id);
                         if (card != null && card.Alias > 0 && NamedCard.IsAltartAlias(card.Id, card.Alias))

@@ -314,7 +314,7 @@ namespace WindBot.Game.AI.Decks
                 if (lastChainCard != null)
                 {
                     int targetCode = lastChainCard.GetNonAltartCode();
-                    if (GetRemainingCount(targetCode) > 0)
+                    if (GetRemainingInDeckCount(targetCode) > 0)
                     {
                         AI.SelectAnnounceID(targetCode);
                         return true;

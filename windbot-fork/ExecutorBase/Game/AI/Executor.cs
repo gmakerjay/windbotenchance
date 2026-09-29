@@ -460,7 +460,7 @@ namespace WindBot.Game.AI
                 ClientCard c = cards[i];
                 if (c != null && (c.Id == 65681983 || c.Id == 65681982))
                 {
-                    if (GetRemainingCount(oppCanonical) > 0)
+                    if (GetRemainingInDeckCount(oppCanonical) > 0)
                     {
                         AI.SelectAnnounceID(oppCanonical);
                         try { AI.Log(LogLevel.Info, $"[CL3-GUARD] Crossout Designator countering opponent {oppCard.Name ?? oppId.ToString()}"); } catch {}
@@ -784,6 +784,23 @@ namespace WindBot.Game.AI
                 NamedCard c = NamedCard.Get(id);
                 return c != null && c.Alias > 0 && NamedCard.IsAltartAlias(c.Id, c.Alias) && c.Alias == originId;
             });
+            return Bot.GetRemainingCount(originId, initialCount);
+        }
+
+        public int GetRemainingInDeckCount(int cardId)
+        {
+            if (StartingDeck == null || StartingDeck.Cards == null) return 0;
+            int originId = cardId;
+            NamedCard nCard = NamedCard.Get(cardId);
+            if (nCard != null && nCard.Alias > 0 && NamedCard.IsAltartAlias(nCard.Id, nCard.Alias))
+                originId = nCard.Alias;
+
+            int initialCount = StartingDeck.Cards.Count(id => {
+                if (id == originId) return true;
+                NamedCard c = NamedCard.Get(id);
+                return c != null && c.Alias > 0 && NamedCard.IsAltartAlias(c.Id, c.Alias) && c.Alias == originId;
+            });
+            if (initialCount <= 0) return 0;
             return Bot.GetRemainingCount(originId, initialCount);
         }
 

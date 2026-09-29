@@ -14,7 +14,7 @@ namespace WindBot.Game.AI.Plugins
     // ═══════════════════════════════════════════════════════════════
     //  DECOUPLED DOMAIN PLUGIN ARCHITECTURE: TrirealmRiftPlugin
     //  Decouples Domain Rules, Strategy, and Material Evaluation
-    //  for Trirealm Rift (Yomi / Face-Down Banishment) Archetype
+    //  for Trirealm Rift (Yomi / Face-Down Banishment) & Gren Maju OTK
     // ═══════════════════════════════════════════════════════════════
     public class TrirealmRiftPlugin : DeckPluginBase
     {
@@ -59,14 +59,14 @@ namespace WindBot.Game.AI.Plugins
         {
             if (candidates == null || candidates.Count == 0) return null;
 
-            // In Opponent turn: Yomi (Monster Quick Negate) > Helheim (Protection) > Ploutonion (Spin) > Darkness > Naraka
+            // In Opponent turn: Darkness (3000 Wall / 8 Banish / Quick Pop) > Yomi (Monster Quick Negate) > Helheim (Protection) > Ploutonion (Spin) > Naraka
             if (_exec.Duel.Player != 0)
             {
                 int[] enemyTurnPriorities = {
+                    TrirealmRiftExecutor.CardId.TrirealmRiftDarkness,
                     TrirealmRiftExecutor.CardId.SkyThunderTrirealmRiftYomi,
                     TrirealmRiftExecutor.CardId.BurialSummitTrirealmRiftHelheim,
                     TrirealmRiftExecutor.CardId.MadTempestTrirealmRiftPloutonion,
-                    TrirealmRiftExecutor.CardId.TrirealmRiftDarkness,
                     TrirealmRiftExecutor.CardId.TrirealmRiftOfScarletNaraka
                 };
 
@@ -77,7 +77,7 @@ namespace WindBot.Game.AI.Plugins
                 }
             }
 
-            // In Bot turn: Darkness (3000 Beatdown / Pop) > Helheim (protects board) > Yomi > Ploutonion > Gehenna > Sheol
+            // In Bot turn: Darkness (3000 Beatdown / Pop) > Helheim (protects board) > Yomi > Ploutonion > Sheol > Gehenna
             int[] botTurnPriorities = {
                 TrirealmRiftExecutor.CardId.TrirealmRiftDarkness,
                 TrirealmRiftExecutor.CardId.BurialSummitTrirealmRiftHelheim,
@@ -87,10 +87,13 @@ namespace WindBot.Game.AI.Plugins
                 TrirealmRiftExecutor.CardId.TrirealmRiftOfEmptinessGehenna,
                 TrirealmRiftExecutor.CardId.TrirealmRiftOfScarletNaraka,
                 TrirealmRiftExecutor.CardId.TrirealmRiftOfBlueTuonela,
+                TrirealmRiftExecutor.CardId.ChaosAngel,
+                TrirealmRiftExecutor.CardId.RelinquishedAnima,
                 TrirealmRiftExecutor.CardId.Dingirsu,
                 TrirealmRiftExecutor.CardId.HopeHarbinger,
-                TrirealmRiftExecutor.CardId.TopologicZeroboros,
-                TrirealmRiftExecutor.CardId.AccesscodeTalker,
+                TrirealmRiftExecutor.CardId.PhotonLord,
+                TrirealmRiftExecutor.CardId.Number97Draglubion,
+                TrirealmRiftExecutor.CardId.Number100NumeronDragon,
                 TrirealmRiftExecutor.CardId.UnderworldGoddess,
                 TrirealmRiftExecutor.CardId.SPLittleKnight
             };
@@ -148,13 +151,13 @@ namespace WindBot.Game.AI.Plugins
             if (context != null && context.IsCode(TrirealmRiftExecutor.CardId.TrirealmRiftOfEmptinessGehenna))
             {
                 int[] monsterPriorities = {
-                    TrirealmRiftExecutor.CardId.TrirealmRiftOfSkySheol,
-                    TrirealmRiftExecutor.CardId.BurialSummitTrirealmRiftHelheim,
-                    TrirealmRiftExecutor.CardId.SkyThunderTrirealmRiftYomi,
-                    TrirealmRiftExecutor.CardId.TrirealmRiftOfScarletNaraka,
-                    TrirealmRiftExecutor.CardId.MadTempestTrirealmRiftPloutonion,
-                    TrirealmRiftExecutor.CardId.TrirealmRiftDarkness,
-                    TrirealmRiftExecutor.CardId.TrirealmRiftOfBlueTuonela
+                    TrirealmRiftExecutor.CardId.BurialSummitTrirealmRiftHelheim, // Hand Quick SS: Summons Darkness directly from banished!
+                    TrirealmRiftExecutor.CardId.TrirealmRiftOfSkySheol,          // Lv 2 Free SS & searches 2 S/T
+                    TrirealmRiftExecutor.CardId.TrirealmRiftOfBlueTuonela,       // Lv 3 Free SS & summons Darkness from banished
+                    TrirealmRiftExecutor.CardId.TrirealmRiftOfScarletNaraka,     // Lv 4 SS on enemy SS & summons Darkness on enemy MP
+                    TrirealmRiftExecutor.CardId.SkyThunderTrirealmRiftYomi,      // Lv 5 Hand Banish Search / Quick Monster Negate
+                    TrirealmRiftExecutor.CardId.MadTempestTrirealmRiftPloutonion,// Lv 7 Draw 2 / Quick Spin
+                    TrirealmRiftExecutor.CardId.TrirealmRiftDarkness             // Lv 8 Boss (Keep in banished for Helheim/Gospel/Tuonela to SS!)
                 };
 
                 foreach (int id in monsterPriorities)
@@ -169,17 +172,19 @@ namespace WindBot.Game.AI.Plugins
                 }
             }
 
-            // Context 3: General priorities (Yomi, Valvols, Gospel)
+            // Context 3: General priorities (Gospel, Helheim, Valvols, Starters - Darkness kept in banished!)
             int[] generalPriorities = {
-                TrirealmRiftExecutor.CardId.TrirealmRiftTerritoryValvols,
-                TrirealmRiftExecutor.CardId.TrirealmRiftGospel,
-                TrirealmRiftExecutor.CardId.BurialSummitTrirealmRiftHelheim,
-                TrirealmRiftExecutor.CardId.TrirealmRiftOfSkySheol,
-                TrirealmRiftExecutor.CardId.TrirealmRiftJudgment,
-                TrirealmRiftExecutor.CardId.TrirealmRiftOfScarletNaraka,
+                TrirealmRiftExecutor.CardId.TrirealmRiftGospel,              // Priority 1: Extra Normal Summon + Field SS Darkness from banished!
+                TrirealmRiftExecutor.CardId.BurialSummitTrirealmRiftHelheim, // Priority 2: Hand Quick SS Darkness directly from banished!
+                TrirealmRiftExecutor.CardId.TrirealmRiftTerritoryValvols,   // Priority 3: Field Spell search engine
+                TrirealmRiftExecutor.CardId.TrirealmRiftOfSkySheol,          // Priority 4: Free SS & +2 S/T searcher
+                TrirealmRiftExecutor.CardId.TrirealmRiftOfBlueTuonela,       // Priority 5: Free SS & Field SS Darkness from banished
+                TrirealmRiftExecutor.CardId.TrirealmRiftOfScarletNaraka,     // Priority 6: Enemy turn SS & Darkness caller
+                TrirealmRiftExecutor.CardId.TrirealmRiftJudgment,            // Priority 7: Continuous Trap
+                TrirealmRiftExecutor.CardId.SkyThunderTrirealmRiftYomi,      // Priority 8: Hand Banish Search / Quick Negate
+                TrirealmRiftExecutor.CardId.TrirealmRiftOfEmptinessGehenna,  // Priority 9: Free SS from empty field
                 TrirealmRiftExecutor.CardId.MadTempestTrirealmRiftPloutonion,
-                TrirealmRiftExecutor.CardId.TrirealmRiftOfEmptinessGehenna,
-                TrirealmRiftExecutor.CardId.TrirealmRiftDarkness
+                TrirealmRiftExecutor.CardId.TrirealmRiftDarkness             // Kept banished so summoners can bring it out!
             };
 
             foreach (int id in generalPriorities)
@@ -218,43 +223,54 @@ namespace WindBot.Game.AI.Plugins
         {
             if (card == null) return 0;
 
-            // 0. Absolute Lethal Ace Guard: Gren Maju is our primary lethal weapon, NEVER sacrifice or Link away!
-            if (card.IsCode(TrirealmRiftExecutor.CardId.GrenMajuDaEiza))
+            // 0. Absolute Lethal Ace Guard: Gren Maju, Darkness & Numeron Dragon are primary lethal weapons, NEVER sacrifice!
+            if (card.IsCode(TrirealmRiftExecutor.CardId.GrenMajuDaEiza,
+                            TrirealmRiftExecutor.CardId.TrirealmRiftDarkness,
+                            TrirealmRiftExecutor.CardId.Number100NumeronDragon))
             {
-                return 9999;
+                return 99999;
             }
 
-            // 0.1 Emergency Reset Guard: Necroface is deck reset button
-            if (card.IsCode(TrirealmRiftExecutor.CardId.Necroface))
+            // 1. Extra Deck Bosses & Shields
+            if (card.IsCode(TrirealmRiftExecutor.CardId.Dingirsu,
+                            TrirealmRiftExecutor.CardId.HopeHarbinger,
+                            TrirealmRiftExecutor.CardId.PhotonLord,
+                            TrirealmRiftExecutor.CardId.Number97Draglubion,
+                            TrirealmRiftExecutor.CardId.Sanaphond,
+                            TrirealmRiftExecutor.CardId.ChaosAngel,
+                            TrirealmRiftExecutor.CardId.RelinquishedAnima,
+                            TrirealmRiftExecutor.CardId.UnderworldGoddess,
+                            TrirealmRiftExecutor.CardId.SuperStarslayerTYPHON,
+                            TrirealmRiftExecutor.CardId.DivineArsenalAAZEUS,
+                            TrirealmRiftExecutor.CardId.Linkuriboh))
+            {
+                return 9000;
+            }
+
+            // 2. Core Trirealm Bosses & Extenders
+            if (card.IsCode(TrirealmRiftExecutor.CardId.SkyThunderTrirealmRiftYomi,
+                            TrirealmRiftExecutor.CardId.BurialSummitTrirealmRiftHelheim,
+                            TrirealmRiftExecutor.CardId.MadTempestTrirealmRiftPloutonion,
+                            TrirealmRiftExecutor.CardId.GizmekOrochi,
+                            TrirealmRiftExecutor.CardId.GamecielKaiju))
             {
                 return 5000;
             }
 
-            // 1. Core Boss Protection
-            if (card.IsCode(TrirealmRiftExecutor.CardId.SkyThunderTrirealmRiftYomi,
-                            TrirealmRiftExecutor.CardId.BurialSummitTrirealmRiftHelheim,
-                            TrirealmRiftExecutor.CardId.TrirealmRiftDarkness,
-                            TrirealmRiftExecutor.CardId.MadTempestTrirealmRiftPloutonion,
-                            TrirealmRiftExecutor.CardId.GizmekOrochi,
-                            TrirealmRiftExecutor.CardId.Dingirsu,
-                            TrirealmRiftExecutor.CardId.HopeHarbinger,
-                            TrirealmRiftExecutor.CardId.UnderworldGoddess))
+            // 3. High Value Backrow Locks
+            if (card.IsCode(TrirealmRiftExecutor.CardId.TrirealmRiftTerritoryValvols,
+                            TrirealmRiftExecutor.CardId.TrirealmRiftJudgment,
+                            TrirealmRiftExecutor.CardId.TrirealmRiftGospel,
+                            TrirealmRiftExecutor.CardId.ForbiddenLance))
             {
                 return 1000;
             }
 
-            // 2. High Value Backrow Locks
-            if (card.IsCode(TrirealmRiftExecutor.CardId.TrirealmRiftTerritoryValvols,
-                            TrirealmRiftExecutor.CardId.TrirealmRiftJudgment,
-                            TrirealmRiftExecutor.CardId.TrirealmRiftGospel))
-            {
-                return 800;
-            }
-
-            // 3. Low-level fodder
+            // 4. Low-level fodder (Safe for Link / Tribute / Morph)
             if (card.IsCode(TrirealmRiftExecutor.CardId.TrirealmRiftOfBlueTuonela,
                             TrirealmRiftExecutor.CardId.TrirealmRiftOfSkySheol,
-                            TrirealmRiftExecutor.CardId.TrirealmRiftOfEmptinessGehenna))
+                            TrirealmRiftExecutor.CardId.TrirealmRiftOfEmptinessGehenna,
+                            TrirealmRiftExecutor.CardId.TrirealmRiftOfScarletNaraka))
             {
                 return 20;
             }
@@ -274,15 +290,18 @@ namespace WindBot.Game.AI.Plugins
 
             int[] discardPriority = {
                 TrirealmRiftExecutor.CardId.GizmekOrochi, // Loves being in GY!
+                TrirealmRiftExecutor.CardId.TrirealmRiftTerritoryValvols,
+                TrirealmRiftExecutor.CardId.TrirealmRiftGospel,
                 TrirealmRiftExecutor.CardId.TrirealmRiftOfBlueTuonela,
-                TrirealmRiftExecutor.CardId.PotOfDesires,
                 TrirealmRiftExecutor.CardId.TrirealmRiftOfSkySheol,
                 TrirealmRiftExecutor.CardId.TrirealmRiftOfEmptinessGehenna,
-                TrirealmRiftExecutor.CardId.Nyannyan
+                TrirealmRiftExecutor.CardId.TrirealmRiftOfScarletNaraka
             };
 
             var selected = new List<ClientCard>();
-            var pool = candidates.ToList();
+            var pool = candidates.Where(c => c != null 
+                && !c.IsCode(TrirealmRiftExecutor.CardId.GrenMajuDaEiza)
+                && !c.IsCode(TrirealmRiftExecutor.CardId.TrirealmRiftDarkness)).ToList();
 
             foreach (int id in discardPriority)
             {
@@ -363,12 +382,43 @@ namespace WindBot.Game.AI.Plugins
         {
             if (candidates == null || candidates.Count == 0) return null;
 
-            // 0. Super Chokepoint & Board Wiper: Eternal Soul (48680970) destroys ALL opponent monsters when popped!
-            var superThreat = candidates.FirstOrDefault(c => c != null && c.IsCode(48680970));
-            if (superThreat != null) return superThreat;
+            // 0. Super Floodgates & Chokepoint Spells/Traps
+            // Eternal Soul (48680970) destroys ALL opponent monsters when leaves field!
+            var eternalSoul = candidates.FirstOrDefault(c => c != null && c.IsCode(48680970));
+            if (eternalSoul != null) return eternalSoul;
 
-            var circleThreat = candidates.FirstOrDefault(c => c != null && c.IsCode(47222536)); // Dark Magical Circle
-            if (circleThreat != null) return circleThreat;
+            // Secret Village & Imperial Order (shut down all Spells)
+            var spellLock = candidates.FirstOrDefault(c => c != null && (c.IsCode(68462976) || c.IsCode(61740673)));
+            if (spellLock != null) return spellLock;
+
+            // Engine Enablers & Removals
+            var circleOrHangar = candidates.FirstOrDefault(c => c != null && (c.IsCode(47222536) || c.IsCode(66399653) || c.IsCode(53936268)));
+            if (circleOrHangar != null) return circleOrHangar;
+
+            // 1. Extreme Monster Threats (Negators, Quick Removals, Untargetable Bosses)
+            int[] priorityMonsters = {
+                38517737, // Blue-Eyes Alternative White Dragon (3000 ATK, Quick Monster Pop!)
+                1561110,  // ABC-Dragon Buster (Quick Banish)
+                4280258,  // Apollousa, Bow of the Goddess (Monster Negate)
+                21887175, // Mekk-Knight Crusadia Avramax (Untargetable / Battle Boost)
+                63767246, // Hope Harbinger (Spell Negator)
+                10443957, // Cyber Dragon Infinity (Omninegator)
+                1508649,  // Altergeist Hexstia (Spell/Trap Negator)
+                89538537, // Altergeist Silquitous (Bounce)
+                50954680, // Crystal Wing Synchro Dragon
+                41721210, // Dark Magician the Dragon Knight
+                59822133  // Blue-Eyes Spirit Dragon
+            };
+
+            foreach (int id in priorityMonsters)
+            {
+                var match = candidates.FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(id));
+                if (match != null) return match;
+            }
+
+            // Exclude Dragon Spirit of White (45467446) if other threats exist (it can tribute itself to escape!)
+            var nonEscapeThreat = candidates.FirstOrDefault(c => c != null && c.IsFaceup() && !c.IsCode(45467446) && (c.Attack >= 2500 || CardIntelligence.IsFloodgate(c.Id) || CardIntelligence.IsHighThreatChokepoint(c.Id) || CardIntelligence.IsKnownNegator(c.Id)));
+            if (nonEscapeThreat != null) return nonEscapeThreat;
 
             var threat = candidates.FirstOrDefault(c => c != null && c.IsFaceup() && (c.Attack >= 2500 || CardIntelligence.IsFloodgate(c.Id) || CardIntelligence.IsHighThreatChokepoint(c.Id) || CardIntelligence.IsKnownNegator(c.Id)));
             if (threat != null) return threat;
