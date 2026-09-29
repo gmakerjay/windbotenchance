@@ -1,67 +1,63 @@
 ---
 name: yugioh-executor
 description: |
-  คู่มือพัฒนา, สร้าง Combo, และ Deploy YugiohTH Rule-Based WindBot Executor
-  ครอบคลุมโครงสร้างโปรเจกต์, สถาปัตยกรรม Central Core & Decoupled Deck Plugin,
-  ขั้นตอน Build & Deploy, และหลักการตัดสินใจเชิงกลยุทธ์ (Strategic Decision System)
+  คู่มือพัฒนา สร้างคอมโบ และ Deploy YugiohTH Rule-Based WindBot Executor (C#, ModernExecutor + Decoupled Deck Plugin).
+  ใช้ทุกครั้งที่ผู้ใช้พูดถึง WindBot, Executor, เด็ค Yu-Gi-Oh!/YGO/EDOPro, .ydk, cards.cdb, ModernExecutor, DeckPlugin,
+  bots.json, BUILD_AND_DEPLOY, hint ID, คอมโบ/รูท, Handtrap/Negate logic, "สร้างเด็คใหม่", "แก้ไขเด็ค", "ปรับปรุง Executor",
+  หรือ "Text Duel" แม้ผู้ใช้ไม่ได้พูดชื่อ skill ตรงๆ ครอบคลุม: ขั้นตอนสร้างเด็ค, สถาปัตยกรรม Plugin,
+  Strategic Decision System, Anti-patterns, ตาราง Hint OCGCore
 ---
 
-# YugiohTH Executor Development Skill & Strategic Decision System
+# YugiohTH Executor Skill
 
-## 0. กฎเหล็ก: ห้ามมั่ว ต้องอ้างอิงของจริงจาก Repository ปัจจุบันเสมอ
+## 0. วิธีอ่านกฎในเอกสารนี้
 
-**ก่อนแก้โค้ดหรือออกแบบคอมโบใดๆ ห้ามเดาเด็ดขาด** ต้องตรวจสอบจากแหล่งจริงของ Repository ปัจจุบันทุกครั้ง:
+กฎแบ่งเป็น 2 ระดับ เพื่อให้เข้มเฉพาะจุดที่พังจริง และยืดหยุ่นในจุดที่ขึ้นกับบริบทเด็ค:
 
-| สิ่งที่ต้องตรวจ | แหล่งอ้างอิง | วัตถุประสงค์ & ข้อกำหนด |
-|---|---|---|
-| Card ID, สเตตัส, Effect Text พื้นฐาน | `cards.cdb` | ข้อมูลการ์ดคงที่ (Static Card Data) ห้ามเดา Card ID หรือ Effect Text จากความจำ |
-| Effect Logic & Timing เชิงลึก | `script/cXXXX.lua` | ทำความเข้าใจ Trigger Timing, Cost vs Effect, และ Core Behavior ของการ์ดที่ซับซ้อน |
-| รายชื่อการ์ดในเด็คและสัดส่วนจริง | ไฟล์ `.ydk` ของเด็คนั้นๆ | ตรวจสอบ Resource ที่มีอยู่จริงในมือ/เด็ค/เอ็กซ์ตร้าเด็ค |
-| Method/Callback Signatures จริง | โค้ดจริงใน `windbot-fork/` ปัจจุบัน | **ห้ามสมมติ Signature สากลหรือจำจากเอกสารเก่า** — ต้องเปิดอ่าน method signature ใน repo จริงก่อนเรียกใช้เสมอ |
-| Runtime & Target Framework | ไฟล์ `*.csproj` / `*.sln` ปัจจุบัน | ตรวจสอบ .NET Framework/Version จริงจาก Project File ก่อน build ห้ามทึกทักเอาเอง |
-| Threat Targets & Chokepoints | `CardIntelligence.cs` | ฐานข้อมูลส่วนกลาง $O(1)$ ของ Floodgate, Negator, Handtrap, Immunity |
-| Hint ID ของ OCGCore Constants | `constant.lua` & `ModernExecutor.cs` | ตรวจสอบรหัส Hint ให้ตรงตามเอนจิน OCGCore ห้ามจำสับสน |
+- 🔒 **HARD** — ฝ่าฝืนแล้วพัง/ทำลายสนามตัวเอง/ผิดนโยบายโปรเจกต์ ไม่มีข้อยกเว้น
+- 🎯 **DEFAULT** — ค่าเริ่มต้นที่ดีในกรณีทั่วไป ปรับได้เมื่อมีเหตุผลเชิงเกมที่ระบุได้ (ให้บันทึกเหตุผลเป็นคอมเมนต์ในโค้ด)
 
----
+## 1. Verify-first 🔒
 
-## 1. Development Workflow & Testing Policy
+อย่าเดาจากความจำ ให้เปิดของจริงใน repo ปัจจุบันก่อนแก้โค้ดหรือออกแบบคอมโบ:
 
-เมื่อได้รับคำสั่ง **"สร้างเด็คใหม่"**, **"แก้ไขเด็ค"**, หรือ **"ปรับปรุง Executor"** ให้ปฏิบัติตามมาตรฐานนี้อย่างเคร่งครัด:
+| ตรวจอะไร | ดูจาก |
+|---|---|
+| Card ID / สเตตัส / Effect text | `cards.cdb` |
+| Timing, Cost vs Effect | `script/cXXXX.lua` |
+| รายการการ์ดและสัดส่วนจริง | `.ydk` ของเด็คนั้น |
+| Method/Callback signature | โค้ดจริงใน `windbot-fork/` (ห้ามจำจากเอกสารเก่า) |
+| Runtime / Target Framework | `*.csproj` / `*.sln` |
+| Floodgate, Negator, Handtrap, Immunity | `CardIntelligence.cs` (lookup O(1)) |
+| Hint ID | `constant.lua` + `ModernExecutor.cs` |
+| Banlist | `0TCG.lflist.conf` / `OCG.lflist.conf` (กัน `ERRMSG_DECKERROR`) |
 
-1. **Card & Engine Audit**: อ่าน `.ydk` + `cards.cdb` + สคริปต์ `script/cXXXX.lua` ของการ์ดหลักทั้งหมด
-2. **ออกแบบเชิงกลยุทธ์ (Strategic Design)**:
-   - กำหนด Main Route, Backup Routes (Route B/C/D), First Turn End Board, และ Second Turn Board Breaking / OTK
-   - วางแผน Resource Management, Negate Budget, และ Stop Conditions
-3. **พัฒนาตาม Decoupled Deck Plugin Architecture (MANDATORY)**:
-   - ทุกครั้งที่สร้างหรือแก้ไขเด็ค **ต้องนำสถาปัตยกรรม Decoupled Domain Plugin (`DeckPluginBase` / `IDeckPlugin`) มาติดตั้งใช้งานจริงเสมอ โดยไม่ต้องรอให้ผู้ใช้สั่งซ้ำ**
-   - แยก Domain Helpers (`IDeckStrategy`, `IDeckMaterialEvaluator`, `IDeckThreatEvaluator`, `IDeckResourceEvaluator`) ออกจาก Flow การสั่งการ์ด
-   - ติดตั้งผ่าน `DeckPlugin = new XxxPlugin(this);` ใน Constructor ของ Executor เสมอ
-   - สืบทอดจาก `ModernExecutor` และลงทะเบียนใน `bots.json`
-4. **Build & Deploy ไปยัง Exclusive Target**:
-   - คอมไพล์และ Deploy มาที่ `C:\Users\admin\Documents\EdoGame\` เสมอ ผ่านสคริปต์ `BUILD_AND_DEPLOY.ps1`
-   - บันทึกการเปลี่ยนแปลงลงใน [PROGRESS.md](file:///C:/Users/admin/Documents/EdoGame/PROGRESS.md)
-5. **นโยบายการทดสอบ Headless Simulation (กฎเหล็ก)**:
-   - 🚫 **ห้ามรันการจำลองดวล Headless Simulator โดยอัตโนมัติ** หลังสร้างหรือแก้ไขเด็คเสร็จ
-   - ✅ **จะทำการรัน Headless Text Duel ได้ก็ต่อเมื่อผู้ใช้สั่ง "Text Duel" (หรือ "จำลองดวล") เท่านั้น**
-   - เมื่อผู้ใช้สั่ง "Text Duel" เท่านั้น จึงทำการรันดวลทดสอบกับคู่ซ้อม Legacy 4 เด็ค: `ABC`, `Altergeist`, `BlueEyes`, `DarkMagician`
-     ```powershell
-     dotnet run --project src\YGO_SOURCE_CLEAN\Client_Headless_Fortest\Client_Headless_Fortest.csproj -c Release -- --deck <DECK_NAME> --opponent <ABC|Altergeist|BlueEyes|DarkMagician> --games 10 --timeout 60
-     ```
-   - สรุปผลสถิติ Win Rate %, สถิติ Violations (ต้องเป็น 0), และ Playbook Strategy
+## 2. Workflow: สร้าง/แก้เด็ค/ปรับ Executor
 
-### 1.1 ขั้นตอนมาตรฐานในการสร้างและลงทะเบียนเด็คใหม่ (Step-by-Step Implementation Guide)
+1. **Audit** — อ่าน `.ydk` + `cards.cdb` + lua ของการ์ดหลักทั้งหมด
+2. **Strategic Design** — กำหนด Main Route, Backup (B/C/D), First-turn End Board, Turn 2 Board Break/OTK, Resource/Negate Budget, Stop Conditions
+3. **Implement** — สืบทอด `ModernExecutor` + ติดตั้ง Plugin (หัวข้อ 3) โดยไม่ต้องรอให้ผู้ใช้สั่งซ้ำ 🔒
+4. **Build & Deploy** — ผ่าน `BUILD_AND_DEPLOY.ps1` ไปที่ `C:\Users\admin\Documents\EdoGame\` เท่านั้น 🔒 แล้วบันทึกใน `PROGRESS.md`
+5. **Headless Simulation** 🔒 — ห้ามรันอัตโนมัติ รันเมื่อผู้ใช้สั่ง "Text Duel" / "จำลองดวล" เท่านั้น
+   ```powershell
+   dotnet run --project src\YGO_SOURCE_CLEAN\Client_Headless_Fortest\Client_Headless_Fortest.csproj -c Release -- --deck <DECK> --opponent <ABC|Altergeist|BlueEyes|DarkMagician> --games 10 --timeout 60
+   ```
+   สรุป Win Rate %, Violations (เป้าหมาย 0), Playbook Strategy
 
-#### ขั้นตอนที่ 1: เตรียมไฟล์เด็ค (`.ydk`)
-1. จัดเด็คในเกม EDOPro และบันทึกไฟล์ `.ydk`
-2. วางไฟล์ `.ydk` ไว้ที่ `windbot-fork/Decks/<DeckName>.ydk`
-   - ใช้ชื่อเด็คที่สะอาด กระชับ เช่น `Tenpai.ydk`, `Centurion.ydk`, `Endymion.ydk` (ห้ามมีคำนำหน้าปีหรือเวอร์ชัน เช่น `2026_`)
-   - เด็คตัวละครอนิเมะ: ให้ใช้ `Anime_<Character>.ydk`
+### 2.1 ลงทะเบียนเด็คใหม่
 
-#### ขั้นตอนที่ 2: สร้างไฟล์ Executor C#
-1. สร้างไฟล์ใหม่ที่ `windbot-fork/Game/AI/Decks/<DeckName>Executor.cs`
-2. ให้สืบทอดจาก `ModernExecutor`:
+1. **`.ydk`** → `windbot-fork/Decks/<DeckName>.ydk` ชื่อสะอาด (`Tenpai`, `Centurion`) ไม่ใส่ปี/เวอร์ชันนำหน้า; เด็คอนิเมะใช้ `Anime_<Character>.ydk` 🎯 (ไฟล์เก่าอย่าง `_2026_*` คงไว้ ไม่ต้องรื้อ)
+2. **Executor** → `windbot-fork/Game/AI/Decks/<DeckName>Executor.cs` (template ด้านล่าง)
+3. **`bots.json`** → `{ "name": "X", "deck": "X", "dialog": "default", "flags": ["OCG","TCG"] }` และเช็คว่า `DecksManager.cs` แมปชื่อถูก
+4. **Build** → `cd C:\Users\admin\Documents\EdoGame\src\YGO_SOURCE_CLEAN; powershell -ExecutionPolicy Bypass -File .\BUILD_AND_DEPLOY.ps1`
+
+> path ด้านบนเป็นของเครื่องนี้ ถ้าเปลี่ยนเครื่องให้แก้ที่จุดเดียวคือหัวข้อ 1/2.1/10
+
+### 2.2 Template
+
 ```csharp
 using System.Collections.Generic;
+using System.Linq;
 using WindBot.Game;
 using WindBot.Game.AI;
 using WindBot.Game.AI.Plugin;
@@ -72,578 +68,241 @@ namespace WindBot.Game.AI.Decks
     [Deck("SampleDeck", "SampleDeck")]
     public class SampleDeckExecutor : ModernExecutor
     {
-        public enum CardId
+        public enum CardId { /* ตรวจจาก cards.cdb เสมอ */ }
+
+        public SampleDeckExecutor(GameAI ai, Duel duel) : base(ai, duel)
         {
-            // ระบุ Card ID ที่ใช้ในเด็ค (ตรวจสอบจาก cards.cdb เสมอ)
+            DeckPlugin = new SampleDeckPlugin(this);   // 🔒 ทุกเด็ค
+            // AddExecutor ตาม Tier (หัวข้อ 9): Negates > Breakers > Starters > Searchers > Climbs > S/T Set
+            // Hint Table สำหรับเลือกการ์ดอัตโนมัติ
         }
 
-        public SampleDeckExecutor(GameAI ai, Duel duel)
-            : base(ai, duel)
-        {
-            // 0. ติดตั้ง Decoupled Domain Plugin ประจำเด็คเสมอ (MANDATORY)
-            DeckPlugin = new SampleDeckPlugin(this);
-
-            // 1. ลงทะเบียนการ์ดสำคัญ (Starters, Extenders, Handtraps, Board Breakers)
-            // 2. กำหนดลำดับการเล่น Spells, Monsters, Traps ผ่าน AddExecutor
-            // 3. กำหนด Hint Table สำหรับการเลือกการ์ดอัตโนมัติ
-        }
-
-        public override bool OnSelectHand()
-        {
-            return true; // true = First turn, false = Second turn
-        }
-
-        // เขียนตรรกะคอมโบและการ Activate การ์ดเฉพาะ
+        public override bool OnSelectHand() => true; // true = ไปก่อน
     }
 
-    // ==========================================
-    // Decoupled Domain Plugin Architecture (MANDATORY FOR ALL DECKS)
-    // ==========================================
     internal class SampleDeckPlugin : DeckPluginBase
     {
-        private readonly SampleDeckExecutor _exec;
         public override string DeckName => "SampleDeck";
-
         public override IDeckStrategy Strategy { get; }
         public override IDeckMaterialEvaluator MaterialEvaluator { get; }
         public override IDeckThreatEvaluator ThreatEvaluator { get; }
 
-        public SampleDeckPlugin(SampleDeckExecutor exec)
+        public SampleDeckPlugin(SampleDeckExecutor e)
         {
-            _exec = exec;
-            Strategy = new SampleDeckStrategy(exec);
-            MaterialEvaluator = new SampleDeckMaterialEvaluator(exec);
-            ThreatEvaluator = new SampleDeckThreatEvaluator(exec);
+            Strategy = new SampleDeckStrategy(e);
+            MaterialEvaluator = new SampleDeckMaterialEvaluator(e);
+            ThreatEvaluator = new SampleDeckThreatEvaluator(e);
         }
     }
 
     internal class SampleDeckStrategy : IDeckStrategy
     {
         private readonly SampleDeckExecutor _exec;
-        public SampleDeckStrategy(SampleDeckExecutor exec) => _exec = exec;
+        public SampleDeckStrategy(SampleDeckExecutor e) => _exec = e;
         public void Reset() { }
-
-        public ClientCard PickSpecialSummonTarget(IList<ClientCard> candidates)
-        {
-            // กำหนดเป้าหมายอัญเชิญพิเศษตามลำดับความสำคัญ (Combo Extender / Boss)
-            return candidates.FirstOrDefault();
-        }
-
-        public ClientCard PickSearchTarget(IList<ClientCard> candidates, ClientCard context)
-        {
-            // กำหนดเป้าหมายค้นหาขึ้นมือตาม Priority (Starter -> Extender -> Disruption)
-            return candidates.FirstOrDefault();
-        }
+        public ClientCard PickSpecialSummonTarget(IList<ClientCard> c) => c.FirstOrDefault();          // Extender/Boss ตามแผน
+        public ClientCard PickSearchTarget(IList<ClientCard> c, ClientCard ctx) => c.FirstOrDefault(); // Starter > Extender > Disruption
     }
 
     internal class SampleDeckMaterialEvaluator : IDeckMaterialEvaluator
     {
         private readonly SampleDeckExecutor _exec;
-        public SampleDeckMaterialEvaluator(SampleDeckExecutor exec) => _exec = exec;
-
-        public int GetMaterialCost(ClientCard card)
-        {
-            if (card == null) return 0;
-            // คุ้มครอง Boss / Floodgate / Key Monsters ไม่ให้นำไปสังเวยหรือเป็นวัตถุดิบ
-            return 10;
-        }
-
-        public IList<ClientCard> SortMaterials(IList<ClientCard> candidates, int min = 1)
-        {
-            return candidates.OrderBy(c => GetMaterialCost(c)).ToList();
-        }
-
-        public ClientCard PickDiscardTarget(IList<ClientCard> candidates, int min = 1)
-        {
-            // เลือกทิ้งการ์ดที่มีผลในสุสาน หรือการ์ดซ้ำที่ไม่จำเป็น
-            return candidates.OrderBy(c => GetMaterialCost(c)).FirstOrDefault();
-        }
-
-        public ClientCard PickDestructionSubstitute(IList<ClientCard> candidates, int min = 1)
-        {
-            return candidates.FirstOrDefault();
-        }
+        public SampleDeckMaterialEvaluator(SampleDeckExecutor e) => _exec = e;
+        public int GetMaterialCost(ClientCard c) => c == null ? 0 : 10; // Boss/Floodgate/Key = cost สูง
+        public IList<ClientCard> SortMaterials(IList<ClientCard> c, int min = 1) => c.OrderBy(GetMaterialCost).ToList();
+        public ClientCard PickDiscardTarget(IList<ClientCard> c, int min = 1) => c.OrderBy(GetMaterialCost).FirstOrDefault(); // ทิ้งตัวมีผลใน GY/ตัวซ้ำ
+        public ClientCard PickDestructionSubstitute(IList<ClientCard> c, int min = 1) => c.FirstOrDefault();
     }
 
     internal class SampleDeckThreatEvaluator : IDeckThreatEvaluator
     {
         private readonly SampleDeckExecutor _exec;
-        public SampleDeckThreatEvaluator(SampleDeckExecutor exec) => _exec = exec;
-
-        public int EvaluateThreatScore(ClientCard card)
-        {
-            // เพิ่ม Threat Score สำหรับการ์ดตัวปัญหาเฉพาะทางที่ขัดขวางเด็คนี้
-            return 0;
-        }
-
-        public bool IsEmergencyThreat(ClientCard card)
-        {
-            return false;
-        }
+        public SampleDeckThreatEvaluator(SampleDeckExecutor e) => _exec = e;
+        public int EvaluateThreatScore(ClientCard c) => 0;      // การ์ดที่ตัดเด็คนี้โดยเฉพาะ
+        public bool IsEmergencyThreat(ClientCard c) => false;
     }
 }
 ```
 
-#### ขั้นตอนที่ 3: ลงทะเบียนเด็คในระบบ
-1. เพิ่มข้อมูลบอทใน `windbot-fork/bots.json`:
-```json
-{
-  "name": "SampleDeck",
-  "deck": "SampleDeck",
-  "dialog": "default",
-  "flags": ["OCG", "TCG"]
-}
-```
-2. ตรวจสอบให้แน่ใจว่า `DecksManager.cs` แมปชื่อเด็คเข้ากับ Executor ได้อย่างถูกต้อง
+## 3. Decoupled Domain Plugin Architecture
 
-#### ขั้นตอนที่ 4: คอมไพล์และ Deploy
-รันคำสั่งใน PowerShell:
-```powershell
-cd C:\Users\admin\Documents\EdoGame\src\YGO_SOURCE_CLEAN
-powershell -ExecutionPolicy Bypass -File .\BUILD_AND_DEPLOY.ps1
-```
-
----
-
-## 2. Strategic Decision System (หลักการตัดสินใจเชิงกลยุทธ์)
-
-> **"Do not play cards. Play the game state."**  
-> บอทที่ดีไม่ได้แค่รู้ว่าการ์ดทำอะไรได้ แต่รู้ว่า **เมื่อไหร่ควรทำ และเมื่อไหร่ไม่ควรทำ** โดยเลือก Action ที่ให้ **Expected Value สูงสุด** ไม่ใช่คอมโบที่ยืดยาวที่สุด
-
-### 2.1 Core Decision Loop
-ทุกการตัดสินใจต้องผ่านกระบวนการประเมินสภาวะของเกม:
-```text
-OBSERVE (Board/Hand/GY/LP) → IDENTIFY THREATS → CHECK WIN/DEFENSE → SCORE ACTIONS → EXECUTE → PRESERVE FOLLOW-UP
-```
-
-### 2.2 Threat Priority Model (ลำดับความสำคัญของภัยคุกคาม)
-1. **Priority 1 — Immediate Lethal Threat**: การ์ดหรือสถานการณ์ที่ทำให้เราแพ้ในเทิร์นนี้ (ต้องเคลียร์ก่อนเสมอ)
-2. **Priority 2 — Hard Interaction**: Omni Negate, Monster Negate, S/T Negate, Continuous Floodgate, Turn-skip lock
-3. **Priority 3 — Resource Engine**: การ์ดค้นหา (Search), จั่ว (Draw), ชุบ (Revive), หรือสร้าง Token ของคู่แข่ง
-4. **Priority 4 — Board Pressure**: มอนสเตอร์ ATK สูงแต่ไม่มี Interaction ขัดจังหวะ
-
----
-
-### 2.3 Contextual Removal Evaluation (การประเมินการขจัดเชิงบริบท)
-
-**หลีกเลี่ยงการล็อกลำดับ Removal แบบตายตัว** (เช่น ไม่ทึกทักว่า Banish > Deck > Bounce > Destroy เสมอไป) เพราะใน Yu-Gi-Oh! สถานการณ์เป็นตัวกำหนดคุณค่า:
-- **Destroy**: อาจทริกเกอร์ Float/GY Effect ของคู่แข่ง
-- **Bounce**: อาจส่งผลให้คู่แข่งนำ Starter กลับไปร่ายซ้ำ
-- **Banish**: บางเด็คได้เปรียบจากการถูกรีมูฟ หรือมีลูกเล่นดึงการ์ดที่ถูกรีมูฟกลับมา
-- **Spin to Deck**: มักตัดการวนลูปได้ดี แต่ไม่คุ้มหากเป้าหมายเป็น Extra Deck Monster ที่เรียกกลับมาง่าย
-
-ให้ประเมินการขจัดด้วย **RemovalScore**:
-```text
-RemovalScore = 
-    ThreatValue           (ความอันตรายของเป้าหมาย)
-  + ZoneDenialValue       (การเคลียร์พื้นที่โซนสำคัญ)
-  + RecursionPrevention   (การตัดวงจรชุบ/ใช้งานซ้ำ)
-  + ChainSafety           (ความปลอดภัยจากการโดน Chain ตอบโต้)
-  + BoardImpact           (ผลกระทบต่อบอร์ดโดยรวม)
-  - OpponentRecoveryValue (มูลค่าที่ฝ่ายตรงข้ามอาจกู้คืนกลับมาได้)
-```
-แล้วจึงเลือกวิธีขจัด (Banish / Spin / Bounce / Destroy / Tribute) ที่ให้ผลสุทธิสูงสุดต่อรูปเกม
-
----
-
-### 2.4 Contextual Anti-Advantage Gate (ประตูประเมินการเสียเปรียบทรัพยากร)
-
-**หลักการ**: ห้ามเพิ่มทรัพยากรหรือศักยภาพให้ฝ่ายตรงข้ามโดยไม่มีเหตุผลเชิงกลยุทธ์ที่คุ้มค่าเพียงพอ
-
-ห้ามใช้กฎห้ามแบบเด็ดขาด (Absolute Ban) จนบอทไม่กล้าเล่นการ์ดอย่าง Kaiju, Lava Golem, หรือการ์ดแลกเปลี่ยน ให้ใช้ Decision Gate นี้แทน:
-```text
-OpponentAdvantageGranted
-         ↓
-    Necessary?       (จำเป็นต่อการแก้ทาง Threat สำคัญ หรือปลด Floodgate หรือไม่?)
-         ↓ (Yes)
-   Compensated?      (เราได้แต้มต่อคืนมาคุ้มค่า เช่น Board Breaker / OTK Confirm หรือไม่?)
-         ↓ (Yes)
-      Safe?          (การ์ดที่มอบให้คู่แข่ง จะไม่สามารถถูกนำมาใช้สวนกลับหรือเป็น Material ได้ทันทีใช่หรือไม่?)
-         ↓
-  Allow / Reject
-```
-
----
-
-### 2.5 Risk-Aware Decision Thresholds (เกณฑ์ประเมินความเสี่ยง)
-
-#### 1. Nibiru Risk Threshold Model
-- **Summon #4 เป็น "Risk Threshold" ไม่ใช่ "Stop Rule"**: กฎ Nibiru ต้องการ Normal/Special Summon ครบ 5 ครั้งขึ้นไปถึงจะเปิดใช้ได้
-- บอทต้องประเมินสถานะที่การซัมมอนครั้งที่ 4:
-  - **มี Negate ปกป้องอยู่แล้ว**: รันคอมโบต่อได้ทันที
-  - **Action ที่ 5 สามารถออก Negate ได้พอดี**: รันต่อไปเพื่อตั้งเสาป้องกัน
-  - **มี Lethal Confirmed หรือบอร์ดคู่แข่งเคลียร์หมดแล้ว**: ดันเข้า Battle Phase ทันที
-  - **การ์ดบนมือเหลือเพียง Extender ที่ไม่นำไปสู่ Negate หรือ Recovery**: พิจารณา **หยุดที่ครั้งที่ 4** เพื่อไม่ให้บอร์ดพังทั้งหมด
-
-#### 2. Maxx "C" Minimum Extension Line
-- เมื่อคู่แข่งเปิด Maxx "C" **ห้ามสั่ง Pass Turn ทันทีอย่างไร้เหตุผล** (อาจโดน OTK พ่ายแพ้ฟรี)
-- ให้คำนวณ **Minimum Extension**:
-  ```text
-  Under Maxx "C"
-          ↓
-  Estimate Draws Given vs Resulting Board Value vs Can End Game? vs Minimal Interaction
-          ↓
-  Choose Minimum-Extension Line
-  ```
-  - สเปเชียล 1–2 ครั้งแล้วได้ Negate/Interruption ขัด 1 ครั้ง มักคุ้มค่ากว่าการปล่อยบอร์ดว่างให้คู่แข่งตีปิดเกม
-
-### 2.7 Interruption Density & Balanced Deck Construction (ความหนาแน่นของการ์ดขัดจังหวะ)
-
-บอทที่เก่งไม่ได้มีเพียงคอมโบที่หมุนได้รอบเด็ค แต่ต้องมี **Interaction Density** ที่เพียงพอต่อการขัดขวางคู่แข่งทั้งตอนเริ่มก่อน (Turn 1) และแก้ทางตอนเริ่มหลัง (Going Second):
-
-1. **สัดส่วนการ์ดขัดจังหวะในเด็ค (Interaction / Handtrap Budget)**:
-   - เด็คขนาด 40 ใบ ควรมี Handtraps และ Board Breakers อย่างน้อย **9–15 ใบ** (22%–37% ของเด็ค) เพื่อการันตีโอกาสจั่วได้การ์ดขัดอย่างน้อย 1–2 ใบในมือเริ่มต้น
-   - หลีกเลี่ยง "Over-combofication": การใส่ Starter และ Extender มากเกินไปจนไม่มีที่ว่างให้การ์ดขัด จะทำให้เด็คแพ้ทันทีเมื่อเล่น Going Second หรือเมื่อคอมโบหลักถูกคู่แข่งตัดตอน
-2. **First Turn Interruption vs Second Turn Breaker**:
-   - **First Turn**: มุ่งเน้นการจบกระดานที่มี Interruption หลากหลายมิติ (เช่น Monster Negate, S/T Negate, Non-Target Removal, Floodgate ชั่วคราว)
-   - **Going Second**: อาศัย Handtraps ตัดตอน Chokepoints และ Board Breakers เคลียร์ Threat ก่อนเริ่มเดิน Engine หลัก
-3. **In-Archetype Disruption Synergy**:
-   - ให้ความสำคัญกับการค้นหาการ์ดขัดในธีมขึ้นมือหรือเซ็ตลงสนามเป็นส่วนหนึ่งของ End Board (เช่น Counter Trap, Quick Spell ขัดขวาง) ไม่พึ่งพาเพียงการตั้ง Beatdown มอนสเตอร์ตัวเปล่า
-
----
-
-### 2.8 Strategic Rules of Engagement (กฎทองคำ 10 ประการ)
-
-1. **Can Activate ≠ Should Activate**: อย่าเปิดใช้เอฟเฟกต์เพียงเพราะทำได้ ต้องระบุเป้าหมายและผลลัพธ์ที่ชัดเจนเสมอ
-2. **Anti-Overextend & Win Condition First**: เมื่อเข้าสู่ Lethal Confirmed หรือคู่แข่งไม่มีตัวขัดขวาง ให้หยุดขยายคอมโบและเข้า Battle Phase ตีปิดเกมทันที
-3. **High Material Cost Awareness**: ห้ามนำ Ace Boss, Quick-Effect Interruption, หรือ Floodgate ไปเป็น Material โดยไม่จำเป็น
-4. **Chain Discipline (1 Negate = 1 Problem)**: ห้ามซ้อน Negate หลายชั้นใส่ Action เดียวของคู่แข่งถ้า Threat นั้นถูก Neutralize ไปแล้ว
-5. **MST & Removal Discipline**: ทำลายเฉพาะการ์ดที่ต้องคงอยู่บนสนามเพื่อส่งผล (`Continuous`, `Field`, `Equip`, `Pendulum Scale`) ห้ามโซ่ทำลายใส่ `Normal Spell` / `Normal Trap` เด็ดขาด ("MST Negates Fallacy")
-6. **Targeting Sanity**: เมื่อใช้เอฟเฟกต์ลบกระดาน ต้องเล็งการ์ดของฝ่ายตรงข้าม (`c.Controller == 1`) เป็นลำดับแรกเสมอ
-7. **Preserve Follow-up**: รักษามือหรือทรัพยากรสำหรับ Turn 3 เสมอ บอร์ดที่มีตัวขัดขวางพร้อมตัวเดินเกมเทิร์นหน้า ดีกว่าบอร์ดที่เทหมดหน้าตัก
-8. **Anti-Hoarding vs Anti-Brick**: ใช้การ์ดทันทีเมื่อ Current Value > Expected Future Value อย่ากั๊กจนแพ้ และอย่าทิ้งการ์ดสารพัดประโยชน์ไปกับงานเล็ก
-9. **Bait Before Starters**: ส่งการ์ด Bait หรือ Searcher รองไปล่อ Handtrap ของคู่แข่งก่อนเดิน Core Engine
-10. **Information As Resource**: จดจำการ์ดที่คู่แข่งนำขึ้นมือ และสถานะ Once-Per-Turn ที่คู่แข่งใช้ไปแล้ว เพื่อวางแผนดักทาง
-11. **Continuous Floodgate & Attack-Lock Adaptation**: เมื่ออยู่ภายใต้ `Gravity Bind`, `Level Limit - Area B`, หรือ Floodgate ล็อคการโจมตี บอทต้องสลับโหมดกลยุทธ์จากการ Beatdown ไปเป็นการใช้ Ignition Effect ขจัดมอนสเตอร์ศัตรูทันที และห้ามหยุดเล่น (`RESOURCE-STOP`) เพื่อค้นหาการ์ดแก้ทาง (Outs)
-12. **End-Phase Hand Limit Setting Buffer**: เมื่อการ์ดบนมือ $\ge 6$ ใบ (ใกล้ติด Hand Size Limit Discard) ให้จัดสรรการเซ็ต Quick-Play Spells และ Traps ใน Main Phase 2 เพื่อป้องกันการทิ้งการ์ดลงสุสานฟรี
-
----
-
-### 2.9 DeckProbability Mathematical Engine (Hypergeometric & Multivariate)
-
-ระบบคำนวณสถิติความน่าจะเป็นแบบ $O(1)$ ใน `WindBot.Game.AI.DeckProbability` สำหรับประเมินความเสี่ยงและลำดับการเล่น:
-
-1. **Hypergeometric Distribution (`DeckProbability.Hypergeometric`, `AtLeastOne`, `AtLeast`)**:
-   - คำนวณความน่าจะเป็นของการสุ่มหยิบแบบไม่ใส่คืน ($N$ การ์ดทั้งหมด, $K$ การ์ดเป้าหมาย, $n$ จำนวนที่จั่ว/ขุด, $k$ จำนวนที่ต้องการ)
-   - **การนำไปใช้:**
-     - `AtLeastOne(N, K, n)`: โอกาสเปิดได้ Starter ในมือแรก $\ge 85\%$ หรือโอกาสขุดเจอการ์ดแก้ทาง (Excavation)
-     - `BanishLossRisk(remainingDeck, criticalCopies, banishCount)`: ประเมินความเสี่ยงของ `Pot of Desires` (รีมูฟ 10 ใบ) ว่าจะทำให้ชิ้นส่วนสำคัญหลุดหมดเด็คหรือไม่ หากเสี่ยงสูง ให้สั่ง Search ก่อน Draw
-2. **Multivariate Hypergeometric (`DeckProbability.MultivariateHypergeometric`)**:
-   - คำนวณโอกาสเปิดได้การ์ดหลายกลุ่มพร้อมกัน (เช่น 2-Card Combo: Starter + Extender โดยไม่มี Garnet)
-3. **Mathematical Handtrap Estimation ใน `BaitPlanner`**:
-   - `EstimateHandTrapLikelihood(opponentHandCount, opponentDeckCount, estimatedHandtraps)`:
-     แทนที่การคาดเดาด้วยการคำนวณ Hypergeometric จริงตามจำนวนการ์ดบนมือคู่แข่งและประเมินว่าควรส่งการ์ด Bait ไปล่อหรือไม่
-4. **Dynamic Replacement Risk ใน Domain Plugin**:
-   - เมื่อต้องทิ้งการ์ด (Discard Cost) ใช้ `DeckProbability.AtLeastOne` เช็คโอกาสจั่วการ์ดทดแทน หากการ์ดในมือเหลือ 0 ใบในเด็ค ให้กันไว้ไม่ทิ้ง (Preserve One-of)
-
----
-
-## 3. ข้อห้ามเด็ดขาดในการเขียน Executor (CRITICAL ANTI-PATTERNS)
-
-1. 🚫 **ห้ามใช้ `preferred` list ใน `OnSelectCard` โดยไม่แยกแยะ Hint ID**:
-   - ลิสต์ค้นหาการ์ดขึ้นมือ ต้องเช็ค `hint == 506 (HINTMSG_ATOHAND)` เท่านั้น
-   - เมื่อ Hint เป็นคำสั่งลบสนาม (`502 [DESTROY]`, `503 [REMOVE]`, `504/508 [TOGRAVE]`, `505 [RTOHAND]`, `507 [TODECK]`): **ต้องบังคับเลือกเฉพาะการ์ดของศัตรู (`c.Controller == 1`) เสมอ**
-2. 🚫 **ห้าม Extra Deck Summon คืนค่า `return true;` แบบไร้เงื่อนไข**:
-   - ห้ามนำมอนสเตอร์ที่สวมใส่การ์ดขโมย (เช่น `Comic Hand`, `Snatch Steal`) ไปทำวัตถุดิบ Extra Deck
-   - ห้ามสังเวยมอนสเตอร์ตีตรงพลังสูง (2000+) ใน Main Phase 1 เพื่อทำ Extra Deck ที่พลังน้อยกว่า
-   - ห้ามนำ Boss Monster บนสนาม 2 ตัวไปทำ Xyz จนเสียบอร์ดขัดขวางและพลังโจมตีลด
-   - ⚔️ **กฎเหล็ก S:P Little Knight (29301450)**: ห้ามอัญเชิญ S:P Little Knight ใน Main Phase 1 หากสนามศัตรูไม่มีมอนสเตอร์ หรือเรามีโอกาสโจมตีตรง (เนื่องจาก Effect 1 จะล็อกห้ามมอนสเตอร์ทุกตัวโจมตีตรงในเทิร์นนั้นจนชวดโอกาสทำดาเมจ/OTK) และห้ามนำ Boss Monster หรือตัว ATK ≥ 2000 ไปสังเวยทำ S:P เด็ดขาด ให้ดันเข้า Battle Phase ตีก่อน แล้วค่อยเรียก S:P ใน Main Phase 2 เสมอ
-3. 🚫 **ห้ามเงื่อนไข Tribute Summon ที่เป็นไปไม่ได้**:
-   - ห้ามเขียนเงื่อนไขบูชายัญมอนสเตอร์เลเวล 5+ ว่า `Bot.GetMonsterCount() == 0` เด็ดขาด
-4. 🚫 **ห้ามเสิร์ชแล้วเลือกการ์ดเดิมวางกลับเด็คทันที**:
-   - ใน `OnSelectCard` เมื่อต้องคืนการ์ดเข้าเด็ค (เช่น `Illusion of Chaos`) ต้องเลือกการ์ดที่ไม่จำเป็น ห้ามคืนการ์ดที่เพิ่งเสิร์ชมา
-5. 🚫 **ห้ามนำ Handtrap ไปหมอบบนสนามใน Main Phase 1**:
-   - การ์ดที่ใช้งานจากบนมือได้ (เช่น `Ash Blossom`, `Dominus Impulse`, `Ghost Ogre`) ต้องเก็บไว้บนมือเท่านั้น
-6. 🚫 **ห้ามรีมูฟหรือทิ้ง Core Boss สำคัญของเด็คอย่างไร้เหตุผล**:
-   - ใน `Pot of Prosperity` หรือ Cost ต่างๆ ต้องยกเว้น Core Boss ห้ามนำไปรีมูฟ
-7. 🚫 **ห้ามโซ่ทำลายใส่ Normal Spell / Normal Trap**:
-   - การทำลายไม่ Negate ผล ห้ามโซ่ MST หรือ Removal ทั่วไปใส่ Normal Spell/Trap เด็ดขาด
-8. 🚫 **ห้ามรัน Headless Simulation โดยอัตโนมัติ (กฎเหล็ก)**:
-   - รอคำสั่ง "Text Duel" (หรือ "จำลองดวล") จากผู้ใช้เท่านั้น
-9. 🚫 **ห้าม Deploy นอกโฟลเดอร์ `C:\Users\admin\Documents\EdoGame\` เด็ดขาด**:
-   - ทุกไบนารีต้อง Deploy ผ่าน `BUILD_AND_DEPLOY.ps1` มาที่โฟลเดอร์เป้าหมายหลักเท่านั้น
-10. 🚫 **ห้ามใช้ AI Training / Neural Models / RL**:
-    - โปรเจกต์นี้เป็น Rule-Based C# Executor 100% ห้ามสร้างโมเดล Neural หรือ RL
-11. 🚫 **ห้ามใช้คำนำหน้าปีหรือเวอร์ชันในชื่อเด็ค / บอท**:
-    - ใช้ชื่อสะอาด เช่น `Tenpai`, `Centurion`, `Endymion` ห้ามมี `2026_` นำหน้า
-12. 🚫 **ห้ามใส่ Card ID ผิด หรือการ์ดผิด Banlist**:
-    - ตรวจสอบกับ `cards.cdb` และ `0TCG.lflist.conf` / `OCG.lflist.conf` ป้องกันข้อผิดพลาด `ERRMSG_DECKERROR`
-13. 🚫 **ห้ามนำมอนสเตอร์ Fusion / Synchro / Xyz ลง Extra Monster Zone (EMZ) โดยไม่จำเป็น**:
-    - รักษา EMZ ไว้ให้ Link Monster เพื่อไม่ให้โซนตัน
-14. 🚫 **ห้ามอัญเชิญ Number 41: Bagooska ในสภาพ FaceUpAttack**:
-    - Bagooska ต้องอัญเชิญในสภาพ **FaceUpDefence** เสมอ เพื่อให้ผลฟลัดเกตทำงานต่อเนื่อง
-15. 🚫 **ห้าม Chain Handtrap หรือ Negate ซ้ำซ้อนในเชนเดียวกัน**:
-    - ห้ามโยน Ash ซ้อน Ash หรือ Maxx "C" ซ้อน Maxx "C"
-16. 🚫 **ห้ามตอบรับ (Accept) เอฟเฟกต์ทางเลือกของศัตรูโดยไม่ตั้งใจ**:
-    - ใน `OnSelectEffectYn` หากเป็นการ์ดของฝ่ายตรงข้าม (`card.Controller == 1`) ให้ตอบปฏิเสธ (`false`) เป็นค่าเริ่มต้น
-17. 🚫 **ห้ามละเลย Decoupled Domain Plugin Architecture เด็ดขาด (CRITICAL MANDATORY)**:
-    - ทุกเด็คที่สร้างหรือ Refactor **ต้องเชื่อมต่อและใช้งานสถาปัตยกรรม Decoupled Domain Plugin (`ExecutorBase/Game/AI/Plugin`) เสมอ 100% โดยไม่ต้องรอให้ผู้ใช้สั่งซ้ำ**
-    - ห้ามเขียน Domain Logic (Material evaluation, Discard scoring, Archetype threat scoring, Search target picking) อัดแน่นปะปนใน Executor Router เพียงลำพังโดยไม่มี Plugin รองรับ
-18. 🚫 **ห้าม Activate Ignition Removal Effect เมื่อสนามฝ่ายตรงข้ามไม่มีการ์ดเป้าหมายที่ถูกต้อง (Target Verification Safeguard)**:
-    - ในเอฟเฟกต์ที่เลือกเป้าหมายเพื่อทำลาย/รีมูฟ/เด้ง (เช่น `BLS`, `Chaos Sorcerer`, `Exiled Force`) ฟังก์ชันต้องตรวจสอบว่า `Enemy.GetMonsters().Any(...)` หรือเป้าหมายของศัตรูมีอยู่จริงก่อน `return true` เสมอ
-    - หากไม่มีการ์ดศัตรูให้ทำลาย ต้อง `return false` ทันทีเด็ดขาด ห้ามคืนค่า `true` เพื่อหวังผลอื่น เพราะตัวเกมจะบังคับให้เล็งการ์ดพวกเดียวกันเองหรือเล็งตัวเองจนสนามพัง (เช่น กรณี BLS สั่งแบนตัวเอง)
-19. 🚫 **ห้ามจ่าย Flat LP Cost จน Life Points ลดลงต่ำกว่าจุดปลอดภัยวิกฤต (LP Cost Safety Threshold)**:
-    - การ์ดที่ต้องจ่าย LP เป็นค่าคงที่ เช่น `Delinquent Duo` (1000 LP), `Premature Burial` (800 LP), `Solemn Warning` (2000 LP) ต้องเช็ค `Bot.LifePoints > 2000` (หรือเกณฑ์ปลอดภัย) เสมอ โดยเฉพาะเมื่อมีฟลัดเกตอย่าง `Chain Energy` (500 LP/action) เพื่อป้องกันไม่ให้ LP เหลือน้อยกว่า 500 จนติด Engine Hard-Lock เล่นการ์ดจากมือไม่ได้
-
----
-
-## 4. สถาปัตยกรรม Decoupled Domain Plugin Architecture (Layer 3) — MANDATORY FOR ALL DECKS
-
-> 🛑 **กฎเหล็กเชิงสถาปัตยกรรม (MANDATORY ARCHITECTURE RULE)**:  
-> ทุกเด็คไม่ว่าจะเป็นเด็ค Combo, Control, Stun, Synchro, Xyz, Link หรือ Beatdown **ต้องแยก Domain Logic ออกเป็นเลเยอร์ผ่าน Decoupled Domain Plugin (`ExecutorBase/Game/AI/Plugin`) เสมอ 100% โดยอัตโนมัติ โดยไม่ต้องรอให้ผู้ใช้สั่งซ้ำ**
+**เหตุผล**: แยก Domain logic (การประเมิน material/discard/threat/search) ออกจาก Executor ที่เป็นแค่ router เพื่อให้แก้เด็คหนึ่งแล้วไม่กระทบอีกเด็ค และให้ Core ป้องกันข้อผิดพลาดให้ทุกเด็คเหมือนกัน
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│                    CENTRAL CORE PLATFORM                    │
-│   CardIntelligence │ BoardScorer │ FallbackSelectCard       │
-│   HeuristicGuard   │ ChainAdvisor│ ResourcePlan             │
-└──────────────────────────────┬──────────────────────────────┘
-                               │ inherits & coordinates
-┌──────────────────────────────▼──────────────────────────────┐
-│                    MODERN EXECUTOR (ROUTER)                 │
-│   Maintains execution flow, card activation priorities,     │
-│   delegates domain decisions via `IDeckPlugin` property     │
-└──────────────────────────────┬──────────────────────────────┘
-                               │ delegates domain decisions
-┌──────────────────────────────▼──────────────────────────────┐
-│             DOMAIN PLUGIN (IDeckPlugin / DeckPluginBase)    │
-│   ├─ IDeckStrategy (Combo sequencing & search targets)      │
-│   ├─ IDeckMaterialEvaluator (Material scoring & Ace guard)  │
-│   ├─ IDeckThreatEvaluator (Archetypal threat analysis)      │
-│   ├─ IDeckResourceEvaluator (Counters / specific economy)   │
-│   ├─ IDeckScaleResolver (Pendulum scale setup & pop targets)│
-│   └─ IDeckActionScorer (Action value curve scoring)         │
-└─────────────────────────────────────────────────────────────┘
+CENTRAL CORE (CardIntelligence, BoardScorer, FallbackSelectCard, HeuristicGuard, ChainAdvisor, ResourcePlan)
+        ↓ inherits
+MODERN EXECUTOR (router: ลำดับ activation, delegate ผ่าน DeckPlugin)
+        ↓ delegates
+DOMAIN PLUGIN (IDeckPlugin / DeckPluginBase) → Strategy, MaterialEvaluator, ThreatEvaluator,
+                                               ResourceEvaluator*, ScaleResolver*, ActionScorer*
 ```
 
-### 4.1 ชุดสัญญา Central Domain Plugin Interfaces (`ExecutorBase/Game/AI/Plugin/`)
+🔒 ทุกเด็คต้องมี Plugin สืบทอด `DeckPluginBase` พร้อม **Strategy + MaterialEvaluator + ThreatEvaluator** อย่างน้อย (ถ้าเด็คไม่มีอะไรพิเศษ คืนค่าเริ่มต้นแบบ stub ได้ แต่โครงต้องอยู่) และห้ามอัด domain logic ลง Executor ล้วนๆ
+🎯 `*` ตัวเสริม ติดตั้งเมื่อเด็คมี Counter economy (Resource), Pendulum (Scale), หรือต้องการ scoring เชิงคุณค่า (ActionScorer)
 
-| Interface / Class | Contract Responsibilities & Methods | ModernExecutor Integration Points |
+| Interface | เมธอด | จุดที่ ModernExecutor เรียกอัตโนมัติ |
 |---|---|---|
-| **`IDeckPlugin`** / **`DeckPluginBase`** | คอนแทร็กต์หลักรวม Domain Sub-helpers ทั้งหมด และจัดการ `ResetTurnState()` | ผูกผ่านพร็อพเพอร์ตี้ `DeckPlugin = new XxxPlugin(this);` |
-| **`IDeckStrategy`** | • `PickSpecialSummonTarget(candidates)`<br>• `PickSearchTarget(candidates, context)` | เรียกใช้เพื่อเลือกเป้าค้นหาจากเด็ค และเลือกเป้าหมายชุบ/สเปเชียลที่ถูกต้องตามลำดับแผน |
-| **`IDeckMaterialEvaluator`** | • `GetMaterialCost(card)` (กำหนด Cost ป้องกัน Ace ถูกสังเวย)<br>• `SortMaterials(candidates, min)`<br>• `PickDiscardTarget(candidates, min)`<br>• `PickDestructionSubstitute(candidates, min)` | • `OnSelectFusionMaterial`, `OnSelectSynchroMaterial`, `OnSelectXyzMaterial`, `OnSelectLinkMaterial` เรียก `SortMaterials` อัตโนมัติ<br>• `OnSelectCard` (Hint Discard) เรียก `PickDiscardTarget` อัตโนมัติ |
-| **`IDeckThreatEvaluator`** | • `EvaluateThreatScore(card)`<br>• `IsEmergencyThreat(card)` | `CardIntelligence.GetThreatLevel()` ผสาน `score += ThreatEvaluator.EvaluateThreatScore(c)` อัตโนมัติ |
-| **`IDeckResourceEvaluator`** | • `GetAvailableResourceCount()`<br>• `CanSafelySpendResource(cost)`<br>• `SelectCounters(quantity, cards, counters)` | `OnSelectCounter` ส่งต่อให้ `SelectCounters` อัตโนมัติ |
-| **`IDeckScaleResolver`** | • `PickLowScale()`<br>• `PickHighScale()`<br>• `PickScalePopTarget()` | รองรับเด็ค Pendulum ในการวางสเกลและการระเบิดสเกล |
-| **`IDeckActionScorer`** | • `CalculateActionScore(actionName, boardImpact, netGain, cost)` | ประเมินคะแนนความคุ้มค่าของการกระทำก่อนสั่งร่าย |
+| `IDeckPlugin`/`DeckPluginBase` | `ResetTurnState()` | `OnNewTurn()` |
+| `IDeckStrategy` | `PickSpecialSummonTarget`, `PickSearchTarget` | เลือกเป้า Search (506) / SpSummon (509) |
+| `IDeckMaterialEvaluator` | `GetMaterialCost`, `SortMaterials`, `PickDiscardTarget`, `PickDestructionSubstitute` | `OnSelect{Fusion,Synchro,Xyz,Link}Material` → Fodder ก่อน Ace ท้ายสุด; `OnSelectCard` (Discard) |
+| `IDeckThreatEvaluator` | `EvaluateThreatScore`, `IsEmergencyThreat` | `CardIntelligence.GetThreatLevel()` บวกคะแนนเพิ่ม |
+| `IDeckResourceEvaluator` | `GetAvailableResourceCount`, `CanSafelySpendResource`, `SelectCounters` | `OnSelectCounter` |
+| `IDeckScaleResolver` | `PickLowScale`, `PickHighScale`, `PickScalePopTarget` | เด็ค Pendulum |
+| `IDeckActionScorer` | `CalculateActionScore(name, boardImpact, netGain, cost)` | ประเมินก่อนร่าย |
 
-### 4.2 กลไกการเชื่อมโยงอัตโนมัติใน `ModernExecutor` (Zero-Boilerplate Dispatch)
+ตัวอย่างจริงในโค้ด: `_2026_KwtuneExecutor.cs` (`KewlTunePlugin`), `_2026_GraveExecutor.cs` (`GravePlugin`)
 
-เมื่อกำหนด `DeckPlugin = new MyDeckPlugin(this);` ใน Constructor ระบบกลางของ `ModernExecutor` จะเชื่อมต่อโดยอัตโนมัติ:
-1. **Turn Reset Loop**: `OnNewTurn()` จะเรียก `DeckPlugin?.ResetTurnState()` ให้โดยอัตโนมัติเพื่อล้าง State ของเทิร์นก่อนหน้า
-2. **Threat Assessment**: ในการคำนวณ Threat Score ของการ์ดศัตรู ระบบจะเรียก `DeckPlugin.ThreatEvaluator.EvaluateThreatScore(c)` เข้าไปเสริมคะแนนพื้นฐาน
-3. **Extra Deck Material Safeguard**: เมื่อต้องเลือกวัตถุดิบ Extra Deck ระบบจะเรียก `DeckPlugin.MaterialEvaluator.SortMaterials(...)` นำมอนสเตอร์ที่มี MaterialCost ต่ำ (Fodder) ขึ้นก่อน และกันมอนสเตอร์ที่มี Cost สูง (Ace Boss, Negators) ไว้ท้ายสุด
-4. **Discard Cost Optimization**: เมื่อเจอคำสั่งทิ้งการ์ด (`HINTMSG_DISCARD`) ระบบจะเรียก `DeckPlugin.MaterialEvaluator.PickDiscardTarget(...)` เพื่อเลือกทิ้งการ์ดที่มีผลในสุสานหรือการ์ดที่ไม่จำเป็น
-5. **Counter Deduction**: เมื่อเจอคำสั่งเลือกหักเคาน์เตอร์ ระบบจะส่งต่อให้ `DeckPlugin.ResourceEvaluator.SelectCounters(...)`
+## 4. Strategic Decision System
 
-### 4.3 มาตรฐานการติดตั้งสำหรับทุกเด็ค (Standard Baseline Plugin Pattern)
+> *Do not play cards. Play the game state.* เลือก Action ที่ Expected Value สูงสุด ไม่ใช่คอมโบที่ยาวที่สุด
 
-**ทุกเด็ค (100%)** ต้องมีคลาส Plugin ที่สืบทอดจาก `DeckPluginBase` โดยมี Domain Helpers ประจำเด็คอย่างน้อย 3 ส่วนเสมอ:
-1. **`Strategy` (`IDeckStrategy`)**: กำหนดลำดับ Search และ Special Summon
-2. **`MaterialEvaluator` (`IDeckMaterialEvaluator`)**: ป้องกัน Ace Boss จากการสังเวย/ทำวัตถุดิบ และเลือก Discard Fodder
-3. **`ThreatEvaluator` (`IDeckThreatEvaluator`)**: ประเมิน Threat เฉพาะทางที่เป็นตัวเคาน์เตอร์เด็คเรา
-4. *(เสริม)* **`ResourceEvaluator`** หรือ **`ScaleResolver`**: ติดตั้งเพิ่มเติมเมื่อเด็คนั้นมีระบบ Counter หรือ Pendulum Scale
+**Loop**: OBSERVE (Board/Hand/GY/LP) → IDENTIFY THREATS → CHECK WIN/DEFENSE → SCORE ACTIONS → EXECUTE → PRESERVE FOLLOW-UP
 
-> 💡 **ตัวอย่างการใช้งานจริงใน Codebase**:
-> - ดูการใช้งานจริงได้ใน [_2026_KwtuneExecutor.cs](file:///C:/Users/admin/Documents/EdoGame/src/YGO_SOURCE_CLEAN/windbot-fork/Game/AI/Decks/_2026_KwtuneExecutor.cs) (`KewlTunePlugin`)
-> - ดูการใช้งานจริงได้ใน [_2026_GraveExecutor.cs](file:///C:/Users/admin/Documents/EdoGame/src/YGO_SOURCE_CLEAN/windbot-fork/Game/AI/Decks/_2026_GraveExecutor.cs) (`GravePlugin`)
+**Threat Priority**: (1) Lethal ที่ทำให้เราแพ้เทิร์นนี้ → (2) Hard Interaction (Omni/Monster/S&T Negate, Continuous Floodgate, Turn-skip lock) → (3) Resource Engine (Search/Draw/Revive/Token) → (4) Board Pressure ที่ไม่มี Interaction
 
+### 4.1 Contextual Removal 🎯
+ไม่มีลำดับตายตัวระหว่าง Banish/Spin/Bounce/Destroy เพราะ Destroy อาจเปิด Float/GY effect, Bounce ให้คู่แข่งใช้ Starter ซ้ำ, Banish บางเด็คได้ประโยชน์, Spin ไม่คุ้มกับ Extra Deck ที่เรียกกลับง่าย
+```text
+RemovalScore = ThreatValue + ZoneDenial + RecursionPrevention + ChainSafety + BoardImpact − OpponentRecoveryValue
+```
 
----
+### 4.2 Anti-Advantage Gate 🎯
+ไม่ห้ามเด็ดขาดที่จะให้ทรัพยากรคู่แข่ง (จะเล่น Kaiju/Lava Golem/การ์ดแลกไม่ได้) แต่ต้องผ่าน 3 ด่าน:
+**Necessary?** (จำเป็นต่อการแก้ Threat/ปลด Floodgate) → **Compensated?** (ได้คืนคุ้ม เช่น Board Breaker/OTK Confirm) → **Safe?** (คู่แข่งใช้สวน/เป็น Material ทันทีไม่ได้) → Allow / Reject
 
-## 5. Blueprint & Case Study: Endymion Spell Counter Control
+### 4.3 Risk Thresholds 🎯
+- **Nibiru**: ซัมมอนครั้งที่ 4 คือ *Risk Threshold* ไม่ใช่ Stop Rule ที่ครั้งที่ 4 ประเมิน: มี Negate คุ้มกันแล้ว → เดินต่อ / ครั้งที่ 5 ออก Negate ได้พอดี → เดินต่อ / Lethal Confirmed หรือสนามศัตรูโล่ง → เข้า Battle Phase / มือเหลือแต่ Extender ที่ไม่นำไป Negate หรือ Recovery → หยุดที่ 4
+- **Maxx "C"**: อย่า Pass ทันที คำนวณ Minimum Extension (Draws ที่ให้ vs Board Value vs จบเกมได้ไหม vs Interaction ขั้นต่ำ) ปกติ SS 1–2 ครั้งแล้วได้ Negate 1 ใบ ดีกว่าปล่อยสนามว่าง
 
-พิมพ์เขียวสถาปัตยกรรมสำหรับเด็คที่มีระบบทรัพยากรต่อเนื่อง (Counter Economy):
+### 4.4 Interruption Density 🎯 (แนวทาง ไม่ใช่โควตา)
+- เด็ค 40 ใบ: Handtrap + Board Breaker ราว **9–15 ใบ** (22–37%) ปรับตามแนวเด็ค (Combo หนัก → ใกล้ขอบบน, Control/Stun → ยืดหยุ่นได้) Starter ราว 9–12 ใบ
+- หลีกเลี่ยง Over-combofication (Starter/Extender ล้น ไม่มีที่ให้ Interaction)
+- **ไปก่อน**: End Board ที่มี Interruption หลายมิติ (Monster/S&T Negate, Non-target Removal, Floodgate ชั่วคราว) / **ไปหลัง**: Handtrap ตัด Chokepoint + Board Breaker เคลียร์ก่อนเดิน Engine
+- ให้ Interaction ในธีมเป็นส่วนหนึ่งของ End Board (Counter Trap, Quick Spell) ไม่ใช่มอนสเตอร์เปล่า
 
-### 5.1 Spell Counter Economy System
-เคาน์เตอร์ไม่ใช่แค่ต้นทุน (Cost) แต่คือกระสุนในการคุมเกม:
+### 4.5 กฎทองคำ
+1. 🎯 **Can Activate ≠ Should Activate** ต้องมีเป้าหมายและผลที่ระบุได้
+2. 🎯 **Lethal First** Lethal Confirmed หรือศัตรูไม่มีตัวขัด → หยุดขยาย เข้า Battle Phase
+3. 🎯 **Material Cost Awareness** อย่าใช้ Ace / Quick-Effect Interruption / Floodgate เป็น Material ถ้าไม่จำเป็น
+4. 🎯 **1 Negate = 1 Problem** ไม่ซ้อน Negate ใส่ Action ที่ Neutralize แล้ว (เช็ค `IsChainAlreadyNeutralized()`)
+5. 🎯 **Removal Discipline** ทำลายเฉพาะการ์ดที่ต้องคงอยู่จึงส่งผล (Continuous/Field/Equip/Pendulum Scale) — Normal Spell/Trap ที่ถูกทำลายระหว่างเชนยังรีโซลฟ์ผลอยู่ ("MST Negates Fallacy") ยกเว้นเมื่อมีเหตุผลเฉพาะ เช่น เพื่อ trigger ผลอื่น
+6. 🔒 **Targeting Sanity** เอฟเฟกต์ลบสนามเล็งการ์ดศัตรู (`c.Controller == 1`) ก่อนเสมอ
+7. 🎯 **Preserve Follow-up** เก็บมือ/ทรัพยากรสำหรับเทิร์น 3 บอร์ดมี Interruption + ตัวเดินเกมถัดไป ดีกว่าเทหมด
+8. 🎯 **Anti-Hoarding vs Anti-Brick** ใช้เมื่อ Current Value > Expected Future Value; อย่าใช้การ์ดสารพัดประโยชน์กับงานเล็ก
+9. 🎯 **Bait Before Starters** ส่ง Searcher/Bait รองล่อ Handtrap ก่อนเดิน Core
+10. 🎯 **Information as Resource** จำการ์ดที่คู่แข่งเสิร์ช/ขึ้นมือ และ OPT ที่ใช้ไปแล้ว
+11. 🎯 **Attack-Lock Adaptation** ภายใต้ Gravity Bind / Level Limit - Area B สลับเป็น Ignition removal และหาทางแก้ต่อ อย่าหยุดเล่นโดยไม่พิจารณา Out (`RESOURCE-STOP` ใช้เมื่อไม่มี Out จริงเท่านั้น)
+12. 🎯 **Hand Limit Buffer** ถ้ามือจะเกิน 6 ที่ End Phase ให้เซ็ต Quick-Play/Trap ใน MP2 แทนทิ้งฟรี
+
+### 4.6 DeckProbability Engine (`WindBot.Game.AI.DeckProbability`, O(1))
+- `Hypergeometric`, `AtLeastOne(N,K,n)`, `AtLeast` — เช่น โอกาสเปิด Starter ในมือแรก (เป้า ≥ ~85% ตอนออกแบบเด็ค), โอกาสขุดเจอ Out
+- `BanishLossRisk(remainingDeck, criticalCopies, banishCount)` — ประเมิน Pot of Desires (รีมูฟ 10) ถ้าเสี่ยงชิ้นสำคัญหลุดหมด ให้ Search ก่อน Draw
+- `MultivariateHypergeometric` — โอกาสเปิดหลายกลุ่มพร้อมกัน (Starter + Extender ไม่มี Garnet)
+- `BaitPlanner.EstimateHandTrapLikelihood(oppHand, oppDeck, estimatedHandtraps)` — ตัดสินใจส่ง Bait จากตัวเลข ไม่ใช่การเดา
+- Discard Cost: ใช้ `AtLeastOne` เช็คโอกาสได้ตัวทดแทน; ถ้าเป็น one-of สุดท้ายให้กันไว้
+
+## 5. Anti-Patterns
+
+### 5.1 🔒 HARD (ทำให้สนามพัง / ผิดนโยบาย)
+1. **แยก Hint ID ใน `OnSelectCard`** — รายการ Search ใช้เฉพาะ `506 (ATOHAND)`; Hint ลบสนาม (`502` DESTROY, `503` REMOVE, `504` TOGRAVE, `505` RTOHAND, `507` TODECK) ต้องเลือกการ์ดศัตรู (`c.Controller == 1`) เท่านั้น
+2. **Target Verification** — Ignition removal (BLS, Chaos Sorcerer, Exiled Force ฯลฯ) ต้องเช็คว่ามีเป้าหมายศัตรูจริง (`Enemy.GetMonsters().Any(...)`) ก่อน `return true` ไม่มี → `return false` (มิฉะนั้นเกมบังคับเล็งพวกเดียวกัน เช่น BLS แบนตัวเอง)
+3. **ห้าม Tribute Summon ที่เป็นไปไม่ได้** เช่น `Bot.GetMonsterCount() == 0` สำหรับ Lv5+
+4. **ห้ามเสิร์ชแล้วคืนการ์ดที่เพิ่งเสิร์ชเข้าเด็คทันที** (เช่น Illusion of Chaos) เลือกการ์ดที่ไม่จำเป็น
+5. **ไม่ Chain Handtrap/Negate ซ้ำชนิดเดียวกันในเชนเดียว** (Ash ซ้อน Ash, Maxx "C" ซ้อน Maxx "C")
+6. **`OnSelectEffectYn` ของศัตรู (`card.Controller == 1`) ตอบ `false` เป็นค่าเริ่มต้น**
+7. **ห้ามเรียกโมเดล Neural/RL** — โปรเจกต์เป็น Rule-Based 100%
+8. **Card ID / Banlist ต้องตรงกับ `cards.cdb` และ lflist**
+9. **Deploy เฉพาะ `C:\Users\admin\Documents\EdoGame\`**; **ไม่รัน Headless Simulation เองก่อนผู้ใช้สั่ง**
+10. **ต้องมี Decoupled Plugin ทุกเด็ค** (หัวข้อ 3)
+
+### 5.2 🎯 DEFAULT (ปรับได้เมื่อมีเหตุผลเชิงเกม)
+| ค่าเริ่มต้น | ยกเว้นได้เมื่อ / เหตุผล |
+|---|---|
+| Extra Deck Summon ต้องมีเงื่อนไข ไม่ `return true` เปล่าๆ; ไม่ใช้มอนที่สวม Comic Hand/Snatch Steal เป็นวัตถุดิบ; ไม่สังเวย ATK 2000+ ใน MP1 เพื่อทำตัวที่อ่อนกว่า; ไม่เอา Boss 2 ตัวไปทำ Xyz | Board สุทธิดีขึ้นชัดเจน หรือเป็นทางเดียวที่แก้ Threat/ปิดเกม |
+| **S:P Little Knight (29301450)**: ไม่เรียกใน MP1 เมื่อศัตรูสนามโล่ง/เรามีโอกาสตีตรง (Effect 1 ล็อกไม่ให้มอนตีตรงทั้งเทิร์น) และไม่สังเวย Boss/ATK ≥ 2000; ตีก่อนแล้วเรียกใน MP2 | ต้องใช้ผลเคลียร์ Threat/ Negate ทันที หรือไม่มีทางทำดาเมจอยู่แล้ว |
+| **Handtrap** (Ash, Dominus Impulse, Ghost Ogre) เก็บบนมือ ไม่หมอบ MP1 | การ์ดที่ต้องลงสนามจึงใช้ผลได้ หรือมือล้นต้องเซ็ตแทนทิ้ง |
+| ไม่รีมูฟ/ทิ้ง Core Boss ใน Pot of Prosperity หรือ Cost | ไม่มีตัวเลือกอื่น และมีสำเนา/ผลกู้ |
+| Fusion/Synchro/Xyz ลง Main Monster Zone เก็บ EMZ ให้ Link | MMZ เต็ม/ไม่มีที่เดินต่อ |
+| **Number 41: Bagooska** ตั้ง **FaceUpDefence** เพื่อให้ฟลัดเกตทำงาน | ต้องโจมตี/ปิดเกมโดยที่ผลล็อกไม่จำเป็น |
+| **Flat LP Cost** (Delinquent Duo 1000, Premature Burial 800, Solemn Warning 2000): เช็คว่า LP หลังจ่ายยังปลอดภัย โดยใช้ `LP − cost > max(2000, 500 × จำนวน action ที่คาดว่าจะต้องจ่ายภายใต้ Chain Energy)` เพื่อไม่ติด Hard-Lock (LP < 500) | ศัตรูไม่มี burn/floodgate และจ่ายแล้วปิดเกมได้ |
+| เด็คถูกเสริม Interaction ตามสัดส่วนหัวข้อ 4.4 | สไตล์เด็คต่างออกไปและมีเหตุผลรองรับ |
+
+## 6. ตาราง Hint OCGCore (ตรวจจาก audit ของโปรเจกต์)
+
+| ID | Constant | พฤติกรรม AI |
+|---|---|---|
+| 500 | RELEASE | Token/Fodder ก่อน ไม่สังเวย Ace |
+| 501 | DISCARD | ทิ้งตัวมีผลใน GY/ซ้ำ ปกป้อง Starter |
+| 502 | DESTROY | เลือกศัตรู ตาม RemovalScore |
+| 503 | REMOVE | เลือกศัตรู ข้ามตัวที่มี Target Immunity |
+| 504 | TOGRAVE | ส่งชิ้นส่วนคอมโบเรา หรือส่งการ์ดศัตรู |
+| 505 | RTOHAND | Bounce ตัวปัญหาศัตรู |
+| 506 | ATOHAND | Search: Ace/Handtrap/Starter สำคัญก่อน |
+| 507 | TODECK | Spin ตัวปัญหาหลักศัตรู |
+| 508 | SUMMON | ลำดับ Starter/ตัวเปิด |
+| 509 | SPSUMMON | Boss/Extender ตามรูท |
+| 511/512/513/533 | F/S/X/LMATERIAL | ปกป้อง Ace/Boss เลือก Fodder/Token ก่อน |
+| 514 | FACEUP | เลือกการ์ดหงายหน้า |
+| 518 | EQUIP | การ์ดที่จะสวม |
+| 520 | CONTROL | เปลี่ยนการควบคุม |
+| 528 | POSCHANGE | เปลี่ยนรูปแบบ |
+| 551 | TARGET | เล็งเป้าหมาย |
+| 571 | TOZONE | ย้ายโซน |
+| 572 | COUNTER | วาง/นำ Counter ออก |
+| 575 | NEGATE | ขัดขวางผลศัตรู |
+
+⚠️ **ไม่มี `HINTMSG_TOHAND = 573`** ค้นขึ้นมือใช้ 506 เท่านั้น; 572 = COUNTER, 575 = NEGATE อย่าสลับ ตารางนี้มาจาก audit ก่อนหน้า ถ้า `constant.lua` ปัจจุบันต่างออกไป ให้เชื่อไฟล์จริง
+
+## 7. Central Core Safeguards (ทุก Executor ได้อัตโนมัติ)
+
+1. **EMZ Preservation** — `0x20` สงวนให้ Link และ Pendulum หงายหน้าจาก Extra Deck; Fusion/Synchro/Xyz ลง MMZ
+2. **Bagooska** — FaceUpDefence
+3. **Duplicate Handtrap/Negate Prevention** — ไม่ซ้อนในเชนเดียว
+4. **Lethal & Direct Attack Prioritization** — ATK ถึง LP และตีตรงได้ → ตีปิดเกม
+5. **`HeuristicGuard.SanitizeSelection`** — ถ้าเป้าหมายจะทำลาย/ขจัดพวกเดียวกัน สลับไปการ์ดศัตรู (เป้า 0 Self-Harm Violations)
+6. **Hostile Prompt Safeguard** — `OnSelectEffectYn` ของศัตรู = `false`
+
+## 8. Case Studies
+
+### 8.1 Endymion Spell Counter Control (Counter Economy)
 ```csharp
-public enum CounterLevel
-{
-    Critical = 0, // 0-1 เม็ด: สภาวะวิกฤต ห้ามใช้เคาน์เตอร์กับงานไม่จำเป็น
-    Low = 1,      // 2-3 เม็ด: พอสำหรับ Negate สำคัญ 1 ครั้ง (Jackal King)
-    Ready = 2,    // 4-5 เม็ด: พร้อมรับมือทั้ง Negate และเปิดใช้คอมโบ
-    ComboReady = 3, // 6-7 เม็ด: พร้อมใช้ Mighty Master ระเบิดบอร์ด
-    Surplus = 4   // 8+ เม็ด: ทรัพยากรล้นเหลือ สามารถขยายบอร์ดได้เต็มกำลัง
-}
+public enum CounterLevel { Critical = 0 /*0-1*/, Low = 1 /*2-3*/, Ready = 2 /*4-5*/, ComboReady = 3 /*6-7*/, Surplus = 4 /*8+*/ }
 ```
+- **Jackal King** (2 Counter = Negate มอนสเตอร์ 1 ครั้ง): ตามระดับภัย Boss Effect > Search/Starter > Removal > Extender > Minor; ไม่ใช้กับขยะขณะ Boss/Starter ยังไม่ออก; เก็บกระสุนสำรอง 2 เม็ดขณะมี Jackal King
+- **Endymion, Mighty Master**: Negate S/T + Bounce Recycling เรียงลำดับคืนมือ: (1) ใช้ซ้ำได้ในเทิร์นเรา (2) หมดหน้าที่ (3) Counter สะสมสูงเพื่อโอนเข้า Mighty Master (4) ห้ามคืน Key Card ที่ทำคอมโบพัง; **6-Counter Wipe** เมื่อเคลียร์ Threat ≥ 2 หรือเปิดทาง Lethal
+- **Servant of Endymion** (3 Counter): SS ตัวเอง + Jackal King เมื่อเปิดคอมโบ/สร้างบอร์ดจริง ไม่เรียกเพื่อเพิ่มจำนวน
+- **Net Gain**: `NetGain = NewCounters − CountersSpent` เน้น Action ที่ ≥ 0
+- **Emergency Breach**: ใช้ต่ำกว่า Reserve ได้เมื่อศัตรูจะ Lethal / ตั้ง Floodgate ถาวร / Resolve Boss Effect รุนแรง
 
-### 5.2 กฎการบริหารทรัพยากรเฉพาะการ์ด (Key Card Execution Rules)
-1. **Mythical Beast Jackal King (2 Counters = Monster Negate 1 ครั้ง)**:
-   - ตรวจสอบ Threat Level ของเอฟเฟกต์มอนสเตอร์คู่แข่ง:
-     `Boss Effect > Search/Starter > Removal > Extender > Minor Effect`
-   - ห้ามใช้ Jackal King กับการ์ดขยะของคู่แข่งถ้าบอสหรือ Starter ของคู่แข่งยังไม่ออก
-   - รักษากระสุนสำรอง 2 เม็ดบนสนามเสมอเมื่อมี Jackal King
-2. **Endymion, the Mighty Master of Magic**:
-   - **Spell/Trap Quick Negate & Intelligent Bounce Recycling**:
-     เมื่อต้องคืนการ์ดที่มีเคาน์เตอร์ขึ้นมือเพื่อ Negate ให้เรียงลำดับการเลือกคืน:
-     1. การ์ดที่นำกลับมาใช้ใหม่ได้ในเทิร์นเรา (เช่น Servant ที่ใช้เอฟเฟกต์ไปแล้ว)
-     2. การ์ดที่หมดหน้าที่แล้ว
-     3. การ์ดที่มีเคาน์เตอร์สะสมสูง (เพื่อโอนเคาน์เตอร์เข้า Mighty Master)
-     4. ห้ามคืน Key Card ที่ทำให้โครงสร้างคอมโบพัง
-   - **6-Counter Board Wipe**: ใช้ระเบิดสนามเมื่อเคลียร์ Threat ของคู่แข่งได้ $\ge 2$ ใบ หรือเปิดทางทำ Lethal
-3. **Servant of Endymion (3 Counters Summon Gate)**:
-   - ใช้ 3 เคาน์เตอร์ Special Summon ตัวเอง + Jackal King จากเด็ค **เฉพาะเมื่อการเรียกนั้นเปิดคอมโบหรือสร้างบอร์ดต่อได้** ไม่เรียกเล่นๆ เพียงเพื่อเพิ่มจำนวนตัว
-4. **Net Gain Arithmetic**:
-   - ทุกครั้งที่ร่าย Spell ให้คำนวณการเติบโตสุทธิของเคาน์เตอร์:
-     `NetGain = NewCountersGenerated - CountersSpent`
-   - สนับสนุน Action ที่ทำให้ NetGain เป็นบวกหรือเท่าทุน
-5. **Counter Emergency Breach Policy**:
-   - อนุญาตให้ใช้เคาน์เตอร์จนต่ำกว่าเกณฑ์สำรอง (Reserve) ได้เฉพาะกรณีฉุกเฉิน:
-     - ฝ่ายตรงข้ามกำลังจะทำ Lethal
-     - ฝ่ายตรงข้ามกำลังจะตั้ง Floodgate ถาวร
-     - ฝ่ายตรงข้ามกำลัง Resolve Boss Effect รุนแรง
-
-### 5.3 Dynamic Action Scorer Formula
 ```text
-ActionScore = 
-    BoardImpact           (ผลกระทบต่อสนาม)
-  + CounterNetGain        (เคาน์เตอร์ที่เพิ่มขึ้นสุทธิ)
-  + NegateValue           (มูลค่าการสกัดกั้น)
-  + FutureUtility         (ประโยชน์ในอนาคต)
-  + FollowUpValue         (ทรัพยากรเทิร์นถัดไป)
-  + OTKValue              (โอกาสปิดเกม)
-  - CounterCost           (ต้นทุนเคาน์เตอร์ที่เสียไป)
-  - MaterialLoss          (การสูญเสียตัวบนสนาม)
-  - OpponentAdvantage     (แต้มต่อที่คู่แข่งอาจได้รับ)
-  - RecoveryRisk          (ความเสี่ยงต่อการถูกแก้ทาง)
-### 5.4 Case Study: Six Samurai Bushido Economy & Multi-Tier Interruption
-
-พิมพ์เขียวสถาปัตยกรรมสำหรับเด็ค Six Samurai ยุคใหม่ ที่ผสาน Bushido Loop เข้ากับชุดการ์ดขัดจังหวะรอบด้าน:
-
-1. **Bushido Counter Economy & Gateway Loop**:
-   - `Gateway of the Six` (หัก 4 เม็ดเสิร์ช/นำกลับ Six Samurai จากเด็คหรือสุสาน)
-   - `Battle Shogun of the Six Samurai` (Link-2 ที่เสิร์ช Gateway เมื่อ Link Summon สำเร็จ)
-   - การคำนวณ Counter: บันทึกเคาน์เตอร์รวมจากทุกการ์ด (`Gateway`, `Dojo`, `United`) เพื่อรู้ว่ามีกระสุนเสิร์ชวนซ้ำได้กี่ครั้ง
-2. **Multi-Tier Interruption & End Board Targets**:
-   - **Spell/Trap Negate**: `Legendary Six Samurai - Shi En` (Quick Negate เวท/กับดักเทิร์นละ 1 ครั้ง และสังเวยซามูไรตัวอื่นแทนการถูกทำลาย)
-   - **Monster Effect Negate & Board Control**: `Great Shogun Shien` (จำกัดให้คู่แข่งร่าย Spell/Trap ได้เทิร์นละ 1 ใบ) + ซินโคร/ลิงก์ขัดจังหวะสากล เช่น `Baronne de Fleur` / `Apollousa` / `S:P Little Knight`
-   - **In-Archetype Quick Trap**: `Six Style - Dual Wield` (เด้งการ์ดคู่แข่ง 2 ใบขึ้นมือเมื่อคุมซามูไรตัวเดียวในสภาพตั้งโจมตี)
-   - **Handtrap Defense**: จัดสรรสล็อตสำหรับ `Ash Blossom`, `Maxx "C"`, `Called by the Grave`, `Crossout Designator` เพื่อป้องกัน Nibiru/Droll ที่จะตัดลูป Bushido
-3. **Kizaru Multi-Attribute Resolution**:
-   - `Secret Six Samurai - Kizaru`: เมื่อ Special Summon ต้องตรวจสอบ Attribute ของ Six Samurai บนสนาม แล้วเลือกเสิร์ชการ์ดที่มี Attribute แตกต่างกันขึ้นมืออย่างแม่นยำ
-
----
-
-## 6. Audited OCGCore Hint Constants Table
-
-ตาราง Hint Constants ที่ได้รับการตรวจสอบตรงตามเอนจิน `OCGCore` และพฤติกรรม AI:
-
-| Hint ID | Constant Name | Meaning & AI Behavior |
-|---|---|---|
-| **500** | `HINTMSG_RELEASE` | สังเวย/บูชายัญ: เลือก Token หรือ Fodder ก่อน ห้ามสังเวย Ace Boss |
-| **501** | `HINTMSG_DISCARD` | ทิ้งการ์ด: ทิ้งการ์ดที่มีผลในสุสาน หรือการ์ดซ้ำ ปกป้อง Combo Starters |
-| **502** | `HINTMSG_DESTROY` | ทำลาย: บังคับเลือกการ์ดฝ่ายตรงข้าม (`c.Controller == 1`) ตามลำดับ RemovalScore |
-| **503** | `HINTMSG_REMOVE` | รีมูฟ/แบน: บังคับเลือกการ์ดฝ่ายตรงข้าม (`c.Controller == 1`) ข้ามตัวที่มี Target Immunity |
-| **504** | `HINTMSG_TOGRAVE` | ส่งลงสุสาน: ส่งชิ้นส่วนคอมโบของเรา หรือส่งการ์ดของคู่แข่งลงสุสาน |
-| **505** | `HINTMSG_RTOHAND` | เด้งขึ้นมือ (Bounce): บังคับเล็งการ์ดตัวปัญหาของศัตรู (`c.Controller == 1`) |
-| **506** | `HINTMSG_ATOHAND` | ค้นหาจากเด็คขึ้นมือ (Search): เลือก Ace, Handtrap, หรือ Starter ตัวสำคัญก่อน |
-| **507** | `HINTMSG_TODECK` | สับกลับเข้าเด็ค (Spin): กำจัดตัวปัญหาหลักของคู่แข่ง |
-| **508** | `HINTMSG_SUMMON` | อัญเชิญปกติ: เลือกลำดับ Starter หรือตัวเปิดเกม |
-| **509** | `HINTMSG_SPSUMMON` | อัญเชิญพิเศษ: เลือก Boss/Extender ที่เหมาะสมตามรูท |
-| **511** | `HINTMSG_FMATERIAL` | วัตถุดิบ Fusion: ป้องกัน Ace บนสนาม เลือกลำดับ Fodder |
-| **512** | `HINTMSG_SMATERIAL` | วัตถุดิบ Synchro: ปกป้องบอส เรียงจาก Tuner/Non-Tuner ตัวเล็กขึ้นไป |
-| **513** | `HINTMSG_XMATERIAL` | วัตถุดิบ Xyz: ปลดหรือเลือกวัตถุดิบที่ไม่ใช่บอสหลัก |
-| **514** | `HINTMSG_FACEUP` | เลือกการ์ดหงายหน้า |
-| **518** | `HINTMSG_EQUIP` | เลือกการ์ดที่จะสวมใส่ |
-| **520** | `HINTMSG_CONTROL` | เปลี่ยนการควบคุม/ขโมยการ์ด |
-| **528** | `HINTMSG_POSCHANGE` | ปรับเปลี่ยนรูปแบบการตั้งการ์ด |
-| **533** | `HINTMSG_LMATERIAL` | วัตถุดิบ Link: เลือกลำดับตัวโทเคนหรือตัวหมดประโยชน์ ห้ามใช้บอสหลัก |
-| **551** | `HINTMSG_TARGET` | เล็งเป้าหมายผลการ์ด |
-| **571** | `HINTMSG_TOZONE` | ย้ายโซนการ์ด |
-| **572** | `HINTMSG_COUNTER` | วางหรือนำ Spell/Bushido Counter ออก |
-| **575** | `HINTMSG_NEGATE` | ขัดขวาง/Negate ผลการ์ดของฝ่ายตรงข้าม |
-
-> ⚠️ **ข้อควรระวังสำคัญยิ่ง (HINT AUDIT NOTE)**:
-> ในเอนจิน OCGCore / constant.lua ปัจจุบัน **ไม่มี `HINTMSG_TOHAND = 573`** เด็ดขาด! การค้นหาการ์ดขึ้นมือใช้ **`506 (HINTMSG_ATOHAND)`** เท่านั้น และรหัส **`572 คือ HINTMSG_COUNTER`** ส่วน **`575 คือ HINTMSG_NEGATE`** อย่าจำสับสนเด็ดขาด
-
----
-
-## 7. Central Core Universal Heuristics & Safeguards
-
-ทุก Executor จะได้รับความคุ้มครองจากกลไกกลางของ `ExecutorBase`:
-
-1. **Master Rule 5 EMZ Preservation**:
-   - จำกัด Extra Monster Zone (`0x20`) ไว้ให้ Link Monsters และ Pendulum หงายหน้าจาก Extra Deck เท่านั้น
-   - Fusion, Synchro, Xyz บังคับลง Main Monster Zones เพื่อไม่ให้ขวาง Link Arrows
-2. **Universal Bagooska Defense Safeguard**:
-   - `Number 41: Bagooska` บังคับลงในสภาพ **FaceUpDefence** เสมอ เพื่อให้ฟลัดเกตทำงานต่อเนื่อง
-3. **Universal Duplicate Handtrap & Negate Prevention**:
-   - ป้องกันการเปิดใช้ Handtrap หรือ Negate ซ้อนกันในเชนเดียวกัน (เช่น ห้ามโยน Ash ซ้อน Ash)
-4. **Lethal & Direct Attack Prioritization**:
-   - เมื่อพลังโจมตีถึง LP คู่แข่ง และโจมตีตรงได้ บอทจะสั่งโจมตีตรงเพื่อปิดเกมทันที
-5. **Active Intervention Guard (`HeuristicGuard.SanitizeSelection`)**:
-   - หากคำสั่งเลือกเป้าหมายจะทำลายหรือขจัดพวกเดียวกันเอง ระบบ Guard จะสลับเป้าไปยังการ์ดของศัตรูทันที การันตี **0 Self-Harm Violations**
-6. **Hostile Opponent Prompt Safeguard**:
-   - ใน `OnSelectEffectYn`: หากเป็นการ์ดของคู่แข่ง (`card.Controller == 1`) จะตอบปฏิเสธ (`false`) เป็นค่าเริ่มต้น
-
----
-
-## 8. Build & Deploy Pipeline
-
-```powershell
-cd C:\Users\admin\Documents\EdoGame\src\YGO_SOURCE_CLEAN
-powershell -ExecutionPolicy Bypass -File .\BUILD_AND_DEPLOY.ps1
+ActionScore = BoardImpact + CounterNetGain + NegateValue + FutureUtility + FollowUpValue + OTKValue
+            − CounterCost − MaterialLoss − OpponentAdvantage − RecoveryRisk
 ```
 
-**Exclusive Deployment Target (STRICT RULE)**:
-- Deploy ไบนารีชุดใหม่มาที่ **`C:\Users\admin\Documents\EdoGame\`** เท่านั้น
-- ห้าม Deploy ไปยังโฟลเดอร์อื่นโดยเด็ดขาด
+### 8.2 Six Samurai (Bushido Economy + Multi-Tier Interruption)
+- **Loop**: `Gateway of the Six` (หัก 4 เคาน์เตอร์ เสิร์ช/กู้ Six Samurai) + `Battle Shogun` (Link-2 เสิร์ช Gateway ตอน Link Summon); รวม Counter จาก Gateway/Dojo/United เพื่อรู้จำนวนรอบเสิร์ชที่เหลือ
+- **Interruption**: S/T Negate = `Shi En` (Quick, เทิร์นละครั้ง + สังเวยซามูไรอื่นแทนถูกทำลาย); ควบคุมบอร์ด = `Great Shogun Shien` (ศัตรูร่าย S/T ได้เทิร์นละใบ) + Baronne de Fleur / Apollousa / S:P Little Knight; Quick Trap = `Six Style - Dual Wield` (เด้ง 2 ใบเมื่อคุมซามูไรตัวเดียวแบบตั้งโจมตี); Handtrap สล็อต Ash / Maxx "C" / Called by the Grave / Crossout Designator กัน Nibiru/Droll ตัดลูป
+- **Kizaru**: ตอน SS ตรวจ Attribute ของ Six Samurai บนสนาม แล้วเสิร์ชตัวที่ Attribute ต่างกัน
 
----
+## 9. โปรโตคอล 3 ขั้น (Senior Game AI Engineer)
 
-## 9. Progress Log & Archiving Policy
+**ขั้น 1 — วิเคราะห์ Human vs Bot + ปรับ Decklist**
+- คัดการ์ดที่ไม่เหมาะกับบอท: Chokepoint Handtrap ที่ต้องอ่านเกมลึก, การ์ดทำลายของตัวเองที่ไม่มี Guard, คอมโบแตกกิ่งข้าม Phase/พึ่ง Action ศัตรู (เช่น Dagda + Scythe + Halq + Wonder Magician), การ์ดจ่าย LP ก้อนโต/ทิ้งหมดมือ (Allure of Darkness ที่ไม่มี DARK สำรอง)
+- แทนด้วยการ์ดที่เงื่อนไขชัดเจน: Counter Trap (Solemn), Non-target Removal, Omni-Negate Boss (Vortex Dragon, Baronne, Crystal Wing), Floodgate ที่ไม่ขัดคอมโบ (Abyss Dweller, Bagooska); เน้น Route A/B เส้นตรง; ปรับ Starter/Extender/Interaction ตามหัวข้อ 4.4
+- สรุป Decklist: Card ID, ชื่อ, จำนวน (ตาราง + รูปแบบ `.ydk`)
 
-- **ความกระชับของ PROGRESS.md**:
-  - ไฟล์ [PROGRESS.md](file:///C:/Users/admin/Documents/EdoGame/PROGRESS.md) ต้องรักษาขนาดให้อยู่ในช่วง **~200–400 บรรทัด** เสมอ (เก็บเฉพาะ 5–10 รายการล่าสุด) เพื่อให้อ่านได้สมบูรณ์ใน 1 Tool Call
-- **เกณฑ์การแยก Archive**:
-  - เมื่อเกิน **~500–800 บรรทัด** ให้ตัดประวัติชุดเก่าไปบันทึกต่อท้ายไว้ใน [Docs/PROGRESS_ARCHIVE.md](file:///C:/Users/admin/Documents/EdoGame/Docs/PROGRESS_ARCHIVE.md) ทันที
+**ขั้น 2 — โครงตรรกะการเล่น (ก่อนเขียนโค้ด)**
+- ไปก่อน: ตั้งเสา Omni-Negate, Quick Disruption, สะสม Resource เทิร์น 3 / ไปหลัง: Board Breaking (Harpie, Raigeki, Dark Rebellion, Clear Wing) ก่อนเดิน Engine + Lethal Check
+- Safety: Lethal Check (ห้าม Overextend), Field/Continuous Protection (ไม่ทับใบเดิมที่ยังมีประโยชน์), Chaining Guard, Cost & LP Guard
+- Targeting: Continuous Floodgate → Negator → Monster ATK สูงสุด และ Target Verification
 
----
+**ขั้น 3 — Implement**
+1. `CardId` ครบจาก `cards.cdb` ใน `public static class CardId`
+2. Constructor: `DeckPlugin = new XxxPlugin(this);` + `AddExecutor` ตาม Tier (0 Negates → 1 Board Breakers → 2 Starters → 3 Searchers → 4 Climbs → 5 S/T Set)
+3. Callbacks: `OnSelectCard` แยก Hint (506→Strategy, 509→Strategy, 501→MaterialEvaluator, 502/503→เป้าศัตรู/Self-pop Resolver); `OnSelectOption`/`OnSelectEffectYn` ปฏิเสธของศัตรู รับผลที่เป็นประโยชน์ของเรา; `OnSelectPosition` ATK ≥ 1800 ตั้งโจมตี, ATK 0 / Handtrap / Bagooska ตั้งป้องกัน 🎯
+4. Build → Deploy → อัปเดต `PROGRESS.md` → รอคำสั่ง "Text Duel"
 
-## 10. Senior Game AI Engineer & Deck Architect 3-Step Protocol (MANDATORY STANDARD)
+## 10. Build, Deploy & Progress Log
 
-เมื่อได้รับมอบหมายให้วิเคราะห์, ปรับปรุงเด็ค, หรือเขียน AI Executor สำหรับ WindBot ให้ปฏิบัติตามมาตรฐาน 3 ขั้นตอนนี้เสมอ:
-
-### ขั้นตอนที่ 1: วิเคราะห์เปรียบเทียบ (Human vs Bot Logic) & Deck Optimization
-1. **คัดกรองการ์ดที่ไม่เหมาะกับบอท (Identify High-Cognitive Traps)**:
-   - **Chokepoint Handtraps ลึกๆ**: การ์ดที่ต้องอาศัยการอ่านเกมล่วงหน้าสูง หรือมีเงื่อนไขการใช้แคบมาก
-   - **Trade-off ทำลายการ์ดตัวเองโดยไม่มี Check ชัดเจน**: เช่น การ์ดที่ทำลายการ์ดบนสนามฝั่งเราเพื่อส่งผล หากไม่มี Guard ตรวจสอบความปลอดภัย บอทจะเผลอทำลายบอสหรือสเกลสำคัญของตัวเอง
-   - **คอมโบที่แตกกิ่งก้านสาขามากเกินไป (Branching Explosion)**: คอมโบที่มีเงื่อนไขข้าม Phase หรือพึ่งพา Action ของคู่แข่งในเทิร์นฝ่ายตรงข้าม (เช่น Dagda + Scythe + Halq + Wonder Magician) ซึ่งเสี่ยงต่อการผิดพลาดของ Chain Priority
-   - **Self-Harm / Resource Depletion**: การ์ดจ่าย LP ก้อนโตหรือทิ้งการ์ดหมดมือ (Allure of Darkness เมื่อไม่มี DARK สำรอง)
-2. **การปรับ Decklist (Bot-Friendly Tuning)**:
-   - **Deterministic & High-Value Replacements**: แทนที่ด้วยการ์ดที่มีเงื่อนไขชัดเจน 100% เช่น Counter Trap (Solemn Series), Non-Target Removal, Omni-Negate Bosses (Vortex Dragon, Baronne, Crystal Wing), หรือ Floodgate ที่ไม่ขัดคอมโบตัวเอง (Abyss Dweller, Bagooska)
-   - **Linear & Consistent Engines**: มุ่งเน้น Route A / Route B ที่เดินคอมโบเป็นเส้นตรง บอร์ดจบมีความสม่ำเสมอสูง
-   - **Anti-Brick Optimization**: ปรับสัดส่วน Starters (อย่างน้อย 9-12 ใบ), Extenders, และ Interruption Density (9-15 ใบสำหรับเด็ค 40 ใบ) ลดการใส่การ์ดที่ต้องรอการ์ดอื่นเพื่อคอมโบเพียงอย่างเดียว
-3. **สรุป Decklist ฉบับปรับปรุง**:
-   - ระบุ Card ID, ชื่อการ์ด, และจำนวนใบอย่างเป็นทางการในรูปแบบตารางและ `.ydk` format
-
-### ขั้นตอนที่ 2: วางโครงสร้างตรรกะการเล่น (Playstyle & Decision Hierarchy)
-อธิบายลำดับความสำคัญก่อนเขียนโค้ด:
-1. **ลำดับการเล่น Going First vs Going Second**:
-   - **Going First**: เน้นตั้งเสา Omni-Negate, Quick Disruption, และ Search Resources เพื่อเทิร์น 3
-   - **Going Second**: เน้น Board Breaking (Harpie, Raigeki, Dark Rebellion, Clear Wing) เคลียร์ Threat ก่อนเดิน Engine เพื่อปิดเกม (Lethal Check)
-2. **เงื่อนไขความปลอดภัย (Safety Safeguards)**:
-   - **Lethal Check**: เมื่อดาเมจบนสนามรวมกันชนะ LP ศัตรูได้ และทางโล่ง ให้มุ่งหน้าสู่ Battle Phase ทันที ห้าม Overextend
-   - **Field Spell / Continuous Protection**: ห้ามเปิดร่าย Field Spell หรือ Continuous Card ใบใหม่ทับใบเดิมที่มีประโยชน์อยู่แล้ว
-   - **Chaining Guard (1 Negate = 1 Problem)**: เช็ค `IsChainAlreadyNeutralized()` เสมอ ห้ามโซ่ขัดจังหวะทับการ์ดพวกเดียวกันเอง และห้ามโซ่ Negate ซ้อนกันหลายใบใส่ Action เดียวของศัตรู
-   - **Cost & LP Guard**: เช็ค LP และมือสำรองก่อนจ่ายเสมอ
-3. **เกณฑ์การเลือกเป้าหมาย (Card Selector Priority)**:
-   - **Targeting Hierarchy**: เล็งทำลาย Threat สูงสุดของศัตรู (Continuous Floodgate -> Negator -> Monster ATK สูงสุด)
-   - **Target Verification**: เอฟเฟกต์ Ignition Removal ต้องตรวจว่ามีเป้าหมายของฝ่ายตรงข้ามอยู่จริงก่อน `return true` เพื่อป้องกันการระเบิดพวกเดียวกันเอง
-
-### ขั้นตอนที่ 3: C# Executor Code Implementation
-เขียนโค้ดตามมาตรฐาน Decoupled Domain Architecture ให้สมบูรณ์ 100%:
-1. **CardId Constants**: ระบุ Card ID จาก `cards.cdb` อย่างครบถ้วนใน `public static class CardId`
-2. **Initialize() / Pipeline Registration**:
-   - ติดตั้ง `DeckPlugin = new XxxPlugin(this);`
-   - กำหนด `AddExecutor` ตามระดับความสำคัญ (Tier 0: Negates -> Tier 1: Board Breakers -> Tier 2: Starters -> Tier 3: Searchers -> Tier 4: Climbs -> Tier 5: S/T Set)
-3. **Callback Implementations**:
-   - `OnSelectCard()`: แยกตาม Hint ID (506 Search -> Strategy, 509 SpSummon -> Strategy, 501 Discard -> MaterialEvaluator, 502/503 Removal -> Enemy Target / Self-pop Resolver)
-   - `OnSelectOption()` & `OnSelectEffectYn()`: ปฏิเสธเอฟเฟกต์ของศัตรู (`card.Controller == 1 => false`) และเปิดรับเอฟเฟกต์ที่เป็นประโยชน์ของฝั่งเรา
-   - `OnSelectPosition()`: มอนสเตอร์ ATK >= 1800 ตั้งโจมตี, มอนสเตอร์ 0 ATK / Handtraps / Bagooska บังคับตั้งป้องกัน
-4. **Build, Deploy & Verify**:
-   - Deploy ไปยัง `C:\Users\admin\Documents\EdoGame\` ผ่าน `BUILD_AND_DEPLOY.ps1`
-   - บันทึกการเปลี่ยนแปลงใน `PROGRESS.md`
-   - รอคำสั่ง "Text Duel" ก่อนรัน Headless Simulation เสมอ
+- Deploy เฉพาะ `C:\Users\admin\Documents\EdoGame\` ผ่าน `BUILD_AND_DEPLOY.ps1` 🔒
+- `PROGRESS.md` รักษา ~200–400 บรรทัด (เก็บ 5–10 รายการล่าสุด) เพื่ออ่านจบใน 1 tool call; เกิน ~500–800 บรรทัด ย้ายประวัติเก่าไปต่อท้าย `Docs/PROGRESS_ARCHIVE.md`

@@ -77,18 +77,22 @@ namespace WindBot.Game.AI.Plugins
                 }
             }
 
-            // In Bot turn: Helheim (protects board & other Trirealms) > Darkness (3000 Beatdown) > Yomi > Ploutonion > Gehenna > Sheol
+            // In Bot turn: Darkness (3000 Beatdown / Pop) > Helheim (protects board) > Yomi > Ploutonion > Gehenna > Sheol
             int[] botTurnPriorities = {
-                TrirealmRiftExecutor.CardId.BurialSummitTrirealmRiftHelheim,
                 TrirealmRiftExecutor.CardId.TrirealmRiftDarkness,
+                TrirealmRiftExecutor.CardId.BurialSummitTrirealmRiftHelheim,
                 TrirealmRiftExecutor.CardId.SkyThunderTrirealmRiftYomi,
                 TrirealmRiftExecutor.CardId.MadTempestTrirealmRiftPloutonion,
                 TrirealmRiftExecutor.CardId.TrirealmRiftOfSkySheol,
                 TrirealmRiftExecutor.CardId.TrirealmRiftOfEmptinessGehenna,
                 TrirealmRiftExecutor.CardId.TrirealmRiftOfScarletNaraka,
                 TrirealmRiftExecutor.CardId.TrirealmRiftOfBlueTuonela,
-                TrirealmRiftExecutor.CardId.SPLittleKnight,
-                TrirealmRiftExecutor.CardId.AccesscodeTalker
+                TrirealmRiftExecutor.CardId.Dingirsu,
+                TrirealmRiftExecutor.CardId.HopeHarbinger,
+                TrirealmRiftExecutor.CardId.TopologicZeroboros,
+                TrirealmRiftExecutor.CardId.AccesscodeTalker,
+                TrirealmRiftExecutor.CardId.UnderworldGoddess,
+                TrirealmRiftExecutor.CardId.SPLittleKnight
             };
 
             foreach (int id in botTurnPriorities)
@@ -214,11 +218,27 @@ namespace WindBot.Game.AI.Plugins
         {
             if (card == null) return 0;
 
+            // 0. Absolute Lethal Ace Guard: Gren Maju is our primary lethal weapon, NEVER sacrifice or Link away!
+            if (card.IsCode(TrirealmRiftExecutor.CardId.GrenMajuDaEiza))
+            {
+                return 9999;
+            }
+
+            // 0.1 Emergency Reset Guard: Necroface is deck reset button
+            if (card.IsCode(TrirealmRiftExecutor.CardId.Necroface))
+            {
+                return 5000;
+            }
+
             // 1. Core Boss Protection
             if (card.IsCode(TrirealmRiftExecutor.CardId.SkyThunderTrirealmRiftYomi,
                             TrirealmRiftExecutor.CardId.BurialSummitTrirealmRiftHelheim,
                             TrirealmRiftExecutor.CardId.TrirealmRiftDarkness,
-                            TrirealmRiftExecutor.CardId.MadTempestTrirealmRiftPloutonion))
+                            TrirealmRiftExecutor.CardId.MadTempestTrirealmRiftPloutonion,
+                            TrirealmRiftExecutor.CardId.GizmekOrochi,
+                            TrirealmRiftExecutor.CardId.Dingirsu,
+                            TrirealmRiftExecutor.CardId.HopeHarbinger,
+                            TrirealmRiftExecutor.CardId.UnderworldGoddess))
             {
                 return 1000;
             }
@@ -248,25 +268,45 @@ namespace WindBot.Game.AI.Plugins
             return candidates.OrderBy(c => GetMaterialCost(c)).ToList();
         }
 
-        public ClientCard PickDiscardTarget(IList<ClientCard> candidates, int count = 1)
+        public IList<ClientCard> PickDiscardTargets(IList<ClientCard> candidates, int count = 1)
         {
-            if (candidates == null || candidates.Count == 0) return null;
+            if (candidates == null || candidates.Count == 0) return new List<ClientCard>();
 
             int[] discardPriority = {
                 TrirealmRiftExecutor.CardId.GizmekOrochi, // Loves being in GY!
                 TrirealmRiftExecutor.CardId.TrirealmRiftOfBlueTuonela,
                 TrirealmRiftExecutor.CardId.PotOfDesires,
                 TrirealmRiftExecutor.CardId.TrirealmRiftOfSkySheol,
-                TrirealmRiftExecutor.CardId.TrirealmRiftOfEmptinessGehenna
+                TrirealmRiftExecutor.CardId.TrirealmRiftOfEmptinessGehenna,
+                TrirealmRiftExecutor.CardId.Nyannyan
             };
+
+            var selected = new List<ClientCard>();
+            var pool = candidates.ToList();
 
             foreach (int id in discardPriority)
             {
-                var match = candidates.FirstOrDefault(c => c != null && c.IsCode(id));
-                if (match != null) return match;
+                var matches = pool.Where(c => c != null && c.IsCode(id)).ToList();
+                foreach (var m in matches)
+                {
+                    selected.Add(m);
+                    pool.Remove(m);
+                    if (selected.Count >= count) return selected;
+                }
             }
 
-            return candidates.OrderBy(c => GetMaterialCost(c)).FirstOrDefault();
+            foreach (var remaining in pool.OrderBy(c => GetMaterialCost(c)))
+            {
+                selected.Add(remaining);
+                if (selected.Count >= count) break;
+            }
+
+            return selected;
+        }
+
+        public ClientCard PickDiscardTarget(IList<ClientCard> candidates, int count = 1)
+        {
+            return PickDiscardTargets(candidates, count).FirstOrDefault();
         }
 
         public ClientCard PickDestructionSubstitute(IList<ClientCard> candidates, int min = 1)
@@ -322,6 +362,13 @@ namespace WindBot.Game.AI.Plugins
         public ClientCard PickBestRemovalTarget(IList<ClientCard> candidates)
         {
             if (candidates == null || candidates.Count == 0) return null;
+
+            // 0. Super Chokepoint & Board Wiper: Eternal Soul (48680970) destroys ALL opponent monsters when popped!
+            var superThreat = candidates.FirstOrDefault(c => c != null && c.IsCode(48680970));
+            if (superThreat != null) return superThreat;
+
+            var circleThreat = candidates.FirstOrDefault(c => c != null && c.IsCode(47222536)); // Dark Magical Circle
+            if (circleThreat != null) return circleThreat;
 
             var threat = candidates.FirstOrDefault(c => c != null && c.IsFaceup() && (c.Attack >= 2500 || CardIntelligence.IsFloodgate(c.Id) || CardIntelligence.IsHighThreatChokepoint(c.Id) || CardIntelligence.IsKnownNegator(c.Id)));
             if (threat != null) return threat;

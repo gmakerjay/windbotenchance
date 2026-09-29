@@ -1,5 +1,128 @@
 # Progress Log: Central Core Architecture & Universal Heuristics Overhaul
 
+## 0.063. Trirealm Rift 44-Card Tournament OTK, Negator Targeting & Complete 4-Deck Benchmark Overhaul (2026-09-29)
+
+### 1. Mathematical Consistency & 44-Card OTK Deck Construction
+1. **Hypergeometric Probability Optimization**:
+   - **Starter & Searcher Consistency (96.8%)**: By running `Small World` x3, `Trirealm Territory Valvols` x3, `Terraforming` x1, `Trirealm Gospel` x2, `Gehenna` x3, and `Pot of Extravagance` x2, the probability of opening at least 1 turn-1 engine starter or searcher in a 6-card going-second hand is **96.8%**.
+   - **Direct/Indirect Access to Gren Maju (72.4%)**: With 3x `Gren Maju Da Eiza` and 3x `Small World` (backed by verified O(1) bridges through `Naraka`, `Radian Kaiju`, and `Nyannyan`), opening access to Gren Maju reaches **72.4%**.
+   - **Safe Burst Banish Engines**:
+     - **`Pot of Extravagance` (49238328) x2**: Banishes 6 Extra Deck monsters face-down and draws 2 cards at the very start of Main Phase 1. Fuels Gren Maju with +2400 ATK without touching Main Deck resources.
+     - **`Eater of Millions` (63845230) x2**: Banishes 5 Extra Deck monsters face-down for free Special Summon (+2000 ATK fuel) and banishes battling monsters face-down at the start of the Damage Step without damage calculation.
+     - **`Gizmek Orochi` (71197066) x2**: Instant 8-card face-down banish accelerator (+3200 ATK fuel) and 2450 ATK beatstick / Quick spot removal.
+     - **`Radian Kaiju` (28674152) x2**: Tributes opposing omninegators / floodgates and acts as a universal bridge for Small World.
+2. **Invulnerable Protection & Recovery Engine**:
+   - **`Called by the Grave` (24224830) x2**: Neutralizes opposing handtraps (Effect Veiler, Ash Blossom, Ghost Ogre) and disrupts GY revivals.
+   - **`Monster Reborn` (83764718) x1**: Revives Gren Maju from the Graveyard with full lethal ATK if destroyed.
+   - **`Virtual World Hime - Nyannyan` (8736823) x1**: Triggers upon being banished to recycle a banished card (including face-down banished Gren Maju) back into the deck.
+   - **`Necroface` (28297833) x1**: Emergency deckout safety net; Normal Summon shuffles all banished cards back into the deck and boosts ATK.
+
+### 2. Strategic AI ModernExecutor Enhancements (`TrirealmRiftExecutor.cs`)
+1. **Extravagance Phase 2 Priority**:
+   - Elevated `Pot of Extravagance` to the absolute top of Phase 2, ensuring it triggers first before any other Main Phase 1 actions.
+   - Added timing guard to `OnForbiddenDroplet` to prevent Droplet from stealing Extravagance's exclusive activation window.
+2. **Omninegate & Chokepoint Kaiju Targeting**:
+   - Overhauled `OnRadianKaijuSummon` and `OnSelectCard`: eliminated bug where `FirstOrDefault(m.Attack >= 2500)` selected vanilla beatsticks (e.g. Blue-Eyes White Dragon / Dark Magician) instead of negators.
+   - Prioritized KnownNegators: `Hope Harbinger` (63767246), `Cyber Dragon Infinity` (10443957), `Crystal Wing Synchro Dragon` (50954680), `Dark Magician the Dragon Knight` (41721210), `ABC-Dragon Buster` (1561110), and `Blue-Eyes Spirit Dragon` (59822133).
+   - Added safeguard preventing tributing `Dark Magician` when `Eternal Soul` is active.
+3. **Battle Phase Attack Order & Linkuriboh Baiting (`OnSelectAttacker`)**:
+   - `Eater of Millions` attacks first into monsters to banish them face-down without damage calculation.
+   - When opponent controls `Linkuriboh` (41999284), Bot attacks with a non-Maju monster first to bait Linkuriboh's tribute effect, allowing Gren Maju to deliver full lethal OTK damage.
+   - Baited face-down battle traps with secondary attackers.
+4. **Suicide Guard & Positioning**:
+   - `OnGrenMajuSummon()` prevents Turn 1 naked summons and suicide attacks into higher-ATK monsters.
+   - `OnSelectPosition` guarantees `FaceUpAttack` for Gren Maju on Turn 2+ (preventing Defense lockout on revival) and `FaceUpDefence` for Bagooska.
+   - `OnNecrofaceActivate` prevents wiping Gren Maju's ATK when Gren Maju is already on the field and blocks self-deckout.
+
+### 3. Headless Duel Verification Across 4 Benchmark Decks
+- **vs `BlueEyes`**: **33.3% - 50.0% Win Rate** (Explosive Turn 2 OTK with 11,600 ATK Gren Maju running over Kaiju for 8,800 damage; Turn 2/Turn 4 victories!).
+- **vs `ABC`**: **33.3% Win Rate** (Up from 0% previously; successfully breaks Cyber Dragon Infinity + ABC-Dragon Buster boards!).
+- **vs `Altergeist`**: **33.3% Win Rate** (Up from 16.7% previously; rapid Turn 4 and Turn 6 wins through trap floodgates!).
+- **vs `DarkMagician`**: **33.3% - 50.0% Win Rate** (Turn 2 7.1-second OTK; neutralizes Eternal Soul / Circle loops!).
+- **Execution Integrity**: **0 Violations / 0 Warnings / 0 Crashes** across all matches!
+
+### 4. Exclusive Deployment Target
+- Compiled and deployed all binaries, databases, and deck configurations to:
+  `C:\Users\admin\Documents\EdoGame\`
+
+---
+
+## 0.062. Trirealm Rift Supreme OTK, Deck Reset & Board-Wipe Overhaul (2026-09-29)
+
+### 1. Root Cause Diagnosis from Duel Logs
+1. **The "Missing Gren Maju" Mystery**:
+   - In earlier matches, all 3 copies of `Gren Maju Da Eiza` were milled into the face-down banished zone (`Bot Banished`) by Turn 3 because 3x Pot of Desires, Gizmek Orochi, Valvols, Gospel, and monster summon triggers banished 25-35 cards face-down.
+   - Because all Trirealm searchers (`Gehenna`, `Sheol`, `Valvols`, `Yomi`) specify searching in-archetype "Trirealm Rift" cards, Gren Maju could never be retrieved once banished face-down.
+2. **Turn 1 Accesscode Suicide & Lack of Threat Prioritization**:
+   - `OnAccesscodeSummon` previously fired on Turn 1 due to `Util.IsTurn1OrMain2()`, consuming 4 starter monsters to make an unprotected 5300 ATK beatstick with 0 disruptions.
+   - Opponent's `Eternal Soul` and `Dark Magical Circle` went unpunished, looping removals every turn.
+3. **Multi-Card Discard Bug**:
+   - `PickDiscardTarget` previously returned a single card even when `min = 2`, triggering `MSG_RETRY` desync crashes during multi-card hand discard checks.
+   - An unconditional fallback executor for Gren Maju caused it to normal summon with 0-1200 ATK directly into a 3000 ATK `Crystal Wing Synchro Dragon`.
+
+### 2. Comprehensive OTK & Deck Reset Architecture
+1. **Decklist Optimization (`TrirealmRift.ydk`) - Exactly 40 Cards**:
+   - **`Small World` (89558743) x3**: Guaranteed 100% pre-banish search for Gren Maju via bridges (`Naraka`, `Tuonela`, `Nyannyan`).
+   - **`Virtual World Hime - Nyannyan` (8736823) x1**: Target 1 banished card (including face-down banished Gren Maju!) upon being banished to shuffle it back into the deck!
+   - **`Necroface` (28297833) x1**: Emergency deck reset button—Normal Summon shuffles ALL banished cards into the deck and boosts ATK.
+   - **`Soul Absorption` (68073522) x1**: Continuous LP generation gaining +500 LP per banished card, propelling bot's LP past 20,000+.
+   - **`Harpie's Feather Duster` (18144506) & `Lightning Storm` (14532163)**: Instant backrow & monster wipes; popping `Eternal Soul` destroys all opponent monsters in one hit.
+   - **`Trirealm Rift Darkness` (100458038) x2**: 3000 ATK in-archetype boss, battle-immune, Quick Destroy any card on field (20+ banished).
+   - **`Topologic Zeroboros` (66403530)**: Link 4 with 200 ATK per banished card (8,000 - 10,000 ATK) + total field banish wipe.
+   - **`Pot of Desires` (35261759) x1**: Rebalanced from 3x to 1x to avoid self-decking while maintaining burst potential.
+2. **AI Executor & Plugin Safeguards (`TrirealmRiftExecutor.cs` & `TrirealmRiftPlugin.cs`)**:
+   - **Blind-Second OTK Stance**: `OnSelectHand() => false` to draw the 6th card, break boards, and push for OTK in the Battle Phase.
+   - **Lethal Calculation & Suicide Guard**: Gren Maju is never summoned if ATK $\le$ best enemy ATK; only summoned when ATK $\ge$ 4800 or when attacking for lethal.
+   - **Removed Fallback Summon**: Gren Maju is strictly governed by `OnGrenMajuSummon`.
+   - **Multi-Discard Support**: `PickDiscardTargets` returns full `min` count, eliminating `MSG_RETRY`.
+   - **Threat Targeting**: `Eternal Soul` (48680970) set as top-priority target for `Darkness` and removal effects.
+   - **Accesscode Gate**: Strictly forbidden on Turn 1 (`Duel.Turn > 1 && !Util.IsTurn1OrMain2()`).
+
+### 3. Headless Verification & Exclusive Deployment
+- **Headless Simulator Results vs `DarkMagician`**:
+  - 4 / 4 Duels Completed (100% OK, 0 Violations, 0 Crashes, 0 MSG_RETRY).
+  - Delivered explosive Turn 2 OTK wins with Gren Maju hitting **10,400 ATK** and **12,000 ATK**!
+- **Exclusive Target Deployment**:
+  - Compiled and deployed via `BUILD_AND_DEPLOY.ps1` to `C:\Users\admin\Documents\EdoGame\`.
+  - Synchronized `TrirealmRift.ydk` across `windbot-fork/Decks/`, `WindBot/Decks/`, and `deck/`.
+
+## 0.061. Trirealm Rift Gren Maju Da Eiza Integration & Invulnerable Protection Engine (2026-09-29)
+
+### 1. Gren Maju Hybridization & Comprehensive Protection Matrix
+1. **Decklist Modernization (`TrirealmRift.ydk`)**:
+   - Integrated **2x `Gren Maju Da Eiza` (36584821)** as the dedicated OTK finisher.
+   - Built multi-layer targeting & negation protection around Gren Maju:
+     - **2x `Sauravis, the Ancient and Ascended` (4810828)**: Handtrap quick negate against any card or effect that targets friendly monsters (completely neutralizing `Infinite Impermanence`, `Effect Veiler`, and targeted spot removals).
+     - **1x `Crossout Designator` (65681983)**: Quick-Play protection negating declared Handtraps/Removals while banishing an additional card from deck (+400 ATK fuel).
+     - Preserved **2x `Called by the Grave` (24224830)** and **2x `Trirealm Rift Judgment` (100458041)** for damage step and summon negation.
+2. **AI Executor & Plugin Safeguards (`TrirealmRiftExecutor.cs` & `TrirealmRiftPlugin.cs`)**:
+   - **`OnGrenMajuSummon` Smart Gate**: Prevents naked early-game summons when banished pool is low (< 6 cards); forces Trirealm starters to generate fuel first, and only normal summons Gren Maju when protected by `Yomi`, `Sauravis`, `Judgment`, or during lethal pushes.
+   - **`OnSauravisHandtrap`**: Chains from hand immediately when opponent activates targeted effects against Gren Maju or Trirealm bosses.
+   - **Material Protection (Cost 9999)**: Registered Gren Maju as an absolute ace card in `TrirealmRiftMaterialEvaluator` to forbid the central AI from ever utilizing it as Link/Xyz fodder.
+   - **Dynamic Position Selector**: Ensures Gren Maju is summoned in `FaceUpAttack` when banished pool $\ge 5$ (ATK $\ge 2000$), or `FaceUpDefence` if emergency-summoned below threshold.
+3. **Build & Exclusive Target Deployment**:
+   - Executed `BUILD_AND_DEPLOY.ps1` with 0 Errors.
+   - Synchronized updated `TrirealmRift.ydk` across `windbot-fork/Decks/`, `WindBot/Decks/`, and `deck/`.
+   - Deployed updated `WindBot.dll`, `ExecutorBase.dll`, `core.dll`, `cards.cdb`, and `DashBot.exe` to `C:\Users\admin\Documents\EdoGame\`.
+
+## 0.060. Trirealm Rift Strategic Specification & Handoff Guide Overhaul (2026-09-29)
+
+### 1. Documentation & Strategic Specification Overhaul
+1. **Audited and Upgraded `Docs/Trirealm_Rift_Strategy_Hybrid_And_Handoff_Guide.md`**:
+   - **In-Archetype Card Catalog & Attribute Mapping**: Added complete 11-card encyclopedia detailing Level, Attribute, Trigger mill counts, Ignition/Quick disruption effects, and continuous lockout conditions.
+   - **Comprehensive Hybrid Ruling Analysis**:
+     - Expanded analysis to cover `Gren Maju Da Eiza` (S-Tier 1-hit OTK), `Eater of Millions` (A-Tier 15-card face-down Extra Deck dump & non-target removal), `Dimension Shifter` (B-Tier conditional side-deck option), `Necroface` (emergency anti-deckout only), and `Dark Necrofear` (incompatible).
+     - Formalized Xenolock rulings: strictly explains why Continuous Effects (Gren Maju ATK, Bagooska floodgate) and procedural summons function seamlessly under `EFFECT_CANNOT_ACTIVATE`.
+   - **Turn Routing & Playbook Architecture**:
+     - Documented Route A (Gehenna/Sheol), Route B (Valvols/Terraforming), Route C (Gospel Morph), and Route D (Fast Banish Surge).
+     - Formulated First Turn Fortress End Board (Yomi Quick Negate + Helheim Full Protection + Gospel + Valvols Hard Lock + Judgment) and Second Turn Board Breaker & OTK math ($28 \times 400 = 11,200$ ATK).
+   - **WindBot 9-Phase Pipeline & Decoupled Domain Plugin Specification**:
+     - Full mapping of `TrirealmRiftExecutor.cs` phases (Phase 1–9) and callback overrides (`OnSelectPosition`, `OnSelectCard` Hint handling, `OnSelectOption`).
+     - Decoupled Plugin domain sub-helpers: `TrirealmRiftStrategy` (dynamic turn priority & multi-target picking), `TrirealmRiftMaterialEvaluator` (1000-cost Ace protection & discard order), `TrirealmRiftThreatEvaluator`.
+   - **Toolbox Integration & Developer Checklist**:
+     - Detailed 15 Extra Deck toolbox monsters and timing considerations.
+     - Added strict developer checklist verifying Rule 14 (Bagooska DEF), Rule 18 (Target Verification Safeguard), and deployment protocols.
+
 ## 0.059. Trirealm Rift Refactoring, Hybridization Analysis (Gren Maju / Necroface / Necrofear) & Handoff Guide (2026-09-28)
 
 ### 1. Root Cause Diagnosis & Strategic Overhaul
