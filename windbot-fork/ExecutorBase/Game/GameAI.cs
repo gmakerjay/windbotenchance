@@ -769,6 +769,67 @@ namespace WindBot.Game
             return 0;
         }
 
+        public uint OnSelectDisfield(long hint, int count, uint available)
+        {
+            Executor?.Scorer?.ClearCache();
+            uint executor_selected = Executor.OnSelectDisfield(hint, count, available);
+            if (executor_selected != 0 && CountBits(executor_selected) == count && (executor_selected & available) == executor_selected)
+                return executor_selected;
+
+            // Default Smart Zone Lock Heuristic:
+            // 1. Opponent Monster Zones (Center -> Left-Center -> Right-Center -> Left-Edge -> Right-Edge -> EMZs)
+            uint[] oppMonsterZones = { 0x40000, 0x20000, 0x80000, 0x10000, 0x100000, 0x200000, 0x400000 };
+            uint selected = 0;
+            int picked = 0;
+
+            foreach (uint mask in oppMonsterZones)
+            {
+                if ((available & mask) != 0 && (selected & mask) == 0)
+                {
+                    selected |= mask;
+                    picked++;
+                    if (picked >= count) return selected;
+                }
+            }
+
+            // 2. Opponent Spell/Trap Zones
+            uint[] oppSpellZones = { 0x4000000, 0x2000000, 0x8000000, 0x1000000, 0x10000000 };
+            foreach (uint mask in oppSpellZones)
+            {
+                if ((available & mask) != 0 && (selected & mask) == 0)
+                {
+                    selected |= mask;
+                    picked++;
+                    if (picked >= count) return selected;
+                }
+            }
+
+            // 3. Fallback: Any remaining available zone in 'available'
+            for (int i = 0; i < 32 && picked < count; i++)
+            {
+                uint mask = 1u << i;
+                if ((available & mask) != 0 && (selected & mask) == 0)
+                {
+                    selected |= mask;
+                    picked++;
+                    if (picked >= count) return selected;
+                }
+            }
+
+            return selected;
+        }
+
+        private static int CountBits(uint val)
+        {
+            int c = 0;
+            while (val != 0)
+            {
+                c += (int)(val & 1);
+                val >>= 1;
+            }
+            return c;
+        }
+
         /// <summary>
         /// Called when the AI has to select a card position.
         /// </summary>

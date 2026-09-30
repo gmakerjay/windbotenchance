@@ -1411,7 +1411,114 @@ namespace WindBot.Game
 
         private void OnSelectDisfield(BinaryReader packet)
         {
-            OnSelectPlace(packet);
+            packet.ReadByte(); // player
+            int count = packet.ReadByte();
+            int rawField = packet.ReadInt32();
+
+            uint available = (uint)rawField;
+            if ((available & 0x80000000) != 0 || (available & 0x00E00000) != 0)
+            {
+                available = ~available;
+            }
+
+            Logger.WriteLine($"[SELECT-DISFIELD] count={count} raw=0x{rawField:X8} avail=0x{available:X8} hint={_select_hint}");
+
+            uint selected = _ai.OnSelectDisfield(_select_hint, count, available);
+            _select_hint = 0;
+
+            Logger.WriteLine($"[SELECT-DISFIELD] selected=0x{selected:X8}");
+
+            // OCGCore MSG_SELECT_DISFIELD expects count * 3 bytes: [player, location, sequence] per zone
+            List<(int player, CardLocation loc, int seq)> choices = new List<(int, CardLocation, int)>();
+
+            // 1. Extract valid bits from AI's selected mask that match available
+            for (int bit = 0; bit < 32; ++bit)
+            {
+                if ((selected & (1u << bit)) != 0 && (available & (1u << bit)) != 0)
+                {
+                    DecodeDisfieldBit(bit, out int p, out CardLocation l, out int s);
+                    choices.Add((p, l, s));
+                    if (choices.Count == count) break;
+                }
+            }
+
+            // 2. Fallback: if AI selected fewer than count, pick from available zones
+            if (choices.Count < count)
+            {
+                // Prefer opponent monster zones (bits 18, 17, 19, 16, 20, 21, 22), then player monster zones, then spell zones
+                int[] fallbackBitOrder = { 18, 17, 19, 16, 20, 21, 22, 2, 1, 3, 0, 4, 5, 6 };
+                foreach (int bit in fallbackBitOrder)
+                {
+                    if ((available & (1u << bit)) != 0)
+                    {
+                        DecodeDisfieldBit(bit, out int p, out CardLocation l, out int s);
+                        if (!choices.Any(c => c.player == p && c.loc == l && c.seq == s))
+                        {
+                            choices.Add((p, l, s));
+                            if (choices.Count == count) break;
+                        }
+                    }
+                }
+
+                // Any remaining available bit
+                if (choices.Count < count)
+                {
+                    for (int bit = 0; bit < 32; ++bit)
+                    {
+                        if ((available & (1u << bit)) != 0)
+                        {
+                            DecodeDisfieldBit(bit, out int p, out CardLocation l, out int s);
+                            if (!choices.Any(c => c.player == p && c.loc == l && c.seq == s))
+                            {
+                                choices.Add((p, l, s));
+                                if (choices.Count == count) break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            byte[] result = new byte[choices.Count * 3];
+            for (int i = 0; i < choices.Count; ++i)
+            {
+                result[i * 3] = (byte)GetLocalPlayer(choices[i].player);
+                result[i * 3 + 1] = (byte)choices[i].loc;
+                result[i * 3 + 2] = (byte)choices[i].seq;
+            }
+
+            Logger.WriteLine($"[SELECT-DISFIELD] Response: {choices.Count} zones ({result.Length} bytes): [{string.Join(", ", choices.Select(c => $"p={c.player},loc={c.loc},seq={c.seq}"))}]");
+
+            BinaryWriter reply = GamePacketFactory.Create(CtosMessage.Response);
+            reply.Write(result);
+            Connection.Send(reply);
+        }
+
+        private static void DecodeDisfieldBit(int bit, out int player, out CardLocation location, out int seq)
+        {
+            if (bit < 8)
+            {
+                player = 0;
+                location = CardLocation.MonsterZone;
+                seq = bit;
+            }
+            else if (bit < 16)
+            {
+                player = 0;
+                location = CardLocation.SpellZone;
+                seq = bit - 8;
+            }
+            else if (bit < 24)
+            {
+                player = 1;
+                location = CardLocation.MonsterZone;
+                seq = bit - 16;
+            }
+            else
+            {
+                player = 1;
+                location = CardLocation.SpellZone;
+                seq = bit - 24;
+            }
         }
 
         private void OnSelectEffectYn(BinaryReader packet)

@@ -1,5 +1,30 @@
 # Progress Log: Central Core Architecture & Universal Heuristics Overhaul
 
+## 0.065. OCGCore MSG_SELECT_DISFIELD Protocol Alignment, Ojama Lock & Dinosmasher ModernExecutor Overhaul (2026-09-30)
+
+### 1. OCGCore Binary Reverse Engineering & MSG_SELECT_DISFIELD Resolution
+- **Problem**: Playing `Ground Collapse` (`90502999`) or Ojama field-locking effects triggered `MSG_RETRY` from the server, causing instant socket disconnection and duel termination.
+- **Root Cause via Binary Disassembly (`ocgcore.dll` at `0x10045300`)**:
+  - The C++ engine handles `Duel.SelectDisableField` continuation by iterating through `count` selections.
+  - In each iteration, it reads **3 separate bytes**: `[byte 0 = player, byte 1 = location, byte 2 = sequence]`.
+  - For `count = 2`, OCGCore expects a payload of `count * 3 = 6 bytes`.
+  - WindBot previously sent `Connection.Send(CtosMessage.Response, (int)selected)`, which transmitted only a 4-byte raw integer bitmask. The engine failed to parse the expected 6 bytes, emitting `MSG_RETRY` and aborting.
+- **Resolution**:
+  - Implemented `DecodeDisfieldBit` in `GameBehavior.cs` to accurately convert the chosen bitmask into exact `(player, location, sequence)` tuples mapped to `GetLocalPlayer()`.
+  - Serialized the response into a `byte[count * 3]` array and dispatched it via `GamePacketFactory.Create(CtosMessage.Response)`.
+  - Supported all zone locking cards: `Ground Collapse` (`count = 2`), `Ojama King` (`count = 1`), `Ojama Knight` (`count = 1`), and generic column lock effects.
+
+### 2. Ojama Lock & Dinosmasher STACK-AWARE ModernExecutor Optimization
+- **Ground Collapse Anti-Self-Harm Guard**: Activated only when the opponent has at least 2 free Monster Zones (`oppFreeZones >= 2`), preventing forced lockouts of own zones.
+- **Stack-Aware / No Duplicate Waste**: Enforced strict `SpellSetStrategy` in `OjamaLockExecutor` and `DinosmasherExecutor` to never set duplicate Spells/Traps, preserving critical backrow zones for combo spells.
+- **Token Management & Multi-Dimensional Attack Logic**: Refactored `Lost World` Jurassic Token interaction in `DinosmasherExecutor` so attacks against opponent tokens are calculated based on whether destruction opens lethal OTK or enables `Survival's End` graveyard pop combos.
+
+### 3. Exclusive Deployment
+- Compiled with 0 errors via `BUILD_AND_DEPLOY.ps1`.
+- Deployed all updated binaries (`WindBot.dll`, `ExecutorBase.dll`, `core.dll`, `bots.json`, Decks) exclusively to `C:\Users\admin\Documents\EdoGame\`.
+
+---
+
 ## 0.064. Elfnote & Power Patron Full Thai Localization, Card Art Deployment & YDK Deck List Audit (2026-09-30)
 
 ### 1. Localization Architecture & Card Effect Translation (Thai)

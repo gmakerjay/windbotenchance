@@ -1,5 +1,41 @@
 [
   {
+    "name": "Dinosmasher",
+    "deck": "Dinosmasher",
+    "difficulty": 3,
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
+    "name": "OjamaLock",
+    "deck": "OjamaLock",
+    "difficulty": 3,
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
+    "name": "LairOfDarkness",
+    "deck": "LairOfDarkness",
+    "difficulty": 3,
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
+    "name": "IceBarrier",
+    "deck": "IceBarrier",
+    "difficulty": 3,
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
     "name": "SkyStrikerZero",
     "deck": "SkyStrikerZero",
     "difficulty": 3,
