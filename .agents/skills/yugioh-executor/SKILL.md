@@ -201,6 +201,44 @@ RemovalScore = ThreatValue + ZoneDenial + RecursionPrevention + ChainSafety + Bo
 - `BaitPlanner.EstimateHandTrapLikelihood(oppHand, oppDeck, estimatedHandtraps)` — ตัดสินใจส่ง Bait จากตัวเลข ไม่ใช่การเดา
 - Discard Cost: ใช้ `AtLeastOne` เช็คโอกาสได้ตัวทดแทน; ถ้าเป็น one-of สุดท้ายให้กันไว้
 
+### 4.7 Conjunction Fallacy & Attack-Negation Chaining 🔒
+- **กติกา "A, and if you do, B"**: การ์ดอย่าง `Magic Cylinder` (62279055) มีข้อความว่า *"Target 1 attacking monster; negate the attack, and if you do, inflict damage to your opponent equal to its ATK."*
+- **ห้าม Chain Attack-Negation ซ้อนกันเด็ดขาด**: หากสั่งร่าย `Magic Cylinder` หรือ `Dimension Wall` ซ้อนใส่กันใน Chain เดียวกัน:
+  - CL2 ทำงาน: ยกเลิกการโจมตีสำเร็จ $\rightarrow$ ยิงดาเมจตาม ATK
+  - CL1 ทำงาน: พยายามจะยกเลิกการโจมตี แต่การโจมตีถูกยกเลิกไปแล้วตั้งแต่ CL2! ส่วน A (negate the attack) จึงล้มเหลว $\rightarrow$ ส่วน B (inflict damage) ไม่เกิดขึ้นตามกติกา Conjunction! ส่งผลให้ **CL1 กลายเป็น 0 Damage และเสียการ์ดฟรีทันที!**
+  - เช่นเดียวกับ `Dimension Wall` (67095270): หากการโจมตีถูกยกเลิกไปแล้ว จะไม่มี Battle Damage ให้สะท้อนอีกต่อไป
+  - **การป้องกันในโค้ด**: ทุก Executor ที่มีกับดักสกัดโจมตี ต้องใส่ Guard:
+    `if (Duel.CurrentChain.Any(c => c.IsCode(CardId.MagicCylinder, CardId.DimensionWall))) return false;`
+- **การทำ Double Damage ที่ถูกต้องตามกติกา**: ไม่ใช่การกดใช้กระบอกเวทย์ 2 ใบซ้อนกัน แต่เกิดจาก Quick Effect ในสุสานของ `Magical Cylinders` (15943341): *"When an attack is declared... banish this card from your GY; double the effect damage inflicted by 'Magic Cylinder' to your opponent."* เมื่อ `Magic Cylinder` รีโซลฟ์ ผลสุสานจะคูณดาเมจให้เป็น 2 เท่าจริงๆ (เช่น 3000 ATK $\rightarrow$ 6000 Burn, 4000 ATK $\rightarrow$ 8000 OTK)
+
+### 4.8 Backrow Fortress Defense Architecture (รับมือ Harpie / Mass Backrow Wipe) 🎯
+เด็คสาย Backrow-heavy (กับดักหนาแน่น) มีจุดอ่อนร้ายแรงที่สุดคือการโดนล้างกระดานเวทย์/กับดักทั้งแผง เช่น `Harpie's Feather Duster` (18144506, 18144507), `Lightning Storm` (14532163), `Evenly Matched` (15693423), `Heavy Storm` (19613556), `Twin Twisters` (43898403), `Red Reboot` (23002292)
+การรับมือต้องใช้โครงสร้างการป้องกัน 3 ระดับ (Three-Layer Fortress Defense):
+1. **Layer 1: Pre-Emptive Aura Immunity (เกราะคุ้มกันถาวร)**:
+   - `Lord of the Heavenly Prison` (9822220): ประกาศหงายบนมือใน Main Phase $\rightarrow$ การ์ดที่หมอบอยู่บนสนามทั้งหมด **ไม่ถูกทำลายด้วยผลของการ์ดใดๆ ทั้งสิ้น** (Harpie / Lightning Storm กลายเป็นหมันทันที)
+2. **Layer 2: Spell Speed 3 Interception (สวนกลับด้วย Counter Trap ขั้นสูงสุด)**:
+   - `Solemn Judgment` (41420027, จ่ายครึ่ง LP ขัดขวางทุกเวทย์/กับดัก) และ `Dark Bribe` (77538567)
+   - ใน Executor ต้องเขียนเมธอด `IsMassBackrowWipe(card)` ดักตรวจ ID ล้างแผงหลังเพื่อสั่งให้ Counter Trap สวนกลับเป็นลำดับความสำคัญสูงสุด (Priority Tier 0) เสมอ
+3. **Layer 3: Floating Punishment Traps (กับดักระเบิดแก้ทาง)**:
+   - หากคู่แข่งล้างแผงหลังสำเร็จและไม่มี Counter Trap บนสนาม: ให้บรรจุ `Waking the Dragon` (10813327) หมอบรวมไว้ในแผงหลัง เมื่อการ์ดใบนี้ที่หมอบอยู่ถูกส่งออกจากสนามด้วยผลการ์ดของคู่แข่ง จะกระตุ้นผลเรียกมอนสเตอร์สุดยอดจาก Extra Deck หรือ Deck ออกมาทันที:
+     - `Raidraptor - Ultimate Falcon` (86221741): ATK 3500, ไม่รับผลของการ์ดใดๆ ทั้งสิ้น (Unaffected Tower)
+     - `The Last Warrior from Another Planet` (86099788): ล็อกไม่ให้ผู้เล่นทั้งสองฝ่ายอัญเชิญมอนสเตอร์ใดๆ ได้อีก (Complete Summon Lock)
+     - `Baronne de Fleur` (84815190): Omni-Negate 1 ครั้ง + ทำลายการ์ด 1 ใบต่อเทิร์น
+
+### 4.9 Dead Hand / Brick Mitigation Protocols 🎯
+เมื่อเกิดกรณี "Dead Hand" (มือเปิดไม่มีคอมโบสะท้อนดาเมจ หรือมือติดกับดักที่ไม่เข้าคู่กัน หรือคู่แข่งระแวงไม่ยอมสั่งโจมตี):
+1. **Consistency Engines (การขุดหาชิ้นส่วน)**:
+   - `Pot of Duality` (98645731) + `Pot of Prosperity` (84211599): ขุด 3-6 ใบเพื่อเลือกการ์ดชิ้นที่ขาด
+   - `Lilith, Lady of Lament` (23898021): สังเวยตัวเอง สุ่มหมอบ Normal Trap จากเด็ค 3 ใบ (หากเปิด `Magical Cylinders` 3 ใบ คู่แข่งจะถูกบังคับให้หมอบให้เรา 100%)
+   - `Wannabee!` (3248469): ส่งจากมือลงสุสานใน End Phase ขุดเด็คบนสุด 5 ใบ หากมีกับดักสามารถหมอบลงสนามได้ทันที
+   - `Trap Trick` (80101899): รีมูฟ 1 ใบเพื่อเซ็ตอีกใบจากเด็คแล้วเปิดใช้งานได้ในเทิร์นนั้นทันที
+2. **Forced Aggression (การบีบให้คู่แข่งต้องเล่น)**:
+   - เมื่อคู่แข่งรู้ว่าเป็นเด็คสะท้อนดาเมจและไม่ยอมโจมตี: ให้ร่าย `Battle Mania` (31245780) ใน Standby Phase ของคู่แข่ง $\rightarrow$ มอนสเตอร์คู่แข่งทุกตัวจะถูกบังคับเปลี่ยนเป็น Attack Position และ **ต้องประกาศโจมตีทุกตัวในเทิร์นนั้น** ทำให้กับดักสะท้อนดาเมจทำงานแน่นอน
+   - แจกของขวัญมอนสเตอร์ ATK สูงด้วย `Kaiju` (เช่น Jizukiru 3300 ATK) ส่งไปสนามคู่แข่ง แล้วใช้ `Battle Mania` บังคับให้ไคจูตีเข้ามา หรือสะท้อนดาเมจ 3300-6600 ในทันที
+3. **Alternative Win-Condition (แผนสำรองทางกายภาพ)**:
+   - หากกับดักหมดหรือไม่สามารถชนะด้วยดาเมจสะท้อนได้: สามารถใช้ `Lord of the Heavenly Prison` (Level 10, 3000 ATK) 2 ตัว Xyz เป็น `Superdreadnought Rail Cannon Gustav Max` ยิง 2000 Burn $\rightarrow$ ทับเป็น `Superdreadnought Rail Cannon Juggernaut Liebe` (6000 ATK ตีมอนสเตอร์ได้หลายรอบ) เพื่อบุกปิดเกมด้วยพลังโจมตีกายภาพ
+   - หรืออัญเชิญ `Super Starslayer TY-PHON - Sky Crisis` เพื่อตัดการทำงานของมอนสเตอร์คู่แข่งที่มี ATK 3000 ขึ้นไป
+
 ## 5. Anti-Patterns
 
 ### 5.1 🔒 HARD (ทำให้สนามพัง / ผิดนโยบาย)
@@ -214,6 +252,8 @@ RemovalScore = ThreatValue + ZoneDenial + RecursionPrevention + ChainSafety + Bo
 8. **Card ID / Banlist ต้องตรงกับ `cards.cdb` และ lflist**
 9. **Deploy เฉพาะ `C:\Users\admin\Documents\EdoGame\`**; **ไม่รัน Headless Simulation เองก่อนผู้ใช้สั่ง**
 10. **ต้องมี Decoupled Plugin ทุกเด็ค** (หัวข้อ 3)
+11. **Attack-Negation Chaining 🔒**: ห้าม Chain การ์ดที่ Negate การโจมตี (`Magic Cylinder`, `Dimension Wall`) ซ้อนใส่กันใน Chain เดียวกันเด็ดขาด เพราะ Conjunction "and if you do" จะทำให้ Chain Link หลังล้มเหลว (0 Damage เสียการ์ดฟรี)
+12. **Backrow Protection & Anti-Mass Wipe Awareness 🔒**: เด็คกับดักต้องมีมาตรการคุ้มกันแผงหลัง (Immunity / Counter Trap / Floating Mine เช่น Waking the Dragon) และต้องแมป Card ID ล้างแผงหลังให้ถูกต้องตรงตาม `cards.cdb` (18144506/18144507 Harpie, 14532163 Lightning Storm, 15693423 Evenly Matched, 43898403 Twin Twisters, 19613556 Heavy Storm, 23002292 Red Reboot)
 
 ### 5.2 🎯 DEFAULT (ปรับได้เมื่อมีเหตุผลเชิงเกม)
 | ค่าเริ่มต้น | ยกเว้นได้เมื่อ / เหตุผล |
@@ -283,6 +323,15 @@ ActionScore = BoardImpact + CounterNetGain + NegateValue + FutureUtility + Follo
 - **Loop**: `Gateway of the Six` (หัก 4 เคาน์เตอร์ เสิร์ช/กู้ Six Samurai) + `Battle Shogun` (Link-2 เสิร์ช Gateway ตอน Link Summon); รวม Counter จาก Gateway/Dojo/United เพื่อรู้จำนวนรอบเสิร์ชที่เหลือ
 - **Interruption**: S/T Negate = `Shi En` (Quick, เทิร์นละครั้ง + สังเวยซามูไรอื่นแทนถูกทำลาย); ควบคุมบอร์ด = `Great Shogun Shien` (ศัตรูร่าย S/T ได้เทิร์นละใบ) + Baronne de Fleur / Apollousa / S:P Little Knight; Quick Trap = `Six Style - Dual Wield` (เด้ง 2 ใบเมื่อคุมซามูไรตัวเดียวแบบตั้งโจมตี); Handtrap สล็อต Ash / Maxx "C" / Called by the Grave / Crossout Designator กัน Nibiru/Droll ตัดลูป
 - **Kizaru**: ตอน SS ตรวจ Attribute ของ Six Samurai บนสนาม แล้วเสิร์ชตัวที่ Attribute ต่างกัน
+
+### 8.3 Magical Cylinder & Counter-Reflect Trap Fortress (Reflect Control + Trap Immunity)
+- **True Double Damage Rule**: การเบิ้ลดาเมจ 2 เท่าทำได้โดยการใช้ Quick Effect ในสุสานของ `Magical Cylinders` (15943341) ร่ายคูณสองดาเมจให้ `Magic Cylinder` (62279055) ไม่ใช่การเชนกระบอกซ้อนกัน ห้ามเชน `Magic Cylinder` หรือ `Dimension Wall` ในเชนเดียวกันเด็ดขาด (ป้องกัน 0 Damage)
+- **3-Layer Fortress Against Mass Wipe**:
+  - *Layer 1*: `Lord of the Heavenly Prison` (9822220) หงายมือค้างไว้ ป้องกันการ์ดหมอบทุกใบจากการถูกทำลายด้วยผลการ์ด
+  - *Layer 2*: `Solemn Judgment` (41420027) และ `Dark Bribe` (77538567) สวนกลับ Mass Wipe ทันที
+  - *Layer 3*: `Waking the Dragon` (10813327) หมอบล่อเป้า เมื่อศัตรูล้างแผงหลัง จะลาก `Raidraptor - Ultimate Falcon` (3500 ATK อมตะทุกผล) หรือ `The Last Warrior from Another Planet` (Hard Summon Lock) ออกมาคุมกระดานทันที
+- **Forced Aggression & OTK Feed**: ใช้ `Battle Mania` (31245780) ใน Standby Phase บังคับมอนสเตอร์ศัตรูตั้งโจมตีและต้องตีทุกตัว หรือส่ง `Kaiju` (Jizukiru 3300 ATK) ให้ศัตรูเพื่อเป็นเป้าสะท้อน 3300-6600 ดาเมจ
+- **Beast Mode Recovery**: มือตันสามารถใช้ `Pot of Duality`, `Pot of Prosperity`, `Lilith` (เสิร์ชกับดักปกติ 3 ใบ), `Wannabee!` (ขุด 5 ใบ End Phase) หรือนำ `Lord of the Heavenly Prison` 2 ใบทำ Rank 10 `Gustav Max` (ยิง 2000) $\rightarrow$ `Juggernaut Liebe` (6000 ATK) ทุบปิดเกม
 
 ## 9. โปรโตคอล 3 ขั้น (Senior Game AI Engineer)
 

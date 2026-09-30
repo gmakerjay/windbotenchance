@@ -125,8 +125,8 @@ foreach ($d in $dirs) {
 }
 
 # Deploy WindBot binaries
-$windbotFiles = @("ExecutorBase.dll", "WindBot.dll", "core.dll", "bots.json")
-foreach ($f in $windbotFiles) {
+$windbotBinaries = @("ExecutorBase.dll", "WindBot.dll", "core.dll")
+foreach ($f in $windbotBinaries) {
     $src = Join-Path $PublishOutput $f
     if (Test-Path $src) {
         try {
@@ -145,10 +145,24 @@ foreach ($f in $windbotFiles) {
     }
 }
 
-# Deploy Decks & Dialogs (Exclusively to WindBot directory - preserve player's deck\ folder)
-Copy-Item (Join-Path $PublishOutput "Decks\*") (Join-Path $TargetDir "WindBot\Decks\") -Recurse -Force
-Copy-Item (Join-Path $PublishOutput "Dialogs\*") (Join-Path $TargetDir "WindBot\Dialogs\") -Recurse -Force
-Write-OK "Deployed Decks & Dialogs to WindBot"
+# Deploy bots.json from source of truth
+$sourceBotsJson = Join-Path $ScriptDir "windbot-fork\bots.json"
+if (Test-Path $sourceBotsJson) {
+    Copy-Item $sourceBotsJson (Join-Path $PublishOutput "bots.json") -Force
+    Copy-Item $sourceBotsJson (Join-Path $TargetDir "WindBot\bots.json") -Force
+    Copy-Item $sourceBotsJson (Join-Path $TargetDir "bots.json") -Force
+    Write-OK "Deployed bots.json"
+} else {
+    Write-Fail "Missing bots.json in windbot-fork"
+}
+
+# Deploy Decks & Dialogs (from source of truth)
+$sourceDecks = Join-Path $ScriptDir "windbot-fork\Decks\*"
+$sourceDialogs = Join-Path $ScriptDir "windbot-fork\Dialogs\*"
+Copy-Item $sourceDecks (Join-Path $TargetDir "WindBot\Decks\") -Recurse -Force
+Copy-Item $sourceDecks (Join-Path $TargetDir "deck\") -Recurse -Force
+Copy-Item $sourceDialogs (Join-Path $TargetDir "WindBot\Dialogs\") -Recurse -Force
+Write-OK "Deployed Decks & Dialogs to WindBot and game deck folder"
 
 # Deploy cards.cdb (Ensure full custom/prerelease cards are available for WindBot and EdoGame)
 $sourceCdb = Join-Path $ScriptDir "windbot-fork\cards.cdb"

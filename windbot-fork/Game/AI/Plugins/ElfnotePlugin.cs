@@ -13,7 +13,7 @@ namespace WindBot.Game.AI.Plugins
     // ═══════════════════════════════════════════════════════════════
     //  DECOUPLED DOMAIN PLUGIN ARCHITECTURE: ElfnotePlugin
     //  Decouples Domain Rules, Strategy, and Material Evaluation
-    //  for Elfnote / Power Patron Center-Zone Synchro Strategy
+    //  for Elfnote / Power Patron / Ars Magna / Theorealize Strategy
     // ═══════════════════════════════════════════════════════════════
     public class ElfnotePlugin : DeckPluginBase
     {
@@ -55,22 +55,41 @@ namespace WindBot.Game.AI.Plugins
         {
             if (candidates == null || candidates.Count == 0) return null;
 
+            // Context: Regina summoning from Deck to field
+            if (_exec.CurrentCard != null && _exec.CurrentCard.IsCode(ElfnoteExecutor.CardId.ElfnoteRegina))
+            {
+                // Must summon Tuner (ElfnotePowerPatron) first if we don't have one on field!
+                bool hasTuner = _exec.Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && (c.IsTuner() || c.IsCode(ElfnoteExecutor.CardId.ElfnotePowerPatron)));
+                if (!hasTuner)
+                {
+                    var tuner = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.ElfnotePowerPatron));
+                    if (tuner != null) return tuner;
+                }
+            }
+
             int[] priorities = {
-                ElfnoteExecutor.CardId.ElfnoteJunePride,
+                ElfnoteExecutor.CardId.ArtmageDiactorus,
+                ElfnoteExecutor.CardId.BaronneDeFleur,
                 ElfnoteExecutor.CardId.JunoraThePowerPatronOfTuning,
-                ElfnoteExecutor.CardId.ElfnoteSeraphimStrelitzia,
-                ElfnoteExecutor.CardId.ArmsOfGenexReturnZero,
+                ElfnoteExecutor.CardId.ElfnoteJunePride,
+                ElfnoteExecutor.CardId.MedicuriusThePowerPatronOfIllusions,
                 ElfnoteExecutor.CardId.CrystalWingSynchroDragon,
-                ElfnoteExecutor.CardId.StardustDragonVictimSanctuary,
                 ElfnoteExecutor.CardId.ChaosAngel,
+                ElfnoteExecutor.CardId.PSYFramelordOmega,
+                ElfnoteExecutor.CardId.RavenousCrocodragonArchethys,
+                ElfnoteExecutor.CardId.ElfnoteSeraphimStrelitzia,
+                ElfnoteExecutor.CardId.FADawnDragster,
+                ElfnoteExecutor.CardId.SPLittleKnight,
+                ElfnoteExecutor.CardId.ElfnotePowerPatron,
+                ElfnoteExecutor.CardId.ArsMagnaOfInfinityAndFinity,
+                ElfnoteExecutor.CardId.ArsMagnaOfPurificationAndCorruption,
+                ElfnoteExecutor.CardId.TheorealizeMedius,
+                ElfnoteExecutor.CardId.MediusThePure,
                 ElfnoteExecutor.CardId.ElfnoteRegina,
                 ElfnoteExecutor.CardId.ElfnoteLucina,
                 ElfnoteExecutor.CardId.ElfnoteTinia,
                 ElfnoteExecutor.CardId.ElfnoteFortuna,
-                ElfnoteExecutor.CardId.ElfnotePowerPatron,
-                ElfnoteExecutor.CardId.MediusThePure,
-                ElfnoteExecutor.CardId.StardustDragon,
-                ElfnoteExecutor.CardId.FADawnDragster
+                ElfnoteExecutor.CardId.JetSynchron
             };
 
             foreach (int id in priorities)
@@ -89,22 +108,80 @@ namespace WindBot.Game.AI.Plugins
             // Context 1: Terminus (Requires DARK Fairy monster)
             if (context != null && context.IsCode(ElfnoteExecutor.CardId.UnleashedPowerPatronPortalTerminus))
             {
-                var junordo = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.PowerPatronShadowSpiritJunordo));
-                if (junordo != null) return junordo;
+                // Medius the Pure is DARK Fairy and summons Power Patron / Tuner from Deck!
+                var pureMedius = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.MediusThePure));
+                if (pureMedius != null) return pureMedius;
+
+                var tm = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.TheorealizeMedius));
+                if (tm != null) return tm;
             }
 
             // Context 2: Medius the Pure (Searches or Summons Power Patron monster)
             if (context != null && context.IsCode(ElfnoteExecutor.CardId.MediusThePure))
             {
+                // If we have Ars Magna in hand or banished, prioritize Theorealize Medius to cheat Diactorus!
+                bool hasArsMagna = _exec.Bot.Hand.Any(c => c != null && c.IsCode(ElfnoteExecutor.CardId.ArsMagnaOfInfinityAndFinity))
+                                || _exec.Bot.Banished.Any(c => c != null && c.IsCode(ElfnoteExecutor.CardId.ArsMagnaOfInfinityAndFinity));
+                if (hasArsMagna)
+                {
+                    var tm = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.TheorealizeMedius));
+                    if (tm != null) return tm;
+                }
+
                 var junordo = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.PowerPatronShadowSpiritJunordo));
                 if (junordo != null) return junordo;
-                var vidrium = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.VidriumThePowerPatronOfChaosExtermination));
-                if (vidrium != null) return vidrium;
+
                 var elfPatron = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.ElfnotePowerPatron));
                 if (elfPatron != null) return elfPatron;
             }
 
-            // Context 3: Lucina (Searches Elfnote monster)
+            // Context 3: Theorealize Medius (Searches Theorealize Spell/Trap)
+            if (context != null && context.IsCode(ElfnoteExecutor.CardId.TheorealizeMedius))
+            {
+                var pastLull = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.TheorealizePastLull));
+                if (pastLull != null) return pastLull;
+            }
+
+            // Context 4: Ars Magna of Infinity and Finity (Searches non-Warrior Ars Magna)
+            if (context != null && context.IsCode(ElfnoteExecutor.CardId.ArsMagnaOfInfinityAndFinity))
+            {
+                var purif = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.ArsMagnaOfPurificationAndCorruption));
+                if (purif != null) return purif;
+            }
+
+            // Context 5: Ars Magna of Purification and Corruption (Searches Ars Magna Spell/Trap)
+            if (context != null && context.IsCode(ElfnoteExecutor.CardId.ArsMagnaOfPurificationAndCorruption))
+            {
+                var citrinitas = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.ArsMagnaCitrinitas));
+                if (citrinitas != null) return citrinitas;
+            }
+
+            // Context 6: Ars Magna - "Citrinitas" (Searches Medius or Ars Magna monster)
+            if (context != null && context.IsCode(ElfnoteExecutor.CardId.ArsMagnaCitrinitas))
+            {
+                bool hasTheorealizeMedius = _exec.Bot.Hand.Any(c => c != null && c.IsCode(ElfnoteExecutor.CardId.TheorealizeMedius))
+                                         || _exec.Bot.GetMonsters().Any(c => c != null && c.IsCode(ElfnoteExecutor.CardId.TheorealizeMedius));
+                if (!hasTheorealizeMedius)
+                {
+                    var tm = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.TheorealizeMedius));
+                    if (tm != null) return tm;
+                }
+
+                var pureMedius = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.MediusThePure));
+                if (pureMedius != null) return pureMedius;
+
+                var infinity = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.ArsMagnaOfInfinityAndFinity));
+                if (infinity != null) return infinity;
+            }
+
+            // Context 7: Purification Power Patron (Searches Theorealize card)
+            if (context != null && context.IsCode(ElfnoteExecutor.CardId.PurificationPowerPatron))
+            {
+                var pastLull = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.TheorealizePastLull));
+                if (pastLull != null) return pastLull;
+            }
+
+            // Context 8: Lucina (Searches Elfnote monster)
             if (context != null && context.IsCode(ElfnoteExecutor.CardId.ElfnoteLucina))
             {
                 bool hasTuner = _exec.Bot.Hand.Any(c => c != null && c.IsCode(ElfnoteExecutor.CardId.ElfnotePowerPatron))
@@ -133,7 +210,7 @@ namespace WindBot.Game.AI.Plugins
                 if (fortuna != null) return fortuna;
             }
 
-            // Context 4: Elfnote Power Patron (Searches ANY Elfnote card)
+            // Context 9: Elfnote Power Patron (Searches ANY Elfnote card)
             if (context != null && context.IsCode(ElfnoteExecutor.CardId.ElfnotePowerPatron))
             {
                 bool hasRhapsodia = _exec.Bot.GetSpells().Any(c => c != null && c.IsCode(ElfnoteExecutor.CardId.ElfnotesRhapsodiaOfMadness))
@@ -142,14 +219,6 @@ namespace WindBot.Game.AI.Plugins
                 {
                     var rhapsodia = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.ElfnotesRhapsodiaOfMadness));
                     if (rhapsodia != null) return rhapsodia;
-                }
-
-                bool hasAristeia = _exec.Bot.GetSpells().Any(c => c != null && c.IsCode(ElfnoteExecutor.CardId.ElfnotesAristeiaOfTrust))
-                                || _exec.Bot.Hand.Any(c => c != null && c.IsCode(ElfnoteExecutor.CardId.ElfnotesAristeiaOfTrust));
-                if (!hasAristeia)
-                {
-                    var aristeia = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.ElfnotesAristeiaOfTrust));
-                    if (aristeia != null) return aristeia;
                 }
 
                 bool hasWelcome = _exec.Bot.GetSpells().Any(c => c != null && c.IsCode(ElfnoteExecutor.CardId.ElfnotesWelcomeHome))
@@ -162,6 +231,9 @@ namespace WindBot.Game.AI.Plugins
 
                 var lucina = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.ElfnoteLucina));
                 if (lucina != null) return lucina;
+
+                var regina = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.ElfnoteRegina));
+                if (regina != null) return regina;
             }
 
             // General Priority Fallback
@@ -169,9 +241,14 @@ namespace WindBot.Game.AI.Plugins
                 ElfnoteExecutor.CardId.ElfnotePowerPatron,
                 ElfnoteExecutor.CardId.ElfnoteRegina,
                 ElfnoteExecutor.CardId.ElfnoteLucina,
+                ElfnoteExecutor.CardId.TheorealizeMedius,
+                ElfnoteExecutor.CardId.MediusThePure,
+                ElfnoteExecutor.CardId.ArsMagnaCitrinitas,
+                ElfnoteExecutor.CardId.ArsMagnaOfInfinityAndFinity,
+                ElfnoteExecutor.CardId.ArsMagnaOfPurificationAndCorruption,
+                ElfnoteExecutor.CardId.TheorealizePastLull,
                 ElfnoteExecutor.CardId.ElfnoteTinia,
                 ElfnoteExecutor.CardId.ElfnotesRhapsodiaOfMadness,
-                ElfnoteExecutor.CardId.ElfnotesAristeiaOfTrust,
                 ElfnoteExecutor.CardId.ElfnotesWelcomeHome,
                 ElfnoteExecutor.CardId.PowerPatronShadowSpiritJunordo,
                 ElfnoteExecutor.CardId.ElfnoteFortuna
@@ -193,23 +270,15 @@ namespace WindBot.Game.AI.Plugins
             // Context: Terminus (Dumps Power Patron from Deck/Extra Deck)
             if (context != null && context.IsCode(ElfnoteExecutor.CardId.UnleashedPowerPatronPortalTerminus))
             {
+                // Dump Medicurius or Junora or Purification to set up GY Power Patron
+                var medicurius = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.MedicuriusThePowerPatronOfIllusions));
+                if (medicurius != null) return medicurius;
+
                 var junora = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.JunoraThePowerPatronOfTuning));
                 if (junora != null) return junora;
-                var vidrium = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.VidriumThePowerPatronOfChaosExtermination));
-                if (vidrium != null) return vidrium;
+
                 var linkPatron = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.PurificationPowerPatron));
                 if (linkPatron != null) return linkPatron;
-            }
-
-            // Context: Fidraulis Harmonia (Sends 1 revealed Synchro to GY)
-            if (context != null && context.IsCode(ElfnoteExecutor.CardId.FidraulisHarmonia))
-            {
-                var victimSanctuary = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.StardustDragonVictimSanctuary));
-                if (victimSanctuary != null) return victimSanctuary;
-                var malong = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.GoldenCloudBeastMalong));
-                if (malong != null) return malong;
-                var pegasus = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.WindPegasusIgnister));
-                if (pegasus != null) return pegasus;
             }
 
             return candidates.FirstOrDefault();
@@ -226,23 +295,24 @@ namespace WindBot.Game.AI.Plugins
             if (card == null) return 0;
 
             // 1. Absolute Boss Protection - DO NOT TRIBUTE OR SEND TO GY UNLESS REQUIRED
-            if (card.IsCode(ElfnoteExecutor.CardId.ElfnoteJunePride,
+            if (card.IsCode(ElfnoteExecutor.CardId.ArtmageDiactorus,
+                            ElfnoteExecutor.CardId.BaronneDeFleur,
                             ElfnoteExecutor.CardId.JunoraThePowerPatronOfTuning,
-                            ElfnoteExecutor.CardId.ArmsOfGenexReturnZero,
+                            ElfnoteExecutor.CardId.ElfnoteJunePride,
+                            ElfnoteExecutor.CardId.MedicuriusThePowerPatronOfIllusions,
                             ElfnoteExecutor.CardId.CrystalWingSynchroDragon,
                             ElfnoteExecutor.CardId.ChaosAngel,
-                            ElfnoteExecutor.CardId.StardustDragonVictimSanctuary,
-                            ElfnoteExecutor.CardId.StardustWarrior,
-                            ElfnoteExecutor.CardId.StardustDragon,
-                            ElfnoteExecutor.CardId.FADawnDragster))
+                            ElfnoteExecutor.CardId.PSYFramelordOmega,
+                            ElfnoteExecutor.CardId.FADawnDragster,
+                            ElfnoteExecutor.CardId.RavenousCrocodragonArchethys,
+                            ElfnoteExecutor.CardId.SPLittleKnight))
             {
                 return 1000;
             }
 
-            // 2. Continuous Traps / High Value Board Locks
+            // 2. Continuous Traps & Spells / High Value Board Locks
             if (card.IsCode(ElfnoteExecutor.CardId.ElfnotesRhapsodiaOfMadness,
-                            ElfnoteExecutor.CardId.ElfnotesAristeiaOfTrust,
-                            ElfnoteExecutor.CardId.AntiSpellFragrance,
+                            ElfnoteExecutor.CardId.ArsMagnaCitrinitas,
                             ElfnoteExecutor.CardId.SolemnJudgment))
             {
                 return 800;
@@ -260,17 +330,16 @@ namespace WindBot.Game.AI.Plugins
                 return 10;
             }
 
-            // 5. GY-trigger cards
-            if (card.IsCode(ElfnoteExecutor.CardId.VidriumThePowerPatronOfChaosExtermination,
-                            ElfnoteExecutor.CardId.MediusThePure,
-                            ElfnoteExecutor.CardId.BystialDruiswurm))
+            // 5. GY-trigger or self-reviving cards
+            if (card.IsCode(ElfnoteExecutor.CardId.JetSynchron,
+                            ElfnoteExecutor.CardId.MediusThePure))
             {
                 return 20;
             }
 
             // 6. Generic low-priority fodder
             if (card.IsCode(ElfnoteExecutor.CardId.PurificationPowerPatron,
-                            ElfnoteExecutor.CardId.MediusThePure))
+                            ElfnoteExecutor.CardId.TheorealizeMedius))
             {
                 return 30;
             }
@@ -292,9 +361,9 @@ namespace WindBot.Game.AI.Plugins
             var regina = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.ElfnoteRegina));
             if (regina != null) return regina;
 
-            // Prioritize Vidrium (has GY banish removal)
-            var vidrium = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.VidriumThePowerPatronOfChaosExtermination));
-            if (vidrium != null) return vidrium;
+            // Prioritize Jet Synchron (can revive from GY)
+            var jet = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.JetSynchron));
+            if (jet != null) return jet;
 
             // Prioritize Medius (can revive itself from GY)
             var medius = candidates.FirstOrDefault(c => c != null && c.IsCode(ElfnoteExecutor.CardId.MediusThePure));

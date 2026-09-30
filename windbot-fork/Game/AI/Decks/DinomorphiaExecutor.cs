@@ -113,6 +113,7 @@ namespace WindBot.Game.AI.Decks
         public DinomorphiaExecutor(GameAI ai, Duel duel) : base(ai, duel)
         {
             Plugin = new DinomorphiaPlugin(this);
+            DeckPlugin = Plugin;
 
             // Register strategic assets
             ResourcePlan.RegisterAceCards(
@@ -859,7 +860,7 @@ namespace WindBot.Game.AI.Decks
                 return new List<ClientCard> { kentregina };
             }
 
-            // 3. Select Card to Set from Deck (Therizia / Trap Trick)
+            // 3. Select Card to Set from Deck (Therizia / Trap Trick / Lord of Heavenly Prison)
             if (hint == HINT_SELECT_SET)
             {
                 var frenzy = cards.FirstOrDefault(c => c.Id == CardId.DinomorphiaFrenzy);
@@ -868,13 +869,20 @@ namespace WindBot.Game.AI.Decks
                 var domain = cards.FirstOrDefault(c => c.Id == CardId.DinomorphiaDomain);
                 if (domain != null && !Bot.HasInSpellZone(CardId.DinomorphiaDomain)) return new List<ClientCard> { domain };
 
+                var judgment = cards.FirstOrDefault(c => c.Id == CardId.SolemnJudgment);
+                if (judgment != null && !Bot.HasInSpellZone(CardId.SolemnJudgment)) return new List<ClientCard> { judgment };
+
+                var ferret = cards.FirstOrDefault(c => c.Id == CardId.FerretFlames);
+                if (ferret != null && !Bot.HasInSpellZone(CardId.FerretFlames) && Enemy.GetMonsterCount() > 0) return new List<ClientCard> { ferret };
+
                 var intact = cards.FirstOrDefault(c => c.Id == CardId.DinomorphiaIntact);
-                if (intact != null) return new List<ClientCard> { intact };
+                if (intact != null && !Bot.HasInSpellZone(CardId.DinomorphiaIntact)) return new List<ClientCard> { intact };
 
                 if (min <= 1 && 1 <= max)
                 {
-                    var ferret = cards.FirstOrDefault(c => c.Id == CardId.FerretFlames);
                     if (ferret != null) return new List<ClientCard> { ferret };
+                    if (judgment != null) return new List<ClientCard> { judgment };
+                    if (intact != null) return new List<ClientCard> { intact };
                 }
             }
 
@@ -941,14 +949,24 @@ namespace WindBot.Game.AI.Decks
                     var addTherizia = cards.FirstOrDefault(c => c.Id == CardId.DinomorphiaTherizia);
                     if (addTherizia != null && !Bot.HasInHand(CardId.DinomorphiaTherizia)) return new List<ClientCard> { addTherizia };
 
+                    var addPrison = cards.FirstOrDefault(c => c.Id == CardId.LordOfTheHeavenlyPrison);
+                    if (addPrison != null && !Bot.HasInHand(CardId.LordOfTheHeavenlyPrison) && Bot.GetSpells().Any(s => s != null && s.IsFacedown()))
+                        return new List<ClientCard> { addPrison };
+
+                    var addFrenzy = cards.FirstOrDefault(c => c.Id == CardId.DinomorphiaFrenzy);
+                    if (addFrenzy != null && !Bot.HasInHand(CardId.DinomorphiaFrenzy) && !Bot.HasInSpellZone(CardId.DinomorphiaFrenzy)) return new List<ClientCard> { addFrenzy };
+
+                    var addJudgment = cards.FirstOrDefault(c => c.Id == CardId.SolemnJudgment);
+                    if (addJudgment != null && !Bot.HasInHand(CardId.SolemnJudgment) && !Bot.HasInSpellZone(CardId.SolemnJudgment)) return new List<ClientCard> { addJudgment };
+
                     var addMisc = cards.FirstOrDefault(c => c.Id == CardId.Miscellaneousaurus);
                     if (addMisc != null && !Bot.HasInHand(CardId.Miscellaneousaurus)) return new List<ClientCard> { addMisc };
 
-                    var addFrenzy = cards.FirstOrDefault(c => c.Id == CardId.DinomorphiaFrenzy);
-                    if (addFrenzy != null) return new List<ClientCard> { addFrenzy };
-
                     var addDomain = cards.FirstOrDefault(c => c.Id == CardId.DinomorphiaDomain);
-                    if (addDomain != null) return new List<ClientCard> { addDomain };
+                    if (addDomain != null && !Bot.HasInHand(CardId.DinomorphiaDomain) && !Bot.HasInSpellZone(CardId.DinomorphiaDomain)) return new List<ClientCard> { addDomain };
+
+                    var addFerret = cards.FirstOrDefault(c => c.Id == CardId.FerretFlames);
+                    if (addFerret != null) return new List<ClientCard> { addFerret };
                 }
             }
 

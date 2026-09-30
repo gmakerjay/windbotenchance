@@ -2628,6 +2628,17 @@
     ]
   },
   {
+    "name": "Magical Cylinder",
+    "deck": "MagicalCylinder",
+    "dialog": "default",
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
     "name": "Dinomorphia",
     "deck": "Dinomorphia",
     "dialog": "default",
@@ -2700,6 +2711,12 @@
     "flags": [
       "OCG",
       "TCG"
+    ],
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
     ]
   },
   {
@@ -2709,6 +2726,12 @@
     "flags": [
       "OCG",
       "TCG"
+    ],
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
     ]
   },
   {
@@ -2718,6 +2741,12 @@
     "flags": [
       "OCG",
       "TCG"
+    ],
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
     ]
   },
   {
@@ -2727,6 +2756,12 @@
     "flags": [
       "OCG",
       "TCG"
+    ],
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
     ]
   },
   {
@@ -2736,6 +2771,12 @@
     "flags": [
       "OCG",
       "TCG"
+    ],
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
     ]
   },
   {
@@ -2745,6 +2786,12 @@
     "flags": [
       "OCG",
       "TCG"
+    ],
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
     ]
   },
   {
@@ -2754,6 +2801,12 @@
     "flags": [
       "OCG",
       "TCG"
+    ],
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
     ]
   },
   {
@@ -2763,6 +2816,12 @@
     "flags": [
       "OCG",
       "TCG"
+    ],
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
     ]
   },
   {
@@ -2772,6 +2831,12 @@
     "flags": [
       "OCG",
       "TCG"
+    ],
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
     ]
   },
   {
@@ -2781,6 +2846,12 @@
     "flags": [
       "OCG",
       "TCG"
+    ],
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
     ]
   },
   {
@@ -2790,6 +2861,12 @@
     "flags": [
       "OCG",
       "TCG"
+    ],
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
     ]
   },
   {
@@ -2799,6 +2876,12 @@
     "flags": [
       "OCG",
       "TCG"
+    ],
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
     ]
   },
   {
@@ -2808,6 +2891,12 @@
     "flags": [
       "OCG",
       "TCG"
+    ],
+    "difficulty": 3,
+    "masterRules": [
+      3,
+      4,
+      5
     ]
   },
   {
@@ -2828,6 +2917,51 @@
   {
     "name": "2026_TrirealmRift",
     "deck": "TrirealmRift",
+    "difficulty": 3,
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ],
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Elfnote",
+    "deck": "Elfnote",
+    "difficulty": 3,
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ],
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "ElfnotePowerPatron",
+    "deck": "ElfnotePowerPatron",
+    "difficulty": 3,
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ],
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "2026_Elfnote",
+    "deck": "Elfnote",
     "difficulty": 3,
     "dialog": "default",
     "flags": [

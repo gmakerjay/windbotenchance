@@ -12,70 +12,77 @@ using YGOSharp.OCGWrapper.Enums;
 namespace WindBot.Game.AI.Decks
 {
     [Deck("Elfnote", "Elfnote")]
+    [Deck("ElfnotePowerPatron", "Elfnote")]
+    [Deck("2026_Elfnote", "Elfnote")]
     public class ElfnoteExecutor : ModernExecutor
     {
         public static class CardId
         {
-            // Main Deck Monsters
+            // Main Deck Monsters - Elfnote, Power Patron, Theorealize, Ars Magna
             public const int ElfnoteLucina = 13597785;
             public const int ElfnoteRegina = 56651978;
             public const int ElfnoteTinia = 59581480;
             public const int ElfnoteFortuna = 85976588;
             public const int ElfnotePowerPatron = 12375297;
             public const int PowerPatronShadowSpiritJunordo = 10266279;
+            public const int TheorealizeMedius = 90875418;
             public const int MediusThePure = 97556336;
-            public const int VidriumThePowerPatronOfChaosExtermination = 70488851;
-            public const int FidraulisHarmonia = 70088809;
-            public const int AshBlossom = 14558127;
-            public const int AshBlossomAlt = 14558128;
-            public const int BystialDruiswurm = 6637331;
-            public const int BystialMagnamhut = 33854624;
+            public const int ArsMagnaOfInfinityAndFinity = 36270527;
+            public const int ArsMagnaOfPurificationAndCorruption = 62368221;
+            public const int JetSynchron = 9742784;
+
+            // Handtraps
+            public const int AshBlossom = 14558128;
+            public const int AshBlossomAlt = 14558127;
+            public const int GhostOgre = 59438931;
+            public const int MaxxC = 23434538;
+            public const int NibiruThePrimalBeing = 27204313;
+            public const int MulcharmyFuwalos = 42141493;
 
             // Spells
             public const int UnleashedPowerPatronPortalTerminus = 25661743;
             public const int ElfnotesWelcomeHome = 64491754;
             public const int TheorealizePastLull = 36709484;
-            public const int CalledByTheGrave = 24224830;
-            public const int CalledByTheGraveAlt = 24224831;
+            public const int ArsMagnaCitrinitas = 37279096;
             public const int TripleTacticsTalent = 25311006;
 
             // Traps
             public const int ElfnotesRhapsodiaOfMadness = 24092792;
-            public const int ElfnotesAristeiaOfTrust = 50590801;
-            public const int SolemnJudgment = 41420027;
             public const int InfiniteImpermanence = 10045474;
-            public const int AntiSpellFragrance = 58921041;
-            public const int SynchroEmergency = 49415281;
+            public const int SolemnJudgment = 41420027;
 
             // Extra Deck
-            public const int ElfnoteJunePride = 5559570;
+            public const int ArtmageDiactorus = 27184601;
             public const int JunoraThePowerPatronOfTuning = 5914858;
+            public const int ElfnoteJunePride = 5559570;
             public const int ElfnoteSeraphimStrelitzia = 42302563;
-            public const int ArmsOfGenexReturnZero = 61775475;
-            public const int ChaosAngel = 22850702;
+            public const int BaronneDeFleur = 84815190;
             public const int CrystalWingSynchroDragon = 50954680;
-            public const int StardustDragonVictimSanctuary = 76636978;
-            public const int AccelSynchroStardustDragon = 30983281;
-            public const int StardustDragon = 44508094;
+            public const int PSYFramelordOmega = 74586817;
+            public const int ChaosAngel = 22850702;
             public const int FADawnDragster = 33158448;
-            public const int WindPegasusIgnister = 98506199;
-            public const int GoldenCloudBeastMalong = 93125329;
-            public const int BlackRoseDragon = 73580471;
-            public const int StardustWarrior = 74892653;
+            public const int BlackRoseDragon = 73580472;
+            public const int BlackRoseDragonAlt = 73580471;
+            public const int AccelSynchron = 37675907;
+            public const int RavenousCrocodragonArchethys = 87188910;
             public const int PurificationPowerPatron = 31822037;
+            public const int MedicuriusThePowerPatronOfIllusions = 4063756;
+            public const int SPLittleKnight = 29301451;
         }
 
         private static readonly int[] BossMonsters = {
-            CardId.ElfnoteJunePride,
+            CardId.ArtmageDiactorus,
+            CardId.BaronneDeFleur,
             CardId.JunoraThePowerPatronOfTuning,
-            CardId.ArmsOfGenexReturnZero,
+            CardId.ElfnoteJunePride,
+            CardId.MedicuriusThePowerPatronOfIllusions,
             CardId.CrystalWingSynchroDragon,
             CardId.ChaosAngel,
-            CardId.StardustDragonVictimSanctuary,
-            CardId.StardustWarrior,
-            CardId.StardustDragon,
+            CardId.PSYFramelordOmega,
             CardId.FADawnDragster,
-            CardId.ElfnoteSeraphimStrelitzia
+            CardId.RavenousCrocodragonArchethys,
+            CardId.ElfnoteSeraphimStrelitzia,
+            CardId.SPLittleKnight
         };
 
         private static readonly int[] ElfnoteCenterMonsters = {
@@ -88,6 +95,7 @@ namespace WindBot.Game.AI.Decks
         };
 
         internal ElfnotePlugin Plugin { get; private set; }
+        public ClientCard CurrentCard => Card;
 
         private bool _junePrideSwarmedThisTurn = false;
         private bool _lucinaSearchUsed = false;
@@ -97,6 +105,10 @@ namespace WindBot.Game.AI.Decks
         private bool _powerPatronModulatedUsed = false;
         private bool _terminusUsed = false;
         private bool _junordoUsed = false;
+        private bool _theorealizeMediusUsed = false;
+        private bool _arsMagnaInfinityUsed = false;
+        private bool _arsMagnaPurificationUsed = false;
+        private bool _citrinitasUsed = false;
 
         public ElfnoteExecutor(GameAI ai, Duel duel)
             : base(ai, duel)
@@ -120,6 +132,10 @@ namespace WindBot.Game.AI.Decks
             _powerPatronModulatedUsed = false;
             _terminusUsed = false;
             _junordoUsed = false;
+            _theorealizeMediusUsed = false;
+            _arsMagnaInfinityUsed = false;
+            _arsMagnaPurificationUsed = false;
+            _citrinitasUsed = false;
             Plugin?.ResetTurnState();
         }
 
@@ -141,24 +157,28 @@ namespace WindBot.Game.AI.Decks
                 CardId.UnleashedPowerPatronPortalTerminus,
                 CardId.ElfnotesWelcomeHome,
                 CardId.MediusThePure,
-                CardId.PowerPatronShadowSpiritJunordo
+                CardId.TheorealizeMedius,
+                CardId.PowerPatronShadowSpiritJunordo,
+                CardId.ArsMagnaOfInfinityAndFinity
             );
             BaitPlanner.RegisterBaitCards(
                 CardId.TheorealizePastLull,
-                CardId.TripleTacticsTalent
+                CardId.TripleTacticsTalent,
+                CardId.ArsMagnaCitrinitas
             );
 
             // 3. Negators & Chain Disruption
             ChainAdvisor.RegisterHighValueTargets(
                 CardId.SolemnJudgment,
+                CardId.ArtmageDiactorus,
+                CardId.BaronneDeFleur,
                 CardId.CrystalWingSynchroDragon,
-                CardId.ArmsOfGenexReturnZero,
-                CardId.StardustDragonVictimSanctuary,
                 CardId.FADawnDragster,
-                CardId.ElfnotesAristeiaOfTrust,
-                CardId.CalledByTheGrave,
+                CardId.ElfnotesRhapsodiaOfMadness,
                 CardId.InfiniteImpermanence,
-                CardId.AshBlossom
+                CardId.AshBlossom,
+                CardId.AshBlossomAlt,
+                CardId.GhostOgre
             );
         }
 
@@ -168,11 +188,14 @@ namespace WindBot.Game.AI.Decks
             // TIER 0: COUNTER-TRAPS, QUICK NEGATORS & HANDTRAPS
             // ═══════════════════════════════════════════════════════════════
 
-            // Solemn Judgment: Protect our Center Zone and deny opponent boss / board breaker
+            // Solemn Judgment: Protect Center Zone and negate opponent critical cards
             AddExecutor(ExecutorType.Activate, CardId.SolemnJudgment, DefaultSolemnJudgment);
 
-            // Called by the Grave: Negate opponent Handtraps (Ash, Droll, Maxx C) or GY bosses
-            AddExecutor(ExecutorType.Activate, CardId.CalledByTheGrave, DefaultCalledByTheGrave);
+            // Maxx "C": Draw on special summons
+            AddExecutor(ExecutorType.Activate, CardId.MaxxC, DefaultMaxxC);
+
+            // Mulcharmy Fuwalos: Quick Effect from hand when we control no cards
+            AddExecutor(ExecutorType.Activate, CardId.MulcharmyFuwalos, MulcharmyFuwalosActivate);
 
             // Infinite Impermanence: Handtrap or set trap monster negate
             AddExecutor(ExecutorType.Activate, CardId.InfiniteImpermanence, DefaultInfiniteImpermanence);
@@ -181,128 +204,142 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.Activate, CardId.AshBlossom, DefaultAshBlossomAndJoyousSpring);
             AddExecutor(ExecutorType.Activate, CardId.AshBlossomAlt, DefaultAshBlossomAndJoyousSpring);
 
-            // Stardust Dragon - Victim Sanctuary: Negate opponent response and destroy!
-            AddExecutor(ExecutorType.Activate, CardId.StardustDragonVictimSanctuary, VictimSanctuaryActivate);
+            // Ghost Ogre & Snow Rabbit: Destroy card that activates on field
+            AddExecutor(ExecutorType.Activate, CardId.GhostOgre, DefaultGhostOgreAndSnowRabbit);
+
+            // Nibiru, the Primal Being: Board wipe if enemy summoned 5+ monsters
+            AddExecutor(ExecutorType.Activate, CardId.NibiruThePrimalBeing, DefaultNibiru);
+
+            // Baronne de Fleur: Omni-negate activation
+            AddExecutor(ExecutorType.Activate, CardId.BaronneDeFleur, BaronneNegate);
+
+            // Artmage Diactorus: Omni-negate on-field card/effect when 3+ races on field
+            AddExecutor(ExecutorType.Activate, CardId.ArtmageDiactorus, DiactorusNegate);
 
             // Crystal Wing Synchro Dragon: Negate monster effect activation and destroy
             AddExecutor(ExecutorType.Activate, CardId.CrystalWingSynchroDragon, CrystalWingEffect);
 
-            // Arms of Genex Return Zero: Omni-negate matching attribute in GY
-            AddExecutor(ExecutorType.Activate, CardId.ArmsOfGenexReturnZero, ReturnZeroActivate);
-
             // F.A. Dawn Dragster: Spell/Trap negate
             AddExecutor(ExecutorType.Activate, CardId.FADawnDragster, DawnDragsterEffect);
-
-            // Stardust Dragon: Negate destruction
-            AddExecutor(ExecutorType.Activate, CardId.StardustDragon, StardustDragonEffect);
-
-            // Elfnotes: Aristeia of Trust: Negate and destroy Spell/Trap if we control 3+ Elfnotes
-            AddExecutor(ExecutorType.Activate, CardId.ElfnotesAristeiaOfTrust, AristeiaActivate);
 
             // Elfnotes: Rhapsodia of Madness: Negate face-up card if we control a Synchro Monster
             AddExecutor(ExecutorType.Activate, CardId.ElfnotesRhapsodiaOfMadness, RhapsodiaActivate);
 
-            // Fidraulis Harmonia: Quick Effect from hand when opponent activates monster effect
-            AddExecutor(ExecutorType.Activate, CardId.FidraulisHarmonia, HarmoniaActivate);
+            // Medicurius the Power Patron of Illusions: Total Board Banish Quick Effect
+            AddExecutor(ExecutorType.Activate, CardId.MedicuriusThePowerPatronOfIllusions, MedicuriusBanishAll);
 
-            // Bystials (Druiswurm, Magnamhut): Banish opponent GY LIGHT/DARK and summon
-            AddExecutor(ExecutorType.Activate, CardId.BystialMagnamhut, BystialMagnamhutActivate);
-            AddExecutor(ExecutorType.Activate, CardId.BystialDruiswurm, BystialDruiswurmActivate);
+            // Junora: Quick Effect column material lockout
+            AddExecutor(ExecutorType.Activate, CardId.JunoraThePowerPatronOfTuning, JunoraActivate);
 
-            // Anti-Spell Fragrance: Lock opponent Spells
-            AddExecutor(ExecutorType.Activate, CardId.AntiSpellFragrance, AntiSpellActivate);
+            // S:P Little Knight: Quick Effect banish dodge / disruption
+            AddExecutor(ExecutorType.Activate, CardId.SPLittleKnight, SPLittleKnightEffect);
 
-            // Synchro Emergency: Revive or Synchro Summon during battle/opponent turn
-            AddExecutor(ExecutorType.Activate, CardId.SynchroEmergency, SynchroEmergencyActivate);
+            // Ravenous Crocodragon Archethys: Draw on summon & Quick pop
+            AddExecutor(ExecutorType.Activate, CardId.RavenousCrocodragonArchethys, CrocodragonEffect);
 
             // ═══════════════════════════════════════════════════════════════
-            // TIER 1: REMOVAL & ADVANTAGE SPELLS
+            // TIER 1: REMOVAL & ADVANTAGE SPELLS / IGNITIONS
             // ═══════════════════════════════════════════════════════════════
 
             // Triple Tactics Talent: Draw 2 or Take Control
             AddExecutor(ExecutorType.Activate, CardId.TripleTacticsTalent, TripleTacticsTalentActivate);
 
-            // Unleashed Power Patron Portal - Terminus: Dump Junora/Vidrium -> Add Junordo
+            // Baronne de Fleur: MP1 ignition target destroy
+            AddExecutor(ExecutorType.Activate, CardId.BaronneDeFleur, BaronnePop);
+
+            // Unleashed Power Patron Portal - Terminus: Dump Medicurius/Junora -> Add Tuner or Junordo
             AddExecutor(ExecutorType.Activate, CardId.UnleashedPowerPatronPortalTerminus, TerminusActivate);
 
             // Theorealize Past Lull: SS Medius from Deck
             AddExecutor(ExecutorType.Activate, CardId.TheorealizePastLull, TheorealizeActivate);
 
+            // Ars Magna - "Citrinitas": Continuous Spell -> Search Medius or Ars Magna
+            AddExecutor(ExecutorType.Activate, CardId.ArsMagnaCitrinitas, CitrinitasActivate);
+
+            // Ars Magna of Infinity and Finity: Hand banish to search Purification
+            AddExecutor(ExecutorType.Activate, CardId.ArsMagnaOfInfinityAndFinity, ArsMagnaInfinityHand);
+
+            // Ars Magna of Purification and Corruption: Hand banish to search Citrinitas
+            AddExecutor(ExecutorType.Activate, CardId.ArsMagnaOfPurificationAndCorruption, ArsMagnaPurificationHand);
+
             // Elfnotes: Welcome Home: Send fodder -> SS Elfnote with different attribute
             AddExecutor(ExecutorType.Activate, CardId.ElfnotesWelcomeHome, WelcomeHomeActivate);
 
+            // PSY-Framelord Omega: Banish self and random opp hand card
+            AddExecutor(ExecutorType.Activate, CardId.PSYFramelordOmega, OmegaRip);
+
             // ═══════════════════════════════════════════════════════════════
-            // TIER 2: POWER PATRON & JUNORDO SUMMON ENGINE
+            // TIER 2: POWER PATRON & THEOREALIZE STARTERS / SUMMONS
             // ═══════════════════════════════════════════════════════════════
 
-            // Junordo (Monster ignition): Banish 3 face-down -> SS Junora (treated as Synchro) -> Board-wide negate!
+            // Junordo (Monster ignition): Banish 3 face-down -> SS Junora -> Board-wide negate!
             AddExecutor(ExecutorType.Activate, CardId.PowerPatronShadowSpiritJunordo, JunordoActivate);
             AddExecutor(ExecutorType.Summon, CardId.PowerPatronShadowSpiritJunordo, JunordoSummon);
 
-            // Junora on-summon trigger / material lockout
-            AddExecutor(ExecutorType.Activate, CardId.JunoraThePowerPatronOfTuning, JunoraActivate);
+            // Theorealize Medius: SS from hand when Power Patron on field, search Past Lull; on banish cheat Diactorus!
+            AddExecutor(ExecutorType.Activate, CardId.TheorealizeMedius, TheorealizeMediusActivate);
 
             // Medius the Pure: NS/SS -> SS or search Power Patron
             AddExecutor(ExecutorType.Summon, CardId.MediusThePure, MediusSummon);
             AddExecutor(ExecutorType.Activate, CardId.MediusThePure, MediusActivate);
 
-            // Vidrium the Power Patron of Chaos Extermination: SS from hand or GY banish removal
-            AddExecutor(ExecutorType.Activate, CardId.VidriumThePowerPatronOfChaosExtermination, VidriumActivate);
+            // Jet Synchron: Normal Summon or GY revive
+            AddExecutor(ExecutorType.Summon, CardId.JetSynchron, JetSynchronSummon);
+            AddExecutor(ExecutorType.Activate, CardId.JetSynchron, JetSynchronActivate);
+
+            // Ars Magna field banish effects (Infinity banish monster, Purification banish spells)
+            AddExecutor(ExecutorType.Activate, CardId.ArsMagnaOfInfinityAndFinity, ArsMagnaInfinityField);
+            AddExecutor(ExecutorType.Activate, CardId.ArsMagnaOfPurificationAndCorruption, ArsMagnaPurificationField);
 
             // ═══════════════════════════════════════════════════════════════
-            // TIER 3: ELFNOTE CENTER-ZONE CASTLE & SWARM COMBO
+            // TIER 3: ELFNOTE MAIN-DECK SUMMONS & MODULATIONS
             // ═══════════════════════════════════════════════════════════════
 
-            // Elfnote June Pride: In Center Zone -> Return to ED -> SS 3 Elfnotes (Hand, Deck, GY)!
-            AddExecutor(ExecutorType.Activate, CardId.ElfnoteJunePride, JunePrideActivate);
-
-            // Elfnote Lucina: SS from hand to Center Zone (Zone 2)
+            // Lucina: SS from hand to Center Zone, then search Regina/Tuner
             AddExecutor(ExecutorType.SpSummon, CardId.ElfnoteLucina, LucinaSpSummon);
-            AddExecutor(ExecutorType.Summon, CardId.ElfnoteLucina, LucinaSummon);
+            AddExecutor(ExecutorType.Summon, CardId.ElfnoteLucina, LucinaNormalSummon);
             AddExecutor(ExecutorType.Activate, CardId.ElfnoteLucina, LucinaActivate);
 
-            // Elfnote Regina: Pitch 1 Elfnote -> SS from hand, or SS from Deck when summoned to Center!
+            // Regina: Quick Effect in hand -> send Elfnote fodder -> SS to Center -> SS Tuner from Deck!
             AddExecutor(ExecutorType.Activate, CardId.ElfnoteRegina, ReginaActivate);
-            AddExecutor(ExecutorType.Summon, CardId.ElfnoteRegina, ReginaSummon);
+            AddExecutor(ExecutorType.Summon, CardId.ElfnoteRegina, ReginaNormalSummon);
 
-            // Elfnote Tinia: SS to Center Zone -> Place Welcome Home from Deck
+            // Tinia: SS from hand to Center Zone -> Place Continuous Spell
             AddExecutor(ExecutorType.SpSummon, CardId.ElfnoteTinia, TiniaSpSummon);
-            AddExecutor(ExecutorType.Summon, CardId.ElfnoteTinia, TiniaSummon);
+            AddExecutor(ExecutorType.Summon, CardId.ElfnoteTinia, TiniaNormalSummon);
             AddExecutor(ExecutorType.Activate, CardId.ElfnoteTinia, TiniaActivate);
 
-            // Elfnote Fortuna: SS to Center Zone -> Place Continuous Trap from Deck
+            // Fortuna: SS from hand to Center Zone -> Place Continuous Trap
             AddExecutor(ExecutorType.SpSummon, CardId.ElfnoteFortuna, FortunaSpSummon);
-            AddExecutor(ExecutorType.Summon, CardId.ElfnoteFortuna, FortunaSummon);
+            AddExecutor(ExecutorType.Summon, CardId.ElfnoteFortuna, FortunaNormalSummon);
             AddExecutor(ExecutorType.Activate, CardId.ElfnoteFortuna, FortunaActivate);
 
-            // Elfnote Power Patron: Level boost center monster by 3 -> Synchro Summon June Pride / Junora!
+            // Elfnote Power Patron: Quick modulation (+3 Level) & immediate Synchro!
             AddExecutor(ExecutorType.Summon, CardId.ElfnotePowerPatron, PowerPatronSummon);
             AddExecutor(ExecutorType.Activate, CardId.ElfnotePowerPatron, PowerPatronActivate);
 
             // ═══════════════════════════════════════════════════════════════
-            // TIER 4: EXTRA DECK SYNCHRO & LINK BOSS SUMMONS
+            // TIER 4: EXTRA DECK SYNCHRO & LINK CLIMBS
             // ═══════════════════════════════════════════════════════════════
 
-            // Elfnote June Pride (Lv 10)
+            // June Pride: Center Zone boss -> Tag-out swarm!
             AddExecutor(ExecutorType.SpSummon, CardId.ElfnoteJunePride, SynchroJunePride);
+            AddExecutor(ExecutorType.Activate, CardId.ElfnoteJunePride, JunePrideTagOut);
 
-            // Junora the Power Patron of Tuning (Lv 10)
-            AddExecutor(ExecutorType.SpSummon, CardId.JunoraThePowerPatronOfTuning, SynchroJunora);
-
-            // Arms of Genex Return Zero (Lv 10)
-            AddExecutor(ExecutorType.SpSummon, CardId.ArmsOfGenexReturnZero, SynchroReturnZero);
+            // Baronne de Fleur (Lv 10)
+            AddExecutor(ExecutorType.SpSummon, CardId.BaronneDeFleur, SynchroBaronne);
 
             // Chaos Angel (Lv 10)
             AddExecutor(ExecutorType.SpSummon, CardId.ChaosAngel, SynchroChaosAngel);
 
+            // Ravenous Crocodragon Archethys (Lv 9)
+            AddExecutor(ExecutorType.SpSummon, CardId.RavenousCrocodragonArchethys, SynchroCrocodragon);
+
             // Crystal Wing Synchro Dragon (Lv 8)
             AddExecutor(ExecutorType.SpSummon, CardId.CrystalWingSynchroDragon, SynchroCrystalWing);
 
-            // Stardust Dragon - Victim Sanctuary (Lv 8)
-            AddExecutor(ExecutorType.SpSummon, CardId.StardustDragonVictimSanctuary, SynchroVictimSanctuary);
-
-            // Accel Synchro Stardust Dragon (Lv 8)
-            AddExecutor(ExecutorType.SpSummon, CardId.AccelSynchroStardustDragon, SynchroAccelStardust);
+            // PSY-Framelord Omega (Lv 8)
+            AddExecutor(ExecutorType.SpSummon, CardId.PSYFramelordOmega, SynchroOmega);
 
             // Elfnote Seraphim Strelitzia (Lv 7)
             AddExecutor(ExecutorType.SpSummon, CardId.ElfnoteSeraphimStrelitzia, SynchroStrelitzia);
@@ -311,104 +348,141 @@ namespace WindBot.Game.AI.Decks
             // F.A. Dawn Dragster (Lv 7)
             AddExecutor(ExecutorType.SpSummon, CardId.FADawnDragster, SynchroDawnDragster);
 
-            // Black Rose Dragon (Lv 7 board wipe going 2nd)
+            // Black Rose Dragon (Lv 7 board wipe going second)
             AddExecutor(ExecutorType.SpSummon, CardId.BlackRoseDragon, SynchroBlackRose);
-            AddExecutor(ExecutorType.Activate, CardId.BlackRoseDragon, BlackRoseActivate);
+            AddExecutor(ExecutorType.SpSummon, CardId.BlackRoseDragonAlt, SynchroBlackRose);
+            AddExecutor(ExecutorType.Activate, CardId.BlackRoseDragon, BlackRoseBoardWipe);
+            AddExecutor(ExecutorType.Activate, CardId.BlackRoseDragonAlt, BlackRoseBoardWipe);
 
-            // Purification Power Patron (Link 2)
+            // Accel Synchron (Lv 5 Tuner)
+            AddExecutor(ExecutorType.SpSummon, CardId.AccelSynchron, SynchroAccelSynchron);
+            AddExecutor(ExecutorType.Activate, CardId.AccelSynchron, AccelSynchronActivate);
+
+            // Medicurius the Power Patron of Illusions (Link-3)
+            AddExecutor(ExecutorType.SpSummon, CardId.MedicuriusThePowerPatronOfIllusions, LinkMedicurius);
+
+            // S:P Little Knight (Link-2)
+            AddExecutor(ExecutorType.SpSummon, CardId.SPLittleKnight, LinkSPLittleKnight);
+
+            // Purification Power Patron (Link-2)
             AddExecutor(ExecutorType.SpSummon, CardId.PurificationPowerPatron, LinkPurification);
             AddExecutor(ExecutorType.Activate, CardId.PurificationPowerPatron, PurificationActivate);
 
             // ═══════════════════════════════════════════════════════════════
-            // TIER 5: TRAP SETTING & POSITION CONTROL
+            // TIER 5: SET SP/TRAPS & BATTLE REPOSITIONING
             // ═══════════════════════════════════════════════════════════════
 
-            // Spell/Trap Setting
             AddExecutor(ExecutorType.SpellSet, CardId.SolemnJudgment);
             AddExecutor(ExecutorType.SpellSet, CardId.InfiniteImpermanence);
-            AddExecutor(ExecutorType.SpellSet, CardId.AntiSpellFragrance);
-            AddExecutor(ExecutorType.SpellSet, CardId.SynchroEmergency);
             AddExecutor(ExecutorType.SpellSet, CardId.ElfnotesRhapsodiaOfMadness);
-            AddExecutor(ExecutorType.SpellSet, CardId.ElfnotesAristeiaOfTrust);
-            AddExecutor(ExecutorType.SpellSet, CardId.CalledByTheGrave);
 
-            // Monster Reposition
             AddExecutor(ExecutorType.Repos, SmartMonsterRepos);
         }
 
         // ═══════════════════════════════════════════════════════════════
-        // EXECUTOR IMPLEMENTATIONS
+        // TIER 0: NEGATIONS & QUICK DISRUPTIONS
         // ═══════════════════════════════════════════════════════════════
 
-        private bool VictimSanctuaryActivate()
+        private bool BaronneNegate()
         {
-            if (Card == null) return false;
+            if (Duel.LastChainPlayer != 1) return false;
+            return true;
+        }
 
-            // Hand/Field effect: Negate opponent response to our activation and destroy
-            if (Duel.LastChainPlayer == 1)
+        private bool BaronnePop()
+        {
+            if (Duel.Phase != DuelPhase.Main1 && Duel.Phase != DuelPhase.Main2) return false;
+            var target = Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && IsTargetable(c))
+                      ?? Enemy.GetSpells().FirstOrDefault(c => c != null && IsTargetable(c));
+            if (target != null)
             {
+                AI.SelectCard(target);
                 return true;
             }
-
-            // GY effect: Banish if a monster was tributed to SS Stardust Dragon
-            if (Card.Location == CardLocation.Grave)
-            {
-                return Bot.ExtraDeck.Any(c => c != null && c.IsCode(CardId.StardustDragon));
-            }
-
             return false;
         }
 
-        private bool ReturnZeroActivate()
+        private bool DiactorusNegate()
         {
-            // Negate opponent monster effect matching an attribute in our GY
-            return Duel.LastChainPlayer == 1;
+            if (Duel.LastChainPlayer != 1) return false;
+            // Check if we control 3+ different races
+            var races = Bot.GetMonsters().Where(c => c != null && c.IsFaceup()).Select(c => c.Race).Distinct().Count();
+            return races >= 3;
         }
 
         private bool CrystalWingEffect()
         {
-            return LastChainCard != null && LastChainCard.Controller == 1 && LastChainCard.Location == CardLocation.MonsterZone;
+            if (Duel.LastChainPlayer != 1) return false;
+            return true;
         }
 
         private bool DawnDragsterEffect()
         {
-            return LastChainCard != null && LastChainCard.Controller == 1 && (LastChainCard.IsSpell() || LastChainCard.IsTrap());
-        }
-
-        private bool StardustDragonEffect()
-        {
-            return LastChainCard != null && LastChainCard.Controller == 1;
-        }
-
-        private bool AristeiaActivate()
-        {
-            if (Card == null) return false;
-
-            // Negate opponent Spell/Trap activation if we control 3+ Elfnotes
-            if (Duel.LastChainPlayer == 1)
-            {
-                int elfnoteCount = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && IsElfnote(c));
-                if (elfnoteCount >= 3)
-                {
-                    return true;
-                }
-            }
-
-            return false;
+            if (Duel.LastChainPlayer != 1) return false;
+            return true;
         }
 
         private bool RhapsodiaActivate()
         {
-            if (Card == null) return false;
-
-            // Opponent turn interruption or Main Phase board negation
-            if (Duel.LastChainPlayer == 1 || Duel.Turn > 1)
+            if (Card.Location == CardLocation.SpellZone && Card.IsFaceup())
             {
-                bool hasSynchro = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.HasType(CardType.Synchro));
-                bool hasEnemyFaceup = Enemy.GetMonsters().Concat(Enemy.GetSpells()).Any(c => c != null && c.IsFaceup() && !c.IsDisabled());
-
-                if (hasSynchro && hasEnemyFaceup)
+                // Activated trigger on field: revive Elfnote and negate face-up card
+                var enemyTarget = Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && !c.IsDisabled() && IsTargetable(c))
+                               ?? Enemy.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup() && !c.IsDisabled() && IsTargetable(c));
+                if (enemyTarget != null)
                 {
+                    AI.SelectCard(enemyTarget);
+                    return true;
+                }
+                return false;
+            }
+
+            // Activating from hand or face-down
+            return true;
+        }
+
+        private bool MedicuriusBanishAll()
+        {
+            if (Duel.Player == 0) return false; // Opponent turn only
+            // Condition e3: linked group count == 3
+            if (Card == null || Card.Location != CardLocation.MonsterZone) return false;
+            if (Enemy.GetMonsterCount() + Enemy.GetSpellCount() >= 2 || Duel.Phase == DuelPhase.BattleStart)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        private bool JunoraActivate()
+        {
+            if (Card.Location == CardLocation.MonsterZone && Card.IsFaceup())
+            {
+                // Lock opponent material in same column as Elfnote
+                return Duel.Player == 1 && Enemy.GetMonsterCount() > 0;
+            }
+            // On summon negate all face-up opp cards
+            return true;
+        }
+
+        private bool SPLittleKnightEffect()
+        {
+            // On summon banish 1 enemy card
+            var banishTarget = Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && IsTargetable(c))
+                            ?? Enemy.GetSpells().FirstOrDefault(c => c != null && IsTargetable(c))
+                            ?? Enemy.Graveyard.FirstOrDefault(c => c != null && CardIntelligence.IsHighThreatChokepoint(c.Id));
+            if (banishTarget != null)
+            {
+                AI.SelectCard(banishTarget);
+                return true;
+            }
+
+            // Quick effect dodge
+            if (Duel.LastChainPlayer == 1)
+            {
+                var enemyCard = Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && IsTargetable(c));
+                if (enemyCard != null)
+                {
+                    AI.SelectCard(new[] { Card, enemyCard });
                     return true;
                 }
             }
@@ -416,62 +490,50 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
-        private bool HarmoniaActivate()
+        private bool CrocodragonEffect()
         {
-            if (Card == null) return false;
+            // Draw on summon
+            if (Card.Location == CardLocation.MonsterZone && Duel.LastChainPlayer == 0)
+                return true;
 
-            // Quick effect from hand when opponent activates monster effect
-            if (Card.Location == CardLocation.Hand && Duel.LastChainPlayer == 1)
+            // Quick pop if enemy activates or in battle
+            if (Duel.LastChainPlayer == 1 && Bot.Hand.Count >= 2)
             {
-                int synchroCount = Bot.ExtraDeck.Count(c => c != null && c.HasType(CardType.Synchro));
-                return synchroCount >= 5;
+                var popTarget = Enemy.GetMonsters().FirstOrDefault(c => c != null && IsTargetable(c))
+                             ?? Enemy.GetSpells().FirstOrDefault(c => c != null && IsTargetable(c));
+                if (popTarget != null)
+                {
+                    AI.SelectCard(popTarget);
+                    return true;
+                }
             }
-
             return false;
         }
 
-        private bool BystialMagnamhutActivate()
+        private bool MulcharmyFuwalosActivate()
         {
-            if (Card == null) return false;
-            if (Card.Location == CardLocation.Hand)
-            {
-                // Prioritize banishing enemy LIGHT or DARK from their GY
-                return Enemy.Graveyard.Any(c => c != null && (c.HasAttribute(CardAttribute.Light) || c.HasAttribute(CardAttribute.Dark)));
-            }
-            return true;
+            // Can only activate if we control no cards
+            return Bot.GetMonsterCount() == 0 && Bot.GetSpellCount() == 0 && Duel.Player == 1;
         }
 
-        private bool BystialDruiswurmActivate()
-        {
-            if (Card == null) return false;
-            if (Card.Location == CardLocation.Hand)
-            {
-                return Enemy.Graveyard.Any(c => c != null && (c.HasAttribute(CardAttribute.Light) || c.HasAttribute(CardAttribute.Dark)));
-            }
-            // GY trigger: send 1 enemy Special Summoned monster to GY
-            if (Card.Location == CardLocation.Grave)
-            {
-                return Enemy.GetMonsters().Any(c => c != null && c.IsSpecialSummoned);
-            }
-            return true;
-        }
-
-        private bool AntiSpellActivate()
-        {
-            // Activate during opponent turn or at end of our Main Phase 2
-            return Duel.Player == 1 || Duel.Phase == DuelPhase.Main2 || Duel.Turn > 1;
-        }
-
-        private bool SynchroEmergencyActivate()
-        {
-            if (Card == null) return false;
-            // Revive a key Synchro boss if our board has space
-            return Bot.GetMonsterCount() < 5 && Bot.Graveyard.Any(c => c != null && BossMonsters.Contains(c.Id) && c.IsCanRevive());
-        }
+        // ═══════════════════════════════════════════════════════════════
+        // TIER 1: ADVANTAGE SPELLS & FIELD IGNITIONS
+        // ═══════════════════════════════════════════════════════════════
 
         private bool TripleTacticsTalentActivate()
         {
-            // Allowed if opponent activated monster effect this turn
+            if (Duel.Player != 0) return false;
+            if (Enemy.GetMonsterCount() >= 1 && Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && c.Attack >= 2500))
+            {
+                AI.SelectOption(1);
+                return true;
+            }
+            if (Bot.Hand.Count <= 4)
+            {
+                AI.SelectOption(0);
+                return true;
+            }
+            AI.SelectOption(2);
             return true;
         }
 
@@ -484,55 +546,80 @@ namespace WindBot.Game.AI.Decks
 
         private bool TheorealizeActivate()
         {
-            if (Card == null) return false;
-            if (Card.Location == CardLocation.Hand)
-            {
-                bool hasElfnote = Bot.GetMonsters().Concat(Bot.GetSpells()).Any(c => c != null && IsElfnote(c));
-                return hasElfnote && Bot.GetMonsterCount() < 5;
-            }
-            return false;
+            // Special summon Medius the Pure from Deck
+            return Bot.GetMonsterCount() < 5;
+        }
+
+        private bool CitrinitasActivate()
+        {
+            if (_citrinitasUsed) return false;
+            _citrinitasUsed = true;
+            return true;
+        }
+
+        private bool ArsMagnaInfinityHand()
+        {
+            if (_arsMagnaInfinityUsed) return false;
+            _arsMagnaInfinityUsed = true;
+            return true;
+        }
+
+        private bool ArsMagnaPurificationHand()
+        {
+            if (_arsMagnaPurificationUsed) return false;
+            _arsMagnaPurificationUsed = true;
+            return true;
         }
 
         private bool WelcomeHomeActivate()
         {
-            if (Card == null) return false;
-            // Send fodder to SS Elfnote with different attribute
-            return Bot.GetMonsterCount() >= 1 && Bot.GetMonsterCount() < 5;
+            if (Card.Location == CardLocation.SpellZone && Card.IsFaceup())
+            {
+                // Send fodder to SS Elfnote with different attribute
+                return Bot.GetMonsterCount() >= 1 && Bot.GetMonsterCount() < 5;
+            }
+            return true;
+        }
+
+        private bool OmegaRip()
+        {
+            if (Duel.Phase != DuelPhase.Main1 && Duel.Phase != DuelPhase.Main2) return false;
+            return Enemy.Hand.Count > 0;
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // TIER 2: POWER PATRON & THEOREALIZE SUMMON ENGINE
+        // ═══════════════════════════════════════════════════════════════
+
+        private bool JunordoActivate()
+        {
+            if (_junordoUsed) return false;
+            // Banish top 3 face-down -> SS Junora from Extra Deck!
+            _junordoUsed = true;
+            return true;
         }
 
         private bool JunordoSummon()
         {
-            // We want Junordo on field to activate ignition effect (banish 3 -> SS Junora)
             return Bot.GetMonsterCount() < 5 && !_junordoUsed;
         }
 
-        private bool JunordoActivate()
+        private bool TheorealizeMediusActivate()
         {
-            if (Card == null) return false;
-
-            // Monster ignition: Banish 3 top deck face-down -> SS Junora from Extra Deck!
-            if (Card.Location == CardLocation.MonsterZone)
+            if (Card.Location == CardLocation.Hand)
             {
-                if (Bot.Deck.Count >= 3 && Bot.ExtraDeck.Any(c => c != null && c.IsCode(CardId.JunoraThePowerPatronOfTuning)))
+                if (_theorealizeMediusUsed) return false;
+                // SS self if Power Patron on field
+                bool hasPowerPatron = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && (c.IsCode(CardId.PurificationPowerPatron) || c.IsCode(CardId.MediusThePure) || c.IsCode(CardId.ElfnotePowerPatron) || c.IsCode(CardId.JunoraThePowerPatronOfTuning) || c.IsCode(CardId.MedicuriusThePowerPatronOfIllusions)));
+                if (hasPowerPatron && Bot.GetMonsterCount() < 5)
                 {
-                    _junordoUsed = true;
+                    _theorealizeMediusUsed = true;
                     return true;
                 }
+                return false;
             }
 
-            // GY / Extra Deck trigger: Add back Elfnote/Power Patron
-            if (Card.Location == CardLocation.Extra)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        private bool JunoraActivate()
-        {
-            // On Synchro Summon: Negates all face-up opponent cards!
-            // In Monster Zone: Column material lockout
+            // On-field trigger: when monster banished face-up -> banish self to SS Diactorus!
             return true;
         }
 
@@ -546,114 +633,122 @@ namespace WindBot.Game.AI.Decks
             return true;
         }
 
-        private bool VidriumActivate()
+        private bool JetSynchronSummon()
         {
-            if (Card == null) return false;
+            return Bot.GetMonsterCount() < 5 && IsCenterZoneFree();
+        }
 
-            // Hand SS if we control Power Patron
-            if (Card.Location == CardLocation.Hand)
+        private bool JetSynchronActivate()
+        {
+            // GY revive
+            return Card.Location == CardLocation.Grave && Bot.GetMonsterCount() < 5 && Bot.Hand.Count >= 1;
+        }
+
+        private bool ArsMagnaInfinityField()
+        {
+            // Banish 1 monster if we control Power Patron Link
+            bool hasLink = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && (c.IsCode(CardId.PurificationPowerPatron) || c.IsCode(CardId.MedicuriusThePowerPatronOfIllusions)));
+            if (!hasLink) return false;
+
+            var target = Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && IsTargetable(c));
+            if (target != null)
             {
-                bool hasPowerPatron = Bot.GetMonsters().Any(c => c != null && (c.IsCode(CardId.ElfnotePowerPatron) || c.IsCode(CardId.JunoraThePowerPatronOfTuning) || c.IsCode(CardId.PowerPatronShadowSpiritJunordo) || c.IsCode(CardId.MediusThePure)));
-                return hasPowerPatron && Bot.GetMonsterCount() < 5;
+                AI.SelectCard(target);
+                return true;
             }
-
-            // GY banish removal: banish 1 enemy monster
-            if (Card.Location == CardLocation.Grave)
-            {
-                return Enemy.GetMonsters().Any(c => c != null && IsTargetable(c));
-            }
-
             return false;
         }
 
-        private bool JunePrideActivate()
+        private bool ArsMagnaPurificationField()
         {
-            if (Card == null) return false;
+            // Banish Spells/Traps up to number of Power Patron Link
+            int linkCount = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && (c.IsCode(CardId.PurificationPowerPatron) || c.IsCode(CardId.MedicuriusThePowerPatronOfIllusions)));
+            if (linkCount == 0) return false;
 
-            // While in Center Zone: Quick Effect to return to Extra Deck and SS up to 3 Elfnotes (Hand, Deck, GY)
-            if (Card.Location == CardLocation.MonsterZone && Card.Sequence == 2)
+            var targets = Enemy.GetSpells().Where(c => c != null && IsTargetable(c)).Take(linkCount).ToList();
+            if (targets.Count > 0)
             {
-                // On our turn: Swarm if we have Tuner/Extenders to summon
-                // On opponent turn: Swarm to trigger Lucina, Tinia, Fortuna disruption!
-                if (!_junePrideSwarmedThisTurn)
-                {
-                    if (Duel.Player == 1 || Bot.GetMonsterCount() <= 2)
-                    {
-                        _junePrideSwarmedThisTurn = true;
-                        return true;
-                    }
-                }
+                AI.SelectCard(targets);
+                return true;
             }
-
             return false;
         }
+
+        // ═══════════════════════════════════════════════════════════════
+        // TIER 3: ELFNOTE MAIN DECK MONSTERS
+        // ═══════════════════════════════════════════════════════════════
 
         private bool LucinaSpSummon()
         {
-            // Can SS to Center Zone (Zone 2)
             return IsCenterZoneFree();
         }
 
-        private bool LucinaSummon()
+        private bool LucinaNormalSummon()
         {
-            return Bot.GetMonsterCount() < 5;
+            // Level 6 monster: do not tribute our monsters to Normal Summon
+            return false;
         }
 
         private bool LucinaActivate()
         {
-            if (Card == null) return false;
-
-            // Main Phase Ignition in Center: Search Elfnote monster
-            if (Duel.IsMainPhase() && Duel.Player == 0 && Card.Sequence == 2)
+            if (Card.Location == CardLocation.MonsterZone && Card.IsFaceup())
             {
+                // In opponent's turn: swap with center and bounce Lv 6 or lower monster
+                if (Duel.Player == 1)
+                {
+                    var bounceTarget = Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.Level > 0 && c.Level <= 6 && IsTargetable(c));
+                    if (bounceTarget != null)
+                    {
+                        AI.SelectCard(bounceTarget);
+                        return true;
+                    }
+                    return false;
+                }
+
+                // In our turn: search Elfnote monster
                 if (!_lucinaSearchUsed)
                 {
                     _lucinaSearchUsed = true;
                     return true;
                 }
             }
-
-            // Opponent turn Quick Effect: switch with center -> bounce Lv 6 or lower monster
-            if (Duel.Player == 1)
-            {
-                return Enemy.GetMonsters().Any(c => c != null && c.Level > 0 && c.Level <= 6 && IsTargetable(c));
-            }
-
-            return false;
-        }
-
-        private bool ReginaSummon()
-        {
-            return Bot.GetMonsterCount() < 5;
+            return true;
         }
 
         private bool ReginaActivate()
         {
-            if (Card == null) return false;
-
-            // Hand Quick Effect: Pitch 1 Elfnote -> SS from hand
             if (Card.Location == CardLocation.Hand)
             {
-                bool hasPitch = Bot.Hand.Concat(Bot.GetMonsters()).Concat(Bot.GetSpells()).Any(c => c != null && c != Card && IsElfnote(c));
-                return hasPitch && Bot.GetMonsterCount() < 5;
-            }
-
-            // In Center Zone: SS 1 Elfnote from Deck!
-            if (Card.Location == CardLocation.MonsterZone && Card.Sequence == 2)
-            {
-                if (!_reginaSummonUsed)
+                if (_reginaSummonUsed) return false;
+                // Discard 1 other Elfnote -> SS to Center
+                bool hasFodder = Bot.Hand.Any(c => c != null && c != Card && IsElfnote(c))
+                              || Bot.GetMonsters().Any(c => c != null && c.Sequence != 2 && IsElfnote(c));
+                if (hasFodder && (IsCenterZoneFree() || Bot.GetMonsterCount() < 5))
                 {
                     _reginaSummonUsed = true;
                     return true;
                 }
+                return false;
             }
 
-            // GY trigger when used as Synchro Material: Return Regina to hand!
+            // If summoned to Center Zone -> SS Elfnote from Deck!
+            if (Card.Location == CardLocation.MonsterZone && Card.Sequence == 2)
+            {
+                return true;
+            }
+
+            // If sent to GY as Synchro Material -> add self back to hand!
             if (Card.Location == CardLocation.Grave)
             {
                 return true;
             }
 
+            return true;
+        }
+
+        private bool ReginaNormalSummon()
+        {
+            // Level 6 monster: do not tribute our monsters
             return false;
         }
 
@@ -662,32 +757,28 @@ namespace WindBot.Game.AI.Decks
             return IsCenterZoneFree();
         }
 
-        private bool TiniaSummon()
+        private bool TiniaNormalSummon()
         {
-            return Bot.GetMonsterCount() < 5;
+            // Level 6 monster: do not tribute our monsters
+            return false;
         }
 
         private bool TiniaActivate()
         {
-            if (Card == null) return false;
-
-            // Main Phase Ignition: Place Welcome Home from Deck
-            if (Duel.IsMainPhase() && Duel.Player == 0 && Card.Sequence == 2)
+            if (Card.Location == CardLocation.MonsterZone && Card.IsFaceup())
             {
+                if (Duel.Player == 1)
+                {
+                    // Opponent turn: banish 1 random card from opp hand until EP
+                    return Enemy.Hand.Count > 0;
+                }
                 if (!_tiniaPlacedUsed)
                 {
                     _tiniaPlacedUsed = true;
                     return true;
                 }
             }
-
-            // Opponent turn Quick Effect: switch with center -> banish 1 random card from enemy hand
-            if (Duel.Player == 1 && Enemy.Hand.Count > 0)
-            {
-                return true;
-            }
-
-            return false;
+            return true;
         }
 
         private bool FortunaSpSummon()
@@ -695,32 +786,34 @@ namespace WindBot.Game.AI.Decks
             return IsCenterZoneFree();
         }
 
-        private bool FortunaSummon()
+        private bool FortunaNormalSummon()
         {
-            return Bot.GetMonsterCount() < 5;
+            // Level 6 monster: do not tribute our monsters
+            return false;
         }
 
         private bool FortunaActivate()
         {
-            if (Card == null) return false;
-
-            // Main Phase Ignition: Place Continuous Trap from Deck
-            if (Duel.IsMainPhase() && Duel.Player == 0 && Card.Sequence == 2)
+            if (Card.Location == CardLocation.MonsterZone && Card.IsFaceup())
             {
+                if (Duel.Player == 1)
+                {
+                    // Bounce face-up Spell/Trap
+                    var bounce = Enemy.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup() && IsTargetable(c));
+                    if (bounce != null)
+                    {
+                        AI.SelectCard(bounce);
+                        return true;
+                    }
+                    return false;
+                }
                 if (!_fortunaPlacedUsed)
                 {
                     _fortunaPlacedUsed = true;
                     return true;
                 }
             }
-
-            // Opponent turn Quick Effect: switch with center -> return 1 face-up S/T to hand
-            if (Duel.Player == 1)
-            {
-                return Enemy.GetSpells().Any(c => c != null && c.IsFaceup() && IsTargetable(c));
-            }
-
-            return false;
+            return true;
         }
 
         private bool PowerPatronSummon()
@@ -730,72 +823,66 @@ namespace WindBot.Game.AI.Decks
 
         private bool PowerPatronActivate()
         {
-            if (Card == null) return false;
-
-            // Target monster in Center Zone -> increase Level by 3 -> immediately Synchro Summon June Pride or Junora!
             if (Card.Location == CardLocation.MonsterZone)
             {
-                var centerMonster = GetCenterMonster();
-                if (centerMonster != null && centerMonster.IsFaceup() && centerMonster != Card && !_powerPatronModulatedUsed)
+                if (_powerPatronModulatedUsed) return false;
+                var center = GetCenterMonster();
+                if (center != null && center.IsFaceup() && center.Level >= 6)
                 {
                     _powerPatronModulatedUsed = true;
+                    AI.SelectCard(center);
                     return true;
                 }
+                return false;
             }
 
-            // GY trigger on Synchro material: Search ANY Elfnote card from Deck!
+            // Sent to GY as Synchro Material -> Search ANY Elfnote card!
             if (Card.Location == CardLocation.Grave)
             {
                 return true;
             }
 
-            return false;
+            return true;
         }
 
-        private bool StrelitziaActivate()
-        {
-            if (Card == null) return false;
+        // ═══════════════════════════════════════════════════════════════
+        // TIER 4: EXTRA DECK SYNCHRO & LINK CLIMBS
+        // ═══════════════════════════════════════════════════════════════
 
-            // Quick Effect during Main Phase: SS 1 Lv 6 or lower Elfnote from hand or GY + reduce levels by 3
-            if (Duel.IsMainPhase())
+        private bool SynchroJunePride()
+        {
+            return true;
+        }
+
+        private bool JunePrideTagOut()
+        {
+            if (Card.Location != CardLocation.MonsterZone || Card.Sequence != 2) return false;
+            if (_junePrideSwarmedThisTurn) return false;
+
+            // In our turn: tag out if we need to swarm for links or after attacking
+            if (Duel.Player == 0)
             {
-                bool hasTarget = Bot.Hand.Concat(Bot.Graveyard).Any(c => c != null && c.Level > 0 && c.Level <= 6 && IsElfnote(c));
-                return hasTarget && Bot.GetMonsterCount() < 5;
+                if (Duel.Phase == DuelPhase.BattleStart || Duel.Phase == DuelPhase.Main2 || Bot.GetMonsterCount() <= 2)
+                {
+                    _junePrideSwarmedThisTurn = true;
+                    return true;
+                }
+            }
+
+            // In opponent's turn: tag out when opponent enters Battle Phase or targets June Pride
+            if (Duel.Player == 1)
+            {
+                if (Duel.Phase == DuelPhase.BattleStart || Duel.LastChainPlayer == 1)
+                {
+                    _junePrideSwarmedThisTurn = true;
+                    return true;
+                }
             }
 
             return false;
         }
 
-        private bool BlackRoseActivate()
-        {
-            // Only nuke if going 2nd and enemy has multiple threats
-            return _isGoingSecond && Enemy.GetMonsterCount() + Enemy.GetSpellCount() >= 2;
-        }
-
-        private bool PurificationActivate()
-        {
-            // Link 2: Search Theorealize if Power Patron in GY
-            return true;
-        }
-
-        // ═══════════════════════════════════════════════════════════════
-        // SYNCHRO & LINK SUMMON LOGIC
-        // ═══════════════════════════════════════════════════════════════
-
-        private bool SynchroJunePride()
-        {
-            // Don't summon duplicate if already in Center Zone
-            var center = GetCenterMonster();
-            if (center != null && center.IsCode(CardId.ElfnoteJunePride)) return false;
-            return true;
-        }
-
-        private bool SynchroJunora()
-        {
-            return true;
-        }
-
-        private bool SynchroReturnZero()
+        private bool SynchroBaronne()
         {
             return true;
         }
@@ -805,17 +892,17 @@ namespace WindBot.Game.AI.Decks
             return true;
         }
 
+        private bool SynchroCrocodragon()
+        {
+            return true;
+        }
+
         private bool SynchroCrystalWing()
         {
             return true;
         }
 
-        private bool SynchroVictimSanctuary()
-        {
-            return true;
-        }
-
-        private bool SynchroAccelStardust()
+        private bool SynchroOmega()
         {
             return true;
         }
@@ -825,6 +912,12 @@ namespace WindBot.Game.AI.Decks
             return true;
         }
 
+        private bool StrelitziaActivate()
+        {
+            // SS Lv 6 or lower Elfnote from hand or GY
+            return Bot.GetMonsterCount() < 5;
+        }
+
         private bool SynchroDawnDragster()
         {
             return true;
@@ -832,12 +925,45 @@ namespace WindBot.Game.AI.Decks
 
         private bool SynchroBlackRose()
         {
-            return _isGoingSecond && Enemy.GetMonsterCount() >= 2;
+            return _isGoingSecond && Enemy.GetMonsterCount() + Enemy.GetSpellCount() >= 2;
+        }
+
+        private bool BlackRoseBoardWipe()
+        {
+            return Enemy.GetMonsterCount() + Enemy.GetSpellCount() >= 2;
+        }
+
+        private bool SynchroAccelSynchron()
+        {
+            return true;
+        }
+
+        private bool AccelSynchronActivate()
+        {
+            // Dump Jet Synchron from Deck to modulate level
+            return true;
+        }
+
+        private bool LinkMedicurius()
+        {
+            // Need 2+ monsters including Fusion, Synchro, Link
+            bool hasExtra = Bot.GetMonsters().Any(c => c != null && (c.HasType(CardType.Fusion) || c.HasType(CardType.Synchro) || c.HasType(CardType.Link)));
+            return hasExtra && Bot.GetMonsterCount() >= 3;
+        }
+
+        private bool LinkSPLittleKnight()
+        {
+            return Bot.GetMonsterCount() >= 2 && Enemy.GetMonsterCount() > 0;
         }
 
         private bool LinkPurification()
         {
-            return Bot.GetMonsterCount() >= 2 && !HasAceOnBoard();
+            return Bot.GetMonsterCount() >= 3 && !HasAceOnBoard();
+        }
+
+        private bool PurificationActivate()
+        {
+            return true;
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -883,8 +1009,7 @@ namespace WindBot.Game.AI.Decks
                 CardId.ElfnoteJunePride,
                 CardId.ElfnoteSeraphimStrelitzia,
                 CardId.ElfnotesWelcomeHome,
-                CardId.ElfnotesRhapsodiaOfMadness,
-                CardId.ElfnotesAristeiaOfTrust
+                CardId.ElfnotesRhapsodiaOfMadness
             );
         }
 
@@ -938,6 +1063,14 @@ namespace WindBot.Game.AI.Decks
                 if (cardId == 0 && Card != null) cardId = Card.Id;
                 long optIndex = options[i] & 0xf;
 
+                // Theorealize Medius:
+                // Option 1 or stringid 4: Banish self -> Special Summon Diactorus from Extra Deck!
+                // Option 0 or stringid 3: Add Ars Magna card
+                if (cardId == CardId.TheorealizeMedius)
+                {
+                    if (optIndex == 1 || optIndex == 4) return i;
+                }
+
                 // Medius the Pure: Option 1: Special Summon, Option 0: Add to Hand
                 if (cardId == CardId.MediusThePure)
                 {
@@ -970,11 +1103,10 @@ namespace WindBot.Game.AI.Decks
             var cardData = YGOSharp.OCGWrapper.NamedCard.Get(cardId);
             if (cardData != null)
             {
-                // Link Monsters cannot be in Defense
                 if (cardData.HasType(CardType.Link))
                     return CardPosition.FaceUpAttack;
 
-                // 1. Handtraps (Ash 0/1800, etc.) or 0 ATK -> 100% Defense
+                // 1. Handtraps (Ash 0/1800, etc.) or 0 ATK -> Defense
                 if (cardData.Attack == 0 || CardIntelligence.IsHandtrap(cardId))
                 {
                     if (positions.Contains(CardPosition.FaceUpDefence)) return CardPosition.FaceUpDefence;
@@ -1023,8 +1155,8 @@ namespace WindBot.Game.AI.Decks
             // 3. Hint 501 / 504: DISCARD / TOGRAVE
             if (hint == 501 || hint == 504)
             {
-                // Check if this is Terminus or Harmonia sending from Extra Deck
-                if (Card != null && (Card.IsCode(CardId.UnleashedPowerPatronPortalTerminus) || Card.IsCode(CardId.FidraulisHarmonia)))
+                // Check if this is Terminus sending from Extra Deck
+                if (Card != null && Card.IsCode(CardId.UnleashedPowerPatronPortalTerminus))
                 {
                     var dumpTarget = Plugin.StrategyImpl.PickDumpTarget(cards, Card);
                     if (dumpTarget != null)

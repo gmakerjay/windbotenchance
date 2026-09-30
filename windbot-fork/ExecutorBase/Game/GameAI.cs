@@ -312,9 +312,41 @@ namespace WindBot.Game
             // Local helper: validate & sanitize selection via HeuristicGuard before returning
             IList<ClientCard> ValidateAndReturn(IList<ClientCard> sel, string source)
             {
+                if (sel != null && cards != null)
+                {
+                    if (sel.Count < min && (!cancelable || sel.Count > 0))
+                    {
+                        var remaining = cards.Where(c => c != null && !sel.Contains(c)).ToList();
+                        while (sel.Count < min && remaining.Count > 0)
+                        {
+                            sel.Add(remaining[0]);
+                            remaining.RemoveAt(0);
+                        }
+                    }
+                    if (sel.Count > max)
+                    {
+                        sel = sel.Take(max).ToList();
+                    }
+                }
                 try { Log(LogLevel.Info, $"[DEBUG-DECISION] OnSelectCard -> Selected ({source}): " + string.Join(", ", sel.Select(c => c == null ? "null" : $"{c.Id}"))); } catch {}
                 try { sel = WindBot.HeuristicGuard.SanitizeSelection(sel, cards, min, max, hint, cancelable, Duel.Turn, Duel.Fields[0], Duel.Fields[1]); } catch {}
                 try { WindBot.HeuristicGuard.ValidateSelection(sel, hint, Duel.Turn, Duel.Fields[0], Duel.Fields[1], cards); } catch {}
+                if (sel != null && cards != null)
+                {
+                    if (sel.Count < min && (!cancelable || sel.Count > 0))
+                    {
+                        var remaining = cards.Where(c => c != null && !sel.Contains(c)).ToList();
+                        while (sel.Count < min && remaining.Count > 0)
+                        {
+                            sel.Add(remaining[0]);
+                            remaining.RemoveAt(0);
+                        }
+                    }
+                    if (sel.Count > max)
+                    {
+                        sel = sel.Take(max).ToList();
+                    }
+                }
                 return sel;
             }
 

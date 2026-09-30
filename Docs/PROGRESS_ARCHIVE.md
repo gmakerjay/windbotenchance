@@ -1,103 +1,11 @@
-﻿# Progress Log Archive (Historic Records 0.032 - 0.049)
-
-## 0.049. Binary Protocol Disassembly & Universal SelectCounter Engine Fix (2026-09-26)
-
-### Breakthrough Discovery: OCGCore MSG_SELECT_COUNTER Binary Protocol Misalignment
-A critical root-cause bug in the foundational network layer of WindBot (`GameBehavior.cs`) was uncovered through binary disassembly of `ocgcore.dll` (at offset `0x10079ba0` - `0x10079e86`):
-
-1. **OCGCore Binary Protocol Structure**:
-   - `0x10079d5b`: `write_buffer(player, 1)` $\rightarrow$ **1 byte** (`byte`)
-   - `0x10079d6e`: `write_buffer(type, 2)` $\rightarrow$ **2 bytes** (`int16`)
-   - `0x10079d85`: `write_buffer(quantity, 2)` $\rightarrow$ **2 bytes** (`int16`)
-   - `0x10079d9e`: `write_buffer(count, 4)` $\rightarrow$ **4 bytes** (`int32`)
-   - Loop `1..count` at `0x10079df0`:
-     - `0x10079e00`: `cardId` (4 bytes, `int32`)
-     - `0x10079e19`: `player` (1 byte, `byte`)
-     - `0x10079e32`: `loc` (1 byte, `byte`)
-     - `0x10079e4b`: `seq` (1 byte, `byte`)
-     - `0x10079e66`: `available_counters` (2 bytes, `int16`)
-
-2. **The Flaw in WindBot's Implementation**:
-   In `GameBehavior.cs`, `OnSelectCounter` was implemented as:
-   ```csharp
-   int type = packet.ReadInt16();     // 2 bytes
-   int quantity = packet.ReadInt32(); // 4 bytes (WRONG: read quantity + lower 2 bytes of count!)
-   int count = packet.ReadByte();     // 1 byte (WRONG: read upper byte of count!)
-   ```
-   - When 2 cards had counters on the field (e.g. Gateway + Dojo, or Citadel + Servant):
-     - `quantity = (count << 16) | real_quantity` $\rightarrow$ `(2 << 16) | 4 = 131076`!
-     - `count` was read from the high zero-byte $\rightarrow$ `count = 0`!
-     - The cards list was empty, returning `payload=[]` (sum = 0 / 131076).
-     - OCGCore compared `cx != ax` at `0x10079f2e`, emitted `MSG_RETRY`, WindBot disconnected, and EDOPro threw GUI modal **`"เน€เธเธดเธ”เธเนเธญเธเธดเธ”เธเธฅเธฒเธ”!"`**.
-
-3. **Definitive Fix Applied**:
-   - Corrected `quantity` to `packet.ReadInt16()` (2 bytes).
-   - Corrected `count` to `packet.ReadInt32()` (4 bytes).
-   - Validated live via session log:
-     ```text
-     [OnSelectCounter] type=0x3, quantity=4, count=2
-     [OnSelectCounter] Response: sum=4/4, payload=[1,3]
-     ```
-     Zero retries, zero disconnects, and 100% protocol adherence!
-
----
-
-### Audit & Hardening Scope Across All 7 Dedicated Plugin Decks
-Following the Endymion `OnSelectCounter` investigation, a comprehensive audit was executed across all 7 decks in the codebase that implement dedicated/custom domain modules (`*Plugin`):
-
-1. **`Endymion` (`_2026_EndymionExecutor.cs` & `EndymionPlugin`)**:
-   - **Root Cause Verified**: Duplicate counter tracking (`_cardCounters` dictionary in executor vs `_trackedCounters` in `EndymionCounterEconomy`) caused desynchronization. In addition, `GameBehavior.OnSelectCounter` discarded card ID packets, causing null lookups when selecting counters on newly summoned/moved cards.
-   - **Hardening**:
-     - Removed redundant `_cardCounters` dictionary completely; all counter lookups, additions, and removals now query `Plugin.CounterEconomy` as the single source of truth.
-     - Added `c.Location == CardLocation.MonsterZone` check for monster-effect counter generation (Jackal King, Master Cerberus).
-     - Guarded `GravityController` Special Summon to strictly require Extra Monster Zone sequence (`m.Sequence == 5 || m.Sequence == 6`).
-     - Added strict opponent board requirement for `MightyMasterBoardBreak` (`Enemy.GetMonsterCount() > 0 || Enemy.GetSpellCount() > 0`), stopping Turn 1 counter-draining against empty fields.
-     - Headless simulation verified: 8-turn full match vs `DarkMagician` with 0 Violations and 0 Crashes.
-
-2. **`Six Samurai` (`_2026_SixSamuraiExecutor.cs` & `SixSamuraiPlugin`)**:
-   - **Issue Found**: `OnSelectCounter` directly accessed `Plugin.CounterEconomy.SelectCounters` without null-propagation and lacked length-match safety guards on the input lists.
-   - **Hardening**:
-     - Added null-safe fallback: `Plugin?.CounterEconomy?.SelectCounters(cards, counters, quantity) ?? base.OnSelectCounter(cards, counters, quantity)`.
-     - Added defensive list boundary guard: `if (cards == null || counters == null || cards.Count != counters.Count) return null;`.
-     - Headless simulation verified: full 3-game match (2-1 win rate) with 0 Violations and 0 Crashes.
-
-3. **`D/D/D` (`_2026_DDDExecutor.cs` & `DDDPlugin`)**:
-   - **Issue Found**:
-     - `OnSelectSynchroMaterial` returned `sorted.Take(max)`, completely ignoring the exact `sum` (Level) requirement specified by OCGCore. This caused illegal material selection and engine level-mismatch violations.
-     - `OnSelectFusionMaterial` and `OnSelectXyzMaterial` returned `sorted.Take(max)` instead of `sorted.Take(min)`, unnecessarily consuming excess materials.
-   - **Hardening**:
-     - Delegated `OnSelectSynchroMaterial` to `base.OnSelectSynchroMaterial(cards, sum, min, max)` to leverage the exact subset-sum level solver.
-     - Fixed `OnSelectFusionMaterial` and `OnSelectXyzMaterial` to select `sorted.Take(min)` with graceful fallbacks when `cards.Count < min`.
-     - Headless simulation verified: 100% win rate (5 turns) vs `DarkMagician` with 0 Violations.
-
-4. **`Morganite Stun` (`MorganiteStunExecutor.cs` & `MorganiteStunPlugin`)**:
-   - **Issue Found**: In `OnSelectCard`, returning `new List<ClientCard> { card }` without checking `min <= 1 && 1 <= max` posed violation risks if OCGCore requested multi-card selection.
-   - **Hardening**: Wrapped single-card selections with `if (min <= 1 && 1 <= max)` and null-safe plugin access.
-
-5. **`Drytron Tour` (`DrytronTourExecutor.cs` & `DrytronTourPlugin`)**:
-   - **Issue Found**: Single-card search/mill returns in `OnSelectCard` lacked `min <= 1 && 1 <= max` boundary guards.
-   - **Hardening**: Wrapped all single-card returns with `if (min <= 1 && 1 <= max)` and null-safe plugin access.
-
-6. **`Madolche` (`MadolcheExecutor.cs` & `MadolchePlugin`)**:
-   - **Issue Found**: Single-card search returns in `OnSelectCard` lacked `min <= 1 && 1 <= max` boundary guards.
-   - **Hardening**: Wrapped all single-card returns with `if (min <= 1 && 1 <= max)` and null-safe plugin access.
-
-7. **`Centur-Ion` (`CenturionExecutor.cs` & `CenturionPlugin`)**:
-   - **Audit Result**: Clean. Does not override `OnSelectCard`, `OnSelectCounter`, or material selectors; safely uses base `ModernExecutor` heuristics and OCGCore protocol.
-
-### Verification Results
-- All 7 decks compiled and published cleanly with 0 Errors via `BUILD_AND_DEPLOY.ps1`.
-- Headless simulation verified: `2026_Endymion` (0 Violations, 0 Crashes), `2026_DDD` (0 Violations, 100% Win Rate), `2026_SixSamurai` (0 Violations, 66.7% Win Rate over 3 matches).
-- Deployed exclusively to `C:\Users\admin\Documents\EdoGame\`.
-
----
+# Historical Progress Archive
 
 ## 0.048. Endymion SelectCounter Engine Crash Resolution & Universal Counter Safety (2026-09-26)
 
 ### Incident & Root Cause Analysis
-- **Symptom**: In EDOPro vs `Endymion` bot on Turn 1, the duel engine halted with popup `"เน€เธเธดเธ”เธเนเธญเธเธดเธ”เธเธฅเธฒเธ”!"` (An error occurred!). Duel log recorded:
+- **Symptom**: In EDOPro vs `Endymion` bot on Turn 1, the duel engine halted with popup `"เกิดข้อผิดพลาด!"` (An error occurred!). Duel log recorded:
   ```
-  [TRACE][Activate] โ“ 'Endymion, the Mighty Master of Magic' (3611830) โ’ MightyMasterBoardBreak from SpellZone
+  [TRACE][Activate] ✓ 'Endymion, the Mighty Master of Magic' (3611830) → MightyMasterBoardBreak from SpellZone
   [BOARD SCORE] Idle Command Decision | Score: 0 | Action: Activate (Index: 1)
   [ERROR] Got MSG_RETRY. Last message is SelectCounter
   Connection closed by remote host.
@@ -133,18 +41,18 @@ Following the Endymion `OnSelectCounter` investigation, a comprehensive audit wa
 ## 0.047. Three Advanced Deck Implementations: MorganiteStun, DrytronTour & Madolche (2026-09-26)
 
 ### Overview
-- **MorganiteStun (`MorganiteStunExecutor.cs`) โ€” Anti-Meta Stun & Super Poly Board Breaker**:
+- **MorganiteStun (`MorganiteStunExecutor.cs`) — Anti-Meta Stun & Super Poly Board Breaker**:
   - Implements `MorganiteStunPlugin`, `MorganiteStunStrategy`, `MorganiteFloodgateManager`, `SuperPolyAdvisor`, `MorganiteMaterialScorer`, `MorganiteActionScorer`, and `MorganiteBoardAssessor`.
   - Normal Summons `Vanity's Ruler` (one-sided Special Summon lockout) or `Majesty's Fiend` without tribute under `Guilt-Gripping Morganite` with zero LP costs for `Solemn Judgment`, `Solemn Strike`, and `Iron Thunder`.
   - Double Normal Summon & double draw under `Time-Tearing Morganite`, with `Seventh Tachyon` search engine via Number 104/107.
   - Spell Speed 4 board clearing via `Super Polymerization` targeting Mudragon, Garura, Starving Venom, Dragostapelia, Earth Golem, or Triphyoverutum.
   - Trap Handtraps (`Songs of the Dominators`, `Dominus Purge`, `Dominus Impulse`) bypass Morganite's restriction.
-- **DrytronTour (`DrytronTourExecutor.cs`) โ€” Machine Ritual Engine & Rank 1 Xyz**:
+- **DrytronTour (`DrytronTourExecutor.cs`) — Machine Ritual Engine & Rank 1 Xyz**:
   - Implements `DrytronTourPlugin`, `DrytronStrategy`, `DrytronTributeManager`, `DrytronRitualAdvisor`, `DrytronMaterialScorer`, and `DrytronBoardAssessor`.
   - Boss `Drytron Meteonis DA Draconids` (5000/5000) provides 2x quick monster effect negations per turn fueled by GY Drytrons.
   - `Drytron Mu Beta Fafnir` mills missing combo pieces and detaches materials as tribute for Ritual Summons.
   - Going second board break via `Dark Ruler No More` or `Gordian Slicer` followed by `Lyrilusc - Assembled Nightingale` direct attack into 4-material `AA-ZEUS`.
-- **Madolche (`MadolcheExecutor.cs`) โ€” Non-Targeting Shuffle Control & Vernusylph Engine**:
+- **Madolche (`MadolcheExecutor.cs`) — Non-Targeting Shuffle Control & Vernusylph Engine**:
   - Implements `MadolchePlugin`, `MadolcheStrategy`, `MadolcheGraveyardManager`, `MadolcheMaterialScorer`, and `MadolcheBoardAssessor`.
   - `Madolche Petingcessoeur` start $\rightarrow$ `Anjelly` $\rightarrow$ `Hootcake` $\rightarrow$ `Messengelato` search loop for Chateau, Promenade, and Ticket.
   - Double spin loop: `Queen Tiaramisu` non-targeting spins 2 opponent cards on our turn $\rightarrow$ overlays into `Queen Tiarafraise` which quick-spins 2 more opponent cards on their turn.
@@ -179,7 +87,7 @@ Following the Endymion `OnSelectCounter` investigation, a comprehensive audit wa
 ## 0.045. Three Modern Bot Implementations: Endymion, Centur-Ion & D/D/D (2026-09-26)
 
 ### Overview
-- **1. Endymion (Spell Counter Control) โ€” New Bot & Deck Plugin**:
+- **1. Endymion (Spell Counter Control) — New Bot & Deck Plugin**:
   - **Canonical Deck**: `2026_Endymion.ydk` (40 Main, 15 Extra, 15 Side) with Mythical Beast engine, Spellbook engine, Selene Queen of Master Magicians, Electrumite, Beyond the Pendulum, and Odd-Eyes Absolute -> Vortex dragon combo.
   - **Executor Architecture**: `_2026_EndymionExecutor.cs` implementing full **Spell Counter Economy**:
     - Five-tier counter reserve level: `Critical` (0-1), `Low` (2-3), `Ready` (4-5), `ComboReady` (6-7), `Surplus` (8+).
@@ -187,13 +95,13 @@ Following the Endymion `OnSelectCounter` investigation, a comprehensive audit wa
     - `Mighty Master of Magic`: Quick S/T negate with smart recycling priority (used `Servant` > used `Magister` > `Reflection` > highest counter holder to transfer counters). 6-counter board wipe on Going 2nd/breakout.
     - `Servant of Endymion` & `Magister of Endymion`: 3-counter check ensures extension only when board value or disruption is added.
     - `OnSelectCounter` engine hook: Prioritizes `Magical Citadel` (global fuel) and `Mythical Institution` / surplus monsters, protecting cards building toward 3 counters.
-- **2. Centur-Ion (Synchro Control) โ€” Timing Decision & Resource Loop Upgrade**:
+- **2. Centur-Ion (Synchro Control) — Timing Decision & Resource Loop Upgrade**:
   - **Canonical Deck**: `Centurion.ydk` synced and mapped to `Centurion`, `Centur-Ion`, and `2026_CenturIon`.
   - **Executor Upgrade**: `CenturionExecutor.cs`:
     - **Timing Decision**: `StandUpCenturIon` opponent-turn Quick Synchro no longer activates blindly; it monitors the opponent's combo and strikes at the **critical moment** (summon of monster with ATK $\ge 1800$, high-threat starter/chokepoint/boss, 2+ monsters on board, or chain activation).
     - **Crimson Dragon -> Cosmic Blazar Dragon Loop**: Tags out Level 12 Synchros (Legatia/Auxila) into Cosmic Blazar Dragon at the optimal threat window.
     - **Resource Loop**: End Phase triggers for `Primera` and `Trudea` placing themselves into the S/T Zone from GY/banished zone.
-- **3. D/D/D (Combo Monster) โ€” Integration & Deployment**:
+- **3. D/D/D (Combo Monster) — Integration & Deployment**:
   - **Canonical Deck**: `2026_DDD.ydk` registered and synced to `deck/2026_DDD.ydk`.
   - **Executor Architecture**: `_2026_DDDExecutor.cs` registered across `2026_DDD`, `DDD`, and `D/D/D`.
   - Combines Pendulum, Fusion, Synchro, Xyz, and Link routes ending on Deus Machinex, High King Caesar, Siegfried, and Sky King Zeus Ragnarok.
@@ -206,10 +114,10 @@ Following the Endymion `OnSelectCounter` investigation, a comprehensive audit wa
 
 ---
 
-## 0.044. Developer Mode (เนเธซเธกเธ”เธเธฑเธเธเธฑเธ’เธเธฒ) & Logging Control Integration (2026-09-26)
+## 0.044. Developer Mode (โหมดนักพัฒนา) & Logging Control Integration (2026-09-26)
 
 ### Overview
-- **DashBot Developer Mode Toggle ("เนเธซเธกเธ”เธเธฑเธเธเธฑเธ’เธเธฒ")**:
+- **DashBot Developer Mode Toggle ("โหมดนักพัฒนา")**:
   - Added `ChkDevMode` toggle checkbox to DashBot UI (`MainWindow.xaml`), positioned right beside "Console Output Logs" with `IsChecked="True"` as the default state.
   - **Developer Mode ON (Default)**: Full verbose engine decision traces (`DecisionTracer`, `Logger.WriteTraceLine`) shown in UI console and written to session log files (`WindBot\logs\duel_*.log` and `logs\headless\*.log`).
   - **Developer Mode OFF (Clean Mode)**:
@@ -316,30 +224,30 @@ Following the Endymion `OnSelectCounter` investigation, a comprehensive audit wa
 
 ### Overview
 - **Deck**: `ADML.ydk` (Azamina Dark Magician Light and Darkness Ritual)
-- **Philosophy**: เนเธ—เธเธ—เธตเนเธเธฐเนเธเนเธงเธดเธเธตเธฎเธฒเธฃเนเธ”เนเธเนเธ”เธชเธฑเนเธเธซเนเธฒเธกเธซเธฃเธทเธญเธเธดเธ”เธเธฑเนเธเธเธฒเธฃเธญเธฑเธเน€เธเธดเธ Link Monster (`Cross-Sheep`), เธฃเธฐเธเธเนเธ”เนเธฃเธฑเธเธเธฒเธฃเธขเธเธฃเธฐเธ”เธฑเธเธเธงเธฒเธกเธเธฅเธฒเธ” (Situational Awareness, Synergy Valuation, Precise Zone Placement, เนเธฅเธฐ Advanced Link Climbing) เน€เธเธทเนเธญเนเธซเน AI เน€เธเนเธฒเนเธเธเธฑเธเธซเธงเธฐเนเธฅเธฐเธกเธนเธฅเธเนเธฒเธเธญเธ `Cross-Sheep` เธญเธขเนเธฒเธเนเธ—เนเธเธฃเธดเธ
-- **Build & Deploy Pipeline**: เธเธญเธกเนเธเธฅเนเธเนเธฒเธ `BUILD_AND_DEPLOY.ps1` (0 Errors). Deploy เธกเธฒเธ—เธตเน `C:\Users\admin\Documents\EdoGame\` เนเธ”เธขเธ•เธฃเธ
+- **Philosophy**: แทนที่จะใช้วิธีฮาร์ดโค้ดสั่งห้ามหรือปิดกั้นการอัญเชิญ Link Monster (`Cross-Sheep`), ระบบได้รับการยกระดับความฉลาด (Situational Awareness, Synergy Valuation, Precise Zone Placement, และ Advanced Link Climbing) เพื่อให้ AI เข้าใจจังหวะและมูลค่าของ `Cross-Sheep` อย่างแท้จริง
+- **Build & Deploy Pipeline**: คอมไพล์ผ่าน `BUILD_AND_DEPLOY.ps1` (0 Errors). Deploy มาที่ `C:\Users\admin\Documents\EdoGame\` โดยตรง
 
 ### Key Intelligence Enhancements
-1. **Strategic Combo Sequencing (เธเธฑเธ”เธฅเธณเธ”เธฑเธเธ•เธฒเธก Value Curve)**:
-   - เธชเธฅเธฑเธเธฅเธณเธ”เธฑเธเนเธ `RegisterExecutors`: เนเธซเน Starters เธเนเธเธซเธฒเธ—เธฃเธฑเธเธขเธฒเธเธฃ (`Illusion of Chaos`, `WANTED`, `Diabellstar`, `Deception`, `Magicians' Souls`, `Magician's Rod`) เธ—เธณเธเธฒเธเธเนเธญเธเน€เธเธทเนเธญเธเธณ fodder เธ—เธตเนเธซเธกเธ”เธเธ—เธเธฒเธ—เธฅเธเธกเธฒเธเธเธชเธเธฒเธกเนเธฅเธฐเน€เธเนเธ•เธญเธฑเธเธชเธธเธชเธฒเธ
-   - เธงเธฒเธ `Cross-Sheep` เน€เธเนเธ **Combo Bridge Enabler** เธเนเธญเธเธซเธเนเธฒเธเธฒเธฃเธชเธฑเนเธเนเธเนเน€เธงเธ—เธเธดเธงเธเธฑเธ (`The Hallowed Azamina`, `The Gaze of Timaeus`) เนเธฅเธฐเน€เธงเธ—เธเธดเธเธตเธเธฃเธฃเธก (`Light and Darkness Ritual`)
-   - เธเธฅเธฅเธฑเธเธเน: เธกเธญเธเธชเน€เธ•เธญเธฃเนเธเธญเธช Fusion เธซเธฃเธทเธญ Ritual เธ—เธตเนเธ–เธนเธเธญเธฑเธเน€เธเธดเธเธ•เธฒเธกเธซเธฅเธฑเธ เธเธฐเธฅเธเธกเธฒเธ—เธฑเธเธ•เธณเนเธซเธเนเธเธฅเธนเธเธจเธฃเธเธญเธ `Cross-Sheep` เธเธญเธ”เธต เธ—เธณเนเธซเนเธ—เธฃเธดเธเน€เธเธญเธฃเนเน€เธญเธเน€เธเธเธ•เนเธเธธเธเธเธตเธงเธดเธ•เธซเธฃเธทเธญเธเธฑเนเธงเธเธฒเธฃเนเธ”เธ—เธณเธเธฒเธ 100% (เนเธเนเธเธฑเธเธซเธฒเธเธญเธ—เน€เธฃเธตเธขเธ Cross-Sheep เธกเธฒเธขเธทเธเน€เธเธขเน เธซเธฅเธฑเธเธเธดเธงเธเธฑเธเน€เธชเธฃเนเธเธชเธดเนเธ)
+1. **Strategic Combo Sequencing (จัดลำดับตาม Value Curve)**:
+   - สลับลำดับใน `RegisterExecutors`: ให้ Starters ค้นหาทรัพยากร (`Illusion of Chaos`, `WANTED`, `Diabellstar`, `Deception`, `Magicians' Souls`, `Magician's Rod`) ทำงานก่อนเพื่อนำ fodder ที่หมดบทบาทลงมาบนสนามและเซ็ตอัปสุสาน
+   - วาง `Cross-Sheep` เป็น **Combo Bridge Enabler** ก่อนหน้าการสั่งใช้เวทฟิวชัน (`The Hallowed Azamina`, `The Gaze of Timaeus`) และเวทพิธีกรรม (`Light and Darkness Ritual`)
+   - ผลลัพธ์: มอนสเตอร์บอส Fusion หรือ Ritual ที่ถูกอัญเชิญตามหลัง จะลงมาทับตำแหน่งลูกศรของ `Cross-Sheep` พอดี ทำให้ทริกเกอร์เอฟเฟกต์ชุบชีวิตหรือจั่วการ์ดทำงาน 100% (แก้ปัญหาบอทเรียก Cross-Sheep มายืนเฉยๆ หลังฟิวชันเสร็จสิ้น)
 2. **Proactive Activation Verification (`CanTriggerCrossSheepThisTurn`)**:
-   - เธเธฃเธฐเน€เธกเธดเธเธเนเธญเธเธญเธฑเธเน€เธเธดเธเน€เธชเธกเธญเธงเนเธฒเนเธเน€เธ—เธดเธฃเนเธเธเธตเนเธกเธตเน€เธงเธ— Fusion/Ritual เนเธเธกเธทเธญเธเธฃเนเธญเธกเน€เธฅเนเธเธเธฃเธดเธเธซเธฃเธทเธญเนเธกเน
-   - เธ•เธฃเธงเธเธชเธญเธเน€เธเนเธฒเธซเธกเธฒเธขเธเธธเธเธเธตเธงเธดเธ•เน€เธฅเน€เธงเธฅ 4 เธซเธฃเธทเธญเธ•เนเธณเธเธงเนเธฒ (`Magicians' Souls`, `Magician's Rod`, `Griffoh`) เธ—เธฑเนเธเนเธเธชเธธเธชเธฒเธเธซเธฃเธทเธญเธ•เธฑเธงเธ—เธตเนเธเธฐเธ–เธนเธเธชเนเธเธฅเธเธชเธธเธชเธฒเธเน€เธเนเธเธงเธฑเธ•เธ–เธธเธ”เธดเธเธเธญเธ `Cross-Sheep`
+   - ประเมินก่อนอัญเชิญเสมอว่าในเทิร์นนี้มีเวท Fusion/Ritual ในมือพร้อมเล่นจริงหรือไม่
+   - ตรวจสอบเป้าหมายชุบชีวิตเลเวล 4 หรือต่ำกว่า (`Magicians' Souls`, `Magician's Rod`, `Griffoh`) ทั้งในสุสานหรือตัวที่จะถูกส่งลงสุสานเป็นวัตถุดิบของ `Cross-Sheep`
 3. **Strict Material Value Guard (`CrossSheepSpSummon`)**:
-   - เธเธฑเธเธเธฑเธเนเธเนเน€เธเธเธฒเธฐเธกเธญเธเธชเน€เธ•เธญเธฃเนเธ•เธฑเธงเน€เธฅเนเธเธ—เธตเนเธซเธกเธ”เธเธ—เธเธฒเธ—เนเธฅเนเธง (ATK < 2000 เน€เธเนเธ Souls 0 ATK, Rod 1600 ATK, Griffoh 300 ATK)
-   - เธเธเธเนเธญเธเธเธญเธชเธ•เธฑเธงเธซเธฅเธฑเธ (`Red-Eyes Dark Dragoon`, `Azamina Ilia Silvia`, `Magician of Dark Chaos`, `Black Luster Soldier`, `Black Chaos`) เธญเธขเนเธฒเธเน€เธ”เนเธ”เธเธฒเธ” เธซเนเธฒเธกเธเธณเนเธเน€เธเนเธเธงเธฑเธ•เธ–เธธเธ”เธดเธเธเธญเธฃเนเธชเธเธตเธ
-   - เธ•เธฃเธงเธเธชเธญเธเน€เธเธทเนเธญเธเนเธเธเธทเนเธญเธ•เนเธฒเธเธเธฑเธ 2 เธ•เธฑเธง (`Distinct().Count() >= 2`) เน€เธเธทเนเธญเธเนเธญเธเธเธฑเธเธเธฑเธเธซเธฒเน€เธฅเธทเธญเธเธ•เธฑเธงเธเนเธณเนเธฅเนเธงเน€เธเธกเธเธเธดเน€เธชเธ
+   - บังคับใช้เฉพาะมอนสเตอร์ตัวเล็กที่หมดบทบาทแล้ว (ATK < 2000 เช่น Souls 0 ATK, Rod 1600 ATK, Griffoh 300 ATK)
+   - ปกป้องบอสตัวหลัก (`Red-Eyes Dark Dragoon`, `Azamina Ilia Silvia`, `Magician of Dark Chaos`, `Black Luster Soldier`, `Black Chaos`) อย่างเด็ดขาด ห้ามนำไปเป็นวัตถุดิบคอร์สชีพ
+   - ตรวจสอบเงื่อนไขชื่อต่างกัน 2 ตัว (`Distinct().Count() >= 2`) เพื่อป้องกันปัญหาเลือกตัวซ้ำแล้วเกมปฏิเสธ
 4. **Engine-Native Zone Guidance (`OnSelectPlace`)**:
-   - เนเธเนเธเธฒเธ `crossSheep.GetLinkedZones() & 0x1F` เธเธฒเธเธฃเธฐเธ”เธฑเธ Central Core เน€เธเธทเนเธญเธเธณเธเธงเธ“เธ•เธณเนเธซเธเนเธเธเนเธญเธเธงเนเธฒเธเธเธเธชเธเธฒเธกเธ—เธตเนเธฅเธนเธเธจเธฃเธเธญเธ `Cross-Sheep` เธเธตเนเธฅเธเธกเธฒเธญเธขเนเธฒเธเนเธกเนเธเธขเธณ (เธเนเธญเธ 0, 2 เธซเธฃเธทเธญ 4)
-   - เธเธณเธ—เธฒเธเธกเธญเธเธชเน€เธ•เธญเธฃเน Fusion / Ritual เธฅเธเธกเธฒเนเธเธ•เธณเนเธซเธเนเธเธฅเธนเธเธจเธฃเนเธ”เธขเธ•เธฃเธ เธ—เธณเนเธซเนเธ—เธฃเธดเธเน€เธเธญเธฃเนเธ—เธณเธเธฒเธเนเธ”เธขเธญเธฑเธ•เนเธเธกเธฑเธ•เธด
+   - ใช้งาน `crossSheep.GetLinkedZones() & 0x1F` จากระดับ Central Core เพื่อคำนวณตำแหน่งช่องว่างบนสนามที่ลูกศรของ `Cross-Sheep` ชี้ลงมาอย่างแม่นยำ (ช่อง 0, 2 หรือ 4)
+   - นำทางมอนสเตอร์ Fusion / Ritual ลงมาในตำแหน่งลูกศรโดยตรง ทำให้ทริกเกอร์ทำงานโดยอัตโนมัติ
 5. **Seamless Link Climb & Field Recycling**:
-   - `Cross-Sheep` เธ—เธฃเธดเธเน€เธเธญเธฃเนเธเธธเธ `Magicians' Souls` เธเธถเนเธเธกเธฒ
-   - `Magicians' Souls` เธชเนเธเธเธฒเธฃเนเธ”เน€เธงเธ—เธ—เธตเนเนเธเนเธเธฒเธเน€เธชเธฃเนเธเนเธฅเนเธง (`Deception`, `Wanted`) เธฅเธเธชเธธเธชเธฒเธเน€เธเธทเนเธญเธเธฑเนเธงเธเธฒเธฃเนเธ”เน€เธเธดเนเธกเธชเธนเธเธชเธธเธ” 2 เนเธ
-   - เน€เธเธทเนเธญเธกเธ•เนเธญเนเธเธขเธฑเธ `Selene, Queen of the Master Magicians` (Link-3) เนเธ”เธขเนเธเน `Cross-Sheep` (Link-2) + `Souls` (Spellcaster)
-   - `Selene` เธ–เธญเธ” 3 เน€เธเธฒเธเนเน€เธ•เธญเธฃเนเน€เธงเธ—เธกเธเธ•เธฃเนเน€เธเธทเนเธญเธเธธเธ `Dark Magician` เธซเธฃเธทเธญ `Diabellstar the Black Witch` เธเธฅเธฑเธเธเธทเธเธชเธนเนเธชเธเธฒเธก
-   - `Dark Magician` เธเธเธชเธเธฒเธกเธเธฃเนเธญเธกเนเธซเน `The Gaze of Timaeus` เธชเธฑเนเธเธเธดเธงเธเธฑเธเธ•เนเธญเธขเธญเธ”เน€เธเนเธ `Red-Eyes Dark Dragoon` เธ—เธฑเธเธ—เธต
+   - `Cross-Sheep` ทริกเกอร์ชุบ `Magicians' Souls` ขึ้นมา
+   - `Magicians' Souls` ส่งการ์ดเวทที่ใช้งานเสร็จแล้ว (`Deception`, `Wanted`) ลงสุสานเพื่อจั่วการ์ดเพิ่มสูงสุด 2 ใบ
+   - เชื่อมต่อไปยัง `Selene, Queen of the Master Magicians` (Link-3) โดยใช้ `Cross-Sheep` (Link-2) + `Souls` (Spellcaster)
+   - `Selene` ถอด 3 เคาน์เตอร์เวทมนตร์เพื่อชุบ `Dark Magician` หรือ `Diabellstar the Black Witch` กลับคืนสู่สนาม
+   - `Dark Magician` บนสนามพร้อมให้ `The Gaze of Timaeus` สั่งฟิวชันต่อยอดเป็น `Red-Eyes Dark Dragoon` ทันที
 
 ---
 
@@ -357,9 +265,9 @@ Following the Endymion `OnSelectCounter` investigation, a comprehensive audit wa
 
 ### Key Architecture & Strategic Implementation
 1. **Multi-Engine Synergy (4 Core Pillars)**:
-   - *Azamina Engine*: `WANTED` โ” `Diabellstar` โ” `Deception` โ” `The Hallowed Azamina` โ” `Azamina Ilia Silvia` (Early Omni-Negate to insulate against Nibiru & handtraps before 5 summons).
-   - *Dark Magician Engine*: `Illusion of Chaos` (Searcher + Field Quick Monster Negate) โ” `Magicians' Souls` (Dump DM/Skull Archfiend & Draw 2) โ” `The Gaze of Timaeus` (Quick Fusion into `Red-Eyes Dark Dragoon`).
-   - *Light & Darkness Ritual Engine*: `Ragged Records of Rites` โ” `Black Chaos` (Discards to place `Mind Shuffle` face-up) โ” `Mind Shuffle` (Continuous Trap: Searches Ritual monsters every turn and tags out Level 7+ monsters during opponent turn to summon `Magician of Dark Chaos - Black Chaos` or `Black Luster Soldier - Soldier of Light and Darkness` ignoring summoning conditions!).
+   - *Azamina Engine*: `WANTED` ➔ `Diabellstar` ➔ `Deception` ➔ `The Hallowed Azamina` ➔ `Azamina Ilia Silvia` (Early Omni-Negate to insulate against Nibiru & handtraps before 5 summons).
+   - *Dark Magician Engine*: `Illusion of Chaos` (Searcher + Field Quick Monster Negate) ➔ `Magicians' Souls` (Dump DM/Skull Archfiend & Draw 2) ➔ `The Gaze of Timaeus` (Quick Fusion into `Red-Eyes Dark Dragoon`).
+   - *Light & Darkness Ritual Engine*: `Ragged Records of Rites` ➔ `Black Chaos` (Discards to place `Mind Shuffle` face-up) ➔ `Mind Shuffle` (Continuous Trap: Searches Ritual monsters every turn and tags out Level 7+ monsters during opponent turn to summon `Magician of Dark Chaos - Black Chaos` or `Black Luster Soldier - Soldier of Light and Darkness` ignoring summoning conditions!).
    - *Extra Deck Support*: `Cross-Sheep` (Revives Level 4- on Fusion; Draw 2/Discard 2 on Ritual), `Selene` (Revives Spellcasters), `S:P Little Knight`, `W:P Fancy Ball` (Quick Monster Negate), and `Relinquished Anima` (Link-1 monster steal).
 2. **Rule & Anti-Pattern Compliance**:
    - `OnSelectCard`: Hint 506 deck searches strictly prioritized. Hint 502/503/504/505/507 removals enforce `c.Controller == 1` only. `Illusion of Chaos` deck placement protects searched cards.
