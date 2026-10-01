@@ -3018,5 +3018,20 @@
       4,
       5
     ]
+  },
+  {
+    "name": "Thunder Dragon",
+    "deck": "ThunderDragon",
+    "difficulty": 3,
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ],
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   }
 ]
