@@ -1,16 +1,20 @@
-﻿using YGOSharp.OCGWrapper.Enums;
+using YGOSharp.OCGWrapper.Enums;
 using System.Collections.Generic;
 using WindBot;
 using WindBot.Game;
 using WindBot.Game.AI;
+using WindBot.Game.AI.Plugins;
 using System.Linq;
 
 namespace WindBot.Game.AI.Decks
 {
     [Deck("PureWinds", "AI_PureWinds")]
-    // Made by Pluani (AniHelp) and Szefo
-    class PureWindsExecutor : DefaultExecutor
+    [Deck("Windwitch Gusto", "AI_PureWinds")]
+    [Deck("Windwitch", "AI_PureWinds")]
+    public class PureWindsExecutor : ModernExecutor
     {
+        public ClientCard CurrentExecutingCard => Card;
+
         public class CardId
         {
             public const int SpeedroidTerrortop = 81275020;
@@ -25,7 +29,7 @@ namespace WindBot.Game.AI.Decks
             public const int WindwitchSnowBell = 70117860;
             public const int SpeedroidRedEyedDice = 16725505;
             public const int Raigeki = 12580477;
-            public const int MonsterReborn = 83764719;
+            public const int MonsterReborn = 83764718;
             public const int Reasoning = 58577036;
             public const int ElShaddollWinda = 94977269;
 
@@ -216,10 +220,22 @@ namespace WindBot.Game.AI.Decks
         private bool Pilica_eff;
         private bool plan_A;
         private int SnowBell_count = 0;
-        //TODO: reset the flags when they should reset ( public override void OnNewTurn() )
+
+        public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
+        {
+            if (DeckPlugin is PureWindsPlugin pwPlugin)
+            {
+                var pluginSelected = pwPlugin.SelectCardLogic(cards, min, max, hint, cancelable);
+                if (pluginSelected != null && pluginSelected.Count >= min)
+                    return pluginSelected;
+            }
+            return base.OnSelectCard(cards, min, max, hint, cancelable);
+        }
+
         public PureWindsExecutor(GameAI ai, Duel duel)
             : base(ai, duel)
         {
+            DeckPlugin = new PureWindsPlugin(this);
             //counter
             AddExecutor(ExecutorType.Activate, CardId.SolemnWarning, base.DefaultSolemnWarning);
             AddExecutor(ExecutorType.Activate, CardId.ForbiddenChalice, ForbiddenChaliceeff);

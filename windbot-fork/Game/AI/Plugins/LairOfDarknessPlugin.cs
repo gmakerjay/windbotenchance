@@ -58,11 +58,18 @@ namespace WindBot.Game.AI.Plugins
             var diabolos = candidates.FirstOrDefault(c => c.Id == LairOfDarknessExecutor.CardId.DarkestDiabolos);
             if (diabolos != null) return diabolos;
 
-            // 2. Lord of the Heavenly Prison
+            // 2. Tour Guide target from Deck: Lilith > Malice
+            var lilith = candidates.FirstOrDefault(c => c.Id == LairOfDarknessExecutor.CardId.LilithLadyOfLament);
+            if (lilith != null) return lilith;
+
+            var malice = candidates.FirstOrDefault(c => c.Id == LairOfDarknessExecutor.CardId.MaliceLadyOfLament);
+            if (malice != null) return malice;
+
+            // 3. Lord of the Heavenly Prison
             var lord = candidates.FirstOrDefault(c => c.Id == LairOfDarknessExecutor.CardId.LordOfTheHeavenlyPrison);
             if (lord != null) return lord;
 
-            // 3. Super Poly Fusion bosses
+            // 4. Super Poly Fusion bosses
             var starving = candidates.FirstOrDefault(c => c.Id == LairOfDarknessExecutor.CardId.StarvingVenomFusionDragon);
             if (starving != null) return starving;
 
@@ -82,7 +89,7 @@ namespace WindBot.Game.AI.Plugins
         {
             if (candidates == null || candidates.Count == 0) return null;
 
-            // 1. Ahrima search: Lair of Darkness if not on field/hand
+            // 1. Ahrima / Terraforming search: Lair of Darkness if not on field/hand
             if (!_exec.Bot.HasInSpellZone(LairOfDarknessExecutor.CardId.LairOfDarkness) &&
                 !_exec.Bot.HasInHand(LairOfDarknessExecutor.CardId.LairOfDarkness))
             {
@@ -95,9 +102,12 @@ namespace WindBot.Game.AI.Plugins
             if (diabolos != null && !_exec.Bot.HasInHand(LairOfDarknessExecutor.CardId.DarkestDiabolos))
                 return diabolos;
 
-            // 3. Lilith search: Trap Trick x3 guarantee or Virus
+            // 3. Lilith search: Trap Trick x2 / Ballista Squad / Virus / IDP
             var trapTrick = candidates.FirstOrDefault(c => c.Id == LairOfDarknessExecutor.CardId.TrapTrick);
             if (trapTrick != null) return trapTrick;
+
+            var ballista = candidates.FirstOrDefault(c => c.Id == LairOfDarknessExecutor.CardId.BallistaSquad);
+            if (ballista != null) return ballista;
 
             var eev = candidates.FirstOrDefault(c => c.Id == LairOfDarknessExecutor.CardId.EradicatorEpidemicVirus);
             if (eev != null) return eev;
@@ -107,9 +117,6 @@ namespace WindBot.Game.AI.Plugins
 
             var idp = candidates.FirstOrDefault(c => c.Id == LairOfDarknessExecutor.CardId.IceDragonsPrison);
             if (idp != null) return idp;
-
-            var trio = candidates.FirstOrDefault(c => c.Id == LairOfDarknessExecutor.CardId.OjamaTrio);
-            if (trio != null) return trio;
 
             return candidates.FirstOrDefault();
         }
@@ -222,6 +229,20 @@ namespace WindBot.Game.AI.Plugins
         {
             if (c == null) return 0;
             int score = 0;
+
+            // Key Continuous Floodgates & Engine Pillars
+            if (c.Id == 48680970) score += 120; // Eternal Soul
+            if (c.Id == 99188141) score += 110; // Skill Drain
+            if (c.Id == 66399653 || c.Id == 66399444) score += 95;  // Union Hangar
+            if (c.Id == 47222536) score += 80;  // Dark Magical Circle
+
+            // Bosses & Towers
+            if (c.Id == 41721210) score += 150; // Dark Magician the Dragon Knight
+            if (c.Id == 50954680) score += 130; // Crystal Wing Synchro Dragon
+            if (c.Id == 1561110) score += 140;  // ABC-Dragon Buster
+            if (c.Id == 10443957) score += 135; // Cyber Dragon Infinity
+            if (c.Id == 4280258) score += 130;  // Apollousa, Bow of the Goddess
+            if (c.Id == 21887175) score += 130; // Mekk-Knight Crusadia Avramax
 
             if (c.Id == 18144506 || c.Id == 14532163 || c.Id == 15693423) score += 90;
             if (c.Id == 82732047 || c.Id == 82732705 || c.Id == 30241314) score += 85;

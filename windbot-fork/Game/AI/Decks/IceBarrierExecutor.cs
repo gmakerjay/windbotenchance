@@ -482,11 +482,12 @@ namespace WindBot.Game.AI.Decks
 
         private bool GamecielSpSummon()
         {
-            // Tribute opponent's strongest monster (boss/omni-negate/highest ATK)
-            ClientCard target = Enemy.GetMonsters()
-                                     .OrderByDescending(m => CardIntelligence.IsKnownNegator(m.Id) ? 10000 : m.Attack)
+            // Tribute opponent's biggest threat (boss / tower / negator / highest threat score)
+            ClientCard target = Enemy.GetMonsters().Where(m => m.IsFaceup())
+                                     .OrderByDescending(m => Plugin.ThreatImpl.EvaluateThreatScore(m))
+                                     .ThenByDescending(m => m.Attack)
                                      .FirstOrDefault();
-            if (target != null && target.Attack >= 2000)
+            if (target != null && (Plugin.ThreatImpl.EvaluateThreatScore(target) >= 50 || target.Attack >= 2000 || CardIntelligence.IsKnownNegator(target.Id)))
             {
                 AI.SelectCard(target);
                 return true;

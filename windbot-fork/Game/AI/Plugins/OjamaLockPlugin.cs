@@ -13,7 +13,8 @@ namespace WindBot.Game.AI.Plugins
     // ═══════════════════════════════════════════════════════════════════════════
     // DECOUPLED DOMAIN PLUGIN ARCHITECTURE: OjamaLockPlugin
     // Implements Strategy, MaterialEvaluator, ThreatEvaluator, and ZoneLockManager
-    // for Ojama 5-Zone Complete Lock & ABC-Dragon Buster Hybrid
+    // for Championship Grade Ojama ABC Lockdown (Ojama King 3-Zone Lock +
+    // ABC-Dragon Buster Quick Banish + Therion Regulus Omni-Negate Protection)
     // ═══════════════════════════════════════════════════════════════════════════
     public class OjamaLockPlugin : DeckPluginBase
     {
@@ -55,19 +56,73 @@ namespace WindBot.Game.AI.Plugins
             _exec = exec;
         }
 
-        public int SelectLockZone(int availableZones, CardLocation location)
+        /// <summary>
+        /// Handles OCGCore SelectDisableField (Ojama King, Ojama Knight, Ground Collapse).
+        /// Bit layout for raw available mask:
+        /// Bits 16..20: Opponent MMZ sequences 0..4
+        /// Bits 21..22: Opponent EMZ sequences 5..6
+        /// Bits 0..4: Player MMZ sequences 0..4
+        /// </summary>
+        public uint SelectDisfieldZones(int count, uint available)
         {
-            // When locking opponent Monster Zones (Ojama King 3 zones, Ojama Knight 2 zones,
-            // Ground Collapse 2 zones, Ojama Pink 1 zone):
-            // Center (Zone 2 = 0x4) -> Left-Center (Zone 1 = 0x2) -> Right-Center (Zone 3 = 0x8)
-            // -> Left-Edge (Zone 0 = 0x1) -> Right-Edge (Zone 4 = 0x10)
-            int[] monsterPref = { 0x4, 0x2, 0x8, 0x1, 0x10, 0x20, 0x40 };
-            foreach (int mask in monsterPref)
+            // Center (Zone 2 = bit 18) -> Left-Center (Zone 1 = bit 17) -> Right-Center (Zone 3 = bit 19)
+            // -> Left-Edge (Zone 0 = bit 16) -> Right-Edge (Zone 4 = bit 20) -> EMZ (bits 21, 22)
+            int[] oppMonsterBits = { 18, 17, 19, 16, 20, 21, 22 };
+            uint selected = 0;
+            int chosenCount = 0;
+
+            foreach (int bit in oppMonsterBits)
             {
-                if ((availableZones & mask) != 0) return mask;
+                uint mask = 1u << bit;
+                if ((available & mask) != 0)
+                {
+                    selected |= mask;
+                    chosenCount++;
+                    if (chosenCount >= count) return selected;
+                }
             }
 
-            return availableZones;
+            // Fallback: pick any remaining available bits to satisfy count
+            for (int bit = 0; bit < 32; ++bit)
+            {
+                uint mask = 1u << bit;
+                if ((available & mask) != 0 && (selected & mask) == 0)
+                {
+                    selected |= mask;
+                    chosenCount++;
+                    if (chosenCount >= count) return selected;
+                }
+            }
+
+            return selected;
+        }
+
+        /// <summary>
+        /// Handles OCGCore SelectPlace (Ojama Pink, monster summoning zone selection).
+        /// </summary>
+        public int SelectLockPlace(int available, CardLocation location, int player)
+        {
+            if (player == 1)
+            {
+                // Locking opponent zone (e.g. Ojama Pink)
+                // Center (Zone 2 = 0x4) -> Left-Center (Zone 1 = 0x2) -> Right-Center (Zone 3 = 0x8)
+                // -> Left-Edge (Zone 0 = 0x1) -> Right-Edge (Zone 4 = 0x10) -> EMZ (0x20, 0x40)
+                int[] monsterPref = { 0x4, 0x2, 0x8, 0x1, 0x10, 0x20, 0x40 };
+                foreach (int mask in monsterPref)
+                {
+                    if ((available & mask) != 0) return mask;
+                }
+                return available;
+            }
+
+            // Placing our own monster: Prefer MMZ (Zone 2, 1, 3, 0, 4) and avoid EMZ (Rule 11) unless Link
+            int[] ourMonsterPref = { 0x4, 0x2, 0x8, 0x1, 0x10 };
+            foreach (int mask in ourMonsterPref)
+            {
+                if ((available & mask) != 0) return mask;
+            }
+
+            return available;
         }
     }
 
@@ -82,7 +137,7 @@ namespace WindBot.Game.AI.Plugins
         {
             if (candidates == null || candidates.Count == 0) return null;
 
-            // 1. Ojamassimilation: SS ABC pieces (B > A > C)
+            // 1. ABC pieces via Ojamassimilation: B-Buster Drake > A-Assault Core > C-Crush Wyvern
             var buster = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.BBusterDrake);
             if (buster != null && !_exec.Bot.HasInMonstersZone(OjamaLockExecutor.CardId.BBusterDrake))
                 return buster;
@@ -95,14 +150,11 @@ namespace WindBot.Game.AI.Plugins
             if (crush != null && !_exec.Bot.HasInMonstersZone(OjamaLockExecutor.CardId.CCrushWyvern))
                 return crush;
 
-            // 2. Tri-Wight: Normal Ojamas (Green, Yellow, Black)
-            var normalOjama = candidates.FirstOrDefault(c =>
-                c.Id == OjamaLockExecutor.CardId.OjamaGreen ||
-                c.Id == OjamaLockExecutor.CardId.OjamaYellow ||
-                c.Id == OjamaLockExecutor.CardId.OjamaBlack);
-            if (normalOjama != null) return normalOjama;
+            // 2. Therion "King" Regulus (2800 ATK Omni-Negate)
+            var regulus = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.TherionKingRegulus);
+            if (regulus != null) return regulus;
 
-            // 3. Ojama Country revival: Ojama King > Ojama Knight > Ojama Emperor > Ojama Red
+            // 3. Fusion Bosses (from GY via Ojama Emperor)
             var king = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.OjamaKing);
             if (king != null) return king;
 
@@ -112,7 +164,14 @@ namespace WindBot.Game.AI.Plugins
             var emperor = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.OjamaEmperor);
             if (emperor != null) return emperor;
 
-            // 4. Ojama Duo / Ojama Red from hand: Ojama Red > Ojama Blue > Ojama Pink
+            // 4. Normal Ojamas (Green, Yellow, Black)
+            var normalOjama = candidates.FirstOrDefault(c =>
+                c.Id == OjamaLockExecutor.CardId.OjamaGreen ||
+                c.Id == OjamaLockExecutor.CardId.OjamaYellow ||
+                c.Id == OjamaLockExecutor.CardId.OjamaBlack);
+            if (normalOjama != null) return normalOjama;
+
+            // 5. Effect Ojamas
             var red = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.OjamaRed);
             if (red != null) return red;
 
@@ -122,10 +181,6 @@ namespace WindBot.Game.AI.Plugins
             var pink = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.OjamaPink);
             if (pink != null) return pink;
 
-            // 5. Armed Dragon Thunder
-            var dragon = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.ArmedDragonThunderLV5);
-            if (dragon != null) return dragon;
-
             return candidates.OrderByDescending(c => c.Attack).FirstOrDefault();
         }
 
@@ -133,18 +188,77 @@ namespace WindBot.Game.AI.Plugins
         {
             if (candidates == null || candidates.Count == 0) return null;
 
-            // 1. Ojamagic if we have an active discard outlet (Ojama Pajama, Ojama Country, Ojamatch)
+            // ── A. UNION / MACHINE SEARCH (via B-Buster Drake or Union Hangar) ──
+            bool hasUnionTarget = candidates.Any(c =>
+                c.Id == OjamaLockExecutor.CardId.BBusterDrake ||
+                c.Id == OjamaLockExecutor.CardId.AAssaultCore ||
+                c.Id == OjamaLockExecutor.CardId.CCrushWyvern ||
+                c.Id == OjamaLockExecutor.CardId.TherionKingRegulus ||
+                c.Id == OjamaLockExecutor.CardId.UnionDriver);
+
+            if (hasUnionTarget)
+            {
+                // 1. If we have a Machine in GY/Field and no Regulus in hand, search Therion "King" Regulus!
+                bool hasMachineGY = _exec.Bot.Graveyard.Any(c => c.HasRace(CardRace.Machine) && c.IsMonster());
+                if (hasMachineGY && !_exec.Bot.HasInHand(OjamaLockExecutor.CardId.TherionKingRegulus))
+                {
+                    var reg = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.TherionKingRegulus);
+                    if (reg != null) return reg;
+                }
+
+                // 2. Search missing ABC piece
+                bool hasA = _exec.Bot.HasInHand(OjamaLockExecutor.CardId.AAssaultCore) ||
+                            _exec.Bot.HasInMonstersZone(OjamaLockExecutor.CardId.AAssaultCore) ||
+                            _exec.Bot.HasInGraveyard(OjamaLockExecutor.CardId.AAssaultCore);
+                bool hasB = _exec.Bot.HasInHand(OjamaLockExecutor.CardId.BBusterDrake) ||
+                            _exec.Bot.HasInMonstersZone(OjamaLockExecutor.CardId.BBusterDrake) ||
+                            _exec.Bot.HasInGraveyard(OjamaLockExecutor.CardId.BBusterDrake);
+                bool hasC = _exec.Bot.HasInHand(OjamaLockExecutor.CardId.CCrushWyvern) ||
+                            _exec.Bot.HasInMonstersZone(OjamaLockExecutor.CardId.CCrushWyvern) ||
+                            _exec.Bot.HasInGraveyard(OjamaLockExecutor.CardId.CCrushWyvern);
+
+                if (!hasB)
+                {
+                    var b = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.BBusterDrake);
+                    if (b != null) return b;
+                }
+                if (!hasA)
+                {
+                    var a = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.AAssaultCore);
+                    if (a != null) return a;
+                }
+                if (!hasC)
+                {
+                    var c = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.CCrushWyvern);
+                    if (c != null) return c;
+                }
+
+                var fallbackUnion = candidates.FirstOrDefault(c =>
+                    c.Id == OjamaLockExecutor.CardId.BBusterDrake ||
+                    c.Id == OjamaLockExecutor.CardId.TherionKingRegulus ||
+                    c.Id == OjamaLockExecutor.CardId.AAssaultCore ||
+                    c.Id == OjamaLockExecutor.CardId.CCrushWyvern);
+                if (fallbackUnion != null) return fallbackUnion;
+            }
+
+            // ── B. OJAMA SEARCH (via Ojama Pajama or Ojama Blue) ──
+            // 0. King of the Swamp search Polymerization
+            if (contextCard?.Id == OjamaLockExecutor.CardId.KingOfTheSwamp)
+            {
+                var poly = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.Polymerization);
+                if (poly != null) return poly;
+            }
+
+            // 1. Ojamagic if we have an active discard outlet (Ojama Pajama or ABC Buster) to get +3 hand advantage!
             bool hasDiscardOutlet = _exec.Bot.HasInSpellZone(OjamaLockExecutor.CardId.OjamaPajama) ||
-                                    _exec.Bot.HasInSpellZone(OjamaLockExecutor.CardId.OjamaCountry) ||
-                                    _exec.Bot.HasInHand(OjamaLockExecutor.CardId.Ojamatch) ||
-                                    _exec.Bot.HasInHand(OjamaLockExecutor.CardId.OjamaCountry);
+                                    _exec.Bot.HasInMonstersZone(OjamaLockExecutor.CardId.ABCDragonBuster);
             if (hasDiscardOutlet && !_exec.Bot.HasInHand(OjamaLockExecutor.CardId.Ojamagic))
             {
                 var magic = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.Ojamagic);
                 if (magic != null) return magic;
             }
 
-            // 2. Ojamassimilation (The core enabler for ABC-Dragon Buster)
+            // 2. Ojamassimilation (The core engine for ABC-Dragon Buster)
             if (!_exec.Bot.HasInHand(OjamaLockExecutor.CardId.Ojamassimilation))
             {
                 var sim = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.Ojamassimilation);
@@ -159,14 +273,7 @@ namespace WindBot.Game.AI.Plugins
                 if (pajama != null) return pajama;
             }
 
-            // 4. Ojamatch (Extension + Normal Summon + Armed Dragon search)
-            if (!_exec.Bot.HasInHand(OjamaLockExecutor.CardId.Ojamatch))
-            {
-                var match = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.Ojamatch);
-                if (match != null) return match;
-            }
-
-            // 5. Ojama Country (Field spell ATK/DEF invert & GY revive)
+            // 3b. Ojama Country (Field spell ATK/DEF swap & revive engine)
             if (!_exec.Bot.HasInSpellZone(OjamaLockExecutor.CardId.OjamaCountry) &&
                 !_exec.Bot.HasInHand(OjamaLockExecutor.CardId.OjamaCountry))
             {
@@ -174,47 +281,26 @@ namespace WindBot.Game.AI.Plugins
                 if (country != null) return country;
             }
 
-            // 6. Ojama Red (Swarm engine from hand)
+            // 4. Ojama Red (Swarm engine from hand)
             if (!_exec.Bot.HasInHand(OjamaLockExecutor.CardId.OjamaRed))
             {
                 var red = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.OjamaRed);
                 if (red != null) return red;
             }
 
-            // 7. Ojama Pink (Hand refresh + Zone Lock)
-            if (!_exec.Bot.HasInHand(OjamaLockExecutor.CardId.OjamaPink))
-            {
-                var pink = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.OjamaPink);
-                if (pink != null) return pink;
-            }
+            // 5. Normal Ojamas to complete Fusion requirements
+            var green = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.OjamaGreen);
+            if (green != null && !_exec.Bot.HasInHand(OjamaLockExecutor.CardId.OjamaGreen)) return green;
 
-            // 8. Normal Ojamas to complete Ojama King requirement
-            bool hasGreen = _exec.Bot.HasInHand(OjamaLockExecutor.CardId.OjamaGreen);
-            bool hasYellow = _exec.Bot.HasInHand(OjamaLockExecutor.CardId.OjamaYellow);
-            bool hasBlack = _exec.Bot.HasInHand(OjamaLockExecutor.CardId.OjamaBlack);
+            var yellow = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.OjamaYellow);
+            if (yellow != null && !_exec.Bot.HasInHand(OjamaLockExecutor.CardId.OjamaYellow)) return yellow;
 
-            if (!hasGreen)
-            {
-                var green = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.OjamaGreen);
-                if (green != null) return green;
-            }
-            if (!hasYellow)
-            {
-                var yellow = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.OjamaYellow);
-                if (yellow != null) return yellow;
-            }
-            if (!hasBlack)
-            {
-                var black = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.OjamaBlack);
-                if (black != null) return black;
-            }
+            var black = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.OjamaBlack);
+            if (black != null && !_exec.Bot.HasInHand(OjamaLockExecutor.CardId.OjamaBlack)) return black;
 
-            // 9. Armed Dragon Thunder LV3 / LV5 for Ojamatch
-            var dragon3 = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.ArmedDragonThunderLV3);
-            if (dragon3 != null) return dragon3;
-
-            var dragon5 = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.ArmedDragonThunderLV5);
-            if (dragon5 != null) return dragon5;
+            // 6. Ojama Blue (Battle float searcher)
+            var blue = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.OjamaBlue);
+            if (blue != null) return blue;
 
             return candidates.FirstOrDefault();
         }
@@ -229,14 +315,19 @@ namespace WindBot.Game.AI.Plugins
         {
             if (c == null) return 0;
 
+            // High-ATK Tokens (e.g. Kagemusha Raccoon Token copying 3000 ATK): NEVER sacrifice
+            if (c.HasType(CardType.Token) && c.Attack >= 2000)
+                return 100;
+
             // Tokens: Zero cost, perfect fodder
             if (c.HasType(CardType.Token) || c.Id == OjamaLockExecutor.CardId.OjamaToken)
                 return 1;
 
-            // Normal Ojamas: Low cost fodder
+            // Normal Ojamas & King of the Swamp: Low cost fodder
             if (c.Id == OjamaLockExecutor.CardId.OjamaGreen ||
                 c.Id == OjamaLockExecutor.CardId.OjamaYellow ||
-                c.Id == OjamaLockExecutor.CardId.OjamaBlack)
+                c.Id == OjamaLockExecutor.CardId.OjamaBlack ||
+                c.Id == OjamaLockExecutor.CardId.KingOfTheSwamp)
                 return 2;
 
             // Effect Ojamas: Medium cost
@@ -245,12 +336,7 @@ namespace WindBot.Game.AI.Plugins
                 c.Id == OjamaLockExecutor.CardId.OjamaPink)
                 return 3;
 
-            // Armed Dragon Thunder LV3 / LV5: Medium cost
-            if (c.Id == OjamaLockExecutor.CardId.ArmedDragonThunderLV3 ||
-                c.Id == OjamaLockExecutor.CardId.ArmedDragonThunderLV5)
-                return 4;
-
-            // ABC pieces on field: High cost until ready to Contact Fuse into ABC-Dragon Buster
+            // ABC pieces on field: Medium cost until ready to Contact Fuse into ABC-Dragon Buster
             if (c.Id == OjamaLockExecutor.CardId.AAssaultCore ||
                 c.Id == OjamaLockExecutor.CardId.BBusterDrake ||
                 c.Id == OjamaLockExecutor.CardId.CCrushWyvern)
@@ -260,9 +346,11 @@ namespace WindBot.Game.AI.Plugins
             if (c.Id == OjamaLockExecutor.CardId.OjamaKing ||
                 c.Id == OjamaLockExecutor.CardId.OjamaKnight ||
                 c.Id == OjamaLockExecutor.CardId.ABCDragonBuster ||
+                c.Id == OjamaLockExecutor.CardId.TherionKingRegulus ||
+                c.Id == OjamaLockExecutor.CardId.PlatinumGadget ||
                 c.Id == OjamaLockExecutor.CardId.OjamaEmperor ||
-                c.Id == OjamaLockExecutor.CardId.AccesscodeTalker ||
                 c.Id == OjamaLockExecutor.CardId.SPLittleKnight ||
+                c.Id == OjamaLockExecutor.CardId.IPMasquerena ||
                 c.Id == OjamaLockExecutor.CardId.RoninRaccoonSandayu ||
                 c.Id == OjamaLockExecutor.CardId.SkyCavalryCentaurea)
                 return 100;
@@ -284,26 +372,18 @@ namespace WindBot.Game.AI.Plugins
             var magic = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.Ojamagic);
             if (magic != null) return magic;
 
-            // 2. Armed Dragon Thunder LV3 (Draws 1 when sent to GY for dragon effect)
-            var lv3 = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.ArmedDragonThunderLV3);
-            if (lv3 != null) return lv3;
-
-            // 3. Ojama Duo (Has GY banish effect to summon 2 Ojamas from deck!)
-            var duo = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.OjamaDuo);
-            if (duo != null) return duo;
-
-            // 4. Ojama Pink (Draw 1, discard 1, lock 1 opp zone!)
+            // 2. Ojama Pink (Draw 1, discard 1, lock 1 opp zone!)
             var pink = candidates.FirstOrDefault(c => c.Id == OjamaLockExecutor.CardId.OjamaPink);
             if (pink != null) return pink;
 
-            // 5. ABC pieces (Sets up GY banish for ABC-Dragon Buster!)
+            // 3. ABC pieces (Sets up GY banish for ABC-Dragon Buster!)
             var abc = candidates.FirstOrDefault(c =>
                 c.Id == OjamaLockExecutor.CardId.AAssaultCore ||
                 c.Id == OjamaLockExecutor.CardId.BBusterDrake ||
                 c.Id == OjamaLockExecutor.CardId.CCrushWyvern);
             if (abc != null) return abc;
 
-            // 6. Duplicate Normal Ojamas
+            // 4. Duplicate Normal Ojamas
             var duplicateOjama = candidates.GroupBy(c => c.Id)
                 .Where(g => g.Count() > 1 &&
                     (g.Key == OjamaLockExecutor.CardId.OjamaGreen ||
@@ -312,7 +392,7 @@ namespace WindBot.Game.AI.Plugins
                 .SelectMany(g => g).FirstOrDefault();
             if (duplicateOjama != null) return duplicateOjama;
 
-            // 7. Any Normal Ojama
+            // 5. Any Normal Ojama
             var normal = candidates.FirstOrDefault(c =>
                 c.Id == OjamaLockExecutor.CardId.OjamaGreen ||
                 c.Id == OjamaLockExecutor.CardId.OjamaYellow ||
@@ -324,22 +404,45 @@ namespace WindBot.Game.AI.Plugins
 
         public ClientCard PickDestructionSubstitute(IList<ClientCard> candidates, int min = 1)
         {
-            // Ojama Pajama substitute: Banish Ojama card from GY first
-            var normalGY = candidates?.FirstOrDefault(c =>
+            if (candidates == null || candidates.Count == 0) return null;
+
+            // Ojama Pajama substitute: Banish Ojama card from GY first (normal Ojamas before effect Ojamas)
+            var normalGY = candidates.FirstOrDefault(c =>
                 c.Location == CardLocation.Grave &&
                 (c.Id == OjamaLockExecutor.CardId.OjamaGreen ||
                  c.Id == OjamaLockExecutor.CardId.OjamaYellow ||
                  c.Id == OjamaLockExecutor.CardId.OjamaBlack));
             if (normalGY != null) return normalGY;
 
-            return candidates?.OrderBy(GetMaterialCost).FirstOrDefault();
+            var anyGyOjama = candidates.FirstOrDefault(c => c.Location == CardLocation.Grave && IsOjamaCard(c.Id));
+            if (anyGyOjama != null) return anyGyOjama;
+
+            var handOjama = candidates.FirstOrDefault(c => c.Location == CardLocation.Hand && IsOjamaCard(c.Id));
+            if (handOjama != null) return handOjama;
+
+            return candidates.OrderBy(GetMaterialCost).FirstOrDefault();
+        }
+
+        private static bool IsOjamaCard(int id)
+        {
+            return id == OjamaLockExecutor.CardId.OjamaGreen ||
+                   id == OjamaLockExecutor.CardId.OjamaYellow ||
+                   id == OjamaLockExecutor.CardId.OjamaBlack ||
+                   id == OjamaLockExecutor.CardId.OjamaBlue ||
+                   id == OjamaLockExecutor.CardId.OjamaRed ||
+                   id == OjamaLockExecutor.CardId.OjamaPink ||
+                   id == OjamaLockExecutor.CardId.Ojamagic ||
+                   id == OjamaLockExecutor.CardId.Ojamassimilation ||
+                   id == OjamaLockExecutor.CardId.OjamaPajama ||
+                   id == OjamaLockExecutor.CardId.OjamaCountry ||
+                   id == OjamaLockExecutor.CardId.OjamaTrio;
         }
 
         public IList<ClientCard> PickOjamassimilationBanish(IList<ClientCard> candidates, int count)
         {
-            // Banish order: GY Normal Ojamas > GY Effect Ojamas > Field Normal Ojamas > Hand Normal Ojamas
             if (candidates == null) return new List<ClientCard>();
 
+            // Banish order: GY Normal Ojamas > GY Effect Ojamas > Field Normal Ojamas > Hand Normal Ojamas
             var sorted = candidates.OrderBy(c =>
             {
                 if (c.Location == CardLocation.Grave)
@@ -368,13 +471,22 @@ namespace WindBot.Game.AI.Plugins
             if (c == null) return 0;
             int score = 0;
 
-            // Mass Backrow Wipes
-            if (c.Id == 18144506 || c.Id == 18144507 || c.Id == 14532163 || c.Id == 15693423 || c.Id == 43898403)
-                score += 90;
+            // Key Continuous Floodgates & Engine Pillars
+            if (c.Id == 48680970) score += 120; // Eternal Soul
+            if (c.Id == 99188141) score += 110; // Skill Drain
+            if (c.Id == 66399653 || c.Id == 66399444) score += 95;  // Union Hangar
+            if (c.Id == 47222536) score += 80;  // Dark Magical Circle
 
-            // Continuous Floodgates
-            if (c.Id == 82732047 || c.Id == 82732705 || c.Id == 30241314)
-                score += 85;
+            // Bosses & Towers
+            if (c.Id == 41721210) score += 150; // Dark Magician the Dragon Knight
+            if (c.Id == 50954680) score += 130; // Crystal Wing Synchro Dragon
+            if (c.Id == 1561110) score += 140;  // ABC-Dragon Buster
+            if (c.Id == 10443957) score += 135; // Cyber Dragon Infinity
+            if (c.Id == 4280258) score += 130;  // Apollousa, Bow of the Goddess
+            if (c.Id == 21887175) score += 130; // Mekk-Knight Crusadia Avramax
+
+            // Mass Backrow Wipes
+            if (c.Id == 18144506 || c.Id == 14532163 || c.Id == 15693423) score += 90;
 
             if (c.IsFaceup())
             {

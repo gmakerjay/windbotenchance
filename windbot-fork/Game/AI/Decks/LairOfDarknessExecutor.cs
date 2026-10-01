@@ -35,35 +35,37 @@ namespace WindBot.Game.AI.Decks
         public class CardId
         {
             // Main Deck Monsters
-            public const int AhrimaTheWickedWarden = 23898021;
-            public const int DarkestDiabolos = 85555787;
-            public const int LilithLadyOfLament = 50383626;
-            public const int MaliceLadyOfLament = 12766474;
-            public const int RadianTheMultidimensionalKaiju = 28601770;
+            public const int AhrimaTheWickedWarden = 86377375;
+            public const int LilithLadyOfLament = 23898021;
+            public const int DarkestDiabolos = 50383626;
+            public const int MaliceLadyOfLament = 25643346;
+            public const int TourGuide = 10802915;
+            public const int RadianTheMultidimensionalKaiju = 28674152;
             public const int LordOfTheHeavenlyPrison = 9822220;
             public const int AshBlossom = 14558127;
 
             // Spells
             public const int LairOfDarkness = 59160188;
+            public const int Terraforming = 73628505;
             public const int SuperPolymerization = 48130397;
-            public const int PotOfExtravagance = 49238328;
-            public const int ShareThePain = 56830749;
+            public const int EnemyController = 98045062;
             public const int FoolishBurial = 81439173;
             public const int HarpiesFeatherDuster = 18144506;
 
             // Traps
-            public const int EradicatorEpidemicVirus = 54974237;
-            public const int DeckDevastationVirus = 57728570;
-            public const int FullForceVirus = 29876529;
+            public const int BallistaSquad = 80584548;
             public const int TrapTrick = 80101899;
-            public const int IceDragonsPrison = 15800838;
-            public const int OjamaTrio = 29843091;
+            public const int IceDragonsPrison = 20899496;
+            public const int EradicatorEpidemicVirus = 54974237;
+            public const int DeckDevastationVirus = 35027493;
+            public const int GrinningGraveVirus = 85555787;
+            public const int FullForceVirus = 4931121;
             public const int InfiniteImpermanence = 10045474;
             public const int TormentToken = 59160189;
 
             // Extra Deck
             public const int StarvingVenomFusionDragon = 41209827;
-            public const int MudragonOfTheSwamp = 43892408;
+            public const int MudragonOfTheSwamp = 54757758;
             public const int GaruraWingsOfResonantLife = 11765832;
             public const int PredaplantDragostapelia = 69946549;
             public const int Typhon = 93039339;
@@ -104,15 +106,16 @@ namespace WindBot.Game.AI.Decks
         private void RegisterExecutors()
         {
             // ── Tier 1: Field Spell & Hand Protection ──
+            AddExecutor(ExecutorType.Activate, CardId.Terraforming, () => true);
             AddExecutor(ExecutorType.Activate, CardId.LairOfDarkness, LairOfDarknessActivate);
             AddExecutor(ExecutorType.Activate, CardId.LordOfTheHeavenlyPrison, LordOfTheHeavenlyPrisonActivate);
-            AddExecutor(ExecutorType.Activate, CardId.PotOfExtravagance, PotOfExtravaganceActivate);
             AddExecutor(ExecutorType.Activate, CardId.HarpiesFeatherDuster, HarpiesFeatherDusterActivate);
 
-            // ── Tier 2: Board Breaking & Super Poly ──
+            // ── Tier 2: Board Breaking, Tribute Quick-Plays & Super Poly ──
             AddExecutor(ExecutorType.SpSummon, CardId.RadianTheMultidimensionalKaiju, RadianKaijuSpSummon);
             AddExecutor(ExecutorType.Activate, CardId.SuperPolymerization, SuperPolymerizationActivate);
-            AddExecutor(ExecutorType.Activate, CardId.ShareThePain, ShareThePainActivate);
+            AddExecutor(ExecutorType.Activate, CardId.EnemyController, EnemyControllerActivate);
+            AddExecutor(ExecutorType.Activate, CardId.BallistaSquad, BallistaSquadActivate);
             AddExecutor(ExecutorType.Activate, CardId.FoolishBurial, FoolishBurialActivate);
 
             // ── Tier 3: Searchers & Disruption Traps ──
@@ -122,12 +125,12 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.Activate, CardId.DeckDevastationVirus, DeckDevastationVirusActivate);
             AddExecutor(ExecutorType.Activate, CardId.FullForceVirus, FullForceVirusActivate);
             AddExecutor(ExecutorType.Activate, CardId.IceDragonsPrison, IceDragonsPrisonActivate);
-            AddExecutor(ExecutorType.Activate, CardId.OjamaTrio, OjamaTrioActivate);
 
             // ── Tier 4: Boss Monster Summons & Ignitions ──
             AddExecutor(ExecutorType.Activate, CardId.DarkestDiabolos, DarkestDiabolosActivate);
             AddExecutor(ExecutorType.Activate, CardId.LilithLadyOfLament, LilithActivate);
             AddExecutor(ExecutorType.Activate, CardId.MaliceLadyOfLament, MaliceActivate);
+            AddExecutor(ExecutorType.Activate, CardId.TourGuide, () => true);
 
             // ── Tier 5: Extra Deck Summons ──
             AddExecutor(ExecutorType.SpSummon, CardId.Typhon, TyphonSpSummon);
@@ -145,18 +148,20 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.SpSummon, CardId.WeeWitchsApprentice, WeeWitchSpSummon);
 
             // ── Tier 6: Normal Summons ──
+            AddExecutor(ExecutorType.Summon, CardId.TourGuide, () => true);
             AddExecutor(ExecutorType.Summon, CardId.LilithLadyOfLament, LilithSummon);
             AddExecutor(ExecutorType.Summon, CardId.AhrimaTheWickedWarden, AhrimaSummon);
             AddExecutor(ExecutorType.Summon, CardId.MaliceLadyOfLament, MaliceSummon);
 
             // ── Tier 7: Spells & Traps Setting ──
             AddExecutor(ExecutorType.SpellSet, CardId.TrapTrick);
+            AddExecutor(ExecutorType.SpellSet, CardId.BallistaSquad);
             AddExecutor(ExecutorType.SpellSet, CardId.EradicatorEpidemicVirus);
             AddExecutor(ExecutorType.SpellSet, CardId.DeckDevastationVirus);
             AddExecutor(ExecutorType.SpellSet, CardId.FullForceVirus);
             AddExecutor(ExecutorType.SpellSet, CardId.IceDragonsPrison);
+            AddExecutor(ExecutorType.SpellSet, CardId.EnemyController);
             AddExecutor(ExecutorType.SpellSet, CardId.SuperPolymerization);
-            AddExecutor(ExecutorType.SpellSet, CardId.OjamaTrio);
             AddExecutor(ExecutorType.SpellSet, CardId.InfiniteImpermanence);
         }
 
@@ -222,16 +227,37 @@ namespace WindBot.Game.AI.Decks
             return oppMonsters >= 2;
         }
 
-        private bool ShareThePainActivate()
+        private bool EnemyControllerActivate()
         {
-            // Under Lair of Darkness: Can tribute 1 opponent monster as cost!
-            // Opponent then must tribute another monster! (Opponent loses 2 monsters!)
+            if (Enemy.GetMonsterCount() == 0) return false;
+
             bool isLairActive = Bot.HasInSpellZone(CardId.LairOfDarkness);
+            // Under Lair of Darkness: tribute 1 opp monster to take control of another opp monster!
             if (isLairActive && Enemy.GetMonsterCount() >= 2)
                 return true;
 
-            // Otherwise, tribute a token or low cost monster
-            return Bot.GetMonsters().Any(c => c.HasType(CardType.Token)) && Enemy.GetMonsterCount() > 0;
+            // Tribute a token to steal opp monster
+            bool hasToken = Bot.GetMonsters().Any(c => c.HasType(CardType.Token));
+            if (hasToken && Enemy.GetMonsterCount() > 0)
+                return true;
+
+            // Battle Phase: change opponent attacker to defense
+            if (Duel.Phase == DuelPhase.BattleStart || Duel.Phase == DuelPhase.BattleStep)
+            {
+                return Enemy.GetMonsters().Any(c => c.IsAttack() && c.Attack >= 2000);
+            }
+            return false;
+        }
+
+        private bool BallistaSquadActivate()
+        {
+            if (Enemy.GetMonsterCount() + Enemy.GetSpellCount() == 0) return false;
+
+            bool isLairActive = Bot.HasInSpellZone(CardId.LairOfDarkness);
+            if (isLairActive && (Enemy.GetMonsterCount() >= 2 || (Enemy.GetMonsterCount() >= 1 && Enemy.GetSpellCount() >= 1)))
+                return true;
+
+            return Bot.GetMonsters().Any(c => c.HasType(CardType.Token) || c.Id == CardId.LilithLadyOfLament);
         }
 
         private bool FoolishBurialActivate()
@@ -480,14 +506,25 @@ namespace WindBot.Game.AI.Decks
 
         #region Selection Handlers
 
+        private static bool IsTargetImmune(ClientCard c)
+        {
+            if (c == null) return false;
+            // Eternal Soul protects Dark Magician from card effects
+            if (c.Id == 46986414 && c.Controller == 1)
+            {
+                // Can still target, but unaffected
+                return false;
+            }
+            return false;
+        }
+
         public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
         {
             if (cards == null || cards.Count == 0)
                 return base.OnSelectCard(cards, min, max, hint, cancelable);
 
-            // 1. Tribute Cost Under Lair of Darkness: ALWAYS pick opponent's monster first!
-            bool isTributeContext = cards.Any(c => c.Controller == 1);
-            if (isTributeContext)
+            // 1. Tribute Cost Under Lair of Darkness (Hint 500 = HINTMSG_RELEASE): ALWAYS pick opponent's monster first!
+            if (hint == 500)
             {
                 var tributeTarget = Plugin.MaterialImpl.PickTributeTarget(cards);
                 if (tributeTarget != null && cards.Contains(tributeTarget))
@@ -508,61 +545,53 @@ namespace WindBot.Game.AI.Decks
                 }
             }
 
-            // 2. Discard Target
-            var discardTarget = Plugin.MaterialImpl.PickDiscardTarget(cards, min);
-            if (discardTarget != null && cards.Contains(discardTarget))
+            // 2. Removal / Banish / Destroy / Control (Hints: 502, 503, 505, 514): Strictly Opponent Cards!
+            if (hint == 502 || hint == 503 || hint == 505 || hint == 514)
             {
-                var result = new List<ClientCard> { discardTarget };
-                if (result.Count < min)
+                var oppCards = cards.Where(c => c.Controller == 1 && !IsTargetImmune(c)).ToList();
+                if (oppCards.Count >= min)
                 {
-                    foreach (var c in cards)
-                    {
-                        if (!result.Contains(c))
-                        {
-                            result.Add(c);
-                            if (result.Count >= min) break;
-                        }
-                    }
+                    return oppCards.OrderByDescending(c => Plugin.ThreatImpl.EvaluateThreatScore(c))
+                                   .ThenByDescending(c => c.Attack)
+                                   .Take(Math.Min(max, oppCards.Count))
+                                   .ToList();
                 }
-                return result;
             }
 
-            // 3. Special Summon Target
-            var ssTarget = Plugin.StrategyImpl.PickSpecialSummonTarget(cards);
-            if (ssTarget != null && cards.Contains(ssTarget))
+            // 3. Discard Target (Hint 501 = HINTMSG_DISCARD)
+            if (hint == 501)
             {
-                var result = new List<ClientCard> { ssTarget };
-                if (result.Count < min)
+                var discardTarget = Plugin.MaterialImpl.PickDiscardTarget(cards, min);
+                if (discardTarget != null && cards.Contains(discardTarget))
                 {
-                    foreach (var c in cards)
-                    {
-                        if (!result.Contains(c))
-                        {
-                            result.Add(c);
-                            if (result.Count >= min) break;
-                        }
-                    }
+                    var result = new List<ClientCard> { discardTarget };
+                    result.AddRange(cards.Where(c => c != discardTarget).Take(max - 1));
+                    if (result.Count >= min) return result.Take(max).ToList();
                 }
-                return result;
             }
 
-            // 4. Search Target
-            var searchTarget = Plugin.StrategyImpl.PickSearchTarget(cards, Card);
-            if (searchTarget != null && cards.Contains(searchTarget))
+            // 4. Special Summon Target (Hint 509 = HINTMSG_SPSUMMON)
+            if (hint == 509)
             {
-                var result = new List<ClientCard> { searchTarget };
-                if (result.Count < min)
+                var ssTarget = Plugin.StrategyImpl.PickSpecialSummonTarget(cards);
+                if (ssTarget != null && cards.Contains(ssTarget))
                 {
-                    foreach (var c in cards)
-                    {
-                        if (!result.Contains(c))
-                        {
-                            result.Add(c);
-                            if (result.Count >= min) break;
-                        }
-                    }
+                    var result = new List<ClientCard> { ssTarget };
+                    result.AddRange(cards.Where(c => c != ssTarget).Take(max - 1));
+                    if (result.Count >= min) return result.Take(max).ToList();
                 }
-                return result;
+            }
+
+            // 5. Search Target (Hint 506 = HINTMSG_ATOHAND or all candidates from Deck)
+            if (hint == 506 || cards.All(c => c.Location == CardLocation.Deck))
+            {
+                var searchTarget = Plugin.StrategyImpl.PickSearchTarget(cards, Card);
+                if (searchTarget != null && cards.Contains(searchTarget))
+                {
+                    var result = new List<ClientCard> { searchTarget };
+                    result.AddRange(cards.Where(c => c != searchTarget).Take(max - 1));
+                    if (result.Count >= min) return result.Take(max).ToList();
+                }
             }
 
             return base.OnSelectCard(cards, min, max, hint, cancelable);

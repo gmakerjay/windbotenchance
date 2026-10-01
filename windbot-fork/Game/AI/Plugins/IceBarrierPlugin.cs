@@ -57,33 +57,42 @@ namespace WindBot.Game.AI.Plugins
             // Opponent Turn: Lancea Disruption or Floater
             if (_exec.Duel.Player == 1)
             {
-                // When Lancea leaves the field by an opponent's card -> Summon Trishula Zero or Trishula
-                var synchroFloater = candidates.FirstOrDefault(c => c.Id == IceBarrierExecutor.CardId.TrishulaZeroDragon);
-                if (synchroFloater != null) return synchroFloater;
+                // When Lancea leaves the field by an opponent's card -> Floats into Trishula Zero (only Extra Deck targets available)
+                bool isLanceaLeavingField = candidates.All(c => c.Location == CardLocation.Extra);
+                if (isLanceaLeavingField)
+                {
+                    var synchroFloater = candidates.FirstOrDefault(c => c.Id == IceBarrierExecutor.CardId.TrishulaZeroDragon);
+                    if (synchroFloater != null) return synchroFloater;
 
-                var synchroFloater2 = candidates.FirstOrDefault(c => c.Id == IceBarrierExecutor.CardId.TrishulaDragon);
-                if (synchroFloater2 != null) return synchroFloater2;
+                    var synchroFloater2 = candidates.FirstOrDefault(c => c.Id == IceBarrierExecutor.CardId.TrishulaDragon);
+                    if (synchroFloater2 != null) return synchroFloater2;
+                }
 
-                // Lancea Quick Trigger on opponent's Special Summon:
-                // Priority 1: General Raiho (Opponent must discard 1 card for every monster effect on field, or it's negated)
+                // Lancea Quick Trigger on opponent's Special Summon (Lancea is face-up on field):
+                // Priority 1: General Raiho (Opponent must discard 1 card for every monster effect on field, or it's negated!)
                 var raiho = candidates.FirstOrDefault(c => c.Id == IceBarrierExecutor.CardId.GeneralRaiho);
                 if (raiho != null && !_exec.Bot.HasInMonstersZone(IceBarrierExecutor.CardId.GeneralRaiho))
                     return raiho;
 
-                // Priority 2: Georgius (Opponent cannot activate monster effects in the GY while another Ice Barrier is on field)
-                var georgius = candidates.FirstOrDefault(c => c.Id == IceBarrierExecutor.CardId.GeorgiusSwordman);
-                if (georgius != null && !_exec.Bot.HasInMonstersZone(IceBarrierExecutor.CardId.GeorgiusSwordman))
-                    return georgius;
-
-                // Priority 3: Medium (Opponent can only activate 1 Spell/Trap card each turn)
+                // Priority 2: Medium (Opponent can only activate 1 Spell/Trap card each turn - shuts down DM / Sky Striker / Altergeist!)
                 var medium = candidates.FirstOrDefault(c => c.Id == IceBarrierExecutor.CardId.Medium);
                 if (medium != null && !_exec.Bot.HasInMonstersZone(IceBarrierExecutor.CardId.Medium))
                     return medium;
+
+                // Priority 3: Georgius (Opponent cannot activate monster effects in the GY while another Ice Barrier is on field)
+                var georgius = candidates.FirstOrDefault(c => c.Id == IceBarrierExecutor.CardId.GeorgiusSwordman);
+                if (georgius != null && !_exec.Bot.HasInMonstersZone(IceBarrierExecutor.CardId.GeorgiusSwordman))
+                    return georgius;
 
                 // Priority 4: Warlock (Both players must set Spells before activating them - Anti-Spell Fragrance)
                 var warlock = candidates.FirstOrDefault(c => c.Id == IceBarrierExecutor.CardId.Warlock);
                 if (warlock != null && !_exec.Bot.HasInMonstersZone(IceBarrierExecutor.CardId.Warlock))
                     return warlock;
+
+                // Priority 5: General Wayne (Banishes Spells/Traps sent to opponent's GY)
+                var wayne = candidates.FirstOrDefault(c => c.Id == IceBarrierExecutor.CardId.GeneralWayne);
+                if (wayne != null && !_exec.Bot.HasInMonstersZone(IceBarrierExecutor.CardId.GeneralWayne))
+                    return wayne;
 
                 // Fallback to highest ATK
                 return candidates.OrderByDescending(c => c.Attack).FirstOrDefault();
@@ -301,6 +310,20 @@ namespace WindBot.Game.AI.Plugins
         {
             if (c == null) return 0;
             int score = 0;
+
+            // Key Continuous Floodgates & Engine Pillars
+            if (c.Id == 48680970) score += 120; // Eternal Soul
+            if (c.Id == 99188141) score += 110; // Skill Drain
+            if (c.Id == 66399653 || c.Id == 66399444) score += 95;  // Union Hangar
+            if (c.Id == 47222536) score += 80;  // Dark Magical Circle
+
+            // Bosses & Towers
+            if (c.Id == 41721210) score += 150; // Dark Magician the Dragon Knight
+            if (c.Id == 50954680) score += 130; // Crystal Wing Synchro Dragon
+            if (c.Id == 1561110) score += 140;  // ABC-Dragon Buster
+            if (c.Id == 10443957) score += 135; // Cyber Dragon Infinity
+            if (c.Id == 4280258) score += 130;  // Apollousa, Bow of the Goddess
+            if (c.Id == 21887175) score += 130; // Mekk-Knight Crusadia Avramax
 
             // Continuous floodgates & spell wipes are extreme threats to Ice Barrier
             if (c.Id == 18144506 || c.Id == 18144507 || c.Id == 14532163) score += 90; // Harpie, Lightning Storm

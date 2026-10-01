@@ -10,119 +10,93 @@ using WindBot.Game.AI.Plugins;
 namespace WindBot.Game.AI.Decks
 {
     // ====================================================================================================
-    //  2026_Labrynth เนโฌโ€ ARCHETYPE STRATEGY & DECISION-TREE ENGINE EXECUTOR
+    //  LABRYNTH EXECUTOR - MODERN RULE-BASED DECISION ENGINE WITH DECOUPLED DOMAIN PLUGIN
     // ====================================================================================================
-    //
-    // เน€เธยเน€เธเธ’เน€เธเธเน€เธโฌเน€เธโ€เน€เธยเน€เธย: Labrynth + Dogmatika Control (2026) เนโฌโ€ เน€เธโฌเน€เธโ€เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธยเน€เธโ€”เน€เธเธเน€เธเธ…เน€เธยเน€เธเธ‘เน€เธยเน€เธโ€เน€เธเธ‘เน€เธยเน€เธยเน€เธเธ…เน€เธเธเน€เธเธเน€เธยเน€เธยเน€เธยเน€เธเธ’เน€เธเธเน€เธยเน€เธโ€ Extra Deck เน€เธเธ…เน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ’เน€เธย
-    //
-    // เน€เธยเน€เธเธ“เน€เธเธเน€เธยเน€เธเธ”เน€เธยเน€เธเธ’เน€เธเธเน€เธยเน€เธเธ…เน€เธเธเน€เธเธเน€เธโ€”เน€เธยเน€เธยเน€เธยเน€เธเธ…เน€เธเธเน€เธยเน€เธเธ’เน€เธเธเน€เธโ€”เน€เธเธ“เน€เธยเน€เธเธ’เน€เธยเน€เธเธเน€เธเธ…เน€เธเธ‘เน€เธย (Strategy Overview):
-    //  1. Normal Trap Interactions (เน€เธยเน€เธเธ’เน€เธเธเน€เธโฌเน€เธเธ…เน€เธยเน€เธย Normal Trap เน€เธโฌเน€เธยเน€เธเธ—เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธเน€เธโ€ขเน€เธเธเน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธย):
-    //     เน€เธเธเน€เธเธเน€เธยเน€เธเธเน€เธโฌเน€เธโ€ขเน€เธเธเน€เธเธเน€เธย "Labrynth" เน€เธยเน€เธเธเน€เธยเน€เธโ€เน€เธยเน€เธเธเน€เธเธ‘เน€เธยเน€เธยเน€เธเธ…เน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธเธเน€เธยเน€เธยเน€เธยเน€เธโฌเน€เธเธเน€เธเธ—เน€เธยเน€เธเธเน€เธเธเน€เธเธ•เน€เธเธเน€เธเธเน€เธยเน€เธเธเน€เธโฌเน€เธโ€ขเน€เธเธเน€เธเธเน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธยเน€เธเธ’เน€เธยเน€เธเธเน€เธยเน€เธเธ’เน€เธเธเน€เธยเน€เธโ€เน€เธเธเน€เธยเน€เธเธ…เน€เธยเน€เธเธเน€เธย Normal Trap:
-    //     - Lady Labrynth: เน€เธเธเน€เธเธ‘เน€เธยเน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธยเน€เธเธ”เน€เธโฌเน€เธเธเน€เธเธเน€เธยเน€เธเธ’เน€เธยเน€เธเธเน€เธเธ—เน€เธเธ, เน€เธโฌเน€เธยเน€เธยเน€เธโ€ข Normal Trap เน€เธยเน€เธโ€เน€เธเธเน€เธโ€ขเน€เธเธเน€เธยเน€เธยเน€เธเธ’เน€เธยเน€เธโฌเน€เธโ€เน€เธยเน€เธย
-    //     - Lovely Labrynth: เน€เธโ€”เน€เธเธ“เน€เธเธ…เน€เธเธ’เน€เธเธเน€เธยเน€เธเธ’เน€เธเธเน€เธยเน€เธโ€เน€เธยเน€เธยเน€เธยเน€เธเธ”เน€เธเธ…เน€เธโ€เน€เธยเน€เธเธเน€เธเธเน€เธเธ—เน€เธเธเน€เธยเน€เธยเน€เธเธเน€เธเธ—เน€เธเธเน€เธยเน€เธเธเน€เธยเน€เธโ€ขเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธย 1 เน€เธยเน€เธย, เน€เธโฌเน€เธยเน€เธยเน€เธโ€ข Normal Trap เน€เธยเน€เธเธ’เน€เธย GY
-    //     - Arianna/Ariane: เน€เธยเน€เธเธ‘เน€เธยเน€เธเธเน€เธยเน€เธเธ’เน€เธเธเน€เธยเน€เธโ€ 1 เน€เธยเน€เธยเน€เธยเน€เธเธ…เน€เธเธเน€เธเธเน€เธเธ‘เน€เธยเน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธยเน€เธเธ”เน€เธโฌเน€เธเธเน€เธเธเน€เธเธเน€เธเธเน€เธเธ—เน€เธเธเน€เธโฌเน€เธยเน€เธยเน€เธโ€ขเน€เธยเน€เธเธ’เน€เธเธเน€เธยเน€เธโ€เน€เธยเน€เธเธ’เน€เธยเน€เธเธเน€เธเธ—เน€เธเธ
-    //     - Furniture (Stovie Torbie/Chandraglier): เน€เธยเน€เธเธเน€เธยเน€เธโ€ขเน€เธเธ‘เน€เธเธเน€เธโฌเน€เธเธเน€เธยเน€เธเธเน€เธเธเน€เธเธ—เน€เธเธเน€เธเธเน€เธเธ•เน€เธยเน€เธยเน€เธโฌเน€เธยเน€เธเธ”เน€เธเธ…เน€เธยเน€เธเธ–เน€เธยเน€เธยเน€เธเธเน€เธเธ—เน€เธเธเน€เธยเน€เธเธ’เน€เธย GY
-    //  2. Dogmatika Engine (เน€เธยเน€เธเธ’เน€เธเธเน€เธเธเน€เธยเน€เธยเน€เธยเน€เธเธ’เน€เธเธเน€เธยเน€เธโ€เน€เธยเน€เธเธ’เน€เธย Extra Deck เน€เธโฌเน€เธยเน€เธเธ—เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธโ€):
-    //     - Dogmatika Ecclesia: เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธ’เน€เธยเน€เธเธ’เน€เธเธเน€เธยเน€เธโ€ Dogmatika (Punishment, Fleurdelis, Quadogmatika Beast)
-    //     - Dogmatika Fleurdelis: เน€เธโ€ขเน€เธเธ‘เน€เธเธเน€เธยเน€เธเธ‘เน€เธโ€เน€เธยเน€เธเธเน€เธเธ’เน€เธยเน€เธเธ…เน€เธยเน€เธเธ…เน€เธยเน€เธเธ’เน€เธยเน€เธโฌเน€เธเธเน€เธยเน€เธโฌเน€เธยเน€เธยเน€เธโ€ขเน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธเธเน€เธโฌเน€เธโ€ขเน€เธเธเน€เธเธเน€เธยเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธ’เน€เธเธเน€เธโฌเน€เธเธเน€เธเธ—เน€เธยเน€เธเธเน€เธเธเน€เธเธ• Extra Deck เน€เธเธเน€เธเธเน€เธยเน€เธเธเน€เธโฌเน€เธโ€ขเน€เธเธเน€เธเธเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธย
-    //     - Dogmatika Punishment: เน€เธโ€”เน€เธเธ“เน€เธเธ…เน€เธเธ’เน€เธเธเน€เธเธเน€เธเธเน€เธยเน€เธเธเน€เธโฌเน€เธโ€ขเน€เธเธเน€เธเธเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธโ€ขเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธยเน€เธยเน€เธโ€เน€เธเธเน€เธยเน€เธเธ’เน€เธเธเน€เธเธเน€เธยเน€เธยเน€เธยเน€เธเธ’เน€เธเธเน€เธยเน€เธโ€ Extra Deck (Garura, N'tss, Mouser) เน€เธเธ…เน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ’เน€เธย
-    //     - Quadogmatika Beast: เน€เธยเน€เธเธเน€เธยเน€เธยเน€เธเธ•เน€เธเธเน€เธเธ”เน€เธโ€ขเน€เธเธเน€เธเธเน€เธยเน€เธเธเน€เธโฌเน€เธโ€ขเน€เธเธเน€เธเธเน€เธยเน€เธยเน€เธเธ’เน€เธย GY/Banish เน€เธยเน€เธโ€เน€เธเธเน€เธยเน€เธเธ’เน€เธเธเน€เธเธเน€เธยเน€เธยเน€เธยเน€เธเธ’เน€เธเธเน€เธยเน€เธโ€ Extra Deck/Dogmatika เน€เธเธ…เน€เธย GY
-    //
+    //  Archetype: Labrynth Control
+    //  Strategy:
+    //  1. Continuous Normal Trap Trigger Loops (Lady Labrynth set from deck, Lovely pop & recycle)
+    //  2. High-impact reactive interruptions (Karma Cannon, Ice Dragon's Prison, Punishment, D-Barrier)
+    //  3. Furniture recursion engine (Stovie Torbie, Chandraglier, Cooclock)
+    //  4. Clean Decoupled Domain Plugin integration (LabrynthPlugin)
     // ====================================================================================================
 
-    [Deck("Labrynth", "2026_Labrynth")]
+    [Deck("Labrynth", "Labrynth")]
     [Deck("2026_Labrynth", "2026_Labrynth")]
-    public class _2026_LabrynthExecutor : ModernExecutor
+    public class LabrynthExecutor : ModernExecutor
     {
         public class CardId
         {
-            // --- MAIN DECK ARCHETYPE CARDS ---
+            // --- MAIN DECK LABRYNTH ARCHETYPE ---
             public const int LadyLabrynthOfTheSilverCastle = 81497285;
             public const int LovelyLabrynthOfTheSilverCastle = 2347656;
             public const int AriasTheLabrynthButler = 73602965;
-            public const int ArianeTheLabrynthServant = 75730490;
             public const int AriannaTheLabrynthServant = 1225009;
+            public const int ArianeTheLabrynthServant = 75730490;
             public const int LabrynthChandraglier = 37629703;
             public const int LabrynthStovieTorbie = 74018812;
-            public const int AbsoluteKingBackJack = 60990740;
+            public const int LabrynthCooclock = 2511;
             public const int BigWelcomeLabrynth = 92714517;
             public const int WelcomeLabrynth = 5380979;
 
-            // --- DOGMATIKA ENGINE CARDS ---
-            public const int DogmatikaFleurdelis = 73355772;
-            public const int DogmatikaEcclesia = 60303688;
-            public const int DogmatikaPunishment = 82956214;
-            public const int QuadogmatikaBeast = 16693934;
-
-            // --- STAPLES & OTHER TRAPS ---
-            public const int LavaGolem = 102380;
+            // --- STAPLES & HIGH-IMPACT NORMAL TRAPS ---
             public const int AshBlossom = 14558127;
-            public const int DrollAndLockBird = 94145021;
-            public const int MulcharmyFuwalos = 42141493;
-            public const int CalledByTheGrave = 24224830;
-            public const int CrossoutDesignator = 65681983;
-            public const int PotOfDuality = 98645731;
-            
+            public const int InfiniteImpermanence = 10045474;
             public const int DestructiveDarumaKarmaCannon = 30748475;
+            public const int DogmatikaPunishment = 82956214;
             public const int IceDragonsPrison = 20899496;
             public const int TerrorsOfTheOverroot = 63086455;
-            public const int WarningPoint = 11429811;
-            public const int TrapTrick = 80101899;
-            public const int DifferentDimensionGround = 31849106;
             public const int TransactionRollback = 6351147;
+            public const int DimensionalBarrier = 83326048;
+            public const int EradicatorEpidemicVirus = 54974237;
             public const int TheBlackGoatLaughs = 49299410;
-            public const int InfiniteImpermanence = 10045474;
+            public const int CompulsoryEvacuationDevice = 94192409;
+            public const int TrapTrick = 80101899;
+            public const int PotOfDuality = 98645731;
 
             // --- EXTRA DECK CARDS ---
             public const int ElderEntityNtss = 80532587;
             public const int Garura = 11765832;
-            public const int Titaniklad = 41373230;
+            public const int GoldenCloudBeastMalong = 93125329;
+            public const int MereologicAggregator = 9940036;
+            public const int BucephalusII = 10019086;
             public const int ChaosAngel = 22850702;
             public const int SuperStarslayerTYPHON = 93039339;
-            public const int Vallon = 40673853;
-            public const int Number60DugaresTheTimeless = 66011101;
-            public const int BucephalusII = 10019086;
-            public const int UnderworldGoddess = 98127546;
-            public const int Dharc = 8264361;
-            public const int Mouser = 33781156;
-            public const int SPKnight = 29301450;
             public const int MuckrakerFromTheUnderworld = 71607202;
+            public const int SPKnight = 29301450;
+            public const int UnderworldGoddess = 98127546;
             public const int RelinquishedAnima = 94259633;
-            public const int MereologicAggregator = 9940036;
+            public const int Dharc = 8264361;
+            public const int Number60DugaresTheTimeless = 66011101;
+            public const int WindPegasusAtIgnister = 98506199;
         }
 
-        // --- GOING FIRST/SECOND TRACKING ---
+        // --- OPT & TURN STATE FLAGS ---
+        public bool StovieUsed { get; private set; } = false;
+        public bool ChandraglierUsed { get; private set; } = false;
+        public bool CooclockHandUsed { get; private set; } = false;
+        public bool CooclockGraveUsed { get; private set; } = false;
+        public bool AriannaUsed { get; private set; } = false;
+        public bool AriasHandUsed { get; private set; } = false;
+        public bool AriasGraveUsed { get; private set; } = false;
+        public bool LadySummonedThisTurn { get; private set; } = false;
+        public bool LadySetUsed { get; private set; } = false;
+        public bool LovelySetUsed { get; private set; } = false;
+        public bool LovelyDestroyUsed { get; private set; } = false;
+        public bool NormalSummonedThisTurn { get; private set; } = false;
+        public bool SpecialSummonedThisTurn { get; private set; } = false;
+        public bool MuckrakerUsed { get; private set; } = false;
+        public ClientCard CurrentLastChainCard => LastChainCard;
 
-        // --- OPT FLAGS ---
-        private bool _stovieUsed = false;
-        private bool _chandraglierUsed = false;
-        private bool _ariannaUsed = false;
-        private bool _arianeUsed = false;
-        private bool _ariasHandUsed = false;
-        private bool _ariasGraveUsed = false;
-        private bool _ladySummonedThisTurn = false;
-        private bool _ladySetUsed = false;
-        private bool _lovelySetUsed = false;
-        private bool _lovelyDestroyUsed = false;
-        private bool _backJackGraveUsed = false;
-        private bool _dualityUsed = false;
-        private bool _ecclesiaUsed = false;
-        private bool _fleurdelisUsed = false;
-        private bool _quadogmatikaUsed = false;
-        private bool _trapTrickUsed = false;
-        private bool _normalSummonedThisTurn = false;
-        private bool _specialSummonedThisTurn = false;
+        // Decoupled Domain Plugin accessor
+        public LabrynthPlugin Plugin => DeckPlugin as LabrynthPlugin;
 
-        // --- ACE CARDS (MUST PROTECT) ---
+        // --- ACE CARDS (PROTECTED FROM ACCIDENTAL REMOVAL / LINK / TRIBUTE) ---
         private static readonly int[] AceCardIds = {
             CardId.LadyLabrynthOfTheSilverCastle,
             CardId.LovelyLabrynthOfTheSilverCastle,
             CardId.ChaosAngel,
             CardId.SuperStarslayerTYPHON
         };
-
-        // OpponentFloodgateCards removed เนโฌโ€ base ModernExecutor._spSummonBlockMonsters has comprehensive superset
-
 
         public override bool IsAceCard(ClientCard card)
         {
@@ -138,29 +112,14 @@ namespace WindBot.Game.AI.Decks
             return base.IsBoardStrongEnough();
         }
 
-        protected override bool ShouldStopExtending()
+        public LabrynthExecutor(GameAI ai, Duel duel) : base(ai, duel)
         {
-            if (IsBoardStrongEnough())
-                return base.ShouldStopExtending();
-            return false;
-        }
+            // 🔒 Decoupled Domain Plugin Architecture (MANDATORY)
+            DeckPlugin = new LabrynthPlugin(this);
 
-        public override int GetMaterialPriority(ClientCard c)
-        {
-            if (c == null) return 999;
-            if (IsAceCard(c)) return 900;
-            if (c.IsCode(CardId.AbsoluteKingBackJack)) return 50;
-            if (c.IsCode(CardId.LabrynthStovieTorbie) || c.IsCode(CardId.LabrynthChandraglier)) return 100;
-            if (c.IsCode(CardId.ArianeTheLabrynthServant)) return 150;
-            if (c.IsCode(CardId.DogmatikaEcclesia)) return 180;
-            if (c.IsCode(CardId.AriannaTheLabrynthServant)) return 200;
-            return base.GetMaterialPriority(c);
-        }
-
-        public _2026_LabrynthExecutor(GameAI ai, Duel duel) : base(ai, duel)
-        {
             ResourcePlan.RegisterAceCards(AceCardIds);
-            // เนโ€โฌเนโ€โฌ Combo Router: Sequencing เนโ€โฌเนโ€โฌ
+
+            // Combo lines for sequencing
             ComboRouter.RegisterLine(new ComboRouter.ComboLine {
                 Name = "Arianna-Welcome",
                 RequiredCards = new List<int> { CardId.AriannaTheLabrynthServant, CardId.BigWelcomeLabrynth },
@@ -169,133 +128,130 @@ namespace WindBot.Game.AI.Decks
                     new() { CardId = CardId.AriannaTheLabrynthServant, ActionType = ExecutorType.Activate, Description = "Arianna search" },
                     new() { CardId = CardId.BigWelcomeLabrynth, ActionType = ExecutorType.SpellSet, Description = "Set Big Welcome" }
                 },
-                EndBoardScore = 80
-            });
-
-            ComboRouter.RegisterLine(new ComboRouter.ComboLine {
-                Name = "Arias-Welcome",
-                RequiredCards = new List<int> { CardId.AriasTheLabrynthButler, CardId.BigWelcomeLabrynth },
-                Steps = new List<ComboRouter.ComboStep> {
-                    new() { CardId = CardId.AriasTheLabrynthButler, ActionType = ExecutorType.Activate, Description = "Arias hand effect" },
-                    new() { CardId = CardId.BigWelcomeLabrynth, ActionType = ExecutorType.SpellSet, Description = "Set Big Welcome via Arias" }
-                },
                 EndBoardScore = 85
             });
 
-            // เนโ€โฌเนโ€โฌ Bait Planner เนโ€โฌเนโ€โฌ
-            BaitPlanner.RegisterComboStarters(CardId.BigWelcomeLabrynth, CardId.WelcomeLabrynth);
-            BaitPlanner.RegisterBaitCards(CardId.AriannaTheLabrynthServant, CardId.ArianeTheLabrynthServant, CardId.PotOfDuality);
+            ComboRouter.RegisterLine(new ComboRouter.ComboLine {
+                Name = "Cooclock-BigWelcome",
+                RequiredCards = new List<int> { CardId.LabrynthCooclock, CardId.BigWelcomeLabrynth },
+                Steps = new List<ComboRouter.ComboStep> {
+                    new() { CardId = CardId.LabrynthCooclock, ActionType = ExecutorType.Activate, Description = "Cooclock discard" },
+                    new() { CardId = CardId.BigWelcomeLabrynth, ActionType = ExecutorType.SpellSet, Description = "Set Big Welcome" },
+                    new() { CardId = CardId.BigWelcomeLabrynth, ActionType = ExecutorType.Activate, Description = "Activate Big Welcome immediately" }
+                },
+                EndBoardScore = 90
+            });
 
-            // เนโ€โฌเนโ€โฌ Chain Advisor เนโ€โฌเนโ€โฌ
+            // Bait Planner
+            BaitPlanner.RegisterComboStarters(CardId.BigWelcomeLabrynth, CardId.WelcomeLabrynth);
+            BaitPlanner.RegisterBaitCards(CardId.AriannaTheLabrynthServant, CardId.PotOfDuality);
+
+            // Chain Advisor
             ChainAdvisor.RegisterHighValueTargets(CardId.BigWelcomeLabrynth, CardId.WelcomeLabrynth, CardId.TransactionRollback);
 
-            // 1. Hand Traps / Quick Effects (opponent reactive / immediate)
-            AddExecutor(ExecutorType.Activate, CardId.MulcharmyFuwalos, MulcharmyFuwalosEffect);
-            AddExecutor(ExecutorType.Activate, CardId.DrollAndLockBird, DrollEffect);
+            // ─────────────────────────────────────────────────────────────────
+            //  EXECUTOR ORDER (Tiered Execution Engine)
+            // ─────────────────────────────────────────────────────────────────
+
+            // 0. Handtraps / Counter / Immediate Negates
             AddExecutor(ExecutorType.Activate, CardId.AshBlossom, AshBlossomEffect);
-            AddExecutor(ExecutorType.Activate, CardId.CalledByTheGrave, CalledByTheGraveEffect);
-            AddExecutor(ExecutorType.Activate, CardId.CrossoutDesignator, CrossoutEffect);
-            AddExecutor(ExecutorType.Activate, CardId.AriasTheLabrynthButler, AriasEffect);
-            AddExecutor(ExecutorType.Activate, CardId.DogmatikaFleurdelis, FleurdelisEffect);
+            AddExecutor(ExecutorType.Activate, CardId.InfiniteImpermanence, InfiniteImpermanenceEffect);
+
+            // 1. Enabling Quick Effects (Cooclock enables same-turn traps)
+            AddExecutor(ExecutorType.Activate, CardId.LabrynthCooclock, CooclockEffect);
+
+            // 2. High-Priority Reactive Boss Triggers
             AddExecutor(ExecutorType.Activate, CardId.LadyLabrynthOfTheSilverCastle, LadyEffect);
             AddExecutor(ExecutorType.Activate, CardId.LovelyLabrynthOfTheSilverCastle, LovelyEffect);
-            AddExecutor(ExecutorType.Activate, CardId.InfiniteImpermanence, InfiniteImpermanenceEffect);
-            
-            // 2. Normal Traps (highest priority triggers)
-            AddExecutor(ExecutorType.Activate, CardId.BigWelcomeLabrynth, BigWelcomeEffect);
-            AddExecutor(ExecutorType.Activate, CardId.WelcomeLabrynth, WelcomeEffect);
+            AddExecutor(ExecutorType.Activate, CardId.AriasTheLabrynthButler, AriasEffect);
+
+            // 3. Normal Traps: High Impact Removal & Floodgates
+            AddExecutor(ExecutorType.Activate, CardId.DimensionalBarrier, DimensionalBarrierEffect);
             AddExecutor(ExecutorType.Activate, CardId.DestructiveDarumaKarmaCannon, KarmaCannonEffect);
             AddExecutor(ExecutorType.Activate, CardId.IceDragonsPrison, IceDragonsPrisonEffect);
-            AddExecutor(ExecutorType.Activate, CardId.TerrorsOfTheOverroot, OverrootEffect);
-            AddExecutor(ExecutorType.Activate, CardId.WarningPoint, WarningPointEffect);
             AddExecutor(ExecutorType.Activate, CardId.DogmatikaPunishment, PunishmentEffect);
-            AddExecutor(ExecutorType.Activate, CardId.TrapTrick, TrapTrickEffect);
-            AddExecutor(ExecutorType.Activate, CardId.DifferentDimensionGround, DifferentDimensionGroundEffect);
-            AddExecutor(ExecutorType.Activate, CardId.TransactionRollback, TransactionRollbackEffect);
+            AddExecutor(ExecutorType.Activate, CardId.CompulsoryEvacuationDevice, CompulsoryEffect);
+            AddExecutor(ExecutorType.Activate, CardId.TerrorsOfTheOverroot, OverrootEffect);
+            AddExecutor(ExecutorType.Activate, CardId.EradicatorEpidemicVirus, EradicatorVirusEffect);
             AddExecutor(ExecutorType.Activate, CardId.TheBlackGoatLaughs, TheBlackGoatLaughsEffect);
-            AddExecutor(ExecutorType.Activate, CardId.QuadogmatikaBeast, QuadogmatikaBeastEffect);
 
-            // 3. Spells
-            AddExecutor(ExecutorType.Activate, CardId.PotOfDuality, PotOfDualityEffect);
+            // 4. Labrynth Engine Traps
+            AddExecutor(ExecutorType.Activate, CardId.BigWelcomeLabrynth, BigWelcomeEffect);
+            AddExecutor(ExecutorType.Activate, CardId.WelcomeLabrynth, WelcomeEffect);
+            AddExecutor(ExecutorType.Activate, CardId.TransactionRollback, TransactionRollbackEffect);
 
-            // 4. Normal Summons / Furniture / Hand activations
-            AddExecutor(ExecutorType.Activate, CardId.AriannaTheLabrynthServant, AriannaEffect);
-            AddExecutor(ExecutorType.Activate, CardId.ArianeTheLabrynthServant, ArianeEffect);
+            // 5. Furniture Hand/Field activations (Set Traps from Deck)
             AddExecutor(ExecutorType.Activate, CardId.LabrynthStovieTorbie, StovieTorbieEffect);
             AddExecutor(ExecutorType.Activate, CardId.LabrynthChandraglier, ChandraglierEffect);
-            AddExecutor(ExecutorType.Activate, CardId.AbsoluteKingBackJack, BackJackEffect);
-            
-            // Lava Golem check first before normal summoning (which blocks Special Summons)
-            AddExecutor(ExecutorType.SpSummon, CardId.LavaGolem, LavaGolemSummon);
-            
+
+            // 6. Normal Summons
             AddExecutor(ExecutorType.Summon, CardId.AriannaTheLabrynthServant, AriannaSummon);
-            AddExecutor(ExecutorType.Summon, CardId.ArianeTheLabrynthServant, ArianeSummon);
-            AddExecutor(ExecutorType.Summon, CardId.DogmatikaEcclesia, DogmatikaEcclesiaSummon);
-            AddExecutor(ExecutorType.Summon, CardId.AbsoluteKingBackJack, BackJackSummon);
-            
-            // 5. Special Summons (Extra Deck & Bosses)
+            AddExecutor(ExecutorType.Activate, CardId.AriannaTheLabrynthServant, AriannaEffect);
+            AddExecutor(ExecutorType.Summon, CardId.AriasTheLabrynthButler, AriasSummon);
+            AddExecutor(ExecutorType.Summon, CardId.LabrynthStovieTorbie, FodderSummon);
+            AddExecutor(ExecutorType.Summon, CardId.LabrynthChandraglier, FodderSummon);
+            AddExecutor(ExecutorType.Summon, CardId.LabrynthCooclock, FodderSummon);
+
+            // 7. Extra Deck Special Summons & Trigger Activations
+            AddExecutor(ExecutorType.Activate, CardId.ChaosAngel, ChaosAngelEffect);
+            AddExecutor(ExecutorType.Activate, CardId.SuperStarslayerTYPHON, TyPhonEffect);
+            AddExecutor(ExecutorType.Activate, CardId.SPKnight, SPKnightEffect);
+            AddExecutor(ExecutorType.Activate, CardId.ElderEntityNtss, NtssEffect);
+            AddExecutor(ExecutorType.Activate, CardId.GoldenCloudBeastMalong, MalongEffect);
+            AddExecutor(ExecutorType.Activate, CardId.Garura, GaruraEffect);
+            AddExecutor(ExecutorType.Activate, CardId.MereologicAggregator, AggregatorEffect);
+            AddExecutor(ExecutorType.Activate, CardId.WindPegasusAtIgnister, WindPegasusEffect);
+            AddExecutor(ExecutorType.Activate, CardId.BucephalusII, BucephalusEffect);
+            AddExecutor(ExecutorType.Activate, CardId.MuckrakerFromTheUnderworld, MuckrakerEffect);
+            AddExecutor(ExecutorType.Activate, CardId.RelinquishedAnima, RelinquishedAnimaEffect);
+            AddExecutor(ExecutorType.Activate, CardId.Dharc, DharcEffect);
+
             AddExecutor(ExecutorType.SpSummon, CardId.ChaosAngel, ChaosAngelSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.SuperStarslayerTYPHON, TyPhonSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.SPKnight, SPKnightSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.MuckrakerFromTheUnderworld, MuckrakerSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.Dharc, DharcSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.Number60DugaresTheTimeless, DugaresSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.SuperStarslayerTYPHON, TyPhonSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.RelinquishedAnima, RelinquishedAnimaSummon);
 
-            // Activate Ecclesia search after Extra Deck climbs to avoid ED lock
-            AddExecutor(ExecutorType.Activate, CardId.DogmatikaEcclesia, DogmatikaEcclesiaEffect);
-            
-            // 6. Spell/Trap Sets (last resort for Traps)
+            // 8. Spell/Trap Sets (Preserve hand & ready backrow)
             AddExecutor(ExecutorType.SpellSet, CardId.BigWelcomeLabrynth);
             AddExecutor(ExecutorType.SpellSet, CardId.WelcomeLabrynth);
-            AddExecutor(ExecutorType.SpellSet, CardId.DogmatikaPunishment);
             AddExecutor(ExecutorType.SpellSet, CardId.DestructiveDarumaKarmaCannon);
+            AddExecutor(ExecutorType.SpellSet, CardId.DimensionalBarrier);
+            AddExecutor(ExecutorType.SpellSet, CardId.DogmatikaPunishment);
             AddExecutor(ExecutorType.SpellSet, CardId.IceDragonsPrison);
             AddExecutor(ExecutorType.SpellSet, CardId.TerrorsOfTheOverroot);
-            AddExecutor(ExecutorType.SpellSet, CardId.WarningPoint);
-            AddExecutor(ExecutorType.SpellSet, CardId.TrapTrick);
-            AddExecutor(ExecutorType.SpellSet, CardId.DifferentDimensionGround);
-            AddExecutor(ExecutorType.SpellSet, CardId.TransactionRollback);
+            AddExecutor(ExecutorType.SpellSet, CardId.CompulsoryEvacuationDevice);
+            AddExecutor(ExecutorType.SpellSet, CardId.EradicatorEpidemicVirus);
             AddExecutor(ExecutorType.SpellSet, CardId.TheBlackGoatLaughs);
-            AddExecutor(ExecutorType.SpellSet, CardId.QuadogmatikaBeast);
+            AddExecutor(ExecutorType.SpellSet, CardId.TransactionRollback, RollbackSpellSet);
             AddExecutor(ExecutorType.SpellSet, CardId.InfiniteImpermanence);
 
-            // Always last: Repos & Attack
+            // 9. Battle & Reposition
             AddExecutor(ExecutorType.Repos, MonsterRepos);
         }
 
-        public override bool OnSelectHand()
-        {
-            // Labrynth is a trap control deck เนโฌโ€ strongly prefer going first to set traps
-            return true;
-        }
+        public override bool OnSelectHand() => true; // Always choose to go first for Trap setups
 
         public override void OnNewTurn()
         {
             base.OnNewTurn();
             _isGoingSecond = (Duel.Turn > 1);
-            _stovieUsed = false;
-            _chandraglierUsed = false;
-            _ariannaUsed = false;
-            _arianeUsed = false;
-            _ariasHandUsed = false;
-            _ariasGraveUsed = false;
-            _ladySummonedThisTurn = false;
-            _ladySetUsed = false;
-            _lovelySetUsed = false;
-            _lovelyDestroyUsed = false;
-            _backJackGraveUsed = false;
-            _dualityUsed = false;
-            _ecclesiaUsed = false;
-            _fleurdelisUsed = false;
-            _quadogmatikaUsed = false;
-            _trapTrickUsed = false;
-            _normalSummonedThisTurn = false;
-            _specialSummonedThisTurn = false;
-
-            // เนโ€โฌเนโ€โฌ Going-Second BreakBoard: prioritize disruption over combo เนโ€โฌเนโ€โฌ
-            if (ShouldGoBreakBoard)
-            {
-                // Reset board-breaking resources for aggressive turn-2 plays
-            }
+            StovieUsed = false;
+            ChandraglierUsed = false;
+            CooclockHandUsed = false;
+            CooclockGraveUsed = false;
+            AriannaUsed = false;
+            AriasHandUsed = false;
+            AriasGraveUsed = false;
+            LadySummonedThisTurn = false;
+            LadySetUsed = false;
+            LovelySetUsed = false;
+            LovelyDestroyUsed = false;
+            NormalSummonedThisTurn = false;
+            SpecialSummonedThisTurn = false;
+            MuckrakerUsed = false;
         }
 
         public override void OnChaining(int player, ClientCard card)
@@ -309,28 +265,18 @@ namespace WindBot.Game.AI.Decks
                     id == CardId.AriasTheLabrynthButler ||
                     id == CardId.LadyLabrynthOfTheSilverCastle ||
                     id == CardId.LovelyLabrynthOfTheSilverCastle ||
-                    id == CardId.DogmatikaEcclesia ||
-                    id == CardId.DogmatikaFleurdelis ||
-                    id == CardId.QuadogmatikaBeast ||
                     id == CardId.TransactionRollback)
                 {
-                    _specialSummonedThisTurn = true;
+                    SpecialSummonedThisTurn = true;
                 }
             }
         }
 
-        // --- STRATEGIC CHECKS & HELPERS ---
-        
-        protected override bool IsSpecialSummonBlocked()
-        {
-            // Deck-specific: Pot of Duality lock
-            if (_dualityUsed) return true;
-            return base.IsSpecialSummonBlocked();
-        }
+        public ClientCard CurrentExecutingCard => Card;
 
-        // EnemyHasActiveNegate เนยโ€ use base.OpponentHasActiveNegator() or EnemyHasKnownNegate()
+        // --- HELPER QUERIES ---
 
-        private bool IsLabrynthMonster(ClientCard c)
+        public bool IsLabrynthMonster(ClientCard c)
         {
             if (c == null) return false;
             return c.Id == CardId.LadyLabrynthOfTheSilverCastle
@@ -339,7 +285,8 @@ namespace WindBot.Game.AI.Decks
                 || c.Id == CardId.ArianeTheLabrynthServant
                 || c.Id == CardId.AriasTheLabrynthButler
                 || c.Id == CardId.LabrynthStovieTorbie
-                || c.Id == CardId.LabrynthChandraglier;
+                || c.Id == CardId.LabrynthChandraglier
+                || c.Id == CardId.LabrynthCooclock;
         }
 
         public bool IsNormalTrap(ClientCard c)
@@ -348,77 +295,40 @@ namespace WindBot.Game.AI.Decks
             return c.IsTrap() && !c.HasType(CardType.Continuous) && !c.HasType(CardType.Counter);
         }
 
-        private bool HandHasDiscardTarget(int exceptCardId)
+        private bool HandHasDiscardFodder(int exceptCardId)
         {
-            return Bot.Hand.Any(c => c != null && c.Id != exceptCardId);
+            // Do NOT discard high-impact floodgates, aces, or handtraps just for a Furniture set!
+            return Bot.Hand.Any(c => c != null && c.Id != exceptCardId && !IsAceCard(c)
+                && c.Id != CardId.DestructiveDarumaKarmaCannon
+                && c.Id != CardId.DimensionalBarrier
+                && c.Id != CardId.EradicatorEpidemicVirus
+                && c.Id != CardId.AshBlossom
+                && !(c.Id == CardId.AriannaTheLabrynthServant && !AriannaUsed && Duel.Player == 0));
         }
 
-        private bool IsEDMonsterOnField()
+        private bool RollbackSpellSet()
         {
-            return Bot.GetMonsters().Any(c => c != null && c.IsExtraCard())
-                || Enemy.GetMonsters().Any(c => c != null && c.IsExtraCard());
+            // Transaction Rollback's field effect ONLY targets opponent's GY Normal Traps!
+            // If opponent has no Normal Trap in GY, keeping Rollback in hand is MUCH better because
+            // Furniture (Stovie / Chandra) can discard it for free (+1 value in GY!).
+            if (Enemy.Graveyard.Any(c => c != null && IsNormalTrap(c))) return true;
+            return Bot.Hand.Count >= 6 && Bot.GetSpellCount() < 4;
         }
 
-        private bool IsSafeToAttack(ClientCard attacker)
-        {
-            foreach (ClientCard enemy in Enemy.MonsterZone)
-            {
-                if (enemy == null || !enemy.IsFaceup()) continue;
-                if (!enemy.IsDisabled())
-                {
-                    // Mekk-Knight Crusadia Avramax (21887175)
-                    // If it battles a Special Summoned monster, it gains ATK equal to that monster's ATK during damage calc.
-                    if (enemy.Id == 21887175 && attacker.IsSpecialSummoned)
-                        return false;
-
-                    // Crystal Wing Synchro Dragon (50954680)
-                    // If it battles a Level 5 or higher monster, it gains ATK equal to that monster's ATK during damage calc.
-                    if (enemy.Id == 50954680 && attacker.Level >= 5)
-                        return false;
-                }
-                if (enemy.IsAttack())
-                {
-                    if (enemy.Attack > attacker.Attack) return false;
-                    if (enemy.Attack == attacker.Attack)
-                    {
-                        // Allow trade if bot has equal or more monsters than enemy
-                        if (Bot.GetMonsterCount() < Enemy.GetMonsterCount())
-                            return false;
-                    }
-                }
-                if (enemy.IsDefense() && attacker.Attack <= enemy.Defense) return false;
-            }
-            return true;
-        }
-
-        private bool IsSafeToDefend(ClientCard monster)
-        {
-            foreach (ClientCard enemy in Enemy.MonsterZone)
-            {
-                if (enemy == null || !enemy.IsFaceup()) continue;
-                if (enemy.Attack > monster.Defense) return false;
-            }
-            return true;
-        }
+        // --- MONSTER REPOSITION ---
 
         private bool MonsterRepos()
         {
             if (Card == null) return false;
 
-            // 1. Core Bosses / Heavy beatsticks: maintain FaceUpAttack
-            if (Card.Id == CardId.LadyLabrynthOfTheSilverCastle ||
-                Card.Id == CardId.LovelyLabrynthOfTheSilverCastle ||
-                Card.Id == CardId.ChaosAngel ||
-                Card.Id == CardId.SuperStarslayerTYPHON ||
-                Card.Id == CardId.DogmatikaFleurdelis ||
-                Card.Attack >= 2500)
+            // 1. Heavy Hitters & Aces: FaceUpAttack
+            if (IsAceCard(Card) || Card.Attack >= 2500)
             {
                 if (Card.IsDefense() && Card.IsFaceup()) return true;
                 return false;
             }
 
-            // 2. Defensive utility / Handtraps (Arianna 1600/2100, Stovie 0/2000, Back Jack 0/0, Ecclesia 1500/1500, Handtraps)
-            // If in Attack -> Switch to Defense!
+            // 2. Utility & 0 ATK / Low ATK Fodder: FaceUpDefence
             if (Card.IsAttack())
             {
                 if (Card.Defense >= Card.Attack || Card.Attack < 2000 || CardIntelligence.IsHandtrap(Card.Id))
@@ -430,82 +340,7 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
-        private IList<ClientCard> SelectPreferred(IList<ClientCard> cards, int min, int max, params int[] preferredIds)
-        {
-            var result = new List<ClientCard>();
-            foreach (int id in preferredIds)
-            {
-                var matches = cards.Where(c => c != null && c.Id == id && !result.Contains(c)).ToList();
-                foreach (var m in matches)
-                {
-                    result.Add(m);
-                    if (result.Count >= max) break;
-                }
-                if (result.Count >= max) break;
-            }
-            if (result.Count < min)
-            {
-                foreach (var card in cards)
-                {
-                    if (card != null && !result.Contains(card))
-                    {
-                        result.Add(card);
-                        if (result.Count >= min) break;
-                    }
-                }
-            }
-            return result;
-        }
-
-        // --- HAND TRAPS & SP/TRAP RESOLUTION TRIGGERS ---
-
-        private ClientCard GetPreemptiveImpermTarget()
-        {
-            int[] threatIds = {
-                21522601, // Witchcrafter Madame Verre
-                84523092, // Witchcrafter Haine
-                1561110,  // ABC-Dragon Buster
-                4280258,  // Apollousa, Bow of the Goddess
-                10443957, // Cyber Dragon Infinity
-                84815190, // Baronne de Fleur
-                1508649   // Altergeist Hexstia
-            };
-
-            return Enemy.MonsterZone.GetMonsters().FirstOrDefault(c => 
-                c != null && c.IsFaceup() && !c.IsDisabled() && 
-                threatIds.Contains(c.Id) && 
-                !c.IsShouldNotBeTarget() && !c.IsShouldNotBeSpellTrapTarget());
-        }
-
-        private bool InfiniteImpermanenceEffect()
-        {
-            if (!SmartHandTrapChain()) return false;
-            if (LastChainCard != null && LastChainCard.Controller == 0) return false;
-
-            if (Duel.Player == 0 && (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Main2))
-            {
-                var target = GetPreemptiveImpermTarget();
-                if (target != null)
-                {
-                    AI.SelectCard(target);
-                    return true;
-                }
-            }
-
-            return DefaultInfiniteImpermanence();
-        }
-
-        private bool MulcharmyFuwalosEffect()
-        {
-            if (!SmartHandTrapChain()) return false;
-            return Duel.Player == 1 && Bot.GetFieldCount() == 0;
-        }
-
-        private bool DrollEffect()
-        {
-            if (!SmartHandTrapChain()) return false;
-            return Duel.LastChainPlayer == 1 && Duel.Player == 1;
-        }
+        // --- HANDTRAP & INTERRUPTIONS ---
 
         private bool AshBlossomEffect()
         {
@@ -514,285 +349,163 @@ namespace WindBot.Game.AI.Decks
             return DefaultAshBlossomAndJoyousSpring();
         }
 
-        private bool CalledByTheGraveEffect()
+        private bool InfiniteImpermanenceEffect()
         {
-            if (LastChainCard == null || LastChainCard.Controller != 1) return false;
-            return DefaultCalledByTheGrave();
-        }
-
-        private bool CrossoutEffect()
-        {
-            // NEVER chain to own cards เนโฌโ€ Crossout crashes engine when mis-timed
             if (!SmartHandTrapChain()) return false;
-            if (LastChainCard == null || LastChainCard.Controller != 1) return false;
+            if (LastChainCard != null && LastChainCard.Controller == 0) return false;
 
-            // Resolve alias (alt-art handling) เนโฌโ€ critical for engine compatibility
-            int code = LastChainCard.Id;
-            int alias = LastChainCard.Alias;
-            if (alias != 0 && alias - code < 10) code = alias;
-            if (code == 0) return false;
+            // 1. If this card (or any of our cards) is targeted by an opponent's card (e.g. Phoenix, Duster, MST, Silquitous)
+            // Or if opponent activated a monster effect on field anywhere in current chain (break SEGOC chain-block!)
+            var faceupMonsters = Enemy.GetMonsters().Where(c => c != null && c.IsFaceup() && !c.IsDisabled() && 
+                !c.IsShouldNotBeTarget() && !c.IsShouldNotBeSpellTrapTarget()).ToList();
 
-            // Only negate monster effects (Crossout can't negate S/T effects practically)
-            if (!LastChainCard.IsMonster()) return false;
-
-            // Use StartingDeck-based count to verify we have a copy in deck
-            if (GetRemainingCount(code) > 0)
+            if (faceupMonsters.Count > 0)
             {
-                AI.SelectAnnounceID(code);
-                return true;
-            }
-            return false;
-        }
-
-        private bool AriasEffect()
-        {
-            if (ShouldSkipCombo()) return false;
-            if (Card.Location == CardLocation.Grave)
-            {
-                if (_ariasGraveUsed) return false;
-                if (IsSpecialSummonBlocked()) return false;
-                _ariasGraveUsed = true;
-                return true;
-            }
-            else if (Card.Location == CardLocation.Hand)
-            {
-                if (_ariasHandUsed) return false;
-                if (Duel.Phase != DuelPhase.Main1 && Duel.Phase != DuelPhase.Main2) return false;
-
-                if (Duel.Player == 0) // Our turn: prefer Special Summoning a Labrynth monster
+                // If a monster on field activated in current chain, prioritize negating it!
+                var chainActor = Duel.CurrentChain?.FirstOrDefault(c => c != null && c.Controller == 1 && c.Location == CardLocation.MonsterZone);
+                if (chainActor != null)
                 {
-                    bool hasMonsterToSS = Bot.Hand.Any(c => c != null && c.Id != CardId.AriasTheLabrynthButler && IsLabrynthMonster(c));
-                    if (!hasMonsterToSS) return false;
-                }
-                else // Opponent's turn: set a Trap or summon a monster
-                {
-                    bool hasTarget = Bot.Hand.Any(c => c != null && c.Id != CardId.AriasTheLabrynthButler && (IsLabrynthMonster(c) || IsNormalTrap(c)));
-                    if (!hasTarget) return false;
+                    var targetOnField = faceupMonsters.FirstOrDefault(c => c.IsCode(chainActor.Id));
+                    if (targetOnField != null)
+                    {
+                        AI.SelectCard(targetOnField);
+                        return true;
+                    }
                 }
 
-                _ariasHandUsed = true;
-                return true;
+                // If targeted for removal / destruction, fire immediately on most dangerous enemy monster
+                bool isTargeted = Card != null && Card.Location == CardLocation.SpellZone && 
+                    (Card.IsShouldNotBeTarget() || (Duel.CurrentChain != null && Duel.CurrentChain.Any(c => c != null && c.Controller == 1)));
+                if (isTargeted)
+                {
+                    var bestTarget = faceupMonsters.OrderByDescending(c => Scorer != null ? Scorer.ThreatScore(c) : c.Attack).FirstOrDefault();
+                    if (bestTarget != null)
+                    {
+                        AI.SelectCard(bestTarget);
+                        return true;
+                    }
+                }
             }
-            return false;
+
+            return DefaultInfiniteImpermanence();
         }
 
-        private bool FleurdelisEffect()
+        private bool CooclockEffect()
         {
-            if (Card.Location == CardLocation.MonsterZone)
+            if (Card.Location == CardLocation.Hand)
             {
-                // ATK boost effect when Dogmatika monster declares attack. No phase restriction (it's Battle Phase)
-                return true;
-            }
+                if (CooclockHandUsed) return false;
+                // Only use if we control a Labrynth monster or have Arias/Welcome to put one on field,
+                // and we have a set Normal Trap ready to activate this turn!
+                bool hasLabrynth = Bot.GetMonsters().Any(m => m != null && m.IsFaceup() && IsLabrynthMonster(m)) ||
+                                   Bot.Hand.Any(c => c != null && (c.Id == CardId.AriasTheLabrynthButler || c.Id == CardId.AriannaTheLabrynthServant));
+                bool hasNormalTrapSet = Bot.GetSpells().Any(s => s != null && s.IsFacedown() && IsNormalTrap(s)) ||
+                                        Bot.Hand.Any(c => c != null && IsNormalTrap(c));
 
-            // Hand summoning effect
-            if (_fleurdelisUsed) return false;
-            if (IsSpecialSummonBlocked()) return false;
-            if (Duel.Phase != DuelPhase.Main1 && Duel.Phase != DuelPhase.Main2) return false;
-            if (!IsEDMonsterOnField()) return false;
-
-            if (Duel.Player == 1)
-            {
-                // Opponent's turn negation helper
-                if (Enemy.GetMonsterCount() > 0)
+                if (hasLabrynth && hasNormalTrapSet)
                 {
-                    _fleurdelisUsed = true;
+                    CooclockHandUsed = true;
                     return true;
                 }
                 return false;
             }
 
-            _fleurdelisUsed = true;
-            return true;
+            if (Card.Location == CardLocation.Grave)
+            {
+                if (CooclockGraveUsed) return false;
+                CooclockGraveUsed = true;
+                return true; // Add to hand or Special Summon
+            }
+
+            return false;
+        }
+
+        private bool AriasEffect()
+        {
+            if (Card.Location == CardLocation.Grave)
+            {
+                if (AriasGraveUsed) return false;
+                if (IsSpecialSummonBlocked()) return false;
+                AriasGraveUsed = true;
+                return true;
+            }
+
+            if (Card.Location == CardLocation.Hand)
+            {
+                if (AriasHandUsed) return false;
+                if (Duel.Phase != DuelPhase.Main1 && Duel.Phase != DuelPhase.Main2) return false;
+
+                // Check targets: Normal Trap or Labrynth monster
+                bool hasTrap = Bot.Hand.Any(c => c != null && c.Id != CardId.AriasTheLabrynthButler && IsNormalTrap(c));
+                bool hasMon = Bot.Hand.Any(c => c != null && c.Id != CardId.AriasTheLabrynthButler && IsLabrynthMonster(c));
+
+                if (!hasTrap && !hasMon) return false;
+
+                AriasHandUsed = true;
+                return true;
+            }
+
+            return false;
         }
 
         private bool LadyEffect()
         {
-            if (ShouldSkipCombo()) return false;
             if (ActivateDescription == Util.GetStringId(CardId.LadyLabrynthOfTheSilverCastle, 0))
             {
-                return LadySummonEffect();
+                // Effect 0: Special Summon from Hand
+                if (LadySummonedThisTurn) return false;
+                if (IsSpecialSummonBlocked()) return false;
+                LadySummonedThisTurn = true;
+                return true;
             }
+
             if (ActivateDescription == Util.GetStringId(CardId.LadyLabrynthOfTheSilverCastle, 1))
             {
-                return LadySetEffect();
+                // Effect 1: Set 1 Normal Trap directly from Deck
+                if (LadySetUsed) return false;
+                LadySetUsed = true;
+                return true;
             }
-            return LadySummonEffect() || LadySetEffect();
-        }
 
-        private bool LadySummonEffect()
-        {
-            if (_ladySummonedThisTurn) return false;
-            if (IsSpecialSummonBlocked()) return false;
-            
-            _ladySummonedThisTurn = true;
-            return true;
-        }
-
-        private bool LadySetEffect()
-        {
-            if (_ladySetUsed) return false;
-            if (LastChainCard == null || !IsNormalTrap(LastChainCard)) return false;
-
-            _ladySetUsed = true;
             return true;
         }
 
         private bool LovelyEffect()
         {
-            if (ShouldSkipCombo()) return false;
             if (ActivateDescription == Util.GetStringId(CardId.LovelyLabrynthOfTheSilverCastle, 0))
             {
-                return LovelySetEffect();
+                // Effect 0: Set 1 Normal Trap from Graveyard
+                if (LovelySetUsed) return false;
+                if (Duel.Phase != DuelPhase.Main1 && Duel.Phase != DuelPhase.Main2) return false;
+                bool hasNormalTrapInGrave = Bot.Graveyard.Any(c => c != null && IsNormalTrap(c));
+                if (!hasNormalTrapInGrave) return false;
+                LovelySetUsed = true;
+                return true;
             }
+
             if (ActivateDescription == Util.GetStringId(CardId.LovelyLabrynthOfTheSilverCastle, 1))
             {
-                return LovelyDestroyEffect();
-            }
-            return LovelyDestroyEffect() || LovelySetEffect();
-        }
-
-        private bool LovelyDestroyEffect()
-        {
-            if (_lovelyDestroyUsed) return false;
-            _lovelyDestroyUsed = true;
-            return true;
-        }
-
-        private bool LovelySetEffect()
-        {
-            if (_lovelySetUsed) return false;
-            if (Duel.Phase != DuelPhase.Main1 && Duel.Phase != DuelPhase.Main2) return false;
-
-            bool hasTrapInGrave = Bot.Graveyard.Any(c => c != null && IsNormalTrap(c));
-            if (!hasTrapInGrave) return false;
-
-            _lovelySetUsed = true;
-            return true;
-        }
-
-        private bool AriannaEffect()
-        {
-            if (_ariannaUsed) return false;
-            _ariannaUsed = true;
-            return true;
-        }
-
-        private bool ArianeEffect()
-        {
-            if (_arianeUsed) return false;
-            
-            if (ActivateDescription == Util.GetStringId(CardId.ArianeTheLabrynthServant, 0))
-            {
-                bool hasTrap = Bot.Hand.Any(c => c != null && IsNormalTrap(c))
-                    || Bot.GetSpells().Any(c => c != null && IsNormalTrap(c) && c.IsFacedown());
-                if (!hasTrap) return false;
-                
-                // Check if any Level เนยเธ4 Fiend monster remains in deck (excluding Ariane)
-                bool hasFiend = false;
-                if (StartingDeck != null)
-                {
-                    foreach (int deckId in StartingDeck.Cards)
-                    {
-                        if (deckId == CardId.ArianeTheLabrynthServant) continue;
-                        var card = YGOSharp.OCGWrapper.NamedCard.Get(deckId);
-                        if (card != null && card.Level <= 4 && (card.Race & (int)CardRace.Fiend) != 0
-                            && GetRemainingCount(deckId) > 0)
-                        {
-                            hasFiend = true;
-                            break;
-                        }
-                    }
-                }
-                if (!hasFiend) return false;
-            }
-            
-            _arianeUsed = true;
-            return true;
-        }
-
-        private bool DogmatikaEcclesiaEffect()
-        {
-            if (ActivateDescription == Util.GetStringId(CardId.DogmatikaEcclesia, 0))
-            {
-                if (IsSpecialSummonBlocked()) return false;
-                if (!IsEDMonsterOnField()) return false;
-                return true;
-            }
-            if (ActivateDescription == Util.GetStringId(CardId.DogmatikaEcclesia, 1))
-            {
-                if (_ecclesiaUsed) return false;
-                _ecclesiaUsed = true;
-                return true;
-            }
-            return true;
-        }
-
-        // --- NORMAL TRAPS EFFECTS ---
-
-        private bool BigWelcomeEffect()
-        {
-            if (Card.Location == CardLocation.Grave)
-            {
-                // GY effect: banish to bounce a Fiend we control and return an opponent's card.
-                bool hasFiend = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.HasRace(CardRace.Fiend));
-                bool oppHasCards = Enemy.GetFieldCount() > 0;
-                return hasFiend && oppHasCards;
-            }
-
-            // Defer if opponent has active negation and we have board-breaking traps set to clear them first
-            if (Duel.Player == 1 && Util.OpponentHasNegation())
-            {
-                bool hasBoardBreaker = Bot.SpellZone.Any(c => c != null && c.IsFacedown() && 
-                    (c.Id == CardId.DestructiveDarumaKarmaCannon || c.Id == CardId.DifferentDimensionGround));
-                if (hasBoardBreaker)
-                    return false;
-            }
-
-            // On our turn, only activate in Main Phase to allow Normal Summoning first (preventing boss self-bounce)
-            if (Duel.Player == 0 && Duel.Phase != DuelPhase.Main1 && Duel.Phase != DuelPhase.Main2)
-                return false;
-
-            return true;
-        }
-
-        private bool WelcomeEffect()
-        {
-            if (Card.Location == CardLocation.Grave)
-            {
+                // Effect 1: Pop 1 card on field or in hand when monster leaves field by Normal Trap
+                if (LovelyDestroyUsed) return false;
+                // Target Verification Safeguard: only trigger if enemy has cards
+                if (Enemy.GetFieldCount() == 0 && Enemy.Hand.Count == 0) return false;
+                LovelyDestroyUsed = true;
                 return true;
             }
 
-            // Defer if opponent has active negation and we have board-breaking traps set to clear them first
-            if (Duel.Player == 1 && Util.OpponentHasNegation())
-            {
-                bool hasBoardBreaker = Bot.SpellZone.Any(c => c != null && c.IsFacedown() && 
-                    (c.Id == CardId.DestructiveDarumaKarmaCannon || c.Id == CardId.DifferentDimensionGround));
-                if (hasBoardBreaker)
-                    return false;
-            }
-
-            // On our turn, only activate in Main Phase
-            if (Duel.Player == 0 && Duel.Phase != DuelPhase.Main1 && Duel.Phase != DuelPhase.Main2)
-                return false;
-
             return true;
         }
 
-        private bool PunishmentEffect()
+        // --- NORMAL TRAPS ---
+
+        private bool DimensionalBarrierEffect()
         {
             if (LastChainCard != null && LastChainCard.Controller == 0) return false;
+            // Best used on opponent's turn to shut down Extra Deck summon
+            if (Duel.Player != 1) return false;
 
-            var targets = Enemy.GetMonsters().Where(c => c != null && c.IsFaceup() 
-                && !c.IsShouldNotBeTarget() && !c.IsShouldNotBeSpellTrapTarget()).ToList();
-            if (targets.Count == 0) return false;
-
-            var target = targets.OrderByDescending(c => Scorer != null ? Scorer.ThreatScore(c) : c.Attack).FirstOrDefault();
-            if (target == null) return false;
-
-            bool hasEDTarget = false; // ED cards face-down เนโฌโ€ skip pre-check, let engine filter
-            if (!hasEDTarget) return false;
-
-            AI.SelectCard(target);
+            int declaredType = DetermineDBarrierType();
+            AI.SelectOption(declaredType);
             return true;
         }
 
@@ -801,17 +514,15 @@ namespace WindBot.Game.AI.Decks
             if (LastChainCard != null && LastChainCard.Controller == 0) return false;
             if (Enemy.GetMonsterCount() == 0) return false;
 
-            // Protect against direct attacks on opponent's turn
+            // Protect during Battle Phase against direct attacks
             if (Duel.Player == 1 && (Duel.Phase == DuelPhase.BattleStart || Duel.Phase == DuelPhase.Battle)) return true;
 
-            // Excellent if opponent has Link monsters (sent directly to GY)
+            // Instantly clear Link monsters (Links cannot be set face-down, sent to GY!)
             bool oppHasLink = Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && c.HasType(CardType.Link));
             if (oppHasLink) return true;
 
             int faceupEnemyCount = Enemy.GetMonsters().Count(c => c != null && c.IsFaceup());
             if (faceupEnemyCount >= 2) return true;
-
-            // If only 1 monster, only activate in response to opponent's activation
             if (faceupEnemyCount == 1 && LastChainCard != null && LastChainCard.Controller == 1) return true;
 
             return false;
@@ -823,12 +534,43 @@ namespace WindBot.Game.AI.Decks
             if (Enemy.Graveyard.Count(c => c.IsMonster()) == 0) return false;
             if (Enemy.GetMonsterCount() == 0) return false;
 
-            // Check race compatibility: Opponent must have a faceup monster on the field 
-            // that shares a Race with a monster in their Graveyard.
+            // Opponent must have a faceup monster that shares a Race with a monster in their Graveyard
             var oppFieldRaces = Enemy.GetMonsters().Where(c => c != null && c.IsFaceup()).Select(c => c.Race).ToList();
             bool hasRaceMatch = Enemy.Graveyard.Any(c => c != null && c.IsMonster() && oppFieldRaces.Contains(c.Race));
-            
+
             return hasRaceMatch;
+        }
+
+        private bool PunishmentEffect()
+        {
+            if (LastChainCard != null && LastChainCard.Controller == 0) return false;
+
+            // Target Verification Safeguard: Target must exist on enemy field
+            var targets = Enemy.GetMonsters().Where(c => c != null && c.IsFaceup() 
+                && !c.IsShouldNotBeTarget() && !c.IsShouldNotBeSpellTrapTarget()).ToList();
+            if (targets.Count == 0) return false;
+
+            // Verify Extra Deck has a candidate with ATK >= target's ATK
+            // Our ED has: Bucephalus (3500), Aggregator (2600), N'tss (2500), Malong (2200), Garura (1500)
+            int maxEDAtk = 3500;
+            var validTargets = targets.Where(t => t.Attack <= maxEDAtk).ToList();
+            if (validTargets.Count == 0) return false;
+
+            var target = validTargets.OrderByDescending(c => Scorer != null ? Scorer.ThreatScore(c) : c.Attack).FirstOrDefault();
+            if (target == null) return false;
+
+            AI.SelectCard(target);
+            return true;
+        }
+
+        private bool CompulsoryEffect()
+        {
+            if (LastChainCard != null && LastChainCard.Controller == 0) return false;
+            var target = Enemy.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && 
+                !c.IsShouldNotBeTarget() && !c.IsShouldNotBeSpellTrapTarget());
+            if (target == null) return false;
+            AI.SelectCard(target);
+            return true;
         }
 
         private bool OverrootEffect()
@@ -839,32 +581,122 @@ namespace WindBot.Game.AI.Decks
             return true;
         }
 
-        private bool WarningPointEffect()
+        private bool EradicatorVirusEffect()
         {
             if (LastChainCard != null && LastChainCard.Controller == 0) return false;
+            // Requires 1 DARK monster with 2500+ ATK (Lovely 2900 or Lady 3000)
+            bool hasTribute = Bot.GetMonsters().Any(m => m != null && m.IsFaceup() && 
+                (m.Id == CardId.LovelyLabrynthOfTheSilverCastle || m.Id == CardId.LadyLabrynthOfTheSilverCastle));
+            return hasTribute;
+        }
+
+        private bool TheBlackGoatLaughsEffect()
+        {
+            if (LastChainCard != null && LastChainCard.Controller == 0) return false;
+            int announceId = 0;
+
+            if (Card.Location == CardLocation.Grave)
+            {
+                // GY effect: Prevents activation of effects of monsters ON THE FIELD with declared name!
+                var dangerousOnField = Enemy.GetMonsters()
+                    .Where(c => c != null && c.IsFaceup() && !c.IsDisabled())
+                    .OrderByDescending(c => Scorer != null ? Scorer.ThreatScore(c) : c.Attack)
+                    .ThenByDescending(c => c.Attack).FirstOrDefault();
+                if (dangerousOnField != null)
+                {
+                    announceId = dangerousOnField.Id;
+                }
+                else
+                {
+                    // No dangerous monsters on enemy field, don't waste GY effect
+                    return false;
+                }
+            }
+            else
+            {
+                // Field activation: Neither player can Special Summon monsters with declared name (except from GY)
+                var enemyGYMonsters = Enemy.Graveyard.Where(c => c != null && c.IsMonster()).ToList();
+                if (enemyGYMonsters.Count > 0)
+                {
+                    var target = enemyGYMonsters.OrderByDescending(c => c.IsExtraCard() ? 1000 : 0)
+                        .ThenByDescending(c => c.Attack).FirstOrDefault();
+                    if (target != null) announceId = target.Id;
+                }
+                if (announceId == 0)
+                {
+                    var enemyMon = Enemy.GetMonsters().Where(c => c != null && c.IsFaceup())
+                        .OrderByDescending(c => c.Attack).FirstOrDefault();
+                    if (enemyMon != null) announceId = enemyMon.Id;
+                }
+                if (announceId == 0) announceId = CardId.AshBlossom;
+            }
+
+            AI.SelectAnnounceID(announceId);
             return true;
         }
 
-        private bool TrapTrickEffect()
+        private bool BigWelcomeEffect()
         {
-            if (_trapTrickUsed) return false;
-            if (Duel.Player != 1) return false; // Opponent's turn only to avoid locking ourselves on our turn
-            if (LastChainCard != null && LastChainCard.Controller == 0) return false;
+            if (Card.Location == CardLocation.Grave)
+            {
+                // GY effect: Banish to return 1 Fiend we control to hand, OR if we control Lv8+ Fiend (Lady/Lovely),
+                // target 1 enemy card to bounce without bouncing our own!
+                bool hasFiend = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.HasRace(CardRace.Fiend));
+                bool oppHasCards = Enemy.GetFieldCount() > 0;
+                return hasFiend && oppHasCards;
+            }
 
-            _trapTrickUsed = true;
+            // On our turn, activate in Main Phase
+            if (Duel.Player == 0 && Duel.Phase != DuelPhase.Main1 && Duel.Phase != DuelPhase.Main2)
+                return false;
+
+            // On opponent's turn: NEVER shotgun in Draw or Standby Phase!
+            if (Duel.Player == 1)
+            {
+                if (Duel.Phase == DuelPhase.Draw || Duel.Phase == DuelPhase.Standby)
+                    return false;
+
+                // Chain reactively if opponent activates effect or targets our card
+                bool isReactive = (LastChainCard != null && LastChainCard.Controller == 1) || Util.IsChainTarget(Card);
+                bool isEndPhase = Duel.Phase == DuelPhase.End;
+                bool isBattlePhase = Duel.Phase == DuelPhase.BattleStart || Duel.Phase == DuelPhase.Battle;
+                bool oppHasMonsters = Enemy.GetMonsterCount() > 0;
+
+                if (!isReactive && !isEndPhase && !isBattlePhase && !oppHasMonsters)
+                    return false;
+            }
+
             return true;
         }
 
-        private bool DifferentDimensionGroundEffect()
+        private bool WelcomeEffect()
         {
-            if (LastChainCard != null && LastChainCard.Controller == 0) return false;
-            return Duel.Player == 1; // Opponent's turn GY lock
+            if (Card.Location == CardLocation.Grave) return true;
+
+            if (Duel.Player == 0 && Duel.Phase != DuelPhase.Main1 && Duel.Phase != DuelPhase.Main2)
+                return false;
+
+            // On opponent's turn: NEVER shotgun in Draw or Standby Phase!
+            if (Duel.Player == 1)
+            {
+                if (Duel.Phase == DuelPhase.Draw || Duel.Phase == DuelPhase.Standby)
+                    return false;
+
+                bool isReactive = (LastChainCard != null && LastChainCard.Controller == 1) || Util.IsChainTarget(Card);
+                bool isEndPhase = Duel.Phase == DuelPhase.End;
+                bool isBattlePhase = Duel.Phase == DuelPhase.BattleStart || Duel.Phase == DuelPhase.Battle;
+                bool oppHasMonsters = Enemy.GetMonsterCount() > 0;
+
+                if (!isReactive && !isEndPhase && !isBattlePhase && !oppHasMonsters)
+                    return false;
+            }
+
+            return true;
         }
 
         private bool TransactionRollbackEffect()
         {
             if (LastChainCard != null && LastChainCard.Controller == 0) return false;
-            
             if (Card.Location == CardLocation.SpellZone)
             {
                 return Enemy.Graveyard.Any(c => c != null && IsNormalTrap(c));
@@ -876,212 +708,122 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
-        private bool TheBlackGoatLaughsEffect()
-        {
-            if (LastChainCard != null && LastChainCard.Controller == 0) return false;
-            
-            int announceId = 0;
-
-            // 1. Check opponent's GY for monsters, prioritizing Extra Deck monsters or high ATK monsters
-            var enemyGYMonsters = Enemy.Graveyard.Where(c => c != null && c.IsMonster()).ToList();
-            if (enemyGYMonsters.Count > 0)
-            {
-                var target = enemyGYMonsters
-                    .OrderByDescending(c => c.IsExtraCard() ? 1000 : 0)
-                    .ThenByDescending(c => c.Attack)
-                    .FirstOrDefault();
-                if (target != null)
-                {
-                    announceId = target.Id;
-                }
-            }
-
-            // 2. If nothing found in GY, check opponent's faceup monsters on the field
-            if (announceId == 0)
-            {
-                var enemyMon = Enemy.GetMonsters()
-                    .Where(c => c != null && c.IsFaceup())
-                    .OrderByDescending(c => c.Attack)
-                    .FirstOrDefault();
-                if (enemyMon != null)
-                {
-                    announceId = enemyMon.Id;
-                }
-            }
-
-            // 3. Fallback
-            if (announceId == 0)
-            {
-                announceId = CardId.AshBlossom; // Default to Ash Blossom
-            }
-
-            AI.SelectAnnounceID(announceId);
-            return true;
-        }
-
-        private bool QuadogmatikaBeastEffect()
-        {
-            if (_quadogmatikaUsed) return false;
-            if (IsSpecialSummonBlocked()) return false;
-            if (LastChainCard != null && LastChainCard.Controller == 0) return false;
-
-            // Targets 1 "Dogmatika" monster in GY
-            var gyMonsters = Bot.Graveyard.Where(c => c != null && (c.Id == CardId.DogmatikaEcclesia || c.Id == CardId.DogmatikaFleurdelis || c.Id == CardId.QuadogmatikaBeast)).ToList();
-            if (gyMonsters.Count == 0) return false;
-
-            // ED pre-check skipped เนโฌโ€ cards in ED are face-down with 0 ATK
-
-            _quadogmatikaUsed = true;
-            return true;
-        }
-
-        // --- SPELLS & FURNITURE EFFECTS ---
-
-        private bool PotOfDualityEffect()
-        {
-            if (_dualityUsed) return false;
-            if (_specialSummonedThisTurn) return false;
-
-            // Do not use if we want to Special Summon this turn
-            bool hasSpecialSummonPlay = Bot.Hand.Any(c => c != null && 
-                (c.Id == CardId.WelcomeLabrynth || 
-                 c.Id == CardId.BigWelcomeLabrynth || 
-                 c.Id == CardId.AriasTheLabrynthButler || 
-                 c.Id == CardId.LadyLabrynthOfTheSilverCastle ||
-                 c.Id == CardId.DogmatikaFleurdelis));
-
-            if (hasSpecialSummonPlay) return false;
-
-            // Check if we have active monsters on field that can be used for Extra Deck climb
-            if (Bot.GetMonsterCount() >= 2 && !IsSpecialSummonBlocked()) return false;
-
-            _dualityUsed = true;
-            return true;
-        }
+        // --- FURNITURE & HAND ACTIVATIONS ---
 
         private bool StovieTorbieEffect()
         {
-            if (_stovieUsed) return false;
+            if (StovieUsed) return false;
             if (Card.Location == CardLocation.Grave)
             {
                 if (IsSpecialSummonBlocked()) return false;
-                _stovieUsed = true;
-                _specialSummonedThisTurn = true;
+                StovieUsed = true;
+                SpecialSummonedThisTurn = true;
                 return true;
             }
+
             if (Card.Location == CardLocation.Hand || Card.Location == CardLocation.MonsterZone)
             {
                 if (EnemyHasKnownNegate()) return false;
-                if (!HandHasDiscardTarget(CardId.LabrynthStovieTorbie)) return false;
-                _stovieUsed = true;
+                // On our turn: Wait until Main Phase 1 before discarding from hand, to allow Normal Summons (Arianna) first!
+                if (Duel.Player == 0 && Duel.Phase != DuelPhase.Main1 && Duel.Phase != DuelPhase.Main2)
+                    return false;
+
+                // On opponent's turn: If we have no Cooclock, activate in End Phase or reactively
+                if (Duel.Player == 1 && !Bot.HasInHand(CardId.LabrynthCooclock) && !Bot.HasInMonstersZone(CardId.LabrynthCooclock))
+                {
+                    bool isEndPhase = Duel.Phase == DuelPhase.End;
+                    bool isReactive = (LastChainCard != null && LastChainCard.Controller == 1) || Util.IsChainTarget(Card);
+                    if (!isEndPhase && !isReactive) return false;
+                }
+
+                if (!HandHasDiscardFodder(CardId.LabrynthStovieTorbie)) return false;
+                StovieUsed = true;
                 return true;
             }
+
             return false;
         }
 
         private bool ChandraglierEffect()
         {
-            if (_chandraglierUsed) return false;
+            if (ChandraglierUsed) return false;
             if (Card.Location == CardLocation.Grave)
             {
-                _chandraglierUsed = true;
+                ChandraglierUsed = true;
                 return true;
             }
+
             if (Card.Location == CardLocation.Hand || Card.Location == CardLocation.MonsterZone)
             {
                 if (EnemyHasKnownNegate()) return false;
-                if (!HandHasDiscardTarget(CardId.LabrynthChandraglier)) return false;
-                _chandraglierUsed = true;
+                // On our turn: Wait until Main Phase 1 before discarding from hand, to allow Normal Summons (Arianna) first!
+                if (Duel.Player == 0 && Duel.Phase != DuelPhase.Main1 && Duel.Phase != DuelPhase.Main2)
+                    return false;
+
+                // On opponent's turn: If we have no Cooclock, activate in End Phase or reactively
+                if (Duel.Player == 1 && !Bot.HasInHand(CardId.LabrynthCooclock) && !Bot.HasInMonstersZone(CardId.LabrynthCooclock))
+                {
+                    bool isEndPhase = Duel.Phase == DuelPhase.End;
+                    bool isReactive = (LastChainCard != null && LastChainCard.Controller == 1) || Util.IsChainTarget(Card);
+                    if (!isEndPhase && !isReactive) return false;
+                }
+
+                if (!HandHasDiscardFodder(CardId.LabrynthChandraglier)) return false;
+                ChandraglierUsed = true;
                 return true;
             }
+
             return false;
         }
 
-        private bool BackJackEffect()
-        {
-            if (_backJackGraveUsed) return false;
-            if (Card.Location != CardLocation.Grave) return false;
-            if (Duel.Player != 1) return false; // Banish only on opponent's turn
-
-            _backJackGraveUsed = true;
-            return true;
-        }
-
-        private bool DogmatikaEcclesiaSummon()
-        {
-            if (Duel.Player != 0) return false;
-            if (Duel.Phase != DuelPhase.Main1 && Duel.Phase != DuelPhase.Main2) return false;
-            if (_normalSummonedThisTurn) return false;
-
-            // Ecclesia locks Extra Deck. If we can make other ED summons, do them first.
-            if (CanExtraDeckClimb()) return false;
-
-            _normalSummonedThisTurn = true;
-            return true;
-        }
+        // --- NORMAL SUMMONS ---
 
         private bool AriannaSummon()
         {
-            if (_normalSummonedThisTurn) return false;
-            _normalSummonedThisTurn = true;
+            if (NormalSummonedThisTurn) return false;
+            NormalSummonedThisTurn = true;
             return true;
         }
 
-        private bool ArianeSummon()
+        private bool AriannaEffect()
         {
-            if (_normalSummonedThisTurn) return false;
-            _normalSummonedThisTurn = true;
+            if (AriannaUsed) return false;
+            AriannaUsed = true;
             return true;
         }
 
-        private bool BackJackSummon()
+        private bool AriasSummon()
         {
-            if (_normalSummonedThisTurn) return false;
-            _normalSummonedThisTurn = true;
+            if (NormalSummonedThisTurn) return false;
+            if (Bot.GetMonsterCount() > 0) return false;
+            NormalSummonedThisTurn = true;
             return true;
         }
 
-        private bool CanExtraDeckClimb()
+        private bool FodderSummon()
         {
-            if (IsSpecialSummonBlocked()) return false;
-            
-            int ourMonsters = Bot.GetMonsterCount();
-            if (ourMonsters >= 2) return true;
-
-            if (ourMonsters == 1 && Bot.Hand.Any(c => c != null && c.Id == CardId.LadyLabrynthOfTheSilverCastle && !_ladySummonedThisTurn))
-                return true;
-
-            return false;
+            if (NormalSummonedThisTurn) return false;
+            // Only summon small monsters if we have no other monsters and need board presence
+            if (Bot.GetMonsterCount() > 0) return false;
+            NormalSummonedThisTurn = true;
+            return true;
         }
 
-        // --- SUMMONING EXTRA DECK & BOSS MONSTERS ---
-
-        private bool LavaGolemSummon()
-        {
-            if (_normalSummonedThisTurn) return false;
-            if (Enemy.GetMonsterCount() < 2) return false;
-            
-            // Check if we have normal summons in hand that we want to prioritize
-            bool hasNormalSummonInHand = Bot.Hand.Any(c => c != null && (c.Id == CardId.DogmatikaEcclesia || c.Id == CardId.AriannaTheLabrynthServant));
-            if (hasNormalSummonInHand && Bot.GetMonsterCount() == 0 && Enemy.GetMonsterCount() < 3)
-                return false;
-
-            bool hasThreat = Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && 
-                (!c.IsDisabled() && (c.Attack >= 2500 || c.IsFloodgate() || c.IsExtraCard())));
-
-            if (hasThreat)
-            {
-                _normalSummonedThisTurn = true;
-                _specialSummonedThisTurn = true;
-                return true;
-            }
-            return false;
-        }
+        // --- EXTRA DECK SUMMONS ---
 
         private bool ChaosAngelSummon()
         {
             if (IsSpecialSummonBlocked()) return false;
-            _specialSummonedThisTurn = true;
+            SpecialSummonedThisTurn = true;
+            return true;
+        }
+
+        private bool TyPhonSummon()
+        {
+            if (IsSpecialSummonBlocked()) return false;
+            bool oppHasBigED = Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && (c.Attack >= 3000 || c.IsExtraCard()));
+            if (!oppHasBigED) return false;
+            SpecialSummonedThisTurn = true;
             return true;
         }
 
@@ -1089,569 +831,452 @@ namespace WindBot.Game.AI.Decks
         {
             if (IsSpecialSummonBlocked()) return false;
             if (ShouldSkipLinkSummon()) return false;
-            bool shouldSummon = Enemy.GetMonsterCount() > 0;
-            if (shouldSummon)
-            {
-                _specialSummonedThisTurn = true;
-            }
-            return shouldSummon;
+            if (Enemy.GetMonsterCount() == 0 && Enemy.Graveyard.Count == 0) return false;
+            // 🔒 Anti-pattern 5.2: Do not sacrifice Ace monsters (Lady / Lovely)
+            int aceOnField = Bot.GetMonsters().Count(IsAceCard);
+            if (Bot.GetMonsterCount() - aceOnField < 2) return false;
+
+            // S:P Little Knight's on-summon banish ONLY triggers if an Extra Deck monster was used as material!
+            // Do not consume 2 Main Deck Labrynth monsters (e.g. Arianna + Stovie) for a vanilla 1600 ATK Link-2!
+            bool hasEDMaterial = Bot.GetMonsters().Any(c => !IsAceCard(c) && (c.IsExtraCard() || c.HasType(CardType.Fusion | CardType.Synchro | CardType.Xyz | CardType.Link)));
+            bool isLethalPush = Duel.Phase == DuelPhase.Battle || (Enemy.GetMonsterCount() == 0 && Util.GetTotalAttackingMonsterAttack(0) >= Enemy.LifePoints);
+            if (!hasEDMaterial && !isLethalPush) return false;
+
+            SpecialSummonedThisTurn = true;
+            return true;
         }
 
         private bool MuckrakerSummon()
         {
             if (IsSpecialSummonBlocked()) return false;
             if (Bot.Hand.Count == 0) return false;
-
-            bool hasFiendToRevive = Bot.Graveyard.Any(c => c.IsMonster() && c.IsCanRevive() && 
-                (c.Id == CardId.LovelyLabrynthOfTheSilverCastle || c.Id == CardId.LadyLabrynthOfTheSilverCastle || c.Id == CardId.AriannaTheLabrynthServant));
-
-            if (hasFiendToRevive)
-            {
-                _specialSummonedThisTurn = true;
-            }
-            return hasFiendToRevive;
+            bool hasFiendToRevive = Bot.Graveyard.Any(c => c.IsMonster() && c.IsCanRevive() &&
+                (c.Id == CardId.LovelyLabrynthOfTheSilverCastle || c.Id == CardId.LadyLabrynthOfTheSilverCastle));
+            if (!hasFiendToRevive) return false;
+            int nonAce = Bot.GetMonsters().Count(c => !IsAceCard(c));
+            if (nonAce < 2) return false;
+            SpecialSummonedThisTurn = true;
+            return true;
         }
 
         private bool DugaresSummon()
         {
             if (IsSpecialSummonBlocked()) return false;
-            bool hasRevive = Bot.Graveyard.Any(c => c.IsMonster() && c.IsCanRevive() && 
+            bool hasRevive = Bot.Graveyard.Any(c => c.IsMonster() && c.IsCanRevive() &&
                 (c.Id == CardId.LovelyLabrynthOfTheSilverCastle || c.Id == CardId.LadyLabrynthOfTheSilverCastle));
-
-            if (hasRevive)
-            {
-                _specialSummonedThisTurn = true;
-            }
             return hasRevive;
         }
 
-        private bool TyPhonSummon()
+        private bool RelinquishedAnimaSummon()
         {
             if (IsSpecialSummonBlocked()) return false;
+            return Enemy.GetMonsters().Any(c => c != null && c.IsFaceup());
+        }
 
-            bool oppHasThreat = Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && 
-                (c.Attack >= 3000 || c.IsExtraCard()));
-                
-            if (!oppHasThreat) return false;
+        private bool RelinquishedAnimaEffect()
+        {
+            return Enemy.GetMonsters().Any(c => c != null && c.IsFaceup());
+        }
 
-            bool hasOurBoss = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && 
-                (c.Id == CardId.LadyLabrynthOfTheSilverCastle || c.Id == CardId.LovelyLabrynthOfTheSilverCastle || c.Id == CardId.ChaosAngel));
+        private bool MuckrakerEffect()
+        {
+            if (MuckrakerUsed) return false;
+            if (Bot.Hand.Count == 0) return false;
+            var fiend = Bot.Graveyard.FirstOrDefault(c => c.IsMonster() && c.IsCanRevive() &&
+                (c.Id == CardId.LovelyLabrynthOfTheSilverCastle || c.Id == CardId.LadyLabrynthOfTheSilverCastle));
+            if (fiend == null) return false;
 
-            if (hasOurBoss && Bot.GetMonsterCount() > Enemy.GetMonsterCount())
-                return false;
-
-            _specialSummonedThisTurn = true;
+            AI.SelectCard(fiend);
+            MuckrakerUsed = true;
             return true;
         }
 
-        // --- CARD / POSITION / OPTION OVERRIDES ---
+        private bool DharcSummon()
+        {
+            if (IsSpecialSummonBlocked()) return false;
+            if (ShouldSkipLinkSummon()) return false;
+            bool enemyHasDark = Enemy.Graveyard.Any(c => c.IsMonster() && c.HasAttribute(CardAttribute.Dark));
+            if (!enemyHasDark) return false;
+            int nonAce = Bot.GetMonsters().Count(c => !IsAceCard(c));
+            if (nonAce < 2) return false;
+            SpecialSummonedThisTurn = true;
+            return true;
+        }
+
+        private bool DharcEffect()
+        {
+            var target = Enemy.Graveyard.FirstOrDefault(c => c.IsMonster() && c.HasAttribute(CardAttribute.Dark));
+            if (target == null) return false;
+            AI.SelectCard(target);
+            return true;
+        }
+
+        // --- EXTRA DECK TRIGGER & ACTIVATION EFFECTS ---
+
+        private bool ChaosAngelEffect()
+        {
+            // Banish 1 card on the field (Target Verification Safeguard: target enemy card!)
+            return Enemy.GetFieldCount() > 0;
+        }
+
+        private bool TyPhonEffect()
+        {
+            // Detach 1 material to bounce 1 faceup monster (Target Verification Safeguard)
+            return Enemy.GetMonsters().Any(c => c != null && c.IsFaceup());
+        }
+
+        private bool SPKnightEffect()
+        {
+            // Effect 1: Banish 1 card from enemy field or GY
+            return Enemy.GetFieldCount() > 0 || Enemy.Graveyard.Count > 0;
+        }
+
+        private bool NtssEffect()
+        {
+            // Target 1 card on the field and destroy it
+            return Enemy.GetFieldCount() > 0;
+        }
+
+        private bool MalongEffect()
+        {
+            // Target 1 faceup card your opponent controls; return it to the hand
+            return Enemy.GetMonsters().Any(c => c != null && c.IsFaceup()) ||
+                   Enemy.GetSpells().Any(c => c != null && c.IsFaceup());
+        }
+
+        private bool GaruraEffect() => true; // Draw 1 card
+
+        private bool AggregatorEffect()
+        {
+            // Target 1 face-up card on the field; negate its effects
+            return Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsDisabled());
+        }
+
+        private bool WindPegasusEffect()
+        {
+            // Shuffle 1 card opponent controls into Deck
+            return Enemy.GetFieldCount() > 0;
+        }
+
+        private bool BucephalusEffect() => true; // Send Garura to draw 1 card
+
+        private int DetermineDBarrierType()
+        {
+            var oppCards = Enemy.GetMonsters().Concat(Enemy.Graveyard).Concat(Enemy.GetSpells()).ToList();
+
+            // 1. Dynamic Board Check FIRST!
+            // If opponent actively controls Tuner + Non-Tuner, they are Synchro summoning RIGHT NOW!
+            var oppFaceupMonsters = Enemy.GetMonsters().Where(c => c != null && c.IsFaceup()).ToList();
+            bool hasTuner = oppFaceupMonsters.Any(c => c.HasType(CardType.Tuner));
+            bool hasNonTuner = oppFaceupMonsters.Any(c => !c.HasType(CardType.Tuner) && !c.HasType(CardType.Xyz) && !c.HasType(CardType.Link));
+
+            // Check matching levels for Xyz
+            var levelCounts = new Dictionary<int, int>();
+            foreach (var m in oppFaceupMonsters)
+            {
+                if (m.Level > 0 && !m.HasType(CardType.Xyz) && !m.HasType(CardType.Link))
+                {
+                    levelCounts[m.Level] = levelCounts.GetValueOrDefault(m.Level, 0) + 1;
+                }
+            }
+            bool hasXyzPair = levelCounts.Values.Any(cnt => cnt >= 2) || oppFaceupMonsters.Any(c => c.IsOneForXyz());
+
+            if (hasTuner && hasNonTuner) return 2; // Synchro!
+
+            // 2. Windwitch Check (Windwitch Engine in Dark Magician makes Crystal Wing Synchro Dragon!)
+            bool isWindwitch = oppCards.Any(c =>
+                c.Id == 43722862 || // Windwitch - Ice Bell
+                c.Id == 71007216 || // Windwitch - Glass Bell
+                c.Id == 70117860 || // Windwitch - Snow Bell
+                c.Id == 21044178 || // Windwitch - Winter Bell
+                c.Id == 50954680    // Crystal Wing Synchro Dragon
+            );
+            if (isWindwitch) return 2; // Synchro!
+
+            // 3. Fusion Archetype Check (ABC, Dark Magician)
+            bool isFusionDeck = oppCards.Any(c =>
+                c.HasType(CardType.Fusion) ||
+                c.Id == 1561110 ||  // ABC-Dragon Buster
+                c.Id == 66399653 || // Union Hangar
+                c.Id == 77411244 || // B-Buster Drake
+                c.Id == 30012506 || // A-Assault Core
+                c.Id == 3405259  || // C-Crush Wyvern (CORRECT ID)
+                c.Id == 99249638 || // Union Driver
+                c.Id == 12524259 || // Unauthorized Reactivation
+                c.Id == 39890958 || // Heavy Mech Support Armor
+                c.Id == 65367484 || // Photon Thrasher
+                c.Id == 89132148 || // Photon Orbital
+                c.Id == 46986414 || // Dark Magician
+                c.Id == 47222536 || // Dark Magical Circle
+                c.Id == 38033121 || // Dark Magical Circle (alt)
+                c.Id == 48680970 || // Eternal Soul
+                c.Id == 1784686  || // The Eye of Timaeus
+                c.Id == 7084129  || // Magician's Rod
+                c.Id == 30603688 || // Apprentice Illusion Magician
+                c.Id == 7922915  || // Magician Navigation
+                c.Id == 41721210 || // Dark Magician the Dragon Knight
+                c.Id == 71413901 || // Secrets of Dark Magic
+                c.Id == 70828912 || // Magicians' Souls
+                c.Id == 24094653    // Polymerization
+            );
+            if (isFusionDeck) return 1; // 1 = Fusion
+
+            if (hasXyzPair && !hasTuner) return 3; // Xyz
+
+            // 4. BlueEyes Deck check:
+            // BlueEyes in WindBot primarily makes Rank 8 Xyz (Dark Matter, Prime Photon, Full Armor, Hope Harbinger, Felgrand)!
+            // Only Synchro if they have a Tuner (Sage / White Stone) on field!
+            bool isBlueEyes = oppCards.Any(c =>
+                c.Id == 89631139 || // Blue-Eyes White Dragon
+                c.Id == 38517737 || // Blue-Eyes Alternative White Dragon
+                c.Id == 45467446 || // Dragon Spirit of White
+                c.Id == 8240199  || // Sage with Eyes of Blue
+                c.Id == 71039903 || // The White Stone of Ancients
+                c.Id == 79814787 || // The White Stone of Legend
+                c.Id == 41620959 || // Dragon Shrine
+                c.Id == 39701395 || // Cards of Consonance
+                c.Id == 48800175 || // The Melody of Awakening Dragon
+                c.Id == 6853254  || // Return of the Dragon Lords
+                c.Id == 18591577 || // Return of the Dragon Lords (alt)
+                c.Id == 22804644    // Bingo Machine, Go!!!
+            );
+            if (isBlueEyes)
+            {
+                if (hasTuner && hasNonTuner) return 2; // Synchro
+                return 3; // Xyz!
+            }
+
+            // 5. Other Synchro Decks
+            bool isSynchroDeck = oppCards.Any(c => c.HasType(CardType.Synchro) || c.HasType(CardType.Tuner));
+            if (isSynchroDeck) return 2; // Synchro
+
+            // 6. Other Xyz Decks
+            bool isXyzDeck = oppCards.Any(c => c.HasType(CardType.Xyz));
+            if (isXyzDeck) return 3; // Xyz
+
+            return 1; // Default to Fusion
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        //  CALLBACK OVERRIDES & STRATEGIC ROUTING (via LabrynthPlugin)
+        // ─────────────────────────────────────────────────────────────────
 
         public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
         {
-            // 1. Extra Deck Sends (Dogmatika Punishment / Quadogmatika Beast Extra send)
+            // 1. Extra Deck Sends (Dogmatika Punishment Extra dump / Bucephalus II dump)
             if (cards.Count > 0 && cards.All(c => c != null && c.Location == CardLocation.Extra))
             {
+                // If Bucephalus II activated its effect: send Garura to draw 1 card!
+                var garuraCard = cards.FirstOrDefault(c => c.Id == CardId.Garura);
+                if (LastChainCard != null && LastChainCard.Id == CardId.BucephalusII && garuraCard != null)
+                {
+                    return new List<ClientCard> { garuraCard };
+                }
                 bool oppHasCards = Enemy.GetFieldCount() > 0;
-                
-                bool hasFaceupDestructionImmune = Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && (c.IsShouldNotBeTarget() || c.IsShouldNotBeSpellTrapTarget() || c.Id == 21887175 || c.Id == 50954680));
-                bool hasFacedownCard = Enemy.GetSpells().Any(c => c != null && c.IsFacedown()) || Enemy.GetMonsters().Any(c => c != null && c.IsFacedown());
-                bool hasFaceupMonsterToFlip = Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsDisabled() && !c.HasType(CardType.Link) && !c.HasType(CardType.Token));
-
-                var extraList = cards.OrderByDescending(c => {
-                    if (c.Id == CardId.ElderEntityNtss)
-                    {
-                        return (oppHasCards && !hasFaceupDestructionImmune) ? 100 : 40;
-                    }
-                    if (c.Id == CardId.Garura)
-                    {
-                        return oppHasCards ? 90 : 100;
-                    }
-                    if (c.Id == CardId.MereologicAggregator)
-                    {
-                        return hasFaceupDestructionImmune ? 110 : 75;
-                    }
-                    if (c.Id == CardId.Mouser)
-                    {
-                        return hasFaceupMonsterToFlip ? 95 : 65;
-                    }
-                    if (c.Id == CardId.Vallon)
-                    {
-                        return hasFacedownCard ? 92 : 60;
-                    }
-                    if (c.Id == CardId.Titaniklad)
-                    {
-                        bool hasEcclesiaInDeck = GetRemainingCount(CardId.DogmatikaEcclesia) > 0 || GetRemainingCount(CardId.DogmatikaFleurdelis) > 0;
-                        return hasEcclesiaInDeck ? 80 : 30;
-                    }
-                    if (c.Id == CardId.BucephalusII)
-                    {
-                        return 50;
-                    }
+                var orderedExtra = cards.OrderByDescending(c => {
+                    // Elder Entity N'tss: Destroy 1 card on field
+                    if (c.Id == CardId.ElderEntityNtss) return oppHasCards ? 100 : 40;
+                    // Malong: Bounce 1 face-up card
+                    if (c.Id == CardId.GoldenCloudBeastMalong) return oppHasCards ? 95 : 30;
+                    // Garura: Draw 1 card
+                    if (c.Id == CardId.Garura) return 90;
+                    // Mereologic Aggregator: Negate 1 face-up card
+                    if (c.Id == CardId.MereologicAggregator) return 85;
+                    // Wind Pegasus @Ignister: Shuffle from GY when card destroyed
+                    if (c.Id == CardId.WindPegasusAtIgnister) return 80;
+                    // Bucephalus II: Highest ATK beatstick
+                    if (c.Id == CardId.BucephalusII) return 70;
                     return 10;
                 }).ToList();
-                if (extraList.Count >= min) return extraList.Take(max).ToList();
+
+                if (orderedExtra.Count >= min) return orderedExtra.Take(max).ToList();
             }
 
-            // 2. Ice Dragon's Prison Banish (Field resolution: select 1 card from each field of same race)
-            var oppFieldIDP = cards.Where(c => c != null && c.Controller == 1 && c.Location == CardLocation.MonsterZone).ToList();
-            var ourFieldIDP = cards.Where(c => c != null && c.Controller == 0 && c.Location == CardLocation.MonsterZone).ToList();
-            if (oppFieldIDP.Count > 0 && ourFieldIDP.Count > 0 && hint != 502) // ensure not generic destroy
+            // 2. Ice Dragon's Prison Field Resolution (Banish 1 card from each field of same race)
+            var oppIDP = cards.Where(c => c != null && c.Controller == 1 && c.Location == CardLocation.MonsterZone).ToList();
+            var ourIDP = cards.Where(c => c != null && c.Controller == 0 && c.Location == CardLocation.MonsterZone).ToList();
+            if (oppIDP.Count > 0 && ourIDP.Count > 0 && hint != 502)
             {
-                foreach (var enemyMon in oppFieldIDP)
+                foreach (var enemyMon in oppIDP)
                 {
-                    var match = ourFieldIDP.FirstOrDefault(c => c.Race == enemyMon.Race);
+                    var match = ourIDP.FirstOrDefault(c => c.Race == enemyMon.Race);
                     if (match != null)
                     {
-                        if (max >= 2)
-                        {
-                            return new List<ClientCard> { match, enemyMon };
-                        }
-                        else
-                        {
-                            return new List<ClientCard> { enemyMon };
-                        }
+                        return (max >= 2) ? new List<ClientCard> { match, enemyMon } : new List<ClientCard> { enemyMon };
                     }
                 }
             }
 
-            // 3. Terrors of the Overroot (Field Targeting: select 1 opponent card on field to send to GY)
-            if (cards.Count > 0 && cards.All(c => c != null && c.Controller == 1 && (c.Location == CardLocation.MonsterZone || c.Location == CardLocation.SpellZone)) && hint != 502 && hint != 505)
+            // 3. Special Summon / Revival (Hint 509) -> Route to Plugin Strategy
+            if (hint == 509)
             {
-                var oppFieldOverroot = cards.OrderByDescending(c => {
-                    if (Scorer != null) return Scorer.ThreatScore(c);
-                    if (c.IsMonster())
-                    {
-                        if (c.IsExtraCard()) return 1000 + c.Attack;
-                        return 500 + c.Attack;
-                    }
-                    if (c.IsSpell() || c.IsTrap())
-                    {
-                        if (c.HasType(CardType.Continuous) || c.HasType(CardType.Field)) return 600;
-                        return 100;
-                    }
-                    return 10;
-                }).ToList();
-                if (oppFieldOverroot.Count >= min) return oppFieldOverroot.Take(max).ToList();
-            }
-
-            // 4. Terrors of the Overroot (GY Targeting: select 1 opponent card in GY to set)
-            if (cards.Count > 0 && cards.All(c => c != null && c.Controller == 1 && c.Location == CardLocation.Grave) && hint != 509)
-            {
-                var oppGraveOverroot = cards.OrderBy(c => {
-                    if (c.IsSpell() || c.IsTrap())
-                    {
-                        if (!c.HasType(CardType.Continuous) && !c.HasType(CardType.Field)) return 10;
-                        return 50;
-                    }
-                    if (c.IsMonster()) return 100 + c.Attack;
-                    return 200;
-                }).ToList();
-                if (oppGraveOverroot.Count >= min) return oppGraveOverroot.Take(max).ToList();
-            }
-
-            // 5. Ice Dragon's Prison (Summon from Opponent's GY)
-            bool allOppGrave = cards.Count > 0 && cards.All(c => c != null && c.Controller == 1 && c.Location == CardLocation.Grave);
-            if (allOppGrave && hint == 509)
-            {
-                var enemyTypes = Enemy.GetMonsters().Where(c => c != null && c.IsFaceup()).Select(c => c.Race).ToList();
-                var target = cards.OrderByDescending(c => enemyTypes.Contains(c.Race) ? 100 : 10).FirstOrDefault();
+                var target = Plugin?.StrategyImpl?.PickSpecialSummonTarget(cards);
                 if (target != null) return new List<ClientCard> { target };
             }
 
-            // 6. Transaction Rollback / GY Traps (Copy Trap in GY)
-            bool allGYTraps = cards.Count > 0 && cards.All(c => c != null && c.IsTrap() && c.Location == CardLocation.Grave);
-            if (allGYTraps)
+            // 4. Set Trap from Deck (Hint 510, 527, or all candidates are deck Normal Traps) -> Route to Plugin Strategy
+            if (hint == 510 || hint == 527 || (cards.Count > 0 && cards.All(c => c != null && c.Location == CardLocation.Deck && IsNormalTrap(c))))
             {
-                return SelectPreferred(cards, min, max,
-                    CardId.BigWelcomeLabrynth,
-                    CardId.WelcomeLabrynth,
-                    CardId.DogmatikaPunishment,
-                    CardId.DestructiveDarumaKarmaCannon,
-                    CardId.IceDragonsPrison,
-                    CardId.TerrorsOfTheOverroot,
-                    CardId.WarningPoint
-                );
+                var target = Plugin?.StrategyImpl?.PickTrapToSetFromDeck(cards);
+                if (target != null) return new List<ClientCard> { target };
             }
 
-            // 7. Dogmatika GY Special Summon (Quadogmatika Beast GY revive)
-            bool isDogmatikaGYSS = cards.Count > 0 && cards.All(c => c != null && c.Location == CardLocation.Grave && (c.Id == CardId.DogmatikaFleurdelis || c.Id == CardId.DogmatikaEcclesia || c.Id == CardId.QuadogmatikaBeast));
-            if (isDogmatikaGYSS && hint == 509)
+            // 5. Search / Add to Hand (Hint 506 or 0) -> Route to Plugin Strategy
+            if (hint == 506 || hint == 0)
             {
-                return SelectPreferred(cards, min, max,
-                    CardId.DogmatikaFleurdelis,
-                    CardId.DogmatikaEcclesia,
-                    CardId.QuadogmatikaBeast
-                );
+                var target = Plugin?.StrategyImpl?.PickSearchTarget(cards, Card);
+                if (target != null) return new List<ClientCard> { target };
             }
 
-            // 8. Special Summon / Revival from GY/Hand/Deck (General 509: Welcome, Big Welcome, Muckraker, Dugares, etc.)
-            if (hint == 509)
-            {
-                // If the resolving card is Big Welcome (or Transaction Rollback copying Big Welcome) and we control no monsters,
-                // we will be forced to bounce the summoned monster. So we should NOT summon boss monsters.
-                bool isBigWelcomeResolving = false;
-                if (LastChainCard != null)
-                {
-                    if (LastChainCard.Id == CardId.BigWelcomeLabrynth)
-                    {
-                        isBigWelcomeResolving = true;
-                    }
-                    else if (LastChainCard.Id == CardId.TransactionRollback)
-                    {
-                        isBigWelcomeResolving = Bot.Graveyard.Any(c => c != null && c.Id == CardId.BigWelcomeLabrynth);
-                    }
-                }
-
-                if (isBigWelcomeResolving && Bot.GetMonsterCount() == 0)
-                {
-                    // Prioritize low-level monsters to return them to hand (adding them to hand as a search/recycle play)
-                    return SelectPreferred(cards, min, max,
-                        CardId.AriannaTheLabrynthServant,
-                        CardId.AriasTheLabrynthButler,
-                        CardId.LabrynthStovieTorbie,
-                        CardId.LabrynthChandraglier,
-                        CardId.ArianeTheLabrynthServant,
-                        CardId.LovelyLabrynthOfTheSilverCastle,
-                        CardId.LadyLabrynthOfTheSilverCastle
-                    );
-                }
-
-                // If options contain GY cards, prioritize boss monsters or Fleurdelis
-                bool hasGYTarget = cards.Any(c => c != null && c.Location == CardLocation.Grave);
-                if (hasGYTarget)
-                {
-                    return SelectPreferred(cards, min, max,
-                        CardId.LovelyLabrynthOfTheSilverCastle,
-                        CardId.LadyLabrynthOfTheSilverCastle,
-                        CardId.DogmatikaFleurdelis,
-                        CardId.AriannaTheLabrynthServant,
-                        CardId.AriasTheLabrynthButler,
-                        CardId.ArianeTheLabrynthServant,
-                        CardId.LabrynthStovieTorbie,
-                        CardId.LabrynthChandraglier
-                    );
-                }
-
-                // General Special Summon (Welcome, Big Welcome, etc.)
-                return SelectPreferred(cards, min, max,
-                    CardId.LovelyLabrynthOfTheSilverCastle,
-                    CardId.LadyLabrynthOfTheSilverCastle,
-                    CardId.AriannaTheLabrynthServant,
-                    CardId.AriasTheLabrynthButler,
-                    CardId.ArianeTheLabrynthServant,
-                    CardId.LabrynthStovieTorbie,
-                    CardId.LabrynthChandraglier
-                );
-            }
-
-            // 9. Return to Hand (Bouncing 505: Big Welcome, CED, etc.)
+            // 6. Return to Hand (Hint 505) -> Big Welcome bounce our own / Enemy bounce
             if (hint == 505)
             {
-                // Bouncing our own card (Big Welcome, etc.)
-                bool allOurMonster = cards.Count > 0 && cards.All(c => c != null && c.Controller == 0 && c.Location == CardLocation.MonsterZone);
-                if (allOurMonster)
+                bool allOurMon = cards.Count > 0 && cards.All(c => c != null && c.Controller == 0);
+                if (allOurMon)
                 {
-                    return SelectPreferred(cards, min, max,
-                        CardId.AbsoluteKingBackJack,
-                        CardId.AriannaTheLabrynthServant,
-                        CardId.LabrynthStovieTorbie,
-                        CardId.LabrynthChandraglier,
-                        CardId.ArianeTheLabrynthServant,
-                        CardId.AriasTheLabrynthButler,
-                        CardId.DogmatikaEcclesia,
-                        CardId.LovelyLabrynthOfTheSilverCastle,
-                        CardId.LadyLabrynthOfTheSilverCastle
-                    );
+                    var target = Plugin?.StrategyImpl?.PickBounceSelfTarget(cards);
+                    if (target != null) return new List<ClientCard> { target };
                 }
 
-                // Bouncing opponent's card
+                // Enemy bounce
                 var enemyBounces = cards.Where(c => c != null && c.Controller == 1).ToList();
                 if (enemyBounces.Count > 0)
                 {
-                    return enemyBounces.OrderByDescending(c => {
-                        if (c.IsMonster() && c.IsFaceup()) return 500 + c.Attack;
-                        if (c.IsSpell() || c.IsTrap()) return 100;
-                        return 10;
-                    }).Take(max).ToList();
+                    return enemyBounces.OrderByDescending(c => Scorer != null ? Scorer.ThreatScore(c) : c.Attack).Take(max).ToList();
                 }
             }
 
-            // 10. Set normal trap (510: Lady Labrynth, Arias, Trap Trick, etc.)
-            if (hint == 510)
-            {
-                return SelectPreferred(cards, min, max,
-                    CardId.BigWelcomeLabrynth,
-                    CardId.DogmatikaPunishment,
-                    CardId.DestructiveDarumaKarmaCannon,
-                    CardId.IceDragonsPrison,
-                    CardId.TerrorsOfTheOverroot,
-                    CardId.TheBlackGoatLaughs,
-                    CardId.WarningPoint,
-                    CardId.WelcomeLabrynth
-                );
-            }
-
-            // 11. Search / Draw card (506 or 0: Arianna, Pot of Duality, Dogmatika Ecclesia, etc.)
-            if (hint == 506 || hint == 0)
-            {
-                // Subcase: Dogmatika search
-                bool isDogmatikaSearch = cards.Count > 0 && cards.All(c => c != null && (c.Id == CardId.DogmatikaPunishment || c.Id == CardId.DogmatikaFleurdelis || c.Id == CardId.QuadogmatikaBeast));
-                if (isDogmatikaSearch)
-                {
-                    return SelectPreferred(cards, min, max,
-                        CardId.DogmatikaPunishment,
-                        CardId.DogmatikaFleurdelis,
-                        CardId.QuadogmatikaBeast
-                    );
-                }
-
-                // General search
-                bool hasBigWelcome = Bot.HasInHandOrInSpellZone(CardId.BigWelcomeLabrynth);
-                bool hasWelcome = Bot.HasInHandOrInSpellZone(CardId.WelcomeLabrynth);
-
-                if (!hasBigWelcome && cards.Any(c => c != null && c.Id == CardId.BigWelcomeLabrynth))
-                    return SelectPreferred(cards, min, max, CardId.BigWelcomeLabrynth);
-                if (!hasWelcome && cards.Any(c => c != null && c.Id == CardId.WelcomeLabrynth))
-                    return SelectPreferred(cards, min, max, CardId.WelcomeLabrynth);
-
-                return SelectPreferred(cards, min, max,
-                    CardId.BigWelcomeLabrynth,
-                    CardId.WelcomeLabrynth,
-                    CardId.AriannaTheLabrynthServant,
-                    CardId.LadyLabrynthOfTheSilverCastle,
-                    CardId.LovelyLabrynthOfTheSilverCastle,
-                    CardId.DogmatikaPunishment,
-                    CardId.DestructiveDarumaKarmaCannon,
-                    CardId.IceDragonsPrison,
-                    CardId.TerrorsOfTheOverroot,
-                    CardId.AshBlossom,
-                    CardId.AriasTheLabrynthButler,
-                    CardId.ArianeTheLabrynthServant,
-                    CardId.LabrynthStovieTorbie,
-                    CardId.LabrynthChandraglier
-                );
-            }
-
-            // 12. Send to GY cost / Discard cost / Banish cost (501: Discard, 508: To Grave, 504: Banish/Remove)
+            // 7. Discard / Send to GY Cost (Hint 501, 508, 504) -> Route to Plugin MaterialEvaluator
             if (hint == 501 || hint == 508 || hint == 504)
             {
-                return SelectPreferred(cards, min, max,
-                    CardId.TransactionRollback,
-                    CardId.AbsoluteKingBackJack,
-                    CardId.TheBlackGoatLaughs,
-                    CardId.BigWelcomeLabrynth,
-                    CardId.WelcomeLabrynth,
-                    CardId.LabrynthStovieTorbie,
-                    CardId.LabrynthChandraglier,
-                    CardId.LavaGolem,
-                    CardId.DogmatikaFleurdelis
-                );
+                var target = Plugin?.MaterialImpl?.PickDiscardTarget(cards, min);
+                if (target != null) return new List<ClientCard> { target };
             }
 
-            // 13. Absolute King Back Jack deck reorder (when not searching/setting/SS)
-            if (cards.Count > 0 && cards.All(c => c != null && c.Location == CardLocation.Deck) && hint != 509 && hint != 510 && hint != 506)
+            // 7.5 Normal Trap Selection from GY (Transaction Rollback copy / Lovely Labrynth Set from GY)
+            if (cards.Count > 0 && cards.All(c => c != null && c.Controller == 0 && c.Location == CardLocation.Grave && IsNormalTrap(c)))
             {
-                var jackList = cards.OrderByDescending(c => {
-                    if (IsNormalTrap(c)) return 100;
-                    if (IsLabrynthMonster(c)) return 50;
+                var target = cards.OrderByDescending(c => {
+                    if (c.Id == CardId.DestructiveDarumaKarmaCannon) return 100;
+                    if (c.Id == CardId.BigWelcomeLabrynth) return 95;
+                    if (c.Id == CardId.DimensionalBarrier) return 90;
+                    if (c.Id == CardId.DogmatikaPunishment) return 85;
+                    if (c.Id == CardId.IceDragonsPrison) return 80;
+                    if (c.Id == CardId.WelcomeLabrynth) return 75;
+                    if (c.Id == CardId.TerrorsOfTheOverroot) return 70;
+                    if (c.Id == CardId.CompulsoryEvacuationDevice) return 65;
+                    if (c.Id == CardId.InfiniteImpermanence) return 60;
                     return 10;
-                }).ToList();
-                if (jackList.Count >= min) return jackList.Take(max).ToList();
+                }).FirstOrDefault();
+                if (target != null) return new List<ClientCard> { target };
             }
 
-            // 14. Generic Material Overrides (Link/Synchro)
-            if (hint == 533 || hint == 512)
-            {
-                var sorted = cards.Where(c => c != null)
-                    .OrderBy(c => GetMaterialPriority(c)).ToList();
-                if (sorted.Count >= min) return sorted.Take(max).ToList();
-            }
-
-            // 15. Generic Destruction (hint == 502)
-            if (hint == 502)
+            // 8. 🔒 HARD RULE: Target Verification & Sanity for Destruction / Removal / Targeting (502, 503, 551)
+            // Always target enemy cards first! Never target own cards unless no enemy card exists.
+            if (hint == 502 || hint == 503 || hint == 551)
             {
                 var enemyCards = cards.Where(c => c != null && c.Controller == 1).ToList();
                 if (enemyCards.Count > 0)
                 {
-                    return enemyCards.OrderByDescending(c => {
-                        if (Scorer != null) return Scorer.ThreatScore(c);
-                        if (c.IsMonster() && c.IsFaceup() && !c.IsDisabled() && c.Attack >= 2500) return 1000;
-                        if (c.IsMonster() && c.IsFaceup() && !c.IsDisabled()) return 500 + c.Attack;
-                        if (c.IsSpell() || c.IsTrap())
-                        {
-                            if (c.HasType(CardType.Continuous) || c.HasType(CardType.Field)) return 400;
-                            return 100;
-                        }
-                        return 10;
-                    }).Take(max).ToList();
+                    return enemyCards.OrderByDescending(c => Scorer != null ? Scorer.ThreatScore(c) : (c.IsMonster() ? c.Attack : 100)).Take(max).ToList();
                 }
-                
+
                 var ourCards = cards.Where(c => c != null && c.Controller == 0).ToList();
                 if (ourCards.Count > 0)
                 {
-                    return ourCards.OrderBy(c => {
-                        if (IsAceCard(c)) return 10000;
-                        if (c.Id == CardId.AbsoluteKingBackJack) return 10;
-                        if (c.Id == CardId.LabrynthStovieTorbie || c.Id == CardId.LabrynthChandraglier) return 20;
-                        if (c.IsSpell() || c.IsTrap()) return 50;
-                        return 100;
-                    }).Take(max).ToList();
+                    return ourCards.OrderBy(c => Plugin?.MaterialImpl?.GetMaterialCost(c) ?? 100).Take(max).ToList();
                 }
-            }
-
-            // 16. Trap Trick (Banish 1 Normal Trap from Deck)
-            if (LastChainCard != null && LastChainCard.Id == CardId.TrapTrick && cards.All(c => c != null && c.Location == CardLocation.Deck))
-            {
-                return SelectPreferred(cards, min, max,
-                    CardId.BigWelcomeLabrynth,
-                    CardId.DogmatikaPunishment,
-                    CardId.DestructiveDarumaKarmaCannon,
-                    CardId.IceDragonsPrison,
-                    CardId.TerrorsOfTheOverroot
-                );
             }
 
             return base.OnSelectCard(cards, min, max, hint, cancelable);
         }
 
-        public override IList<ClientCard> OnCardSorting(IList<ClientCard> cards)
-        {
-            // Place Normal Traps on top of the Deck (first drawn) for Absolute King Back Jack
-            return cards.OrderByDescending(c => {
-                if (IsNormalTrap(c)) return 100;
-                if (IsLabrynthMonster(c)) return 50;
-                return 10;
-            }).ToList();
-        }
-
         public override int OnSelectOption(IList<long> options)
         {
-            if (LastChainCard != null)
-            {
-                if (LastChainCard.Id == CardId.Number60DugaresTheTimeless)
-                {
-                    bool hasRevivableBoss = Bot.Graveyard.Any(c => c.IsMonster() && c.IsCanRevive() && 
-                        (c.Id == CardId.LovelyLabrynthOfTheSilverCastle || c.Id == CardId.LadyLabrynthOfTheSilverCastle));
-                    if (hasRevivableBoss && options.Count > 1) return 1; // Special Summon
-                    return 0; // Draw 2
-                }
+            if (options == null || options.Count <= 1) return 0;
 
-                if (LastChainCard.Id == CardId.AriasTheLabrynthButler)
+            // 1. Dimensional Barrier (0: Ritual, 1: Fusion, 2: Synchro, 3: Xyz, 4: Pendulum)
+            // Any 5-option modal prompt in YGO is Dimensional Barrier!
+            if (options.Count == 5 || (LastChainCard != null && (LastChainCard.Id == CardId.DimensionalBarrier || LastChainCard.Id == CardId.TransactionRollback))
+                || (Duel.CurrentChain != null && Duel.CurrentChain.Any(c => c != null && (c.Id == CardId.DimensionalBarrier || c.Id == CardId.TransactionRollback))))
+            {
+                int declaredType = DetermineDBarrierType();
+                if (declaredType < options.Count) return declaredType;
+                return 1; // Default Fusion
+            }
+
+            // 2. Arias the Labrynth Butler: Special summon monster (0) or Set Trap (1)
+            bool isAriasChain = (LastChainCard != null && LastChainCard.Id == CardId.AriasTheLabrynthButler)
+                || (Duel.CurrentChain != null && Duel.CurrentChain.Any(c => c != null && c.Id == CardId.AriasTheLabrynthButler));
+            if (isAriasChain)
+            {
+                if (Duel.Player == 1) // Opponent's turn: Set trap for disruption!
                 {
                     bool hasTrap = Bot.Hand.Any(c => c != null && IsNormalTrap(c));
+                    if (hasTrap && options.Count > 1) return 1;
+                    return 0;
+                }
+                else // Our turn: Special summon monster if available
+                {
                     bool hasMon = Bot.Hand.Any(c => c != null && IsLabrynthMonster(c));
-                    if (Duel.Player == 1) // Opponent's turn: prefer setting a trap for disruption
-                    {
-                        if (hasTrap && options.Count > 1) return 1;
-                        if (hasMon) return 0;
-                    }
-                    else // Our turn: prefer Special Summoning
-                    {
-                        if (hasMon) return 0;
-                        if (hasTrap && options.Count > 1) return 1;
-                    }
+                    if (hasMon) return 0;
+                    if (options.Count > 1) return 1;
+                    return 0;
                 }
             }
-            return base.OnSelectOption(options);
+
+            // 3. Lovely Labrynth: Pop card on field (0) vs hand (1)
+            bool isLovelyChain = (LastChainCard != null && LastChainCard.Id == CardId.LovelyLabrynthOfTheSilverCastle)
+                || (Duel.CurrentChain != null && Duel.CurrentChain.Any(c => c != null && c.Id == CardId.LovelyLabrynthOfTheSilverCastle));
+            if (isLovelyChain)
+            {
+                if (Enemy.GetFieldCount() > 0) return 0; // Destroy card on field
+                if (options.Count > 1) return 1; // Destroy card in hand
+                return 0;
+            }
+
+            // 4. Eradicator Epidemic Virus: Declare Spell (0) or Trap (1)
+            bool isVirusChain = (LastChainCard != null && LastChainCard.Id == CardId.EradicatorEpidemicVirus)
+                || (Duel.CurrentChain != null && Duel.CurrentChain.Any(c => c != null && c.Id == CardId.EradicatorEpidemicVirus));
+            if (isVirusChain || options.Count == 2)
+            {
+                var oppCards = Enemy.GetMonsters().Concat(Enemy.Graveyard).Concat(Enemy.GetSpells()).ToList();
+                bool isAltergeist = oppCards.Any(c => c.Id == 25533642 || c.Id == 53143898 || c.Id == 89538537 || c.Id == 42790071 || c.Id == 1508649 || c.Id == 27541563);
+                bool isDarkMagician = oppCards.Any(c => c.Id == 46986414 || c.Id == 47222536 || c.Id == 48680970 || c.Id == 7084129 || c.Id == 1784686 || c.Id == 30603688 || c.Id == 7922915 || c.Id == 41721210);
+                bool isABC = oppCards.Any(c => c.Id == 1561110 || c.Id == 66399653 || c.Id == 77411244 || c.Id == 30012506 || c.Id == 3405259 || c.Id == 99249638 || c.Id == 12524259);
+                bool isBlueEyes = oppCards.Any(c => c.Id == 89631139 || c.Id == 8240199 || c.Id == 71039903 || c.Id == 79814787 || c.Id == 38517737 || c.Id == 41620959);
+
+                // Spell-reliant decks: Dark Magician, ABC, Blue-Eyes
+                if (isDarkMagician || isABC || isBlueEyes) return 0; // Declare SPELLS!
+
+                int oppTraps = Enemy.GetSpells().Count(c => c.IsTrap()) + Enemy.Graveyard.Count(c => c.IsTrap());
+                int oppSpells = Enemy.GetSpells().Count(c => c.IsSpell()) + Enemy.Graveyard.Count(c => c.IsSpell());
+                if (isAltergeist || oppTraps > oppSpells)
+                {
+                    return 1; // Declare Traps!
+                }
+                return 0; // Declare Spells
+            }
+
+            return 0;
         }
 
         public override CardPosition OnSelectPosition(int cardId, IList<CardPosition> positions)
         {
-            // Core beatsticks: Lady, Lovely, Fleurdelis, Chaos Angel, TY-PHON -> FaceUpAttack
-            int[] beaters = {
-                CardId.LadyLabrynthOfTheSilverCastle,
-                CardId.LovelyLabrynthOfTheSilverCastle,
-                CardId.ChaosAngel,
-                CardId.SuperStarslayerTYPHON,
-                CardId.DogmatikaFleurdelis
-            };
-            if (beaters.Contains(cardId) && positions.Contains(CardPosition.FaceUpAttack))
+            // Core beatsticks: Lady, Lovely, Chaos Angel, TY-PHON -> FaceUpAttack
+            if (cardId == CardId.LadyLabrynthOfTheSilverCastle ||
+                cardId == CardId.LovelyLabrynthOfTheSilverCastle ||
+                cardId == CardId.ChaosAngel ||
+                cardId == CardId.SuperStarslayerTYPHON)
             {
-                return CardPosition.FaceUpAttack;
+                if (positions.Contains(CardPosition.FaceUpAttack)) return CardPosition.FaceUpAttack;
             }
 
-            // Defensive utility, Handtraps, Back Jack, Stovie, Chandraglier, Arianna (2100 DEF), Ecclesia -> FaceUpDefence
-            if (CardIntelligence.IsHandtrap(cardId) ||
-                cardId == CardId.AbsoluteKingBackJack ||
-                cardId == CardId.LabrynthStovieTorbie ||
-                cardId == CardId.LabrynthChandraglier ||
-                cardId == CardId.AriannaTheLabrynthServant ||
-                cardId == CardId.DogmatikaEcclesia)
-            {
-                if (positions.Contains(CardPosition.FaceUpDefence)) return CardPosition.FaceUpDefence;
-                if (positions.Contains(CardPosition.FaceDownDefence)) return CardPosition.FaceDownDefence;
-            }
+            // Small Fodder / Handtraps / Low ATK monsters -> FaceUpDefence
+            if (positions.Contains(CardPosition.FaceUpDefence)) return CardPosition.FaceUpDefence;
+            if (positions.Contains(CardPosition.FaceDownDefence)) return CardPosition.FaceDownDefence;
 
             return base.OnSelectPosition(cardId, positions);
         }
-
-        public override ClientCard OnSelectAttacker(IList<ClientCard> attackers, IList<ClientCard> defenders)
-        {
-            // Attack with Chaos Angel first if available to banish/push
-            ClientCard chaosAngel = attackers.GetFirstMatchingCard(card => card.IsCode(CardId.ChaosAngel));
-            if (chaosAngel != null) return chaosAngel;
-
-            // Then Lady Labrynth (3000 ATK)
-            ClientCard lady = attackers.GetFirstMatchingCard(card => card.IsCode(CardId.LadyLabrynthOfTheSilverCastle));
-            if (lady != null) return lady;
-
-            // Then Lovely Labrynth (2900 ATK)
-            ClientCard lovely = attackers.GetFirstMatchingCard(card => card.IsCode(CardId.LovelyLabrynthOfTheSilverCastle));
-            if (lovely != null) return lovely;
-
-            return base.OnSelectAttacker(attackers, defenders);
-        }
-
-        public override BattlePhaseAction OnSelectAttackTarget(ClientCard attacker, IList<ClientCard> defenders)
-        {
-            foreach (ClientCard defender in defenders)
-            {
-                attacker.RealPower = attacker.Attack;
-                defender.RealPower = defender.GetDefensePower();
-
-                if (defender.RealPower < 0) defender.RealPower = 3000;
-
-                if (!OnPreBattleBetween(attacker, defender)) continue;
-
-                if (attacker.RealPower > defender.RealPower || 
-                    (attacker.RealPower == defender.RealPower && defender.IsAttack() && Bot.GetMonsterCount() >= Enemy.GetMonsterCount()))
-                {
-                    return AI.Attack(attacker, defender);
-                }
-            }
-
-            if (attacker.CanDirectAttack)
-                return AI.Attack(attacker, null);
-
-            return null;
-        }
-
-        public override bool OnPreBattleBetween(ClientCard attacker, ClientCard defender)
-        {
-            if (defender != null && defender.IsFaceup() && !defender.IsDisabled())
-            {
-                // Avramax / Crystal Wing check in battle too (to prevent attacking them)
-                if (defender.Id == 21887175 && attacker.IsSpecialSummoned) return false;
-                if (defender.Id == 50954680 && attacker.Level >= 5) return false;
-
-                if (defender.IsAttack())
-                {
-                    if (defender.Attack > attacker.Attack) return false;
-                    if (defender.Attack == attacker.Attack)
-                    {
-                        // Allow trade if we have equal or more monsters than enemy (meaning we have advantage)
-                        if (Bot.GetMonsterCount() < Enemy.GetMonsterCount())
-                            return false;
-                    }
-                }
-                if (defender.IsDefense() && attacker.Attack <= defender.Defense) return false;
-            }
-            return base.OnPreBattleBetween(attacker, defender);
-        }
     }
-
-    // ════════════════════════════════════════════════════════════════════════
-    //  DEDICATED DOMAIN PLUGIN ARCHITECTURE FOR LABRYNTH
-    // ════════════════════════════════════════════════════════════════════════
 }
-

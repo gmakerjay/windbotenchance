@@ -139,6 +139,7 @@ namespace WindBot.Game.AI
             47222536,  // Dark Magical Circle
             38033121,  // Dark Magical Circle (alt)
             41721210,  // Dark Magician the Dragon Knight
+            48680970,  // Eternal Soul
             97077563,  // Call of the Haunted
             // Blue-Eyes engine
             71039903,  // The White Stone of Ancients

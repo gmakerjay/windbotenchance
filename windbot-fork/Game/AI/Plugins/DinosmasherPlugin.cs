@@ -55,20 +55,28 @@ namespace WindBot.Game.AI.Plugins
         {
             if (candidates == null || candidates.Count == 0) return null;
 
-            // 1. Double Evolution Pill: Prioritize Ultimate Conductor Tyranno
+            // 1. Double Evolution Pill: Prioritize Ultimate Conductor Tyranno UNCONDITIONALLY!
             var uct = candidates.FirstOrDefault(c => c.Id == DinosmasherExecutor.CardId.UltimateConductorTyranno);
-            if (uct != null && !_exec.Bot.HasInMonstersZone(DinosmasherExecutor.CardId.UltimateConductorTyranno))
-                return uct;
+            if (uct != null) return uct;
 
-            // 2. Babycerasaurus / Petiteranodon float triggers:
-            // If no Oviraptor on field -> summon Oviraptor immediately!
-            if (!_exec.Bot.HasInMonstersZone(DinosmasherExecutor.CardId.SouleatingOviraptor))
-            {
-                var ovi = candidates.FirstOrDefault(c => c.Id == DinosmasherExecutor.CardId.SouleatingOviraptor);
-                if (ovi != null) return ovi;
-            }
+            // 2. Souleating Oviraptor: ABSOLUTE HIGHEST PRIORITY for Baby float triggers!
+            // Searches or dumps a Dinosaur on Normal OR Special Summon!
+            var ovi = candidates.FirstOrDefault(c => c.Id == DinosmasherExecutor.CardId.SouleatingOviraptor);
+            if (ovi != null) return ovi;
 
-            // 3. Animadorned Archosaur if Pill not searched yet
+            // 3. Giant Rex (2000 ATK Level 4 beatstick / Rank 4 material with Oviraptor)
+            var rex = candidates.FirstOrDefault(c => c.Id == DinosmasherExecutor.CardId.GiantRex);
+            if (rex != null) return rex;
+
+            // 4. Pankratops for 2600 ATK / Quick spot removal
+            var pank = candidates.FirstOrDefault(c => c.Id == DinosmasherExecutor.CardId.Pankratops);
+            if (pank != null) return pank;
+
+            // 5. Dogoran, the Mad Flame Kaiju (3000 ATK Dinosaur beatstick)
+            var dogo = candidates.FirstOrDefault(c => c.Id == DinosmasherExecutor.CardId.Dogoran);
+            if (dogo != null) return dogo;
+
+            // 6. Animadorned Archosaur if Pill not in hand yet
             if (!_exec.Bot.HasInHand(DinosmasherExecutor.CardId.DoubleEvolutionPill) &&
                 !_exec.Bot.HasInMonstersZone(DinosmasherExecutor.CardId.AnimadornedArchosaur))
             {
@@ -76,31 +84,18 @@ namespace WindBot.Game.AI.Plugins
                 if (arch != null) return arch;
             }
 
-            // 4. Xeno Meteorus for Level 6 Tuner / Rank 6 climb into Lars
+            // 7. Xeno Meteorus for Level 6 Tuner / Rank 6 Lars climb
             var xeno = candidates.FirstOrDefault(c => c.Id == DinosmasherExecutor.CardId.XenoMeteorus);
             if (xeno != null && !_exec.Bot.HasInMonstersZone(DinosmasherExecutor.CardId.XenoMeteorus))
                 return xeno;
 
-            // 5. Frostosaurus (Level 6 Normal Dino summoned by Xeno Meteorus to make Lars)
+            // 8. Frostosaurus (Level 6 2600 ATK Normal Dino)
             var frosto = candidates.FirstOrDefault(c => c.Id == DinosmasherExecutor.CardId.Frostosaurus);
-            if (frosto != null && _exec.Bot.HasInMonstersZone(DinosmasherExecutor.CardId.XenoMeteorus))
-                return frosto;
+            if (frosto != null) return frosto;
 
-            // 6. Giant Rex for Level 4 material / 2000 beatstick
-            var rex = candidates.FirstOrDefault(c => c.Id == DinosmasherExecutor.CardId.GiantRex);
-            if (rex != null) return rex;
-
-            // 7. Megalosmasher X (Level 4 Normal Dino for Rank 4 Dolkka/Laggia)
-            var mega = candidates.FirstOrDefault(c => c.Id == DinosmasherExecutor.CardId.MegalosmasherX);
-            if (mega != null) return mega;
-
-            // 8. Babycerasaurus (chainable fodder)
-            var baby = candidates.FirstOrDefault(c => c.Id == DinosmasherExecutor.CardId.Babycerasaurus);
+            // 9. Babycerasaurus / Petiteranodon (lowest priority fallback)
+            var baby = candidates.FirstOrDefault(c => c.Id == DinosmasherExecutor.CardId.Babycerasaurus || c.Id == DinosmasherExecutor.CardId.Petiteranodon);
             if (baby != null) return baby;
-
-            // 9. Pankratops for spot removal
-            var pank = candidates.FirstOrDefault(c => c.Id == DinosmasherExecutor.CardId.Pankratops);
-            if (pank != null) return pank;
 
             return candidates.OrderByDescending(c => c.Attack).FirstOrDefault();
         }
@@ -118,9 +113,49 @@ namespace WindBot.Game.AI.Plugins
             bool hasUCT = _exec.Bot.HasInHand(DinosmasherExecutor.CardId.UltimateConductorTyranno) ||
                           _exec.Bot.HasInMonstersZone(DinosmasherExecutor.CardId.UltimateConductorTyranno);
 
+            // 0. Emergency Kaiju Search: If opponent controls an untargetable tower / boss (Dragon Knight, Crystal Wing, Buster)
+            // and we do not have Dogoran in hand, search Dogoran Kaiju immediately!
+            if (candidates.Any(c => c.Id == DinosmasherExecutor.CardId.Dogoran) &&
+                !_exec.Bot.HasInHand(DinosmasherExecutor.CardId.Dogoran) &&
+                _exec.Enemy.GetMonsters().Any(m => m.IsFaceup() && (_exec.Plugin.ThreatImpl.EvaluateThreatScore(m) >= 70 || m.Attack >= 3000)))
+            {
+                var dogo = candidates.FirstOrDefault(c => c.Id == DinosmasherExecutor.CardId.Dogoran);
+                if (dogo != null) return dogo;
+            }
+
             // 1. Archosaur search: Double Evolution Pill
             var pill = candidates.FirstOrDefault(c => c.Id == DinosmasherExecutor.CardId.DoubleEvolutionPill);
             if (pill != null) return pill;
+
+            // 1.5 Ground Xeno search (always prioritize Xeno Meteorus over Frostosaurus):
+            if (candidates.Any(c => c.Id == DinosmasherExecutor.CardId.XenoMeteorus))
+            {
+                var xeno = candidates.FirstOrDefault(c => c.Id == DinosmasherExecutor.CardId.XenoMeteorus);
+                if (xeno != null && !_exec.Bot.HasInHand(DinosmasherExecutor.CardId.XenoMeteorus)) return xeno;
+                var frosto = candidates.FirstOrDefault(c => c.Id == DinosmasherExecutor.CardId.Frostosaurus);
+                if (frosto != null) return frosto;
+            }
+
+            // 1.8 Souleating Oviraptor contextual search:
+            if (contextCard != null && contextCard.Id == DinosmasherExecutor.CardId.SouleatingOviraptor)
+            {
+                // If Lost World is active, Babycerasaurus is best so Oviraptor can pop Token and deck-pop Baby!
+                if (_exec.Bot.HasInSpellZone(DinosmasherExecutor.CardId.LostWorld))
+                {
+                    var baby = candidates.FirstOrDefault(c => c.Id == DinosmasherExecutor.CardId.Babycerasaurus);
+                    if (baby != null) return baby;
+                }
+                // Otherwise Misc is highest priority to protect Dinos and summon Archosaur
+                if (!hasMisc)
+                {
+                    var misc = candidates.FirstOrDefault(c => c.Id == DinosmasherExecutor.CardId.Miscellaneousaurus);
+                    if (misc != null) return misc;
+                }
+                var baby2 = candidates.FirstOrDefault(c => c.Id == DinosmasherExecutor.CardId.Babycerasaurus);
+                if (baby2 != null) return baby2;
+                var rex = candidates.FirstOrDefault(c => c.Id == DinosmasherExecutor.CardId.GiantRex);
+                if (rex != null) return rex;
+            }
 
             // 2. Souleating Oviraptor (Primary normal summon / engine starter)
             if (!hasOviraptor)
@@ -238,19 +273,41 @@ namespace WindBot.Game.AI.Plugins
 
         public ClientCard PickDestructionSubstitute(IList<ClientCard> candidates, int min = 1)
         {
-            // Lost World destruction substitute: STRICTLY destroy Babycerasaurus or Petiteranodon from DECK!
-            // This triggers their GY effect to Special Summon a new Dinosaur from deck!
-            var deckBaby = candidates?.FirstOrDefault(c => c.Location == CardLocation.Deck && c.Id == DinosmasherExecutor.CardId.Babycerasaurus);
+            if (candidates == null || candidates.Count == 0) return null;
+
+            // 1. Lost World destruction substitute: STRICTLY destroy Babycerasaurus or Petiteranodon from DECK!
+            var deckBaby = candidates.FirstOrDefault(c => c.Location == CardLocation.Deck && 
+                (c.Id == DinosmasherExecutor.CardId.Babycerasaurus || c.Id == DinosmasherExecutor.CardId.Petiteranodon));
             if (deckBaby != null) return deckBaby;
 
-            var deckPetite = candidates?.FirstOrDefault(c => c.Location == CardLocation.Deck && c.Id == DinosmasherExecutor.CardId.Petiteranodon);
-            if (deckPetite != null) return deckPetite;
+            // 2. Token on field (Jurraegg Token, Ojama Token)
+            var token = candidates.FirstOrDefault(c => c.HasType(CardType.Token));
+            if (token != null) return token;
 
-            var handBaby = candidates?.FirstOrDefault(c => c.Location == CardLocation.Hand &&
-                (c.Id == DinosmasherExecutor.CardId.Babycerasaurus || c.Id == DinosmasherExecutor.CardId.Petiteranodon));
-            if (handBaby != null) return handBaby;
+            // 3. Babycerasaurus or Petiteranodon anywhere (Hand or Field - triggers float upon destruction!)
+            var baby = candidates.FirstOrDefault(c => c.Id == DinosmasherExecutor.CardId.Babycerasaurus || c.Id == DinosmasherExecutor.CardId.Petiteranodon);
+            if (baby != null) return baby;
 
-            return candidates?.OrderBy(GetMaterialCost).FirstOrDefault();
+            // 4. Giant Rex (can be banished later)
+            var rex = candidates.FirstOrDefault(c => c.Id == DinosmasherExecutor.CardId.GiantRex);
+            if (rex != null) return rex;
+
+            // 5. Survival's End on field
+            var surv = candidates.FirstOrDefault(c => c.Id == DinosmasherExecutor.CardId.SurvivalEnd);
+            if (surv != null) return surv;
+
+            // 6. Safe fallbacks: NEVER destroy Frostosaurus, UCT, or Extra Deck Bosses!
+            var safe = candidates.Where(c => c.Id != DinosmasherExecutor.CardId.Frostosaurus && 
+                                             c.Id != DinosmasherExecutor.CardId.UltimateConductorTyranno &&
+                                             c.Id != DinosmasherExecutor.CardId.EvolzarLars &&
+                                             c.Id != DinosmasherExecutor.CardId.EvolzarDolkka &&
+                                             c.Id != DinosmasherExecutor.CardId.EvolzarLaggia &&
+                                             c.Id != DinosmasherExecutor.CardId.XenoMeteorus)
+                                 .OrderBy(GetMaterialCost)
+                                 .FirstOrDefault();
+            if (safe != null) return safe;
+
+            return candidates.OrderBy(GetMaterialCost).FirstOrDefault();
         }
 
         public ClientCard PickUCTPopTarget(IList<ClientCard> candidates)
@@ -318,14 +375,26 @@ namespace WindBot.Game.AI.Plugins
             if (c == null) return 0;
             int score = 0;
 
+            // Continuous Floodgates & Engine Pillars
+            // 48680970 = Eternal Soul (DM: wipes all DM monsters when popped!)
+            // 99188141 = Skill Drain
+            // 66399444 = Union Hangar
+            // 47222536 = Dark Magical Circle
+            if (c.Id == 48680970) score += 120;
+            if (c.Id == 99188141) score += 110;
+            if (c.Id == 66399444) score += 95;
+            if (c.Id == 47222536) score += 80;
+            if (c.Id == 82732047 || c.Id == 82732705 || c.Id == 30241314) score += 85;
+
             // Mass Backrow Wipes
             if (c.Id == 18144506 || c.Id == 14532163 || c.Id == 15693423) score += 90;
 
-            // Continuous Floodgates
-            if (c.Id == 82732047 || c.Id == 82732705 || c.Id == 30241314) score += 85;
-
             if (c.IsFaceup() && c.HasType(CardType.Monster))
             {
+                // Bosses & Towers
+                if (c.Id == 41721210) score += 150; // Dark Magician the Dragon Knight (lockdown)
+                if (c.Id == 50954680) score += 130; // Crystal Wing Synchro Dragon (indestructible negator)
+                if (c.Id == 01561110) score += 140; // ABC-Dragon Buster (quick banish)
                 if (c.Attack >= 3000) score += 30;
                 if (CardIntelligence.IsKnownNegator(c.Id)) score += 50;
                 if (CardIntelligence.IsHighThreatChokepoint(c.Id)) score += 40;

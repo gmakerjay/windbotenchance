@@ -1,14 +1,31 @@
-﻿using YGOSharp.OCGWrapper.Enums;
+using YGOSharp.OCGWrapper.Enums;
 using System.Collections.Generic;
 using WindBot;
 using WindBot.Game;
 using WindBot.Game.AI;
+using WindBot.Game.AI.Plugins;
 
 namespace WindBot.Game.AI.Decks
 {
     [Deck("GrenMajuThunderBoarder", "AI_GrenMajuThunderBoarder")]
-    public class GrenMajuThunderBoarderExecutor : DefaultExecutor
+    [Deck("Gren Maju Stun", "AI_GrenMajuThunderBoarder")]
+    [Deck("GrenMaju", "AI_GrenMajuThunderBoarder")]
+    public class GrenMajuThunderBoarderExecutor : ModernExecutor
     {
+        public ClientCard CurrentExecutingCard => Card;
+
+
+        public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
+        {
+            if (DeckPlugin is GrenMajuStunPlugin gmPlugin)
+            {
+                var pluginSelected = gmPlugin.SelectCardLogic(cards, min, max, hint, cancelable);
+                if (pluginSelected != null && pluginSelected.Count >= min)
+                    return pluginSelected;
+            }
+            return base.OnSelectCard(cards, min, max, hint, cancelable);
+        }
+
         public class CardId
         {
             public const int MetalSnake = 71197066;
@@ -65,6 +82,7 @@ namespace WindBot.Game.AI.Decks
         public GrenMajuThunderBoarderExecutor(GameAI ai, Duel duel)
             : base(ai, duel)
         {
+            DeckPlugin = new GrenMajuStunPlugin(this);
             AddExecutor(ExecutorType.GoToBattlePhase, GoToBattlePhase);
             AddExecutor(ExecutorType.Activate, CardId.EvenlyMatched, EvenlyMatchedeff);
             //Sticker
@@ -128,6 +146,7 @@ namespace WindBot.Game.AI.Decks
         {            
             eater_eff = false;
             CardOfDemiseeff_used = false;
+            base.OnNewTurn();
         }
 
         public override void OnNewPhase()

@@ -989,11 +989,20 @@ namespace WindBot.Game.AI
 
                 if (hasEssentialActivation) return false;
 
+                // Don't rush if we can summon an Ace monster or Negator first (e.g. Lars, Dolkka, Laggia, UCT)
+                bool hasAceOrNegatorSummon = main.SpecialSummonableCards.Any(c =>
+                    c != null && (IsAceCard(c) || CardIntelligence.IsKnownNegator(c.Id) || _negateMonsters.Contains(c.Id)));
+                if (hasAceOrNegatorSummon) return false;
+
                 // Don't rush if we have pending summons that would significantly boost ATK
                 // (e.g., we could summon a 3000 ATK boss first)
                 bool hasBigSummon = main.SpecialSummonableCards.Any(c =>
                     c != null && c.Attack > bestATK + 500);
                 if (hasBigSummon) return false;
+
+                // If enemy has backrow, do NOT rush without backrow removal or negator protection
+                if (Enemy.GetSpellCount() > 0 && main.SpecialSummonableCards.Count > 0)
+                    return false;
 
                 try
                 {
@@ -1011,6 +1020,14 @@ namespace WindBot.Game.AI
             // Fallback: simple heuristic — enemy board empty + we have attackers
             if (Enemy.GetMonsterCount() == 0 && Bot.HasAttackingMonster())
             {
+                // Don't rush if we can summon an Ace monster or Negator
+                if (main.SpecialSummonableCards.Any(c => c != null && (IsAceCard(c) || CardIntelligence.IsKnownNegator(c.Id))))
+                    return false;
+
+                // If enemy has backrow, don't rush if we have pending special summons
+                if (Enemy.GetSpellCount() > 0 && main.SpecialSummonableCards.Count > 0)
+                    return false;
+
                 // Don't rush if there's a summon/activation that would add significant ATK
                 bool hasValueAction = main.ActivableCards.Count > 0
                     || main.SummonableCards.Count > 0
@@ -1021,7 +1038,7 @@ namespace WindBot.Game.AI
                     return true;
 
                 // If we have actions but our ATK is already >= enemy LP, attack now
-                if (GetTotalFieldATK() >= Enemy.LifePoints)
+                if (GetTotalFieldATK() >= Enemy.LifePoints && Enemy.GetSpellCount() == 0)
                     return true;
             }
 
@@ -2298,6 +2315,16 @@ namespace WindBot.Game.AI
                 }
             }
 
+            // ── 1.5 Self-Destruction (Pop our own cards e.g. Babycerasaurus, Tokens) ──
+            if (hint == HINTMSG_DESTROY && enemyCards.Count < min && ourCards.Count >= min)
+            {
+                if (DeckPlugin?.MaterialEvaluator != null)
+                {
+                    var popSub = DeckPlugin.MaterialEvaluator.PickDestructionSubstitute(ourCards, min);
+                    if (popSub != null) return new List<ClientCard> { popSub };
+                }
+            }
+
             // ── 2. Discard / Send to GY / Tribute / Cost from our Hand or Field ──
             if (hint == HINTMSG_DISCARD || hint == HINTMSG_RELEASE || (hint == HINTMSG_TOGRAVE && enemyCards.Count == 0))
             {
@@ -2329,6 +2356,11 @@ namespace WindBot.Game.AI
             {
                 if (ourCards.Count >= min)
                 {
+                    if (DeckPlugin?.Strategy != null)
+                    {
+                        var pluginTarget = DeckPlugin.Strategy.PickSpecialSummonTarget(ourCards);
+                        if (pluginTarget != null) return new List<ClientCard> { pluginTarget };
+                    }
                     var sorted = ourCards.OrderByDescending(c => {
                         int score = 0;
                         if (IsAceCard(c)) score += 10000;
@@ -2344,6 +2376,11 @@ namespace WindBot.Game.AI
             // ── 4. Add to Hand / Search (Deck to Hand 506, or GY bounce 505) ──
             if ((hint == HINTMSG_ATOHAND || (hint == HINTMSG_RTOHAND && enemyCards.Count == 0)) && ourCards.Count >= min)
             {
+                if (DeckPlugin?.Strategy != null)
+                {
+                    var pluginTarget = DeckPlugin.Strategy.PickSearchTarget(ourCards, Card);
+                    if (pluginTarget != null) return new List<ClientCard> { pluginTarget };
+                }
                 var sorted = ourCards.OrderByDescending(c => {
                     int score = 0;
                     if (IsAceCard(c)) score += 8000;

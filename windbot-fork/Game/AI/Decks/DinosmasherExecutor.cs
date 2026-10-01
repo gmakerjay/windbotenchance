@@ -46,36 +46,40 @@ namespace WindBot.Game.AI.Decks
             public const int MegalosmasherX = 81823360;
             public const int GiantRex = 80280944;
             public const int Pankratops = 82385847;
+            public const int Dogoran = 93332803;
             public const int AshBlossom = 14558127;
+            public const int EffectVeiler = 97268402;
 
             // Spells & Traps
+            public const int GroundXeno = 67523044;
             public const int LostWorld = 17228908;
             public const int JurraeggToken = 17228909;
             public const int FossilDig = 47325505;
+            public const int Terraforming = 73628505;
             public const int DoubleEvolutionPill = 38179121;
+            public const int DarkRulerNoMore = 54693926;
             public const int TripleTacticsTalent = 25311006;
-            public const int CrossoutDesignator = 65681983;
+            public const int CalledByTheGrave = 24224830;
             public const int HarpieFeatherDuster = 18144506;
+            public const int InfiniteImpermanence = 10045474;
             public const int OjamaTrio = 29843091;
             public const int OjamaToken = 29843092;
-            public const int SurvivalEnd = 44612603;
-            public const int PotOfProsperity = 84211599;
-            public const int InfiniteImpermanence = 10045474;
+            public const int SurvivalEnd = 46009906;
 
             // Extra Deck
             public const int EvolzarLars = 35103106;
             public const int EvolzarDolkka = 42752141;
             public const int EvolzarLaggia = 74294676;
+            public const int AbyssDweller = 21044178;
+            public const int Number41Bagooska = 90590303;
             public const int Dugares = 66011101;
             public const int Linkuriboh = 41999284;
             public const int SecureGardna = 2220237;
-            public const int Reprodocus = 34989413;
             public const int KnightmarePhoenix = 2857636;
             public const int KnightmareUnicorn = 38342335;
             public const int SPLittleKnight = 29301450;
             public const int AccesscodeTalker = 86066372;
             public const int TornadoDragon = 6983839;
-            public const int Typhon = 93039339;
         }
 
         internal DinosmasherPlugin Plugin { get; private set; }
@@ -154,14 +158,17 @@ namespace WindBot.Game.AI.Decks
             // Miscellaneousaurus: Activate immediately at start of Main 1 to make all Dinos unaffected!
             AddExecutor(ExecutorType.Activate, CardId.Miscellaneousaurus, MiscHandActivate);
 
+            AddExecutor(ExecutorType.Activate, CardId.CalledByTheGrave, () => DefaultCalledByTheGrave());
             AddExecutor(ExecutorType.Activate, CardId.AshBlossom, () => DefaultAshBlossomAndJoyousSpring());
             AddExecutor(ExecutorType.Activate, CardId.InfiniteImpermanence, () => DefaultInfiniteImpermanence());
-            AddExecutor(ExecutorType.Activate, CardId.CrossoutDesignator, CrossoutActivate);
+            AddExecutor(ExecutorType.Activate, CardId.EffectVeiler, () => DefaultEffectVeiler());
 
             // Evolzar Boss Negations (Priority Tier 0)
             AddExecutor(ExecutorType.Activate, CardId.EvolzarLars, EvolzarLarsActivate);
             AddExecutor(ExecutorType.Activate, CardId.EvolzarDolkka, EvolzarDolkkaActivate);
             AddExecutor(ExecutorType.Activate, CardId.EvolzarLaggia, EvolzarLaggiaActivate);
+            AddExecutor(ExecutorType.Activate, CardId.AbyssDweller, AbyssDwellerActivate);
+            AddExecutor(ExecutorType.Activate, CardId.Number41Bagooska);
 
             // Ultimate Conductor Tyranno Quick Effect: Book of Eclipse on opponent's monsters
             AddExecutor(ExecutorType.Activate, CardId.UltimateConductorTyranno, UCTActivate);
@@ -169,17 +176,18 @@ namespace WindBot.Game.AI.Decks
             // Pankratops Quick Spot Removal
             AddExecutor(ExecutorType.Activate, CardId.Pankratops, PankratopsActivate);
 
-            // Token Clog Traps (Opponent's Turn / End Phase)
-            AddExecutor(ExecutorType.Activate, CardId.OjamaTrio, OjamaTrioActivate);
-            AddExecutor(ExecutorType.Activate, CardId.SurvivalEnd, SurvivalEndActivate);
+            // Dogoran Kaiju Special Summon over opponent's boss (Break towers before activating effects!)
+            AddExecutor(ExecutorType.SpSummon, CardId.Dogoran, DogoranSpSummon);
 
             // ═══════════════════════════════════════════════════════════════
             //  TIER 1: FIELD SPELL, SEARCHERS & CONSISTENCY
             // ═══════════════════════════════════════════════════════════════
             AddExecutor(ExecutorType.Activate, CardId.HarpieFeatherDuster, () => Enemy.GetSpellCount() > 0);
+            AddExecutor(ExecutorType.Activate, CardId.DarkRulerNoMore, DarkRulerNoMoreActivate);
+            AddExecutor(ExecutorType.Activate, CardId.Terraforming, () => true);
             AddExecutor(ExecutorType.Activate, CardId.LostWorld, LostWorldActivate);
+            AddExecutor(ExecutorType.Activate, CardId.GroundXeno, GroundXenoActivate);
             AddExecutor(ExecutorType.Activate, CardId.FossilDig, FossilDigActivate);
-            AddExecutor(ExecutorType.Activate, CardId.PotOfProsperity, PotOfProsperityActivate);
             AddExecutor(ExecutorType.Activate, CardId.TripleTacticsTalent, TripleTacticsTalentActivate);
 
             // ═══════════════════════════════════════════════════════════════
@@ -225,9 +233,11 @@ namespace WindBot.Game.AI.Decks
             // Evolzar Lars (Rank 6 with Xeno Meteorus + Frostosaurus)
             AddExecutor(ExecutorType.SpSummon, CardId.EvolzarLars, EvolzarLarsSpSummon);
 
-            // Evolzar Dolkka / Laggia (Rank 4 with Oviraptor + Giant Rex / Megalosmasher)
+            // Evolzar Dolkka / Laggia (Rank 4 with Oviraptor + Giant Rex)
             AddExecutor(ExecutorType.SpSummon, CardId.EvolzarDolkka, EvolzarDolkkaSpSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.EvolzarLaggia, EvolzarLaggiaSpSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.AbyssDweller, AbyssDwellerSpSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.Number41Bagooska, BagooskaSpSummon);
 
             // Utility Xyz & Links
             AddExecutor(ExecutorType.SpSummon, CardId.Dugares, () => Bot.GetMonsterCount() >= 2 && Util.IsTurn1OrMain2());
@@ -236,7 +246,11 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.Activate, CardId.AccesscodeTalker);
             AddExecutor(ExecutorType.SpSummon, CardId.KnightmareUnicorn, () => Bot.GetMonsterCount() >= 3 && Enemy.GetMonsterCount() + Enemy.GetSpellCount() > 0);
             AddExecutor(ExecutorType.Activate, CardId.KnightmareUnicorn);
-            AddExecutor(ExecutorType.SpSummon, CardId.KnightmarePhoenix, () => Bot.GetMonsterCount() >= 2 && Enemy.GetSpellCount() > 0);
+            AddExecutor(ExecutorType.SpSummon, CardId.KnightmarePhoenix, () =>
+            {
+                int lv4Dinos = Bot.GetMonsters().Count(c => c.IsFaceup() && c.Level == 4 && c.HasRace(CardRace.Dinosaur));
+                return lv4Dinos < 2 && Bot.GetMonsterCount() >= 2 && Enemy.GetSpellCount() > 0;
+            });
             AddExecutor(ExecutorType.Activate, CardId.KnightmarePhoenix);
             AddExecutor(ExecutorType.SpSummon, CardId.SPLittleKnight, () => Duel.Phase == DuelPhase.Main2 && Bot.GetMonsterCount() >= 2);
             AddExecutor(ExecutorType.Activate, CardId.SPLittleKnight, SPLittleKnightActivate);
@@ -245,11 +259,8 @@ namespace WindBot.Game.AI.Decks
             //  TIER 4: NORMAL SUMMONS & SETS
             // ═══════════════════════════════════════════════════════════════
             AddExecutor(ExecutorType.Summon, CardId.Babycerasaurus, () => Bot.GetMonsterCount() == 0 && Bot.HasInHand(CardId.LostWorld));
-            AddExecutor(ExecutorType.Summon, CardId.MegalosmasherX, () => Bot.GetMonsterCount() == 0);
 
             AddExecutor(ExecutorType.SpellSet, CardId.InfiniteImpermanence, SpellSetStrategy);
-            AddExecutor(ExecutorType.SpellSet, CardId.OjamaTrio, SpellSetStrategy);
-            AddExecutor(ExecutorType.SpellSet, CardId.SurvivalEnd, SpellSetStrategy);
 
             AddExecutor(ExecutorType.Repos, SmartMonsterRepos);
         }
@@ -285,10 +296,17 @@ namespace WindBot.Game.AI.Decks
                     return true;
                 }
                 // Banish 2 -> Special Summon Babycerasaurus
-                if (dinoCount >= 2 && Bot.HasInMonstersZone(CardId.SouleatingOviraptor) && !Bot.HasInMonstersZone(CardId.Babycerasaurus))
+                if (dinoCount >= 2 && !Bot.HasInMonstersZone(CardId.Babycerasaurus))
                 {
                     _miscGYUsedThisTurn = true;
                     AI.SelectCard(CardId.Babycerasaurus);
+                    return true;
+                }
+                // Banish 4 -> Special Summon Oviraptor from Deck!
+                if (dinoCount >= 4 && !Bot.HasInMonstersZone(CardId.SouleatingOviraptor))
+                {
+                    _miscGYUsedThisTurn = true;
+                    AI.SelectCard(CardId.SouleatingOviraptor);
                     return true;
                 }
             }
@@ -418,6 +436,15 @@ namespace WindBot.Game.AI.Decks
             if (_archosaurUsedThisTurn || IsCurrentCardNegated()) return false;
             // Destroy Babycerasaurus or Petiteranodon in hand/field to search Double Evolution Pill
             ClientCard popTarget = Bot.GetMonsters().Concat(Bot.Hand).FirstOrDefault(c => c.Id == CardId.Babycerasaurus || c.Id == CardId.Petiteranodon);
+            if (popTarget == null && !Bot.HasInHand(CardId.DoubleEvolutionPill))
+            {
+                // Can pop another Dino on field if not Boss
+                popTarget = Bot.GetMonsters().FirstOrDefault(c => c.HasRace(CardRace.Dinosaur) &&
+                    c.Id != CardId.UltimateConductorTyranno &&
+                    c.Id != CardId.EvolzarLars &&
+                    c.Id != CardId.EvolzarDolkka &&
+                    c.Id != CardId.EvolzarLaggia);
+            }
             if (popTarget != null)
             {
                 _archosaurUsedThisTurn = true;
@@ -527,9 +554,15 @@ namespace WindBot.Game.AI.Decks
 
         private bool PankratopsActivate()
         {
-            // Tribute self to destroy 1 card opponent controls
-            var oppTarget = Enemy.GetMonsters().OrderByDescending(m => m.Attack).FirstOrDefault()
-                         ?? Enemy.GetSpells().FirstOrDefault();
+            // Tribute self to destroy 1 card opponent controls (Prioritize highest threat like Eternal Soul, Skill Drain!)
+            bool dragonKnightOnField = Enemy.GetMonsters().Any(m => m != null && m.IsFaceup() && m.Id == 41721210);
+            var targets = Enemy.GetMonsters().Where(m => m != null && !IsTargetImmune(m)).AsEnumerable();
+            if (!dragonKnightOnField)
+                targets = targets.Concat(Enemy.GetSpells().Where(s => s != null && !IsTargetImmune(s)));
+
+            var oppTarget = targets.OrderByDescending(c => Plugin.ThreatImpl.EvaluateThreatScore(c))
+                                   .ThenByDescending(c => c.Attack)
+                                   .FirstOrDefault();
             if (oppTarget != null)
             {
                 AI.SelectCard(oppTarget);
@@ -538,40 +571,53 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
-        private bool OjamaTrioActivate()
-        {
-            // Clog 3 monster zones on opponent's field
-            int oppFreeZones = 5 - Enemy.GetMonsterCount();
-            return oppFreeZones >= 3;
-        }
-
-        private bool SurvivalEndActivate()
+        private bool DarkRulerNoMoreActivate()
         {
             if (IsCurrentCardNegated()) return false;
+            return Enemy.GetMonsters().Any(m => m.IsFaceup() && (CardIntelligence.IsKnownNegator(m.Id) || m.Attack >= 2500 || Plugin.ThreatImpl.EvaluateThreatScore(m) >= 40));
+        }
 
-            // On Field: Destroy all Normal monsters/tokens (Jurraegg & Ojama tokens) -> SS Dinos from deck!
-            if (Card.Location == CardLocation.SpellZone)
+        private bool DogoranSpSummon()
+        {
+            var oppMons = Enemy.GetMonsters().Where(m => m != null && m.IsFaceup()).ToList();
+            if (oppMons.Count == 0) return false;
+
+            // Prioritize highest threat: Dragon Knight (lockdown), Crystal Wing, ABC Buster, 2000+ ATK
+            var highThreat = oppMons.OrderByDescending(m => Plugin.ThreatImpl.EvaluateThreatScore(m))
+                                    .ThenByDescending(m => m.Attack)
+                                    .FirstOrDefault();
+            if (highThreat != null && (Plugin.ThreatImpl.EvaluateThreatScore(highThreat) >= 40 || highThreat.Attack >= 2000 || oppMons.Count == 1))
             {
-                int tokensOnOppField = Enemy.GetMonsters().Count(m => m.HasType(CardType.Token) || m.HasType(CardType.Normal));
-                // Best used when opponent has 2+ tokens to destroy, or in opponent's turn to disrupt link summons
-                return tokensOnOppField >= 2 || (Duel.Player == 1 && tokensOnOppField >= 1);
+                AI.SelectCard(highThreat);
+                return true;
             }
-
-            // In GY: Banish self, destroy 1 Dino we control (Babycerasaurus) + 1 card opp controls (HOPT)
-            if (Card.Location == CardLocation.Grave)
-            {
-                if (_survivalEndGYUsedThisTurn) return false;
-                var oppTarget = Enemy.GetMonsters().Concat(Enemy.GetSpells()).OrderByDescending(c => Plugin.ThreatImpl.EvaluateThreatScore(c)).FirstOrDefault();
-                bool hasBabyToPop = Bot.GetMonsters().Any(m => m.Id == CardId.Babycerasaurus || m.Id == CardId.Petiteranodon);
-                if (oppTarget != null && hasBabyToPop)
-                {
-                    _survivalEndGYUsedThisTurn = true;
-                    AI.SelectCard(oppTarget);
-                    return true;
-                }
-            }
-
             return false;
+        }
+
+        private bool GroundXenoActivate()
+        {
+            if (IsCurrentCardNegated()) return false;
+            // Activate Ground Xeno if we have at least 1 card in hand to pop (Baby/Petite is best)
+            return Bot.Hand.Count >= 2;
+        }
+
+        private bool AbyssDwellerSpSummon()
+        {
+            int lv4 = Bot.GetMonsters().Count(c => c.IsFaceup() && c.Level == 4);
+            return lv4 >= 2 && (Util.IsTurn1OrMain2() || Enemy.Graveyard.Count >= 2);
+        }
+
+        private bool AbyssDwellerActivate()
+        {
+            if (IsCurrentCardNegated()) return false;
+            // Quick effect: Detach 1 to prevent opponent from activating GY effects this turn!
+            return Duel.Player == 1 || Enemy.Graveyard.Any(c => c.IsMonster());
+        }
+
+        private bool BagooskaSpSummon()
+        {
+            int lv4 = Bot.GetMonsters().Count(c => c.IsFaceup() && c.Level == 4);
+            return lv4 >= 2 && Util.IsTurn1OrMain2() && !Bot.HasInMonstersZone(CardId.UltimateConductorTyranno);
         }
 
         private bool LinkuribohSpSummon()
@@ -761,7 +807,7 @@ namespace WindBot.Game.AI.Decks
 
             // 1. Lost World Destruction Substitute (Hint 502 / Deck Pop)
             // STRICT RULE: Only pop Babycerasaurus or Petiteranodon from DECK!
-            if (cards.All(c => c.Location == CardLocation.Deck || c.Location == CardLocation.Hand))
+            if (hint == 502 && cards.All(c => c.Location == CardLocation.Deck || c.Location == CardLocation.Hand))
             {
                 var babySub = Plugin.MaterialImpl.PickDestructionSubstitute(cards, min);
                 if (babySub != null && cards.Contains(babySub))
@@ -780,6 +826,31 @@ namespace WindBot.Game.AI.Decks
                 }
             }
 
+            // 2.3 Kaiju / Dogoran Tribute Target (Hint 500 / Release Opponent Monster)
+            if (hint == 500 && cards.Any(c => c.Controller == 1))
+            {
+                var oppTarget = cards.Where(c => c.Controller == 1)
+                                     .OrderByDescending(c => Plugin.ThreatImpl.EvaluateThreatScore(c))
+                                     .ThenByDescending(c => c.Attack)
+                                     .FirstOrDefault();
+                if (oppTarget != null) return new List<ClientCard> { oppTarget };
+            }
+
+            // 2.5 Ground Xeno Hand Pop Target
+            if (Util.GetLastChainCard() != null && Util.GetLastChainCard().Id == CardId.GroundXeno && cards.All(c => c.Location == CardLocation.Hand))
+            {
+                var baby = cards.FirstOrDefault(c => c.Id == CardId.Babycerasaurus || c.Id == CardId.Petiteranodon);
+                if (baby != null) return new List<ClientCard> { baby };
+                var rex = cards.FirstOrDefault(c => c.Id == CardId.GiantRex);
+                if (rex != null) return new List<ClientCard> { rex };
+                var arch = cards.FirstOrDefault(c => c.Id == CardId.AnimadornedArchosaur);
+                if (arch != null) return new List<ClientCard> { arch };
+                var misc = cards.FirstOrDefault(c => c.Id == CardId.Miscellaneousaurus);
+                if (misc != null) return new List<ClientCard> { misc };
+                var normal = cards.FirstOrDefault(c => c.Id == CardId.Frostosaurus || c.Id == CardId.MegalosmasherX);
+                if (normal != null) return new List<ClientCard> { normal };
+            }
+
             // 3. Removal / Banish / Destroy (Hints: 502, 503, 505) -> Target Opponent Only!
             if (hint == 502 || hint == 503 || hint == 505)
             {
@@ -790,6 +861,19 @@ namespace WindBot.Game.AI.Decks
                                    .ThenByDescending(c => c.Attack)
                                    .Take(Math.Min(max, oppCards.Count))
                                    .ToList();
+                }
+
+                // If hint 502 (Destroy) on our own cards (e.g. Xeno Meteorus, Oviraptor pop):
+                // STRICTLY use PickDestructionSubstitute to pop Babycerasaurus, Petiteranodon, or JurraeggToken!
+                if (hint == 502)
+                {
+                    var popTarget = Plugin.MaterialImpl.PickDestructionSubstitute(cards, min);
+                    if (popTarget != null && cards.Contains(popTarget))
+                    {
+                        var result = new List<ClientCard> { popTarget };
+                        result.AddRange(cards.Where(c => c != popTarget).Take(max - 1));
+                        if (result.Count >= min) return result.Take(max).ToList();
+                    }
                 }
             }
 
@@ -836,6 +920,13 @@ namespace WindBot.Game.AI.Decks
         {
             if (positions == null || positions.Count == 0) return CardPosition.FaceUpAttack;
             if (positions.Count == 1) return positions[0];
+
+            // Number 41: Bagooska MUST ALWAYS be in Defense position (Rule 12)
+            if (cardId == CardId.Number41Bagooska)
+            {
+                if (positions.Contains(CardPosition.FaceUpDefence)) return CardPosition.FaceUpDefence;
+                if (positions.Contains(CardPosition.FaceDownDefence)) return CardPosition.FaceDownDefence;
+            }
 
             // Attack Bosses: UCT, Evolzar Lars, Dolkka, Laggia, Pankratops, Accesscode
             int[] attackers = {

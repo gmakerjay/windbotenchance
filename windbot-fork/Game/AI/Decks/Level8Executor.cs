@@ -1,16 +1,21 @@
-﻿using System;
+using System;
 using YGOSharp.OCGWrapper.Enums;
 using System.Collections.Generic;
 using WindBot;
 using WindBot.Game;
 using WindBot.Game.AI;
+using WindBot.Game.AI.Plugins;
 using System.Linq;
 
 namespace WindBot.Game.AI.Decks
 {
+    [Deck("Level8", "AI_Level8")]
+    [Deck("Rose Scrap Synchro", "AI_Level8")]
     [Deck("Level VIII", "AI_Level8")]
-    class Level8Executor : DefaultExecutor
+    public class Level8Executor : ModernExecutor
     {
+        public ClientCard CurrentExecutingCard => Card;
+
         public class CardId
         {
             public const int AngelTrumpeter = 87979586;
@@ -58,6 +63,7 @@ namespace WindBot.Game.AI.Decks
         public Level8Executor(GameAI ai, Duel duel)
             : base(ai, duel)
         {
+            DeckPlugin = new Level8Plugin(this);
             AddExecutor(ExecutorType.Activate, CardId.CalledbyTheGrave, DefaultCalledByTheGrave);
             AddExecutor(ExecutorType.Activate, CardId.Raigeki);
             AddExecutor(ExecutorType.Activate, CardId.HarpiesFeatherDuster);
@@ -219,6 +225,20 @@ namespace WindBot.Game.AI.Decks
             ScrapWyvernUsed = false;
             MaskedChameleonUsed = false;
             ShootingRiserDragonCount = 0;
+            base.OnNewTurn();
+        }
+
+        public override bool OnSelectHand() => true;
+
+        public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
+        {
+            if (DeckPlugin is Level8Plugin l8Plugin)
+            {
+                var pluginSelected = l8Plugin.SelectCardLogic(cards, min, max, hint, cancelable);
+                if (pluginSelected != null && pluginSelected.Count >= min)
+                    return pluginSelected;
+            }
+            return base.OnSelectCard(cards, min, max, hint, cancelable);
         }
 
         public override void OnChainEnd()

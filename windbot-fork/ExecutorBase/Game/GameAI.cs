@@ -1106,8 +1106,10 @@ namespace WindBot.Game
             {
                 NamedCard card = NamedCard.Get(announced);
                 int finalCode = (card != null && card.Alias > 0 && NamedCard.IsAltartAlias(card.Id, card.Alias)) ? card.Alias : announced;
-                // Extra Deck monsters cannot be in Main Deck (e.g. for Crossout Designator)
-                if (card != null && (card.Type & (int)(CardType.Fusion | CardType.Synchro | CardType.Xyz | CardType.Link)) != 0)
+                // Extra Deck monsters cannot be in Main Deck (only constrained for Crossout Designator)
+                bool isCrossout = (Duel != null && Duel.CurrentChain != null && Duel.CurrentChain.Any(c => c != null && c.IsCode(65681983))) ||
+                                  (Duel != null && Duel.GetCurrentChainCard() != null && Duel.GetCurrentChainCard().IsCode(65681983));
+                if (isCrossout && card != null && (card.Type & (int)(CardType.Fusion | CardType.Synchro | CardType.Xyz | CardType.Link)) != 0)
                 {
                     if (Executor != null && Executor.StartingDeck != null && Executor.StartingDeck.Cards != null)
                     {
@@ -1126,6 +1128,10 @@ namespace WindBot.Game
                 return finalCode;
             }
 
+            // Check if current action requires monster declaration (e.g. The Black Goat Laughs 49299410)
+            bool requiresMonster = (Duel != null && Duel.CurrentChain != null && Duel.CurrentChain.Any(c => c != null && c.IsCode(49299410))) ||
+                                   (Duel != null && Duel.GetCurrentChainCard() != null && Duel.GetCurrentChainCard().IsCode(49299410));
+
             // Fallback: If no card announced, choose a remaining card from bot's own deck to satisfy OCGCore filter
             if (Executor != null && Executor.StartingDeck != null && Executor.StartingDeck.Cards != null)
             {
@@ -1134,6 +1140,8 @@ namespace WindBot.Game
                     if (Executor.GetRemainingInDeckCount(id) > 0)
                     {
                         NamedCard card = NamedCard.Get(id);
+                        if (requiresMonster && card != null && !card.HasType(CardType.Monster))
+                            continue;
                         if (card != null && card.Alias > 0 && NamedCard.IsAltartAlias(card.Id, card.Alias))
                             return card.Alias;
                         return id;

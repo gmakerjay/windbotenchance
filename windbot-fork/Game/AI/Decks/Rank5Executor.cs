@@ -1,13 +1,17 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Linq;
 using WindBot;
 using WindBot.Game;
 using WindBot.Game.AI;
+using WindBot.Game.AI.Plugins;
 using YGOSharp.OCGWrapper.Enums;
 
 namespace WindBot.Game.AI.Decks
 {
+    [Deck("Rank5", "AI_Rank5")]
+    [Deck("R5NK", "AI_Rank5")]
     [Deck("Rank V", "AI_Rank5")]
-    public class Rank5Executor : DefaultExecutor
+    public class Rank5Executor : ModernExecutor
     {
         public class CardId
         {
@@ -39,6 +43,8 @@ namespace WindBot.Game.AI.Decks
             public const int CyberDragonNova = 58069384;
         }
 
+        public ClientCard CurrentExecutingCard => Card;
+
         private bool NormalSummoned = false;
         private bool InstantFusionUsed = false;
         private bool DoubleSummonUsed = false;
@@ -48,26 +54,34 @@ namespace WindBot.Game.AI.Decks
         public Rank5Executor(GameAI ai, Duel duel)
             : base(ai, duel)
         {
-            // Quick spells
+            DeckPlugin = new Rank5Plugin(this);
+
+            // Tier 0: Quick spells & disruptions
             AddExecutor(ExecutorType.Activate, CardId.BookOfMoon, DefaultBookOfMoon);
             AddExecutor(ExecutorType.Activate, CardId.MysticalSpaceTyphoon, DefaultMysticalSpaceTyphoon);
 
-            // Cyber Dragon Infinity first
+            // Tier 1: Cyber Dragon Infinity (Negate & Absorb)
             AddExecutor(ExecutorType.SpSummon, CardId.CyberDragonNova, CyberDragonNovaSummon);
             AddExecutor(ExecutorType.Activate, CardId.CyberDragonNova, CyberDragonNovaEffect);
             AddExecutor(ExecutorType.SpSummon, CardId.CyberDragonInfinity, CyberDragonInfinitySummon);
             AddExecutor(ExecutorType.Activate, CardId.CyberDragonInfinity, CyberDragonInfinityEffect);
 
-            // Level 5 monsters without side effects
+            // Tier 2: Level 5 Extenders & Free Summons
             AddExecutor(ExecutorType.SpSummon, CardId.CyberDragon);
             AddExecutor(ExecutorType.SpSummon, CardId.ZWEagleClaw);
+            AddExecutor(ExecutorType.SpSummon, CardId.SolarWindJammer, SolarWindJammerSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.QuickdrawSynchron, QuickdrawSynchronSummon);
+            AddExecutor(ExecutorType.Activate, CardId.InstantFusion, InstantFusionEffect);
+
+            // Tier 3: Normal Summons & Level Modifications
             AddExecutor(ExecutorType.Summon, CardId.ChronomalyGoldenJet, NormalSummon);
             AddExecutor(ExecutorType.Activate, CardId.ChronomalyGoldenJet, ChronomalyGoldenJetEffect);
             AddExecutor(ExecutorType.Summon, CardId.StarDrawing, NormalSummon);
             AddExecutor(ExecutorType.Summon, CardId.WindUpSoldier, NormalSummon);
             AddExecutor(ExecutorType.Activate, CardId.WindUpSoldier, WindUpSoldierEffect);
+            AddExecutor(ExecutorType.Summon, CardId.MistArchfiend, MistArchfiendSummon);
 
-            // XYZ Monsters: Summon
+            // Tier 4: Rank 5 Xyz Monsters
             AddExecutor(ExecutorType.SpSummon, CardId.Number61Volcasaurus, Number61VolcasaurusSummon);
             AddExecutor(ExecutorType.Activate, CardId.Number61Volcasaurus, Number61VolcasaurusEffect);
             AddExecutor(ExecutorType.SpSummon, CardId.TirasKeeperOfGenesis);
@@ -75,39 +89,24 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.SpSummon, CardId.SharkFortress);
             AddExecutor(ExecutorType.Activate, CardId.SharkFortress);
 
+            // Tier 5: Rank 7 Overlay
             AddExecutor(ExecutorType.SpSummon, CardId.GaiaDragonTheThunderCharger, GaiaDragonTheThunderChargerSummon);
 
-
-            // Level 5 monsters with side effects
-            AddExecutor(ExecutorType.SpSummon, CardId.SolarWindJammer, SolarWindJammerSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.QuickdrawSynchron, QuickdrawSynchronSummon);
-            AddExecutor(ExecutorType.Summon, CardId.MistArchfiend, MistArchfiendSummon);
-            AddExecutor(ExecutorType.Activate, CardId.InstantFusion, InstantFusionEffect);
-
-            // Useful spells
+            // Tier 6: Spells & Traps Support
             AddExecutor(ExecutorType.Activate, CardId.DoubleSummon, DoubleSummonEffect);
             AddExecutor(ExecutorType.Activate, CardId.XyzUnit, XyzUnitEffect);
-
-
             AddExecutor(ExecutorType.Activate, CardId.XyzReborn, XyzRebornEffect);
-
             AddExecutor(ExecutorType.Activate, CardId.PanzerDragon, PanzerDragonEffect);
-
-            // Reposition
-            AddExecutor(ExecutorType.Repos, DefaultMonsterRepos);
-
-            // Set and activate traps
-            AddExecutor(ExecutorType.SpellSet, DefaultSpellSet);
-
             AddExecutor(ExecutorType.Activate, CardId.XyzVeil, XyzVeilEffect);
             AddExecutor(ExecutorType.Activate, CardId.TorrentialTribute, DefaultTorrentialTribute);
             AddExecutor(ExecutorType.Activate, CardId.MirrorForce, DefaultTrap);
+
+            // Reposition & Backrow Sets
+            AddExecutor(ExecutorType.Repos, DefaultMonsterRepos);
+            AddExecutor(ExecutorType.SpellSet, DefaultSpellSet);
         }
 
-        public override bool OnSelectHand()
-        {
-            return false;
-        }
+        public override bool OnSelectHand() => false;
 
         public override void OnNewTurn()
         {
@@ -116,15 +115,27 @@ namespace WindBot.Game.AI.Decks
             DoubleSummonUsed = false;
             CyberDragonInfinitySummoned = false;
             Number61VolcasaurusUsed = false;
+            base.OnNewTurn();
+        }
+
+        public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
+        {
+            if (DeckPlugin is Rank5Plugin r5Plugin)
+            {
+                var pluginSelected = r5Plugin.SelectCardLogic(cards, min, max, hint, cancelable);
+                if (pluginSelected != null && pluginSelected.Count >= min)
+                    return pluginSelected;
+            }
+            return base.OnSelectCard(cards, min, max, hint, cancelable);
         }
 
         public override IList<ClientCard> OnSelectXyzMaterial(IList<ClientCard> cards, int min, int max)
         {
             IList<ClientCard> result = Util.SelectPreferredCards(new[] {
-                CardId.MistArchfiend,
+                CardId.StarDrawing,
                 CardId.PanzerDragon,
-                CardId.SolarWindJammer,
-                CardId.StarDrawing
+                CardId.MistArchfiend,
+                CardId.SolarWindJammer
             }, cards, min, max);
             return Util.CheckSelectCount(result, cards, min, max);
         }
@@ -148,9 +159,9 @@ namespace WindBot.Game.AI.Decks
             if (!NeedLV5())
                 return false;
             AI.SelectCard(
-                CardId.QuickdrawSynchron,
                 CardId.ZWEagleClaw,
                 CardId.SolarWindJammer,
+                CardId.QuickdrawSynchron,
                 CardId.CyberDragon,
                 CardId.MistArchfiend,
                 CardId.WindUpSoldier,
@@ -171,6 +182,10 @@ namespace WindBot.Game.AI.Decks
 
         private bool InstantFusionEffect()
         {
+            // Rule 16: LP Safety check (1000 LP cost)
+            if (Bot.LifePoints <= 1000)
+                return false;
+
             if (!NeedLV5())
                 return false;
             InstantFusionUsed = true;
@@ -188,7 +203,7 @@ namespace WindBot.Game.AI.Decks
             {
                 if (card.IsCode(CardId.SolarWindJammer) && Bot.GetMonsterCount() == 0)
                     ++lv5Count;
-                if (card.IsCode(CardId.InstantFusion) && !InstantFusionUsed)
+                if (card.IsCode(CardId.InstantFusion) && !InstantFusionUsed && Bot.LifePoints > 1000)
                     ++lv5Count;
                 if (card.IsCode(CardId.QuickdrawSynchron) && Bot.Hand.ContainsMonsterWithLevel(4))
                     ++lv5Count;
@@ -261,16 +276,18 @@ namespace WindBot.Game.AI.Decks
 
         private bool CyberDragonInfinityEffect()
         {
+            // Negate effect
             if (Duel.CurrentChain.Count > 0)
             {
                 return Duel.LastChainPlayer == 1;
             }
             else
             {
+                // Absorb effect - Rule 15: Only activate if face-up attack monster exists
                 ClientCard bestmonster = null;
                 foreach (ClientCard monster in Enemy.GetMonsters())
                 {
-                    if (monster.IsAttack() && (bestmonster == null || monster.Attack >= bestmonster.Attack))
+                    if (monster.IsFaceup() && monster.IsAttack() && (bestmonster == null || monster.Attack >= bestmonster.Attack))
                         bestmonster = monster;
                 }
                 if (bestmonster != null)
@@ -289,6 +306,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool Number61VolcasaurusEffect()
         {
+            // Rule 15: Target Verification Safeguard
             ClientCard target = Util.GetProblematicEnemyMonster(2000);
             if (target != null)
             {
@@ -302,14 +320,16 @@ namespace WindBot.Game.AI.Decks
 
         private bool TirasKeeperOfGenesisEffect()
         {
+            // Rule 15: Target Verification Safeguard
             ClientCard target = Util.GetProblematicEnemyCard();
             if (target == null)
                 target = Util.GetBestEnemyCard();
             if (target != null)
             {
                 AI.SelectCard(target);
+                return true;
             }
-            return true;
+            return false;
         }
 
         private bool GaiaDragonTheThunderChargerSummon()
@@ -359,6 +379,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool PanzerDragonEffect()
         {
+            // Rule 15: Target Verification Safeguard
             ClientCard target = Util.GetBestEnemyCard();
             if (target != null)
             {
