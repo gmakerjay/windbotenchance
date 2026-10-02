@@ -10,7 +10,6 @@ using YGOSharp.OCGWrapper.Enums;
 
 namespace WindBot.Game.AI.Decks
 {
-    [Deck("RyzealBlizt", "RyzealBlitzExecutor")]
     [Deck("RyzealBlitz", "RyzealBlitzExecutor")]
     public class RyzealBlitzExecutor : ModernExecutor
     {

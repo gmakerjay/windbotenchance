@@ -352,7 +352,7 @@ namespace dashbot
             "SuperHeavySamurai", "Mathmech", "Cyberse", "Synchron", "Exosister",
             "SacrBeatsMach", "ScarbeatMach", "SacredBeats", "Machina",
             "PhantomKnight", "PhantomKnights",
-            "SkyStrikerZero", "RyzealBlizt", "RyzealBlitz", "Ryzeal", "Blitzclique"
+            "SkyStrikerZero", "RyzealBlitz", "Ryzeal", "Blitzclique"
         };
 
         private static DeckItem ParseDeckItem(string originalName)

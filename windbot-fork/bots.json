@@ -3095,23 +3095,8 @@
     ]
   },
   {
-    "name": "RyzealBlizt",
-    "deck": "RyzealBlizt",
-    "difficulty": 3,
-    "dialog": "default",
-    "flags": [
-      "OCG",
-      "TCG"
-    ],
-    "masterRules": [
-      3,
-      4,
-      5
-    ]
-  },
-  {
     "name": "RyzealBlitz",
-    "deck": "RyzealBlizt",
+    "deck": "RyzealBlitz",
     "difficulty": 3,
     "dialog": "default",
     "flags": [

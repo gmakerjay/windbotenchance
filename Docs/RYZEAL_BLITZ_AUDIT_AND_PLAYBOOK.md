@@ -1,16 +1,16 @@
-# RyzealBlizt (Ryzeal + Blitzclique) Architecture, Card Audit & AI Playbook (2026)
+# RyzealBlitz (Ryzeal + Blitzclique) Architecture, Card Audit & AI Playbook (2026)
 
 ## 1. Executive Summary & Archetype Philosophy
 
-**RyzealBlizt** (หรือ *Ryzeal Blitz*) เป็นเด็คคอมโบแบบไฮบริดระดับ Modern ที่ผสมผสานระหว่างสองกลยุทธ์อันทรงพลัง:
+**RyzealBlitz** (Ryzeal + Blitzclique) เป็นเด็คคอมโบแบบไฮบริดระดับ Modern ที่ผสมผสานระหว่างสองกลยุทธ์อันทรงพลัง:
 1. **Ryzeal Engine**: โครงสร้างมอนสเตอร์เลเวล 4 เผ่า Pyro/Thunder ที่เน้นการทำ Rank 4 Xyz Summon อย่างรวดเร็ว นำโดยบอสหลัก **`Ryzeal Detonator`** (3000 ATK) ที่มี Quick Effect ทำลายการ์ดบนสนามทุกครั้งที่ฝ่ายตรงข้ามเปิดใช้งานเอฟเฟกต์การ์ด
 2. **Blitzclique Engine**: อาร์คิไทป์เผ่าสายฟ้า (Thunder) สายทำลายตัวเอง (Self-Destruction Trigger) เพื่อเปิดลูปการค้นหาและอัญเชิญพิเศษมอนสเตอร์สายฟ้าจากมืออย่างต่อเนื่อง พร้อมด้วยการ์ดขัดขวางและเคาน์เตอร์ระดับสูงอย่าง **`Whisker Blitzclique`** (Quick Negate มอนสเตอร์) และ **`Blitzclique Return Stroke`** (Quick Negate เวทมนตร์)
 3. **Ultimate Slayer & Board Breaking Suite**: แพ็กเกจเคลียร์บอร์ดชั้นเลิศที่ใช้ Extra Deck ส่งตรงลงสุสานเพื่อเด้งมอนสเตอร์คู่แข่งกลับเด็คแบบเชนเอฟเฟกต์มอนสเตอร์ไม่ได้ ควบคู่กับ **`Santa Claws`**, **`Dinowrestler Pankratops`**, และ **`Illusion Gate`**
 
 - **หมวดหมู่ใน DashBot**: **Modern** (แท็กสีน้ำตาลทอง `#C86600`)
-- **ชื่อบอทที่ลงทะเบียน**: `RyzealBlizt`, `RyzealBlitz`
+- **ชื่อบอทที่ลงทะเบียน**: `RyzealBlitz`
 - **ประเภทสถาปัตยกรรม**: Rule-Based C# 100% (`ModernExecutor` + `RyzealBlitzPlugin`)
-- **ไฟล์เด็ค**: `RyzealBlizt.ydk` (60 Main Deck / 15 Extra Deck / 0 Side Deck)
+- **ไฟล์เด็ค**: `RyzealBlitz.ydk` (60 Main Deck / 15 Extra Deck / 0 Side Deck)
 
 ---
 
@@ -111,7 +111,7 @@
 
 ## 5. Deployment & System Integration
 
-- **ไฟล์เด็ค**: บันทึก `RyzealBlizt.ydk` และ `RyzealBlitz.ydk` ไปยัง `windbot-fork/Decks/`, `WindBot/Decks/`, และ `deck/`
-- **การลงทะเบียนบอท**: ลงทะเบียน `RyzealBlizt` และ `RyzealBlitz` ใน `bots.json`
+- **ไฟล์เด็ค**: บันทึก `RyzealBlitz.ydk` ไปยัง `windbot-fork/Decks/`, `WindBot/Decks/`, และ `deck/`
+- **การลงทะเบียนบอท**: ลงทะเบียน `RyzealBlitz` ใน `bots.json`
 - **DashBot UI**: เพิ่มเข้าสู่ `ModernArchetypes` แสดงผลในหมวด **Modern** ด้วยสีแท็ก `#C86600`
 - **สถานะการคอมไพล์และ Deploy**: สำเร็จ 100% ผ่าน `BUILD_AND_DEPLOY.ps1` (0 Errors) สู่ `C:\Users\admin\Documents\EdoGame\`

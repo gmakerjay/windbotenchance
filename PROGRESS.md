@@ -1,19 +1,19 @@
 # Progress Log: Central Core Architecture & Universal Heuristics Overhaul
 
-## 0.076. RyzealBlizt (Ryzeal + Blitzclique) Architecture, Card Audit & Exclusive Deployment (2026-10-02)
+## 0.076. RyzealBlitz (Ryzeal + Blitzclique) Architecture, Card Audit & Exclusive Deployment (2026-10-02)
 
 ### 1. Deck Building & Rigorous Card Audit
 - **Card Audit & Categorization**:
   - ถอดรหัสและแยกประเภทการ์ดทั้ง 75 ใบจาก Raw List (38 Monsters, 19 Spells, 3 Traps, 15 Extra Deck) ตรวจสอบ ID ผ่าน `cards.cdb` ครบ 100%
   - โครงสร้าง Main Deck 60 ใบ + Extra Deck 15 ใบ ถูกกฎกติกาการแข่งขัน 100%
 - **Deck Files Generation**:
-  - สร้างไฟล์เด็ค `RyzealBlizt.ydk` และ `RyzealBlitz.ydk` วางใน `windbot-fork/Decks/`, `WindBot/Decks/`, และ `deck/`
+  - สร้างไฟล์เด็ค `RyzealBlitz.ydk` วางใน `windbot-fork/Decks/`, `WindBot/Decks/`, และ `deck/` (ลบรายการสะกดผิดซ้ำซ้อน `RyzealBlizt` ออกอย่างสมบูรณ์)
 
 ### 2. Central Core & UI Registration
 - **DashBot UI (`MainWindow.xaml.cs`)**:
-  - ลงทะเบียน `"RyzealBlizt"`, `"RyzealBlitz"`, `"Ryzeal"`, `"Blitzclique"` เข้าสู่ `ModernArchetypes` จัดหมวดหมู่อยู่ใน **Modern** พร้อมแท็กสีน้ำตาลทอง `#C86600`
+  - ลงทะเบียน `"RyzealBlitz"`, `"Ryzeal"`, `"Blitzclique"` เข้าสู่ `ModernArchetypes` จัดหมวดหมู่อยู่ใน **Modern** พร้อมแท็กสีน้ำตาลทอง `#C86600`
 - **WindBot Bots Registry (`bots.json`)**:
-  - ลงทะเบียนบอทชื่อ `"RyzealBlizt"` และ `"RyzealBlitz"` (Difficulty 3, Master Rules 3, 4, 5) ใน `bots.json`
+  - ลงทะเบียนบอทชื่อ `"RyzealBlitz"` (Difficulty 3, Master Rules 3, 4, 5) ใน `bots.json`
 - **CardIntelligence Database (`CardIntelligence.cs`)**:
   - ลงทะเบียน `Ryzeal Detonator`, `Whisker Blitzclique`, `Blitzclique Return Stroke`, `Number 106: Giant Hand`, `Mereologic Aggregator` เข้าสู่ `KnownNegators`
   - ลงทะเบียน `Ice Ryzeal`, `Sword Ryzeal`, `Ext Ryzeal`, `Hideout in the Sky, Coulomb`, `Surge Blitzclique`, `Blitzclique - Breakaway`, `Blitzclique - Steppleader` เข้าสู่ `HighThreatChokepoints`
