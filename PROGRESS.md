@@ -459,3 +459,15 @@
 
 ---
 
+## 🚀 Sprint Summary: Contact Fusion OCGCore/Lua Bug Fix (`proc_fusion.lua:966`)
+- **Diagnosis & Root Cause**:
+  - Traced runtime error dialog `[string "proc_fusion.lua"]:966: Attempting to access deleted object.` when summoning or interacting with Contact Fusion monsters (e.g. `ABC-Dragon Buster` [1561110]).
+  - Root cause was premature C++ group destruction via `g:DeleteGroup()` while the `Effect` pointer `e:SetLabelObject` was never cleared, leaving a dangling pointer that caused Luabind to crash upon re-access.
+- **Resolution**:
+  - Aligned with upstream DeltaBagooska: removed `sg:KeepAlive()` and `g:DeleteGroup()`.
+  - Added null checks (`if not g then return end`) and explicit `e:SetLabelObject(nil)` reference clearing in both `Fusion.ContactTg` and `Fusion.ContactOp`.
+  - Synchronized across `script/proc_fusion.lua`, `repositories/official-scripts/proc_fusion.lua`, and `repositories/delta-bagooska/script/proc_fusion.lua`.
+- **Verification**:
+  - Tested `Client_Headless_Fortest` (ABC vs DarkMagician, 3 Games): 3 Wins / 0 Losses (100% Win Rate), 0 Violations, 0 Errors in `error.log`.
+  - Comprehensive documentation added: `Docs/CONTACT_FUSION_LUA_BUG_FIX_REPORT.md`.
+
