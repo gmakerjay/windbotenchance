@@ -1,5 +1,41 @@
 [
   {
+    "name": "OrcustWCQ",
+    "deck": "OrcustWCQ",
+    "difficulty": 3,
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Orcust WCQ",
+    "deck": "OrcustWCQ",
+    "difficulty": 3,
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
+    "name": "FiendsmithSacred",
+    "deck": "FiendsmithSacred",
+    "difficulty": 3,
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Fiendsmith Sacred",
+    "deck": "FiendsmithSacred",
+    "difficulty": 3,
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
     "name": "Labrynth",
     "deck": "Labrynth",
     "difficulty": 3,

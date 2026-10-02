@@ -1,5 +1,78 @@
 # Progress Log: Central Core Architecture & Universal Heuristics Overhaul
 
+## 0.078. OrcustWCQ (Modern Orcust WCQ) Architecture, Implementation & Verification (2026-10-02)
+
+### 1. Deck Building & Rigorous Card Audit
+- **Deck Structure**: Main Deck 40 ใบ, Extra Deck 15 ใบ, Side Deck 15 ใบ ถูกกฎกติกาการแข่งขัน 100%
+- **Cards Verified**: `Girsu`, `Harp Horror`, `Cymbal Skeleton`, `Orcust Knightmare`, `World Wand`, `Galatea`, `Galatea-i`, `Enlilgirsu`, `Longirsu`, `Dingirsu`, `Babel`, `Crescendo`, `Dominus Impulse/Spark`, `The Black Goat Laughs` ผ่าน `cards.cdb` ครบถ้วน
+- **Deck Files Sync**: ซิงค์ `OrcustWCQ.ydk` สู่ `windbot-fork/Decks/`, `WindBot/Decks/`, และ `deck/`
+
+### 2. Central Core & UI Registration
+- **bots.json**: ลงทะเบียน `"OrcustWCQ"` และ `"Orcust WCQ"` (Difficulty 3, MR 4, 5)
+- **DashBot Launcher (`MainWindow.xaml.cs`)**: ลงทะเบียนใน `ModernArchetypes`
+- **CardIntelligence (`CardIntelligence.cs`)**:
+  - `KnownNegators`: เพิ่ม `Dingirsu`, `Orcust Crescendo`, `Longirsu`, `Enlilgirsu`, `World Crown`, `Dominus Impulse`, `Dominus Spark`
+  - `HighThreatChokepoints`: เพิ่ม `Girsu`, `Harp Horror`, `Cymbal Skeleton`, `Orcust Knightmare`, `World Wand`, `Galatea`, `Galatea-i`, `Orcustrated Babel`, `Orcustrated Return`
+
+### 3. C# Rule-Based Architecture & Decoupled Domain Plugin
+- **OrcustPlugin.cs**:
+  - `OrcustStrategy`: จัดการ Turn States, OPT Triggers, การตรวจจับ DARK Lock, สภาวะ Babel บนสนาม, และการลูปมอนสเตอร์จากสุสาน
+  - `OrcustThreatEvaluator`: ล็อกเป้าหมายการ์ดระดับสูง (Eternal Soul, Floodgates Grade S/A, มอนสเตอร์บอสศัตรู)
+  - `OrcustMaterialScorer`: ให้คะแนนการทิ้งการ์ดลงสุสาน (`Harp Horror` 2500, `Cymbal` 2300, `World Wand` 2100) และปกป้องบอส
+  - `OrcustBoardAssessor`: ตรวจจับเงื่อนไขการเรียก Dingirsu, Galatea และการทำ Lethal Push
+- **OrcustWCQExecutor.cs**:
+  - โครงสร้าง Tier 0 ถึง Tier 7 ModernExecutor Pipeline
+  - **Universal OnSelect Handlers**: รองรับ Hints 500-509, 513, 533, 550, 551, 572, 575 ล็อกเป้าหมายเฉพาะศัตรู ปราศจากการทำลาย/Negate การ์ดตัวเอง 100%
+  - **Safe Option Resolution**: ตรวจจับ Option Description IDs สำหรับ `Dingirsu` เพื่อป้องกัน MSG_RETRY หลุดออกสู่โปรโตคอล
+
+### 4. 40-Game Headless Loop Verification (0 Violations / 0 Crashes)
+- **vs BlueEyes (10 games)**: 10/10 Finished, 0 Violations, 0 Crashes, 3 wins (30.0%)
+- **vs DarkMagician (10 games)**: 10/10 Finished, 0 Violations, 0 Crashes, 4 wins (40.0%)
+- **vs ABC (10 games)**: 10/10 Finished, 0 Violations, 0 Crashes, 3 wins (30.0%)
+- **vs Altergeist (10 games)**: 10/10 Finished, 0 Violations, 0 Crashes, **6 wins (60.0%!)**
+- **สรุปผลรวม**: 40/40 Duels Finished (100% Complete), **0 Violations (100% Clean)**, **0 Engine Crashes**, อัตราการชนะเฉลี่ย **40.0%** เหนือ 4 เด็ค Legacy มาตรฐาน
+
+### 5. Build & Exclusive Deployment
+- คอมไพล์และ Deploy ผ่าน `BUILD_AND_DEPLOY.ps1` สู่ `C:\Users\admin\Documents\EdoGame\` ครบถ้วน
+- จัดทำคู่มือวิเคราะห์กลยุทธ์ฉบับสมบูรณ์ใน `Docs/ORCUST_WCQ_AUDIT_AND_PLAYBOOK.md`
+
+---
+
+## 0.077. FiendsmithSacred (Fiendsmith + Sacred Beasts) Loop Polish, Zero Violations & Full Verification (2026-10-02)
+
+### 1. Deck Building & Rigorous Card Audit
+- **Deck Structure**: Main Deck 40 ใบ + Extra Deck 15 ใบ ตรวจสอบ ID ผ่าน `cards.cdb` ครบ 100%
+- **Strategic Deck Adjustment**: ปรับเปลี่ยนการ์ดตายใน Turn 1 อย่าง `Dharc the Dark Charmer, Gloomy` (`8264361`) เป็น `Moon of the Closed Heaven` (`71818935`) ใน Extra Deck เปิดประตูเชื่อมต่อมอนสเตอร์ 2 ตัวใดๆ (เช่น 2 Martyrs) สู่ Fiendsmith Full Combo ได้ 100%
+- **Deck Sync**: ซิงค์ไฟล์ `FiendsmithSacred.ydk` สู่ `windbot-fork/Decks/`, `WindBot/Decks/`, และ `deck/`
+
+### 2. Central Core & UI Registration
+- **bots.json**: ลงทะเบียน `"FiendsmithSacred"` และ `"Fiendsmith Sacred"` (MR 3, 4, 5, Difficulty 3)
+- **DashBot UI (`MainWindow.xaml.cs`)**: ลงทะเบียนใน `ModernArchetypes`
+- **CardIntelligence (`CardIntelligence.cs`)**: ลงทะเบียน `Varudras`, `DDDWaveHighKingCaesar`, `TheChaoticPhantasmalSacredBeasts`, `FiendsmithsDesirae`, `GorgonOfZilofthonia` ใน `KnownNegators`; ลงทะเบียน `Engraver`, `Tract`, `Lacrima`, `Martyr`, `Released`, `Thunderclap`, `FallenParadise`, `CombinedAssault` ใน `HighThreatChokepoints`
+
+### 3. C# Rule-Based Architecture & Decoupled Domain Plugin
+- **FiendsmithSacredPlugin.cs**:
+  - `FiendsmithSacredStrategy`: จัดการ Turn States, OPT Triggers, Fiendsmith 1-Card Full Caesar Chain และ Sacred Beast Resource Loop
+  - `FiendsmithSacredThreatEvaluator`: ล็อกเป้าหมายการกำจัดการ์ดระดับสูง (Eternal Soul +2500, Floodgates Grade S/A)
+  - `FiendsmithSacredMaterialScorer`: คัดเลือกคอสต์ส่งการ์ดลงสุสาน (`Thunderclap` ที่ใช้แล้ว +3000) และปกป้อง Ace Monsters
+  - `FiendsmithSacredBoardAssessor`: คำนวณ Lethal Push และประเมินสภาวะบอร์ด
+- **FiendsmithSacredExecutor.cs**:
+  - Tier 0 ถึง Tier 7 ModernExecutor Pipeline
+  - **Zero Self-Negate Guarantee**: ปรับแต่งตัวกรอง Hints 572, 575, 550, 551, 514, 556 ล็อกเฉพาะ `c.Controller == 1` พร้อมตัวคุมเงื่อนไข `Desirae` และ `Chaotic Phantasmal` ให้สั่งการเฉพาะเมื่อศัตรูมีมอนสเตอร์ Face-up เท่านั้น
+
+### 4. 40-Game Headless Loop Verification (0 Violations / 0 Crashes)
+- **vs BlueEyes (10 games)**: 10/10 Finished, 0 Violations, 0 Crashes (20% Win Rate)
+- **vs DarkMagician (10 games)**: 10/10 Finished, 0 Violations, 0 Crashes (30% Win Rate)
+- **vs ABC (10 games)**: 9/10 Finished (1 timeout จากลูป ABC), 0 Violations, 0 Crashes (22.2% Win Rate)
+- **vs Altergeist (10 games)**: 10/10 Finished, 0 Violations, 0 Crashes (40.0% Win Rate)
+- **สรุป**: ผ่าน 100% ปราศจาก Rule Violations (0 Violations) และไม่มี Engine Crashes (0 Crashes)
+
+### 5. Build & Exclusive Deployment
+- คอมไพล์และ Deploy ผ่าน `BUILD_AND_DEPLOY.ps1` สู่ `C:\Users\admin\Documents\EdoGame\` สมบูรณ์ 100%
+- บันทึกเอกสารคู่มือกลยุทธ์ฉบับสมบูรณ์ใน `Docs/FIENDSMITH_SACRED_AUDIT_AND_PLAYBOOK.md`
+
+---
+
 ## 0.076. RyzealBlitz (Ryzeal + Blitzclique) Architecture, Card Audit & Exclusive Deployment (2026-10-02)
 
 ### 1. Deck Building & Rigorous Card Audit

@@ -125,6 +125,19 @@ namespace WindBot.Game.AI
             63746411,  // Number 106: Giant Hand (Quick monster negate)
             27548199,  // Borreload Savage Dragon (Omni-negate)
             9940036,   // Mereologic Aggregator (GY send negation)
+            70636044,  // Varudras, the Final Bringer of the End Times (Omni-negate & pop)
+            79559912,  // D/D/D Wave High King Caesar (Special summon negate x2)
+            7894706,   // The Chaotic Phantasmal Sacred Beasts (Monster negate x3 + LP gain)
+            82135803,  // Fiendsmith's Desirae (Face-up cards negate)
+            12067160,  // Gorgon of Zilofthonia (Activated effect negation)
+            // Orcust Engine & WCQ Negators
+            93854893,  // Dingirsu, the Orcust of the Evening Star (Send to GY / Board Protection)
+            703897,    // Orcust Crescendo (Counter Trap Omni-Negate & Banish)
+            76145142,  // Longirsu, the Orcust Orchestrator (Linked monster send to GY)
+            74820316,  // Enlilgirsu, the Orcust Mekk-Knight (Take control / Field Send)
+            27918365,  // World Legacy - "World Crown" (Extra Deck summon tribute negate)
+            40366667,  // Dominus Impulse (Special Summon Negate & Destroy)
+            6325660,   // Dominus Spark (Quick Pop on effect activation)
         };
 
         // ═══════════════════════════════════════════════════════════════
@@ -204,6 +217,26 @@ namespace WindBot.Game.AI
             22912101,  // Surge Blitzclique (Pop & Summon)
             64049762,  // Blitzclique - Breakaway (Trap placement / pop)
             433377,    // Blitzclique - Steppleader (Self-destruct summoner)
+            // Fiendsmith Engine
+            60764609,  // Fiendsmith Engraver (Search / GY revive)
+            98567237,  // Fiendsmith's Tract (Search / Fusion)
+            28803166,  // Lacrima the Crimson Tears (Foolish Fiendsmith)
+            // Sacred Beasts Engine
+            59138498,  // Martyr of the Sacred Beasts (Place Field/Trap + 2 SS)
+            38776201,  // Sacred Beasts Released (Add 3 SB monsters)
+            1259915,   // Sacred Beasts Thunderclap (Place 2 + Fallen Paradise)
+            65861210,  // Fallen Paradise of the Sacred Beasts (SS SB + Draw 2)
+            50147815,  // Sacred Beasts Combined Assault (SS + Negate & Pop)
+            // Orcust Engine Chokepoints
+            69811710,  // Girsu, the Orcust Mekk-Knight (Foolish / Token starter)
+            57835716,  // Orcust Harp Horror (GY Special Summon Orcust from Deck)
+            21441617,  // Orcust Cymbal Skeleton (GY Special Summon Orcust from GY)
+            4055337,   // Orcust Knightmare (GY Foolish DARK Machine)
+            93920420,  // World Legacy - "World Wand" (GY Special Summon banished Orcust)
+            30741503,  // Galatea, the Orcust Automaton (Shuffle banished -> Set Orcust S/T)
+            48835607,  // Galatea-i, the Orcust Automaton (Link-1 Babel searcher / GY Revive)
+            90351981,  // Orcustrated Babel (Field Spell Quick Effect enabler)
+            26845680,  // Orcustrated Return (Draw 2)
         };
 
         // ═══════════════════════════════════════════════════════════════
