@@ -52,19 +52,19 @@ namespace dashbot
 
         public static bool IsBotVsBotActive { get; set; } = false;
 
-        // Clean WinForm Light Styling
+        // Classic Windows XP Styling with subtle translucency
         public string CardBackground
         {
             get
             {
                 if (IsBotVsBotActive)
                 {
-                    if (IsBot1Selected && IsBot2Selected) return "#F5F3FF";
-                    if (IsBot1Selected) return "#F0F9FF";
-                    if (IsBot2Selected) return "#ECFDF5";
-                    return "#FFFFFF";
+                    if (IsBot1Selected && IsBot2Selected) return "#EDE8E0F8";
+                    if (IsBot1Selected) return "#EDDCEBFC";
+                    if (IsBot2Selected) return "#EDDCF5E3";
+                    return "#F5FFFFFF";
                 }
-                return IsBot1Selected ? "#F0F9FF" : "#FFFFFF";
+                return IsBot1Selected ? "#EDDCEBFC" : "#F5FFFFFF";
             }
         }
 
@@ -74,18 +74,18 @@ namespace dashbot
             {
                 if (IsBotVsBotActive)
                 {
-                    if (IsBot1Selected && IsBot2Selected) return "#7C3AED";
-                    if (IsBot1Selected) return "#0284C7";
-                    if (IsBot2Selected) return "#059669";
-                    return "#CBD5E1";
+                    if (IsBot1Selected && IsBot2Selected) return "#6A1B9A";
+                    if (IsBot1Selected) return "#0054E3";
+                    if (IsBot2Selected) return "#008837";
+                    return "#7F9DB9";
                 }
-                return IsBot1Selected ? "#0284C7" : "#CBD5E1";
+                return IsBot1Selected ? "#0054E3" : "#7F9DB9";
             }
         }
 
-        public string BorderThicknessValue => IsBotVsBotActive ? ((IsBot1Selected || IsBot2Selected) ? "1.5" : "1") : (IsBot1Selected ? "1.5" : "1");
+        public string BorderThicknessValue => IsBotVsBotActive ? ((IsBot1Selected || IsBot2Selected) ? "2" : "1") : (IsBot1Selected ? "2" : "1");
 
-        public string TextColor => "#111111";
+        public string TextColor => "#000000";
 
         public Visibility IndicatorVisibility
         {
@@ -103,12 +103,12 @@ namespace dashbot
             {
                 if (IsBotVsBotActive)
                 {
-                    if (IsBot1Selected && IsBot2Selected) return "#7C3AED";
-                    if (IsBot1Selected) return "#0284C7";
-                    if (IsBot2Selected) return "#059669";
-                    return "#666666";
+                    if (IsBot1Selected && IsBot2Selected) return "#6A1B9A";
+                    if (IsBot1Selected) return "#0054E3";
+                    if (IsBot2Selected) return "#008837";
+                    return "#555555";
                 }
-                return "#0284C7";
+                return "#0054E3";
             }
         }
 
@@ -366,21 +366,21 @@ namespace dashbot
             {
                 category = "GOAT";
                 tagText = "GOAT";
-                tagBg = "#047857"; // Emerald Green
+                tagBg = "#007744"; // Forest Green
                 if (cleanName.StartsWith("GOAT_")) cleanName = cleanName.Substring(5);
             }
             else if (SpecialArchetypes.Contains(cleanName) || originalName.StartsWith("Special_"))
             {
                 category = "Special";
                 tagText = "Special";
-                tagBg = "#6D28D9"; // Purple
+                tagBg = "#5B21B6"; // Deep Violet
                 if (cleanName.StartsWith("Special_")) cleanName = cleanName.Substring(8);
             }
             else if (originalName.StartsWith("2026_") || originalName.StartsWith("Expert_2026_") || originalName.StartsWith("Neural_2026_") || ModernArchetypes.Contains(cleanName))
             {
                 category = "Modern";
                 tagText = "Modern";
-                tagBg = "#D97706"; // Amber / Gold
+                tagBg = "#C86600"; // Amber/Bronze
                 if (cleanName.StartsWith("Expert_2026_")) cleanName = cleanName.Substring(12);
                 else if (cleanName.StartsWith("Neural_2026_")) cleanName = cleanName.Substring(12);
                 else if (cleanName.StartsWith("2026_")) cleanName = cleanName.Substring(5);
@@ -389,21 +389,21 @@ namespace dashbot
             {
                 category = "Anime";
                 tagText = "Anime";
-                tagBg = "#BE185D"; // Deep Pink / Rose
+                tagBg = "#A01850"; // Rose
                 cleanName = cleanName.Substring(6);
             }
             else if (originalName.StartsWith("AI_"))
             {
                 category = "Legacy";
                 tagText = "Legacy";
-                tagBg = "#1D4ED8"; // Royal Blue
+                tagBg = "#0055B0"; // Royal Blue
                 cleanName = cleanName.Substring(3);
             }
             else
             {
                 category = "Special";
                 tagText = "Special";
-                tagBg = "#6D28D9"; // Purple
+                tagBg = "#5B21B6"; // Deep Violet
             }
 
             cleanName = CleanDeckDisplayName(cleanName);
@@ -550,42 +550,42 @@ namespace dashbot
 
             if (isBotVsBot && _isAssigningBot2)
             {
-                CardBoxBot1.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFFFFF"));
-                CardBoxBot1.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E2E8F0"));
+                CardBoxBot1.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F5FFFFFF"));
+                CardBoxBot1.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#7F9DB9"));
                 CardBoxBot1.BorderThickness = new Thickness(1);
                 if (TxtIndicatorBot1 != null)
                 {
                     TxtIndicatorBot1.Text = "CLICK TO SELECT";
-                    TxtIndicatorBot1.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#888888"));
+                    TxtIndicatorBot1.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#777777"));
                 }
 
-                CardBoxBot2.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#ECFDF5"));
-                CardBoxBot2.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#059669"));
-                CardBoxBot2.BorderThickness = new Thickness(1.5);
+                CardBoxBot2.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EDDCF5E3"));
+                CardBoxBot2.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#008837"));
+                CardBoxBot2.BorderThickness = new Thickness(2);
                 if (TxtIndicatorBot2 != null)
                 {
                     TxtIndicatorBot2.Text = "● ACTIVE";
-                    TxtIndicatorBot2.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#059669"));
+                    TxtIndicatorBot2.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#008837"));
                 }
             }
             else
             {
-                CardBoxBot1.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EFF6FF"));
-                CardBoxBot1.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0284C7"));
-                CardBoxBot1.BorderThickness = new Thickness(1.5);
+                CardBoxBot1.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EDDCEBFC"));
+                CardBoxBot1.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0054E3"));
+                CardBoxBot1.BorderThickness = new Thickness(2);
                 if (TxtIndicatorBot1 != null)
                 {
                     TxtIndicatorBot1.Text = "● ACTIVE";
-                    TxtIndicatorBot1.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0284C7"));
+                    TxtIndicatorBot1.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0054E3"));
                 }
 
-                CardBoxBot2.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFFFFF"));
-                CardBoxBot2.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E2E8F0"));
+                CardBoxBot2.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F5FFFFFF"));
+                CardBoxBot2.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#7F9DB9"));
                 CardBoxBot2.BorderThickness = new Thickness(1);
                 if (TxtIndicatorBot2 != null)
                 {
                     TxtIndicatorBot2.Text = "CLICK TO SELECT";
-                    TxtIndicatorBot2.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#888888"));
+                    TxtIndicatorBot2.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#777777"));
                 }
             }
         }
@@ -742,22 +742,43 @@ namespace dashbot
         private void BtnToggleConsole_Click(object sender, RoutedEventArgs e)
         {
             _isConsoleCollapsed = !_isConsoleCollapsed;
-            if (_isConsoleCollapsed)
+            if (TxtConsole != null)
             {
-                TxtConsole.Visibility = Visibility.Collapsed;
-                TxtConsoleFooter.Visibility = Visibility.Collapsed;
-                RowConsole.Height = GridLength.Auto;
-                RowConsoleBody.Height = GridLength.Auto;
-                BtnToggleConsole.Content = "กาง Console ▼";
+                TxtConsole.Visibility = _isConsoleCollapsed ? Visibility.Collapsed : Visibility.Visible;
             }
-            else
+        }
+
+        private void BtnOpenConsoleCmd_Click(object sender, RoutedEventArgs e)
+        {
+            try
             {
-                TxtConsole.Visibility = Visibility.Visible;
-                TxtConsoleFooter.Visibility = Visibility.Visible;
-                RowConsole.Height = new GridLength(1, GridUnitType.Star);
-                RowConsoleBody.Height = new GridLength(1, GridUnitType.Star);
-                BtnToggleConsole.Content = "หุบ Console ▲";
-                TxtConsole.ScrollToEnd();
+                string botDir = !string.IsNullOrEmpty(_windbotDllPath) && File.Exists(_windbotDllPath)
+                    ? Path.GetDirectoryName(_windbotDllPath)!
+                    : Path.Combine(AppContext.BaseDirectory, "WindBot");
+
+                if (!Directory.Exists(botDir))
+                {
+                    botDir = AppContext.BaseDirectory;
+                }
+
+                string startCmd = $"title WindBot Command Console && cd /d \"{botDir}\" && echo =================================================== && echo   WindBot Rule-Based Bot Engine Console && echo   Working Directory: {botDir} && echo   To run a bot manually: dotnet WindBot.dll Name=\"Bot\" Deck=\"AI_BlueEyes\" && echo =================================================== && echo.";
+
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/k \"{startCmd}\"",
+                    WorkingDirectory = botDir,
+                    UseShellExecute = true
+                });
+
+                if (TxtConsoleStatus != null)
+                {
+                    TxtConsoleStatus.Text = "CMD Console opened.";
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Cannot open CMD console: {ex.Message}", "Console Error", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
@@ -844,7 +865,7 @@ namespace dashbot
 
             bool isBotVsBot = (RbModeDual?.IsChecked == true);
             bool isDevMode = (ChkDevMode?.IsChecked == true);
-            bool isExternalCmd = (ChkExternalCmd?.IsChecked == true);
+            bool isExternalCmd = true; // Bot client always launches in CMD window
 
             if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(portStr))
             {
@@ -870,12 +891,19 @@ namespace dashbot
             {
                 LogToConsole($"Spawning WindBot: {bot1DisplayName} [{bot1FileName}]");
             }
-            LogToConsole($"Logs: {(isDevMode ? "เปิดบันทึกไฟล์ (Dev Mode)" : "ปิดการบันทึกไฟล์ (Clean Mode)")} | Console: {(isExternalCmd ? "หน้าต่าง CMD แยก" : "ฝังใน Launcher")}");
+            LogToConsole($"Logs: {(isDevMode ? "เปิดบันทึกไฟล์ (Dev Mode)" : "ปิดการบันทึกไฟล์ (Clean Mode)")} | Console: หน้าต่าง CMD");
             LogToConsole($"Connecting to {host}:{port}...");
             LogToConsole($"---------------------------------------------------\n");
 
             BtnConnectAi.IsEnabled = false;
-            TxtConsoleStatus.Text = isExternalCmd ? "Running WindBot in CMD..." : "Running WindBot client...";
+            if (TxtConsoleStatus != null)
+            {
+                TxtConsoleStatus.Text = "Running in CMD...";
+            }
+            if (StatusDot != null)
+            {
+                StatusDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0284C7"));
+            }
 
             await Task.Run(() =>
             {
@@ -972,7 +1000,14 @@ namespace dashbot
             });
 
             BtnConnectAi.IsEnabled = true;
-            TxtConsoleStatus.Text = isDevMode ? "Ready (Dev Mode)." : "Ready.";
+            if (TxtConsoleStatus != null)
+            {
+                TxtConsoleStatus.Text = isDevMode ? "Ready (Dev Mode)." : "Ready.";
+            }
+            if (StatusDot != null)
+            {
+                StatusDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981"));
+            }
         }
     }
 }

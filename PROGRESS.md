@@ -1,5 +1,77 @@
 # Progress Log: Central Core Architecture & Universal Heuristics Overhaul
 
+## 0.074. DashBot Windows XP Classic Theme & Centered Deck Library Columns (2026-10-02)
+
+### 1. Deck Library Column Centering ("ปรับปรุงให้แสดงคอลั่มของรายชื่อเด็คให้เข้าตรงกลาง")
+- **Centered Columns in Scroll Grid**:
+  - กำหนด `HorizontalAlignment="Center"` บน `DeckItemsHost` และ `WrapPanel` ภายใน `Deck Library ScrollViewer`
+  - ปรับขนาด `ItemWidth="285"` และ `ItemHeight="42"` ให้พอดีกับการจัดเรียงคอลัมน์สมมาตร:
+    - ในขนาดหน้าต่างปกติ (1180px) คอลัมน์ 2 แถวจะจัดกึ่งกลางพอดีโดยมีช่องว่างซ้าย-ขวาเท่ากัน 100%
+    - ในขนาดหน้าต่างขยายใหญ่ / เต็มจอ (1920x1080) คอลัมน์ทั้ง 3 หรือ 4 แถวจะไม่ชิดติดขอบซ้ายอีกต่อไป แต่จะวางกึ่งกลางพื้นที่อย่างสมดุล ขจัดพื้นที่ว่างโล่งทางขวาที่เคยเกิดขึ้น
+  - จัดการระยะ Margin ของการ์ดเด็คให้กระชับ (`Margin="2.5"`) และขอบการ์ดมนคลาสสิก (`CornerRadius="2"`)
+
+### 2. Windows XP Classic / Luna Redesign with Z-Layer Translucent Background
+- **Authentic Windows XP Palette & Z-Layer Background Integration ("bg ทำเป็น Z layer ให้เห็นจางๆ จากทุกที่")**:
+  - ติดตั้งภาพพื้นหลัง `bg.jpg` (Kozmo Dark Planet Space Art) ที่ **Z-Layer 0** (`Opacity="0.82"`) เป็นฉากหลังหลักของโปรแกรม
+  - ปรับพาเนลและคอนเทนเนอร์ทั้งหมด (Header Bar, Deck Explorer Panel, Connection Card, Footer Bar, Matchup Box, Summary Banner) ให้โปร่งแสงอ่อนๆ (`#EEFFFFFF` และ `#EBECE9D8` ค่า Alpha ~92-93%)
+  - ผลลัพธ์: ผู้ใช้สามารถมองเห็นภาพพื้นหลัง ดวงดาว และรายละเอียดศิลปะได้อย่างนุ่มนวลจางๆ ทะลุผ่านทุกพื้นที่ของโปรแกรม โดยที่ตัวหนังสือสีดำเข้ม (`#000000`, Tahoma Bold) ยังคงคอนทราสต์สูง คมชัด และอ่านง่ายระดับสูงสุด
+  - **Window Title / Header Bar**: ออกแบบแถบหัวเรื่องด้วยการไล่เฉดสีฟ้าอันเป็นเอกลักษณ์ของ Windows XP Luna Blue (`LinearGradientBrush` `#EB0058EE` -> `#EB2B78E4` -> `#EB0054E3` -> `#EB003C74`) พร้อมกรอบ `#002D62`
+  - **Panels & Containers**: พื้นที่ Deck Explorer และ Connection Settings ใช้สีขาวขอบเส้น `#7F9DB9` (สีขอบกรอบหน้าต่าง XP มาตรฐาน) คมชัดระดับพิกเซล
+- **Crisp High-Contrast Typography ("เน้นฟ้อนเข้มๆอ่านง่าย")**:
+  - เปลี่ยนฟอนต์หลักทั้งโปรแกรมเป็น **`Tahoma, Segoe UI, sans-serif`** (ฟอนต์ระบบประจำ Windows XP)
+  - ปรับข้อความสำคัญทั้งหมดเป็น `FontWeight="Bold"` สีดำเข้ม `#000000` คมชัดสูง อ่านง่ายในทุกระยะสายตา
+- **Windows XP Control Styles**:
+  - **Luna Buttons (`ClassicXpBtn`)**: ปุ่มไล่เฉดขาว-เทาอ่อนคลาสสิก (`#FFFFFF` -> `#ECE9D8` -> `#DCD7C5`) ขอบน้ำเงินเข้ม `#003C74` เมื่อวางเมาส์จะเปล่งประกายสีส้มทองอ่อนตามแบบฉบับ XP (`#FFE8A6` / `#FFD870`)
+  - **Luna Primary Action Button (`ClassicXpPrimaryBtn`)**: ปุ่มเริ่มเกมและเชื่อมต่อบอท เด่นชัดด้วยสีฟ้า Luna Blue (`#3385FF` -> `#0054E3` -> `#0043C0`) ตัวอักษรสีขาวหนา
+  - **XP Sunken TextBox**: ขอบสี `#7F9DB9` หนา 1px พื้นหลังสีขาว ตัวหนังสือสีดำเข้ม
+  - **Category Tabs & Bot Selector Pills**: สไตล์แท็บปุ่มกดยุค XP กดแล้วเปลี่ยนเป็นสีน้ำเงิน `#0054E3` พร้อมตัวหนังสือสีขาว
+  - **Matchup & Deck Cards**: ปรับสีการเลือกไฮไลต์เป็นโทน XP: P1 เลือกแล้วเป็นพื้นสีฟ้าอ่อน `#DCEBFC` ขอบน้ำเงิน `#0054E3`, P2 เลือกแล้วเป็นสีเขียวอ่อน `#DCF5E3` ขอบเขียว `#008837`
+  - **Category Badges**: สีสดชัดเจนสไตล์ XP (Modern: น้ำตาลทอง `#C86600`, Anime: กุหลาบ `#A01850`, Legacy: น้ำเงิน `#0055B0`, GOAT: เขียวป่า `#007744`, Special: ม่วงเข้ม `#5B21B6`)
+
+### 3. Layout & Structure Preservation ("เลเยอร์ทุกอย่าง ทุกปุ่ม ยังอยู่ที่เดิม")
+- คงตำแหน่ง เลเยอร์ ลำดับ และการทำงานของทุกปุ่ม 100%:
+  - แถบ Header: Title, EDOPro Suite badge, Subtitle credits, WindBot Engine badge, Live Status, ปุ่มเปิด CMD, ปุ่ม Open Logs, เช็คบ็อกซ์บันทึก Logs, Real-time Clock
+  - คอลัมน์ซ้าย: หัวข้อ Deck Library, ตัวนับจำนวนเด็ค, กล่องค้นหา, หมวดหมู่ทั้ง 6 หมวด, ตัวเลือกเป้าหมาย P1/P2, รายชื่อการ์ดเด็คทั้งหมด, สรุปบอทที่เลือกด้านล่าง
+  - คอลัมน์ขวา: IP/Port input, โหมด Single/Dual, กล่อง Matchup P1 vs P2, ปุ่ม Start & Connect Bot to Room
+  - แถบ Footer: เครดิตแพลตฟอร์ม, ผู้พัฒนา, และตัวบอกสถานะ .NET 10
+
+### 4. Build & Deployment Verification
+- คอมไพล์และทดสอบผ่าน `dotnet build`: 0 Errors
+- รันสคริปต์ `BUILD_AND_DEPLOY.ps1`: ผ่าน 100%
+- Deploy ไฟล์ `DashBot.exe` และไบนารีทั้งหมดไปยัง `C:\Users\admin\Documents\EdoGame\` เรียบร้อยสมบูรณ์
+
+---
+
+## 0.073. DashBot Frontend Redesign: Background Art Visibility, CMD Console & Header Control Bar (2026-10-02)
+
+### 1. UI & Visual Aesthetics Overhaul
+- **High-Clarity Cosmic Background (Z-Layer)**:
+  - ปรับค่าความโปร่งแสงของภาพพื้นหลัง `bg.jpg` (ยาน Kozmo Dark Planet ท่ามกลางอวกาศและดวงดาว) จากเดิมที่จางมาก (`Opacity="0.22"`) เพิ่มเป็น `Opacity="0.90"` พร้อมปรับแต่ง Ambient Vignette Gradient บริเวณขอบ เพื่อให้ภาพศิลปะ Kozmo Dark Planet ส่องสว่างคมชัดทั่วทั้งโปรแกรม
+  - ปรับสไตล์ของ Panel ทั้งหมด (Header, Deck Explorer, Connection Card, Footer) เป็นแบบ **Glassmorphic Translucent (`#EEF8FAFC`)** พร้อมขอบสีและเงาชัดเจน ทำให้พื้นหลังอวกาศมองเห็นทะลุผ่านได้อย่างสวยงามกลมกลืน โดยที่ปุ่ม ข้อความ และ Badge ทั้งหมดยังคงความคมชัด อ่านง่าย ไม่ถูกบดบังแม้แต่น้อย
+
+### 2. Header Control Group Integration ("ให้อยู่ลาเบลเดียวกัน")
+- **Unified Toolbar beside WindBot Engine**:
+  - ย้ายปุ่มควบคุมคอนโซลและล็อกทั้งหมดจากเดิมที่อยู่ด้านล่างขวาขึ้นไปรวมไว้ในแถบเครื่องมือเดียวกันติดกับป้าย `WindBot Engine`:
+    1. **WindBot Engine Badge**: ป้ายสถานะ Dark Charcoal ทันสมัย
+    2. **Status Indicator Badge**: จุดสีสถานะพร้อมข้อความแสดงผลสด (เขียว `Ready` / น้ำเงิน `Running in CMD...`)
+    3. **ปุ่ม "เปิด Console (CMD)"**: คลิกเพื่อเปิด Command Prompt แยก ณ ไดเรกทอรีทำงานของ WindBot ทันที พร้อมแสดงคำสั่งคู่มือการรันบอท
+    4. **ปุ่ม "Open Logs"**: คลิกเพื่อเปิดโฟลเดอร์ Logs ของ WindBot ใน Windows Explorer ได้ทันที
+    5. **ตัวเลือก "บันทึก Logs" (Dev Mode Checkbox)**: สลับระหว่างการบันทึกไฟล์ Logs ละเอียด หรือ Clean Mode แบบประหยัดดิสก์
+    6. **Digital Clock**: นาฬิกาบอกเวลาแบบเรียลไทม์
+
+### 3. Transparent Console Area & Native CMD Bot Execution
+- **Unobscured Background Viewport**:
+  - ยกเลิกกล่องข้อความ Console Output Logs ขนาดใหญ่เดิมที่เคยบังพื้นที่ครึ่งขวาล่าง เปลี่ยนเป็นพื้นที่ว่างโปร่งใส 100% เพื่อโชว์ภาพยาน Kozmo Dark Planet, ปากกระบอกปืนแสงสีเขียวเรืองแสง และกลุ่มดาวได้อย่างเต็มตา
+  - คงตัวแปร `TxtConsole` ในโหมด `Visibility="Collapsed"` เพื่อรองรับการทำงานของฟังก์ชันบันทึกเหตุการณ์ในเบื้องหลังโดยไม่ก่อให้เกิด NullReference
+- **Native CMD Execution**:
+  - กำหนดให้การกดปุ่ม "Start & Connect Bot to Room" รัน WindBot ในหน้าต่าง CMD แยกเสมอ (`ShowConsoleWindow = true`) เพื่อให้ผู้เล่นและนักพัฒนาสามารถดูผลการดวล, การเปิดใช้เอฟเฟกต์การ์ด, เชน, และดีบักแบบสดได้ผ่าน Command Prompt โดยตรง
+
+### 4. Build & Deployment
+- คอมไพล์โปรเจกต์ `dashbot` และ `BUILD_AND_DEPLOY.ps1` สำเร็จ 100% (0 Errors)
+- Deploy ไฟล์ `DashBot.exe` ไปยัง `C:\Users\admin\Documents\EdoGame\DashBot.exe`
+
+---
+
 ## 0.072. Memento (Mementotlan) Deck Implementation, Core Registration & Deployment (2026-10-02)
 
 ### 1. Deck Building & Verification

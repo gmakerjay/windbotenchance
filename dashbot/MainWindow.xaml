@@ -6,171 +6,266 @@
         xmlns:local="clr-namespace:dashbot"
         mc:Ignorable="d"
         Title="YGO Bot Launcher" Height="760" Width="1180" MinHeight="680" MinWidth="1020"
-        Background="#080D1A" TextElement.Foreground="#111111"
+        Background="#ECE9D8" TextElement.Foreground="#000000"
         WindowStartupLocation="CenterScreen"
-        FontFamily="Segoe UI" FontSize="12"
+        FontFamily="Tahoma, Segoe UI, sans-serif" FontSize="12"
         Icon="dashbot.ico">
 
     <Window.Resources>
-        <!-- Classic Elegant TextBox (Native WPF Template without clipping) -->
+        <!-- Classic Windows XP Sunken TextBox -->
         <Style TargetType="TextBox">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="Foreground" Value="#111111"/>
-            <Setter Property="BorderBrush" Value="#CCCCCC"/>
-            <Setter Property="BorderThickness" Value="1.5"/>
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="Foreground" Value="#000000"/>
+            <Setter Property="BorderBrush" Value="#7F9DB9"/>
+            <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="6,3"/>
             <Setter Property="FontSize" Value="12"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
 
-        <!-- Elegant Charcoal Dark Button (WinForm Classic) -->
-        <Style x:Key="ClassicCharcoalBtn" TargetType="Button">
-            <Setter Property="Background" Value="#222222"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="#222222"/>
+        <!-- Classic Windows XP Luna Button -->
+        <Style x:Key="ClassicXpBtn" TargetType="Button">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#FFFFFF" Offset="0.0"/>
+                        <GradientStop Color="#F3F0E6" Offset="0.4"/>
+                        <GradientStop Color="#ECE9D8" Offset="0.6"/>
+                        <GradientStop Color="#DCD7C5" Offset="1.0"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Foreground" Value="#000000"/>
+            <Setter Property="BorderBrush" Value="#003C74"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="14,6"/>
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="FontSize" Value="11.5"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" 
+                        <Border x:Name="btnBorder"
+                                Background="{TemplateBinding Background}" 
                                 BorderBrush="{TemplateBinding BorderBrush}" 
                                 BorderThickness="{TemplateBinding BorderThickness}" 
-                                CornerRadius="4">
+                                CornerRadius="3">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
                         </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="btnBorder" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#FFFBF0" Offset="0.0"/>
+                                            <GradientStop Color="#FFE8A6" Offset="0.5"/>
+                                            <GradientStop Color="#FFD870" Offset="1.0"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="btnBorder" Property="BorderBrush" Value="#E59700"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="btnBorder" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#C4C0AE" Offset="0.0"/>
+                                            <GradientStop Color="#DCD7C5" Offset="0.5"/>
+                                            <GradientStop Color="#ECE9D8" Offset="1.0"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="btnBorder" Property="BorderBrush" Value="#002D62"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="btnBorder" Property="Background" Value="#ECE9D8"/>
+                                <Setter TargetName="btnBorder" Property="BorderBrush" Value="#C0C0C0"/>
+                                <Setter Property="Foreground" Value="#888888"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#444444"/>
-                    <Setter Property="BorderBrush" Value="#444444"/>
-                </Trigger>
-                <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#111111"/>
-                </Trigger>
-                <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Background" Value="#CCCCCC"/>
-                    <Setter Property="BorderBrush" Value="#CCCCCC"/>
-                    <Setter Property="Foreground" Value="#888888"/>
-                </Trigger>
-            </Style.Triggers>
         </Style>
 
-        <!-- Secondary White Button -->
-        <Style x:Key="SecondaryWhiteBtn" TargetType="Button">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="Foreground" Value="#222222"/>
-            <Setter Property="BorderBrush" Value="#CCCCCC"/>
-            <Setter Property="BorderThickness" Value="1.5"/>
-            <Setter Property="Padding" Value="12,4"/>
-            <Setter Property="FontSize" Value="11.5"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
+        <!-- Classic Windows XP Luna Action/Primary Button (Start Bot) -->
+        <Style x:Key="ClassicXpPrimaryBtn" TargetType="Button">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#3385FF" Offset="0.0"/>
+                        <GradientStop Color="#1E6EE8" Offset="0.4"/>
+                        <GradientStop Color="#0054E3" Offset="0.6"/>
+                        <GradientStop Color="#0043C0" Offset="1.0"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#002D62"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="14,6"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" 
+                        <Border x:Name="priBorder"
+                                Background="{TemplateBinding Background}" 
                                 BorderBrush="{TemplateBinding BorderBrush}" 
                                 BorderThickness="{TemplateBinding BorderThickness}" 
-                                CornerRadius="4">
+                                CornerRadius="3">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
                         </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="priBorder" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#5CA0FF" Offset="0.0"/>
+                                            <GradientStop Color="#3585F8" Offset="0.4"/>
+                                            <GradientStop Color="#0D64F0" Offset="0.7"/>
+                                            <GradientStop Color="#0048C8" Offset="1.0"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="priBorder" Property="BorderBrush" Value="#001F4D"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="priBorder" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#003799" Offset="0.0"/>
+                                            <GradientStop Color="#0048C8" Offset="0.6"/>
+                                            <GradientStop Color="#1E6EE8" Offset="1.0"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="priBorder" Property="Background" Value="#D4D0C8"/>
+                                <Setter TargetName="priBorder" Property="BorderBrush" Value="#999999"/>
+                                <Setter Property="Foreground" Value="#777777"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#F1F5F9"/>
-                    <Setter Property="BorderBrush" Value="#999999"/>
-                </Trigger>
-                <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#E2E8F0"/>
-                </Trigger>
-            </Style.Triggers>
         </Style>
 
-        <!-- Category Filter Pill RadioButton (Elegant White/Charcoal) -->
+        <!-- Category Filter XP Classic Push Button / Tab -->
         <Style x:Key="CategoryFilterPill" TargetType="RadioButton">
-            <Setter Property="Foreground" Value="#444444"/>
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="#CCCCCC"/>
-            <Setter Property="BorderThickness" Value="1.5"/>
-            <Setter Property="Padding" Value="12,5"/>
+            <Setter Property="Foreground" Value="#000000"/>
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#FFFFFF" Offset="0.0"/>
+                        <GradientStop Color="#ECE9D8" Offset="1.0"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="BorderBrush" Value="#7F9DB9"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,4"/>
             <Setter Property="FontSize" Value="11.5"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0,0,5,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="rbBorder"
+                                Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="3">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="rbBorder" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#FFFBF0" Offset="0.0"/>
+                                            <GradientStop Color="#FFE8A6" Offset="1.0"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="rbBorder" Property="BorderBrush" Value="#E59700"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="rbBorder" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#2B78E4" Offset="0.0"/>
+                                            <GradientStop Color="#0054E3" Offset="1.0"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="rbBorder" Property="BorderBrush" Value="#002D62"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Bot Assignment Toggle RadioButton -->
+        <Style x:Key="BotSelectorPill" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="#000000"/>
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#7F9DB9"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Margin" Value="0,0,6,0"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="RadioButton">
-                        <Border Background="{TemplateBinding Background}" 
+                        <Border x:Name="pillBorder"
+                                Background="{TemplateBinding Background}" 
                                 BorderBrush="{TemplateBinding BorderBrush}" 
                                 BorderThickness="{TemplateBinding BorderThickness}" 
-                                CornerRadius="4">
+                                CornerRadius="3">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
                         </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="pillBorder" Property="BorderBrush" Value="#0054E3"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="pillBorder" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#2B78E4" Offset="0.0"/>
+                                            <GradientStop Color="#0054E3" Offset="1.0"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="pillBorder" Property="BorderBrush" Value="#002D62"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#F8FAFC"/>
-                    <Setter Property="BorderBrush" Value="#999999"/>
-                    <Setter Property="Foreground" Value="#111111"/>
-                </Trigger>
-                <Trigger Property="IsChecked" Value="True">
-                    <Setter Property="Background" Value="#222222"/>
-                    <Setter Property="BorderBrush" Value="#222222"/>
-                    <Setter Property="Foreground" Value="White"/>
-                    <Setter Property="FontWeight" Value="Bold"/>
-                </Trigger>
-            </Style.Triggers>
         </Style>
 
-        <!-- Bot Assignment Toggle RadioButton -->
-        <Style x:Key="BotSelectorPill" TargetType="RadioButton">
-            <Setter Property="Foreground" Value="#555555"/>
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="#CCCCCC"/>
-            <Setter Property="BorderThickness" Value="1.5"/>
-            <Setter Property="Padding" Value="12,5"/>
+        <!-- Classic CheckBox -->
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="#000000"/>
             <Setter Property="FontSize" Value="11.5"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Margin" Value="0,0,8,0"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="RadioButton">
-                        <Border Background="{TemplateBinding Background}" 
-                                BorderBrush="{TemplateBinding BorderBrush}" 
-                                BorderThickness="{TemplateBinding BorderThickness}" 
-                                CornerRadius="4">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Foreground" Value="#111111"/>
-                </Trigger>
-                <Trigger Property="IsChecked" Value="True">
-                    <Setter Property="Background" Value="#F1F5F9"/>
-                    <Setter Property="BorderBrush" Value="#0284C7"/>
-                    <Setter Property="Foreground" Value="#0284C7"/>
-                </Trigger>
-            </Style.Triggers>
         </Style>
 
-        <!-- CheckBox -->
-        <Style TargetType="CheckBox">
-            <Setter Property="Foreground" Value="#111111"/>
+        <!-- Classic RadioButton -->
+        <Style TargetType="RadioButton">
+            <Setter Property="Foreground" Value="#000000"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -178,79 +273,99 @@
     </Window.Resources>
 
     <Grid>
-        <!-- Faded Cosmic Background Layer -->
-        <Image Source="bg.jpg" Stretch="UniformToFill" Opacity="0.22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        <!-- Background Artwork Layer (Z-Layer 0: Visible faintly through all panels) -->
+        <Image Source="bg.jpg" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.82"/>
 
-        <!-- Ambient Vignette Tint Overlay -->
-        <Border>
-            <Border.Background>
-                <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.85" RadiusY="0.85">
-                    <GradientStop Color="#00080D1A" Offset="0.0"/>
-                    <GradientStop Color="#40080D1A" Offset="0.75"/>
-                    <GradientStop Color="#85050812" Offset="1.0"/>
-                </RadialGradientBrush>
-            </Border.Background>
-        </Border>
+        <!-- Subtle ambient tint wash to harmonize with Windows XP dialog face -->
+        <Border Background="#15000000" IsHitTestVisible="False"/>
 
-        <!-- Main Workspace (Layered Above Background) -->
-        <Grid Margin="16">
+        <!-- Main Workspace (Z-Layer 1: Translucent Classic Windows XP Interface) -->
+        <Grid Margin="12">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- Header Bar (White Elegant Panel) -->
-            <Border Grid.Row="0" Background="#F8FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1.5" CornerRadius="6" Padding="16,12" Margin="0,0,0,14">
-                <Border.Effect>
-                    <DropShadowEffect BlurRadius="12" ShadowDepth="2" Direction="270" Color="#000000" Opacity="0.18"/>
-                </Border.Effect>
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+            <!-- Header Bar (Windows XP Luna Blue Title Banner - Translucent) -->
+            <Border Grid.Row="0" BorderBrush="#002D62" BorderThickness="1" CornerRadius="3" Padding="12,8" Margin="0,0,0,10">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#EB0058EE" Offset="0.0"/>
+                        <GradientStop Color="#EB2B78E4" Offset="0.2"/>
+                        <GradientStop Color="#EB0054E3" Offset="0.8"/>
+                        <GradientStop Color="#EB003C74" Offset="1.0"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-                <StackPanel VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="YGO Bot Launcher" FontSize="20" FontWeight="Bold" Foreground="#111111"/>
-                        <Border Background="#222222" CornerRadius="3" Padding="6,2" Margin="10,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="EDOPro Suite" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                    <StackPanel VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="YGO Bot Launcher" FontSize="18" FontWeight="Bold" Foreground="#FFFFFF"/>
+                            <Border Background="#002D62" CornerRadius="2" Padding="6,2" Margin="8,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="EDOPro Suite" FontSize="10" FontWeight="Bold" Foreground="#FFE082"/>
+                            </Border>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                            <TextBlock Text="Standalone client connecting WindBot to EDOPro room" FontSize="11" Foreground="#E0ECFF" FontWeight="SemiBold"/>
+                            <TextBlock Text=" | " FontSize="11" Foreground="#A0C4FF" Margin="6,0"/>
+                            <TextBlock Text="WindBot by IceYgo" FontSize="11" FontWeight="Bold" Foreground="#FFF176"/>
+                            <TextBlock Text=" | " FontSize="11" Foreground="#A0C4FF" Margin="6,0"/>
+                            <TextBlock Text="Custom Deck By Jaynesiz" FontSize="11" FontWeight="Bold" Foreground="#FFD54F"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Unified Engine & Console Toolbar Group (XP Classic ToolBar) -->
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal">
+                        <Border Background="#EBECE9D8" BorderBrush="#002D62" BorderThickness="1" CornerRadius="3" Padding="5,3">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <!-- WindBot Engine Badge -->
+                                <Border Background="#003C74" CornerRadius="2" Padding="8,4" Margin="0,0,6,0">
+                                    <TextBlock Text="WindBot Engine" FontSize="11" Foreground="#FFFFFF" FontWeight="Bold"/>
+                                </Border>
+
+                                <!-- Status Indicator Badge -->
+                                <Border Background="#F2FFFFFF" BorderBrush="#7F9DB9" BorderThickness="1" CornerRadius="2" Padding="7,3" Margin="0,0,6,0">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="#008000" Margin="0,0,5,0"/>
+                                        <TextBlock x:Name="TxtConsoleStatus" Text="Ready" FontSize="11" Foreground="#006600" FontWeight="Bold"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Button: เปิด Console (CMD) -->
+                                <Button x:Name="BtnOpenConsoleCmd" Content="เปิด Console (CMD)" Style="{StaticResource ClassicXpBtn}" Padding="9,3" Margin="0,0,5,0" Click="BtnOpenConsoleCmd_Click" ToolTip="เปิดหน้าต่าง Command Prompt (CMD) ในโฟลเดอร์ WindBot"/>
+
+                                <!-- Button: Open Logs -->
+                                <Button x:Name="BtnOpenLogs" Content="Open Logs" Style="{StaticResource ClassicXpBtn}" Padding="9,3" Margin="0,0,6,0" Click="BtnOpenLogs_Click" ToolTip="เปิดโฟลเดอร์ Logs ของ WindBot ใน File Explorer"/>
+
+                                <!-- CheckBox: บันทึก Logs -->
+                                <CheckBox x:Name="ChkDevMode" Content="บันทึก Logs" IsChecked="False" FontWeight="Bold" FontSize="11" Foreground="#000000" Margin="0,0,8,0" VerticalAlignment="Center" Cursor="Hand" Click="ChkDevMode_Click" ToolTip="เปิด: บันทึก Logs ละเอียดลงดิสก์ / ปิด: โหมด Clean Mode"/>
+
+                                <!-- Separator -->
+                                <Rectangle Width="1" Height="18" Fill="#999999" Margin="0,0,8,0"/>
+
+                                <!-- Real-time Clock -->
+                                <TextBlock x:Name="TxtTime" Text="00:00:00" FontSize="12.5" Foreground="#000000" FontFamily="Tahoma, Consolas" FontWeight="Bold" VerticalAlignment="Center" Margin="2,0,4,0"/>
+                            </StackPanel>
                         </Border>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                        <TextBlock Text="Standalone client connecting WindBot to EDOPro room" FontSize="11.5" Foreground="#666666"/>
-                        <TextBlock Text=" | " FontSize="11.5" Foreground="#CCCCCC" Margin="6,0"/>
-                        <TextBlock Text="WindBot by IceYgo" FontSize="11.5" FontWeight="SemiBold" Foreground="#0284C7"/>
-                        <TextBlock Text=" | " FontSize="11.5" Foreground="#CCCCCC" Margin="6,0"/>
-                        <TextBlock Text="Custom Deck By Jaynesiz" FontSize="11.5" FontWeight="SemiBold" Foreground="#D97706"/>
-                    </StackPanel>
-                </StackPanel>
-
-                <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal">
-                    <Border Background="#F4F6F9" BorderBrush="#CCCCCC" BorderThickness="1" CornerRadius="4" Padding="12,6" Margin="0,0,10,0">
-                        <TextBlock Text="WindBot Engine" FontSize="11.5" Foreground="#555555" FontWeight="SemiBold"/>
-                    </Border>
-                    <Border Background="#F4F6F9" BorderBrush="#CCCCCC" BorderThickness="1" CornerRadius="4" Padding="12,6">
-                        <TextBlock x:Name="TxtTime" Text="00:00:00" FontSize="13" Foreground="#111111" FontFamily="Consolas" FontWeight="Bold"/>
-                    </Border>
-                </StackPanel>
-            </Grid>
-        </Border>
+                </Grid>
+            </Border>
 
         <!-- Main Workspace (2 Columns) -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="1.4*"/>
-                <ColumnDefinition Width="14"/>
+                <ColumnDefinition Width="12"/>
                 <ColumnDefinition Width="1*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- LEFT COLUMN: Deck Explorer (White WinForm Container) -->
-            <Border Grid.Column="0" Background="#F8FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1.5" CornerRadius="6" Padding="14">
-                <Border.Effect>
-                    <DropShadowEffect BlurRadius="14" ShadowDepth="3" Direction="270" Color="#000000" Opacity="0.18"/>
-                </Border.Effect>
+            <!-- LEFT COLUMN: Deck Explorer (Classic XP Translucent Panel) -->
+            <Border Grid.Column="0" Background="#EEFFFFFF" BorderBrush="#7F9DB9" BorderThickness="1" CornerRadius="3" Padding="12">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -261,27 +376,27 @@
                     </Grid.RowDefinitions>
 
                     <!-- Top Bar: Title & Search -->
-                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                    <Grid Grid.Row="0" Margin="0,0,0,8">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="Deck Library" FontSize="15" FontWeight="Bold" Foreground="#111111" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="TxtDeckTotalCount" Text="(0)" FontSize="12" Foreground="#666666" FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Deck Library" FontSize="14" FontWeight="Bold" Foreground="#003399" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TxtDeckTotalCount" Text="(0)" FontSize="12" Foreground="#444444" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
 
                         <!-- Search Input -->
                         <Grid Grid.Column="1" HorizontalAlignment="Right" Width="260">
-                            <TextBox x:Name="TxtSearch" TextChanged="TxtSearch_TextChanged" Padding="8,3" Height="30" VerticalContentAlignment="Center"/>
+                            <TextBox x:Name="TxtSearch" TextChanged="TxtSearch_TextChanged" Padding="6,2" Height="28" VerticalContentAlignment="Center"/>
                             <TextBlock x:Name="TxtSearchPlaceholder" Text="Search deck name..." IsHitTestVisible="False"
-                                       Foreground="#888888" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                       Foreground="#777777" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/>
                         </Grid>
                     </Grid>
 
                     <!-- Category Filter Chips -->
-                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,0,0,10">
+                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,0,0,8">
                         <StackPanel Orientation="Horizontal">
                             <RadioButton x:Name="RbCatAll" Content="All Decks" Style="{StaticResource CategoryFilterPill}" IsChecked="True" Checked="RbCat_Checked"/>
                             <RadioButton x:Name="RbCatModern" Content="Modern" Style="{StaticResource CategoryFilterPill}" Checked="RbCat_Checked"/>
@@ -293,34 +408,34 @@
                     </ScrollViewer>
 
                     <!-- Active Target Bot Switcher -->
-                    <Border Grid.Row="2" x:Name="BotTargetSelectorBar" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1.5" CornerRadius="4" Padding="10,6" Margin="0,0,0,10">
+                    <Border Grid.Row="2" x:Name="BotTargetSelectorBar" Background="#EBECE9D8" BorderBrush="#7F9DB9" BorderThickness="1" CornerRadius="3" Padding="8,5" Margin="0,0,0,8">
                         <Grid>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="Deck Target:" Foreground="#555555" FontWeight="Bold" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <TextBlock Text="Deck Target:" Foreground="#000000" FontWeight="Bold" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                 <RadioButton x:Name="RbAssignBot1" Content="P1 (Bot)" Style="{StaticResource BotSelectorPill}" IsChecked="True" Checked="RbAssignBot_Checked"/>
                                 <RadioButton x:Name="RbAssignBot2" Content="P2 (Opponent)" Style="{StaticResource BotSelectorPill}" Visibility="Collapsed" Checked="RbAssignBot_Checked"/>
                             </StackPanel>
-                            <TextBlock x:Name="TxtDeckSelectHint" Text="Click deck to select bot" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#888888" FontSize="11"/>
+                            <TextBlock x:Name="TxtDeckSelectHint" Text="Click deck to select bot" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#555555" FontWeight="Bold" FontSize="11"/>
                         </Grid>
                     </Border>
 
-                    <!-- Deck Badges Scroll Grid (WrapPanel) -->
+                    <!-- Deck Badges Scroll Grid (Centered WrapPanel) -->
                     <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                        <ItemsControl x:Name="DeckItemsHost">
+                        <ItemsControl x:Name="DeckItemsHost" HorizontalAlignment="Center">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
-                                    <WrapPanel ItemWidth="290" ItemHeight="46"/>
+                                    <WrapPanel ItemWidth="285" ItemHeight="42" HorizontalAlignment="Center"/>
                                 </ItemsPanelTemplate>
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Margin="3" CornerRadius="4" Cursor="Hand"
+                                    <Border Margin="2.5" CornerRadius="2" Cursor="Hand"
                                             Background="{Binding CardBackground}"
                                             BorderBrush="{Binding BorderBrushColor}"
                                             BorderThickness="{Binding BorderThicknessValue}"
                                             MouseLeftButtonDown="DeckCard_Click"
                                             MouseRightButtonDown="DeckCard_RightClick">
-                                        <Grid Margin="10,0,8,0">
+                                        <Grid Margin="8,0,8,0">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="*"/>
@@ -329,21 +444,21 @@
 
                                             <!-- Selection indicator tag -->
                                             <Border Grid.Column="0" Visibility="{Binding IndicatorVisibility}"
-                                                    Background="{Binding IndicatorBackground}" CornerRadius="3"
-                                                    Padding="5,1" Margin="0,0,8,0" VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding SelectionIndicator}" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                                                    Background="{Binding IndicatorBackground}" CornerRadius="2"
+                                                    Padding="4,1" Margin="0,0,6,0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding SelectionIndicator}" FontSize="9.5" FontWeight="Bold" Foreground="White"/>
                                             </Border>
 
                                             <!-- Deck Name -->
                                             <TextBlock Grid.Column="1" Text="{Binding DisplayName}"
-                                                       Foreground="{Binding TextColor}" FontWeight="SemiBold"
-                                                       FontSize="12" TextTrimming="CharacterEllipsis"
+                                                       Foreground="{Binding TextColor}" FontWeight="Bold"
+                                                       FontSize="11.5" TextTrimming="CharacterEllipsis"
                                                        VerticalAlignment="Center"/>
 
                                             <!-- Category Badge Tag -->
                                             <Border Grid.Column="2" Background="{Binding CategoryTagBg}"
-                                                    CornerRadius="3" Padding="7,2" VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding CategoryTagText}" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                                                    CornerRadius="2" Padding="6,1.5" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding CategoryTagText}" FontSize="9" FontWeight="Bold" Foreground="White"/>
                                             </Border>
                                         </Grid>
                                     </Border>
@@ -353,7 +468,7 @@
                     </ScrollViewer>
 
                     <!-- Bottom Selected Summary Banner -->
-                    <Border Grid.Row="4" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1.5" CornerRadius="4" Padding="12,8" Margin="0,10,0,0">
+                    <Border Grid.Row="4" Background="#EBECE9D8" BorderBrush="#7F9DB9" BorderThickness="1" CornerRadius="3" Padding="10,6" Margin="0,8,0,0">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
@@ -361,36 +476,32 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock x:Name="TxtSummaryBot1Label" Text="Selected Bot:" Foreground="#0284C7" FontWeight="Bold" FontSize="11.5" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="TxtSummaryBot1" Text="None" Foreground="#111111" FontWeight="SemiBold" FontSize="11.5" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TxtSummaryBot1Label" Text="Selected Bot:" Foreground="#003399" FontWeight="Bold" FontSize="11.5" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TxtSummaryBot1" Text="None" Foreground="#000000" FontWeight="Bold" FontSize="11.5" Margin="6,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
 
                             <StackPanel Grid.Column="1" x:Name="SummaryBot2Panel" Visibility="Collapsed" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
-                                <TextBlock Text="Bot 2 (P2):" Foreground="#059669" FontWeight="Bold" FontSize="11.5" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="TxtSummaryBot2" Text="None" Foreground="#111111" FontWeight="SemiBold" FontSize="11.5" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Bot 2 (P2):" Foreground="#006600" FontWeight="Bold" FontSize="11.5" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TxtSummaryBot2" Text="None" Foreground="#000000" FontWeight="Bold" FontSize="11.5" Margin="6,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Grid>
                     </Border>
                 </Grid>
             </Border>
 
-            <!-- RIGHT COLUMN: Launcher Connection & Logs -->
+            <!-- RIGHT COLUMN: Launcher Connection Settings -->
             <Grid Grid.Column="2">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="12"/>
-                    <RowDefinition x:Name="RowConsole" Height="*"/>
+                    <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
                 <!-- Connection Settings Card -->
-                <Border Grid.Row="0" Background="#F8FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1.5" CornerRadius="6" Padding="14">
-                    <Border.Effect>
-                        <DropShadowEffect BlurRadius="12" ShadowDepth="2" Direction="270" Color="#000000" Opacity="0.18"/>
-                    </Border.Effect>
+                <Border Grid.Row="0" Background="#EEFFFFFF" BorderBrush="#7F9DB9" BorderThickness="1" CornerRadius="3" Padding="12">
                     <StackPanel>
-                        <TextBlock Text="Connection &amp; Launch Settings" FontSize="14" FontWeight="Bold" Foreground="#111111" Margin="0,0,0,10"/>
+                        <TextBlock Text="Connection &amp; Launch Settings" FontSize="14" FontWeight="Bold" Foreground="#003399" Margin="0,0,0,10"/>
 
-                        <Grid Margin="0,0,0,10">
+                        <Grid Margin="0,0,0,8">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="10"/>
@@ -398,24 +509,24 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0">
-                                <TextBlock Text="Target Host IP" FontWeight="Bold" Foreground="#444444" Margin="0,0,0,4" FontSize="11.5"/>
-                                <TextBox x:Name="TxtHostIp" Text="127.0.0.1" Height="30" Padding="8,4" VerticalContentAlignment="Center"/>
+                                <TextBlock Text="Target Host IP" FontWeight="Bold" Foreground="#000000" Margin="0,0,0,4" FontSize="11.5"/>
+                                <TextBox x:Name="TxtHostIp" Text="127.0.0.1" Height="28" Padding="6,3" VerticalContentAlignment="Center"/>
                             </StackPanel>
 
                             <StackPanel Grid.Column="2">
-                                <TextBlock Text="Port" FontWeight="Bold" Foreground="#444444" Margin="0,0,0,4" FontSize="11.5"/>
-                                <TextBox x:Name="TxtHostPort" Text="7911" Height="30" Padding="8,4" VerticalContentAlignment="Center"/>
+                                <TextBlock Text="Port" FontWeight="Bold" Foreground="#000000" Margin="0,0,0,4" FontSize="11.5"/>
+                                <TextBox x:Name="TxtHostPort" Text="7911" Height="28" Padding="6,3" VerticalContentAlignment="Center"/>
                             </StackPanel>
                         </Grid>
 
-                        <TextBlock Text="Mode:" FontWeight="Bold" Foreground="#444444" Margin="0,0,0,4" FontSize="11.5"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <RadioButton x:Name="RbModeSingle" Content="Play vs Bot" GroupName="DuelMode" IsChecked="True" Checked="RbDuelMode_Checked" Margin="0,0,14,0" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                            <RadioButton x:Name="RbModeDual" Content="Bot Vs Bot" GroupName="DuelMode" Checked="RbDuelMode_Checked" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <TextBlock Text="Mode:" FontWeight="Bold" Foreground="#000000" Margin="0,0,0,4" FontSize="11.5"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <RadioButton x:Name="RbModeSingle" Content="Play vs Bot" GroupName="DuelMode" IsChecked="True" Checked="RbDuelMode_Checked" Margin="0,0,14,0" FontWeight="Bold" VerticalAlignment="Center"/>
+                            <RadioButton x:Name="RbModeDual" Content="Bot Vs Bot" GroupName="DuelMode" Checked="RbDuelMode_Checked" FontWeight="Bold" VerticalAlignment="Center"/>
                         </StackPanel>
 
                         <!-- Matchup Card Preview -->
-                        <Border Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1.5" CornerRadius="4" Padding="8,8" Margin="0,0,0,12">
+                        <Border Background="#EBECE9D8" BorderBrush="#7F9DB9" BorderThickness="1" CornerRadius="3" Padding="8,8" Margin="0,0,0,10">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -424,89 +535,53 @@
                                 </Grid.ColumnDefinitions>
 
                                 <!-- P1 Box (Clickable) -->
-                                <Border x:Name="CardBoxBot1" Grid.Column="0" Background="#EFF6FF" BorderBrush="#0284C7" BorderThickness="1.5" CornerRadius="4" Padding="8,6" Cursor="Hand" MouseLeftButtonDown="CardBoxBot1_Click">
+                                <Border x:Name="CardBoxBot1" Grid.Column="0" Background="#EDDCEBFC" BorderBrush="#0054E3" BorderThickness="2" CornerRadius="2" Padding="8,6" Cursor="Hand" MouseLeftButtonDown="CardBoxBot1_Click">
                                     <StackPanel VerticalAlignment="Center">
-                                        <TextBlock x:Name="TxtCardHeaderBot1" Text="SELECTED BOT" FontSize="9.5" FontWeight="Bold" Foreground="#0284C7"/>
-                                        <TextBlock x:Name="TxtMatchupBot1" Text="Blue-Eyes" FontSize="12" FontWeight="Bold" Foreground="#111111" TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock x:Name="TxtIndicatorBot1" Text="● ACTIVE" FontSize="9" FontWeight="Bold" Foreground="#0284C7" Margin="0,2,0,0"/>
+                                        <TextBlock x:Name="TxtCardHeaderBot1" Text="SELECTED BOT" FontSize="9.5" FontWeight="Bold" Foreground="#003399"/>
+                                        <TextBlock x:Name="TxtMatchupBot1" Text="Blue-Eyes" FontSize="12.5" FontWeight="Bold" Foreground="#000000" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock x:Name="TxtIndicatorBot1" Text="● ACTIVE" FontSize="9" FontWeight="Bold" Foreground="#0054E3" Margin="0,2,0,0"/>
                                     </StackPanel>
                                 </Border>
 
                                 <!-- VS Circle: Visible only in Bot Vs Bot -->
-                                <Border x:Name="VsCircle" Grid.Column="1" Visibility="Collapsed" Background="#E2E8F0" CornerRadius="12" Width="24" Height="24" VerticalAlignment="Center" Margin="6,0">
-                                    <TextBlock Text="VS" FontSize="10" FontWeight="Bold" Foreground="#555555" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <Border x:Name="VsCircle" Grid.Column="1" Visibility="Collapsed" Background="#F2FFFFFF" BorderBrush="#7F9DB9" BorderThickness="1" CornerRadius="12" Width="24" Height="24" VerticalAlignment="Center" Margin="6,0">
+                                    <TextBlock Text="VS" FontSize="10" FontWeight="Bold" Foreground="#000000" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
 
                                 <!-- P2 Box: Visible only in Bot Vs Bot -->
-                                <Border x:Name="CardBoxBot2" Grid.Column="2" Visibility="Collapsed" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="4" Padding="8,6" Cursor="Hand" MouseLeftButtonDown="CardBoxBot2_Click">
+                                <Border x:Name="CardBoxBot2" Grid.Column="2" Visibility="Collapsed" Background="#F2FFFFFF" BorderBrush="#7F9DB9" BorderThickness="1" CornerRadius="2" Padding="8,6" Cursor="Hand" MouseLeftButtonDown="CardBoxBot2_Click">
                                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Right">
-                                        <TextBlock Text="BOT 2 (P2)" FontSize="9.5" FontWeight="Bold" Foreground="#059669" HorizontalAlignment="Right"/>
-                                        <TextBlock x:Name="TxtMatchupBot2" Text="Dark Magician" FontSize="12" FontWeight="Bold" Foreground="#111111" TextTrimming="CharacterEllipsis" HorizontalAlignment="Right"/>
-                                        <TextBlock x:Name="TxtIndicatorBot2" Text="CLICK TO SELECT" FontSize="9" FontWeight="Bold" Foreground="#888888" Margin="0,2,0,0" HorizontalAlignment="Right"/>
+                                        <TextBlock Text="BOT 2 (P2)" FontSize="9.5" FontWeight="Bold" Foreground="#006600" HorizontalAlignment="Right"/>
+                                        <TextBlock x:Name="TxtMatchupBot2" Text="Dark Magician" FontSize="12.5" FontWeight="Bold" Foreground="#000000" TextTrimming="CharacterEllipsis" HorizontalAlignment="Right"/>
+                                        <TextBlock x:Name="TxtIndicatorBot2" Text="CLICK TO SELECT" FontSize="9" FontWeight="Bold" Foreground="#777777" Margin="0,2,0,0" HorizontalAlignment="Right"/>
                                     </StackPanel>
                                 </Border>
                             </Grid>
                         </Border>
 
-                        <Button x:Name="BtnConnectAi" Content="Start &amp; Connect Bot to Room" Style="{StaticResource ClassicCharcoalBtn}" Height="38" Click="BtnConnectAi_Click"/>
+                        <Button x:Name="BtnConnectAi" Content="Start &amp; Connect Bot to Room" Style="{StaticResource ClassicXpPrimaryBtn}" Height="38" Click="BtnConnectAi_Click"/>
                     </StackPanel>
                 </Border>
 
-                <!-- Console Logs Box -->
-                <Border x:Name="ConsoleCardBorder" Grid.Row="2" Background="#F8FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1.5" CornerRadius="6" Padding="14">
-                    <Border.Effect>
-                        <DropShadowEffect BlurRadius="12" ShadowDepth="2" Direction="270" Color="#000000" Opacity="0.18"/>
-                    </Border.Effect>
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition x:Name="RowConsoleBody" Height="*"/>
-                            <RowDefinition x:Name="RowConsoleFoot" Height="Auto"/>
-                        </Grid.RowDefinitions>
-
-                        <!-- Log Header -->
-                        <Grid Grid.Row="0" Margin="0,0,0,8">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="Console Output Logs" FontSize="13" FontWeight="Bold" Foreground="#111111"/>
-                                <CheckBox x:Name="ChkDevMode" Content="บันทึก Logs" IsChecked="False" FontWeight="SemiBold" FontSize="11" Foreground="#444444" Margin="12,0,0,0" VerticalAlignment="Center" Cursor="Hand" Click="ChkDevMode_Click" ToolTip="เปิด: บันทึก Logs ละเอียดลงดิสก์ / ปิด: ไม่บันทึกไฟล์ Logs (ประหยัดดิสก์และทำงานเร็วสุด)"/>
-                                <CheckBox x:Name="ChkExternalCmd" Content="เปิด CMD แยก" IsChecked="False" FontWeight="SemiBold" FontSize="11" Foreground="#444444" Margin="10,0,0,0" VerticalAlignment="Center" Cursor="Hand" ToolTip="เปิด: รัน WindBot ในหน้าต่าง Command Prompt แยกสำหรับการดู Log และการทำงานแบบสด / ปิด: รันแบบปกติ"/>
-                                <TextBlock x:Name="TxtConsoleStatus" Text="Ready." FontSize="11" Foreground="#059669" FontWeight="Bold" Margin="10,0,0,0" VerticalAlignment="Center"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                <Button x:Name="BtnToggleConsole" Content="หุบ Console ▲" Style="{StaticResource SecondaryWhiteBtn}" Padding="10,3" Margin="0,0,6,0" Click="BtnToggleConsole_Click" ToolTip="หุบหรือกางหน้าต่าง Console Output"/>
-                                <Button x:Name="BtnOpenLogs" Content="Open Logs" Style="{StaticResource SecondaryWhiteBtn}" Padding="10,3" Margin="0,0,6,0" Click="BtnOpenLogs_Click"/>
-                                <Button x:Name="BtnCopyConsole" Content="Copy" Style="{StaticResource SecondaryWhiteBtn}" Padding="10,3" Margin="0,0,6,0" Click="BtnCopyConsole_Click"/>
-                                <Button x:Name="BtnClearConsole" Content="Clear" Style="{StaticResource SecondaryWhiteBtn}" Padding="10,3" Click="BtnClearConsole_Click"/>
-                            </StackPanel>
-                        </Grid>
-
-                        <!-- High performance log output (Clean White Console) -->
-                        <TextBox x:Name="TxtConsole" Grid.Row="1" IsReadOnly="True"
-                                 VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-                                 Background="White" Foreground="#111111" FontFamily="Consolas" FontSize="11.5"
-                                 Padding="8" BorderBrush="#CCCCCC" BorderThickness="1.5"
-                                 AcceptsReturn="True" TextWrapping="NoWrap"/>
-
-                        <TextBlock x:Name="TxtConsoleFooter" Grid.Row="2" Text="Rule-based ModernExecutor client strictly follows official rules." FontSize="10.5" Foreground="#666666" Margin="0,6,0,0"/>
-                    </Grid>
-                </Border>
+                <!-- Non-visual log buffer preserving code compatibility -->
+                <TextBox x:Name="TxtConsole" Visibility="Collapsed"/>
+                <TextBlock x:Name="TxtConsoleFooter" Visibility="Collapsed"/>
             </Grid>
         </Grid>
 
-        <!-- Footer Bar -->
-        <Border Grid.Row="2" Background="#F8FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1.5" CornerRadius="6" Padding="14,8" Margin="0,14,0,0">
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="10" ShadowDepth="2" Direction="270" Color="#000000" Opacity="0.18"/>
-            </Border.Effect>
+        <!-- Footer Bar (Classic Windows XP Status Bar - Translucent) -->
+        <Border Grid.Row="2" Background="#EBECE9D8" BorderBrush="#7F9DB9" BorderThickness="1" CornerRadius="3" Padding="12,6" Margin="0,10,0,0">
             <Grid>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="YGO Platform - Standalone Bot Runner Launcher (dashbot)" FontSize="11" Foreground="#555555" FontWeight="SemiBold"/>
-                    <TextBlock Text=" | " FontSize="11" Foreground="#CCCCCC" Margin="6,0"/>
-                    <TextBlock Text="WindBot by IceYgo" FontSize="11" Foreground="#0284C7" FontWeight="Bold"/>
-                    <TextBlock Text=" | " FontSize="11" Foreground="#CCCCCC" Margin="6,0"/>
-                    <TextBlock Text="Custom Deck By Jaynesiz" FontSize="11" Foreground="#D97706" FontWeight="Bold"/>
+                    <TextBlock Text="YGO Platform - Standalone Bot Runner Launcher (dashbot)" FontSize="11" Foreground="#000000" FontWeight="Bold"/>
+                    <TextBlock Text=" | " FontSize="11" Foreground="#7F9DB9" Margin="6,0"/>
+                    <TextBlock Text="WindBot by IceYgo" FontSize="11" Foreground="#003399" FontWeight="Bold"/>
+                    <TextBlock Text=" | " FontSize="11" Foreground="#7F9DB9" Margin="6,0"/>
+                    <TextBlock Text="Custom Deck By Jaynesiz" FontSize="11" Foreground="#C86600" FontWeight="Bold"/>
+                    <TextBlock Text=" | " FontSize="11" Foreground="#7F9DB9" Margin="6,0"/>
+                    <TextBlock Text="Rule-based ModernExecutor client strictly follows official rules." FontSize="10.5" Foreground="#333333" FontWeight="SemiBold"/>
                 </StackPanel>
-                <TextBlock Text="Powered by .NET 10" FontSize="11" Foreground="#777777" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                <TextBlock Text="Powered by .NET 10" FontSize="11" Foreground="#000000" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="Bold"/>
             </Grid>
         </Border>
     </Grid>
