@@ -79,6 +79,10 @@ namespace WindBot.Game.AI.Decks
         {
             _plugin = new KashtiraPlugin(this);
 
+            // Register Combo Starters & Bait Cards for Intelligent Sequencing
+            BaitPlanner.RegisterComboStarters(CardId.KashtiraUnicorn, CardId.KashtiraFenrir, CardId.Kashtiratheosis);
+            BaitPlanner.RegisterBaitCards(CardId.PotOfProsperity, CardId.Terraforming, CardId.PressuredPlanetWraitsoth, CardId.KashtiraBirth);
+
             // ═══════════════════════════════════════════════════════════════
             //  PHASE 0: EMERGENCY COUNTERS & HANDTRAPS
             // ═══════════════════════════════════════════════════════════════
@@ -175,12 +179,14 @@ namespace WindBot.Game.AI.Decks
 
         private bool ImpermanenceCondition()
         {
+            if (DefaultPreemptiveImpermanence())
+                return true;
             return DefaultInfiniteImpermanence();
         }
 
         private bool AshBlossomCondition()
         {
-            return DefaultAshBlossomAndJoyousSpring();
+            return SmartHandTrapChain();
         }
 
         private bool NibiruCondition()
@@ -190,10 +196,10 @@ namespace WindBot.Game.AI.Decks
 
         private bool BookOfMoonCondition()
         {
-            if (Duel.Player == 1)
+            if (Duel.Player == 1 || Duel.Phase == DuelPhase.Battle)
             {
-                var target = Enemy.GetMonsters().FirstOrDefault(m => m.IsFaceup() && !m.HasType(CardType.Link) && m.Attack >= 2000);
-                if (target != null)
+                var target = GetBestMonsterRemovalTarget(onlyFaceup: true, canBeTarget: true);
+                if (target != null && !target.HasType(CardType.Link))
                 {
                     AI.SelectCard(target);
                     return true;
@@ -230,7 +236,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool StarterSpSummonCondition()
         {
-            return Bot.GetMonsterCount() == 0;
+            return Bot.GetMonsterCount() == 0 && !IsSpecialSummonBlocked();
         }
 
         private bool UnicornSearchCondition()
@@ -241,11 +247,10 @@ namespace WindBot.Game.AI.Decks
 
         private bool FenrirSearchCondition()
         {
-            // If in battle/trigger: banish face-down
+            // If in battle/trigger: banish face-down using Unified Target Matrix (Grade S > A > B > C)
             if (Duel.Phase == DuelPhase.BattleStart || Duel.Phase == DuelPhase.Battle || Duel.Player == 1)
             {
-                var banishTarget = Enemy.GetMonsters().Where(m => m.IsFaceup()).OrderByDescending(m => m.Attack).FirstOrDefault()
-                    ?? Enemy.GetSpells().FirstOrDefault(s => s.IsFaceup());
+                var banishTarget = GetBestRemovalTarget(onlyFaceup: false, canBeTarget: true);
                 if (banishTarget != null)
                 {
                     AI.SelectCard(banishTarget);
@@ -329,6 +334,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool ShangriIraSummonCondition()
         {
+            if (IsSpecialSummonBlocked()) return false;
             if (Bot.HasInMonstersZone(CardId.KashtiraShangriIra)) return false;
             var lv7 = Bot.GetMonsters().Where(m => m.IsFaceup() && m.Level == 7).ToList();
             return lv7.Count >= 2;
@@ -342,6 +348,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool AriseHeartSummonCondition()
         {
+            if (IsSpecialSummonBlocked()) return false;
             if (Bot.HasInMonstersZone(CardId.KashtiraAriseHeart)) return false;
             // Can overlay with 3 Level 7s or on top of any Kashtira monster if Shangri-Ira used effect
             var lv7 = Bot.GetMonsters().Where(m => m.IsFaceup() && m.Level == 7).ToList();
@@ -356,11 +363,10 @@ namespace WindBot.Game.AI.Decks
 
         private bool AriseHeartEffectCondition()
         {
-            // Quick effect: detach 3 materials -> banish 1 card on field face-down
+            // Quick effect: detach 3 materials -> banish 1 card on field face-down using Unified Target Matrix (Grade S > A > B > C)
             if (Card.Overlays.Count >= 3)
             {
-                var target = Enemy.GetMonsters().Where(m => m.IsFaceup()).OrderByDescending(m => m.Attack).FirstOrDefault()
-                    ?? Enemy.GetSpells().FirstOrDefault(s => s.IsFaceup());
+                var target = GetBestRemovalTarget(onlyFaceup: false, canBeTarget: true);
                 if (target != null)
                 {
                     AI.SelectCard(target);
@@ -372,7 +378,8 @@ namespace WindBot.Game.AI.Decks
 
         private bool BigEyeSummonCondition()
         {
-            return Enemy.GetMonsters().Any(m => m.IsFaceup() && m.Attack >= 2500) &&
+            var bestTarget = GetBestMonsterRemovalTarget(onlyFaceup: true, canBeTarget: true);
+            return bestTarget != null && (bestTarget.Attack >= 2500 || Scorer.GetThreatGrade(bestTarget) >= BoardScorer.ThreatGrade.GradeA) &&
                    Bot.GetMonsters().Count(m => m.IsFaceup() && m.Level == 7) >= 2;
         }
 
@@ -399,7 +406,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool TyphonSummonCondition()
         {
-            return Enemy.GetMonsters().Any(m => m.IsFaceup() && m.Attack >= 3000);
+            return Enemy.GetMonsters().Any(m => m.IsFaceup() && (m.Attack >= 3000 || Scorer.GetThreatGrade(m) == BoardScorer.ThreatGrade.GradeS));
         }
 
         private bool BigBangCondition()

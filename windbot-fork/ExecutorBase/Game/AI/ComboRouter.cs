@@ -81,6 +81,17 @@ namespace WindBot.Game.AI
             public int Priority { get; set; } = 50;
 
             /// <summary>
+            /// If true, this line is fragile and requires a safe board (no enemy disruptions).
+            /// When enemy disruption is present, deprioritized in favor of bait/board-breaker lines.
+            /// </summary>
+            public bool RequiresSafeBoard { get; set; } = false;
+
+            /// <summary>
+            /// If true, this line is designed to bait disruptions or break opponent boards before main combo.
+            /// </summary>
+            public bool IsBaitLine { get; set; } = false;
+
+            /// <summary>
             /// Optional condition function — checked at runtime to see if
             /// this line is viable given the current board state.
             /// Return true if the line is available.
@@ -160,9 +171,9 @@ namespace WindBot.Game.AI
 
         /// <summary>
         /// Evaluate which combo lines are achievable from the current hand.
-        /// Returns them sorted by EndBoardScore (descending), then Priority (ascending).
+        /// Returns them sorted by disruption suitability, EndBoardScore (descending), then Priority (ascending).
         /// </summary>
-        public List<ComboLine> GetViableLines(ClientField bot)
+        public List<ComboLine> GetViableLines(ClientField bot, bool hasEnemyDisruption = false)
         {
             if (!Enabled || _registeredLines.Count == 0 || bot == null)
                 return new List<ComboLine>();
@@ -200,9 +211,18 @@ namespace WindBot.Game.AI
                 viable.Add(line);
             }
 
-            // Sort: highest EndBoardScore first, then lowest Priority
+            // Sort: if enemy has disruptions, prioritize Bait / Resilient lines over fragile lines;
+            // then highest EndBoardScore first, then lowest Priority
             viable.Sort((a, b) =>
             {
+                if (hasEnemyDisruption)
+                {
+                    int aDisruptRank = a.IsBaitLine ? 100 : (a.RequiresSafeBoard ? -100 : 0);
+                    int bDisruptRank = b.IsBaitLine ? 100 : (b.RequiresSafeBoard ? -100 : 0);
+                    int disruptComp = bDisruptRank.CompareTo(aDisruptRank);
+                    if (disruptComp != 0) return disruptComp;
+                }
+
                 int scoreComp = b.EndBoardScore.CompareTo(a.EndBoardScore);
                 if (scoreComp != 0) return scoreComp;
                 return a.Priority.CompareTo(b.Priority);
@@ -216,12 +236,12 @@ namespace WindBot.Game.AI
         /// Call at the start of Main Phase 1 (after OnNewTurn).
         /// Returns true if a combo line was activated.
         /// </summary>
-        public bool ActivateBestLine(ClientField bot)
+        public bool ActivateBestLine(ClientField bot, bool hasEnemyDisruption = false)
         {
             if (!Enabled) return false;
             if (_activeLine != null) return true; // Already have an active line
 
-            var viable = GetViableLines(bot);
+            var viable = GetViableLines(bot, hasEnemyDisruption);
             if (viable.Count == 0) return false;
 
             _activeLine = viable[0];

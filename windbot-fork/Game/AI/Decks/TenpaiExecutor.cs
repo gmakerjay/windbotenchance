@@ -74,6 +74,11 @@ namespace WindBot.Game.AI.Decks
             : base(ai, duel)
         {
             Plugin = new TenpaiPlugin(this);
+
+            // Register Combo Starters & Bait Cards for Intelligent Sequencing
+            BaitPlanner.RegisterComboStarters(CardId.TenpaiDragonPaidra, CardId.SangenSummoning, CardId.SangenKaimen);
+            BaitPlanner.RegisterBaitCards(CardId.PotOfProsperity, CardId.DarkRulerNoMore, CardId.LightningStorm, CardId.ForbiddenDroplet);
+
             RegisterComboLines();
             RegisterExecutors();
         }
@@ -509,9 +514,8 @@ namespace WindBot.Game.AI.Decks
             {
                 return true; // Omni-negate
             }
-            // Pop 1 card on field
-            ClientCard oppTarget = Enemy.GetMonsters().OrderByDescending(m => m.Attack).FirstOrDefault()
-                                ?? Enemy.GetSpells().FirstOrDefault();
+            // Pop 1 card on field using Unified Target Matrix
+            ClientCard oppTarget = GetBestRemovalTarget(onlyFaceup: false, canBeTarget: true);
             if (oppTarget != null)
             {
                 AI.SelectCard(oppTarget);
@@ -543,8 +547,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool KuibeltEffect()
         {
-            ClientCard oppTarget = Enemy.GetMonsters().OrderByDescending(m => m.Attack).FirstOrDefault()
-                                ?? Enemy.GetSpells().FirstOrDefault();
+            ClientCard oppTarget = GetBestRemovalTarget(onlyFaceup: false, canBeTarget: true);
             if (oppTarget != null)
             {
                 AI.SelectCard(oppTarget);
@@ -560,8 +563,8 @@ namespace WindBot.Game.AI.Decks
 
         private bool MoonlightEffect()
         {
-            ClientCard oppTarget = Enemy.GetMonsters().Where(m => m.IsFaceup() && m.Level >= 5).OrderByDescending(m => m.Attack).FirstOrDefault()
-                                ?? Enemy.GetMonsters().Where(m => m.IsFaceup()).OrderByDescending(m => m.Attack).FirstOrDefault();
+            ClientCard oppTarget = Enemy.GetMonsters().Where(m => m.IsFaceup() && m.Level >= 5).OrderByDescending(m => Scorer.ThreatScore(m)).FirstOrDefault()
+                                ?? GetBestMonsterRemovalTarget(onlyFaceup: true, canBeTarget: true);
             if (oppTarget != null)
             {
                 AI.SelectCard(oppTarget);
@@ -663,7 +666,7 @@ namespace WindBot.Game.AI.Decks
                     var enemyTargets = cards.Where(c => c.Controller == 1).ToList();
                     if (enemyTargets.Count >= min)
                     {
-                        var sorted = enemyTargets.OrderByDescending(c => c.Attack).ToList();
+                        var sorted = enemyTargets.OrderByDescending(c => Scorer.ThreatScore(c)).ToList();
                         int takeCount = Math.Min(max, sorted.Count);
                         return sorted.Take(takeCount).ToList();
                     }

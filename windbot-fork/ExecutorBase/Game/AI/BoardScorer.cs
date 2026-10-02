@@ -49,58 +49,103 @@ namespace WindBot.Game.AI
         }
 
         // ═══════════════════════════════════════
-        //  THREAT SCORING — how dangerous is a card?
+        //  THREAT SCORING — Unified Target Matrix
         // ═══════════════════════════════════════
 
+        public enum ThreatGrade
+        {
+            GradeC = 0, // Vanilla / Pure Beatsticks / Disabled cards
+            GradeB = 1, // Starters & Essential Engines
+            GradeA = 2, // Omni-Negates & Quick Disrupts
+            GradeS = 3  // Floodgates & Hard Locks
+        }
+
         /// <summary>
-        /// Compute threat score for a single enemy card. Higher = more dangerous.
-        /// Factors: ATK, card type (Extra Deck = scarier), floodgate status, negation potential.
+        /// Classify an enemy card into the Unified Target Matrix grades:
+        /// Grade S (Floodgates), Grade A (Negators), Grade B (Chokepoints/Starters), Grade C (Beatsticks).
+        /// </summary>
+        public ThreatGrade GetThreatGrade(ClientCard card)
+        {
+            if (card == null) return ThreatGrade.GradeC;
+            int cardId = card.Id;
+            int altCode = card.GetNonAltartCode();
+
+            // 1. Grade S: Floodgates & Hard Locks (both monster and backrow)
+            if (card.IsFloodgate() || CardIntelligence.IsFloodgate(cardId) || CardIntelligence.IsFloodgate(altCode)
+                || CardIntelligence.IsFloodgateMonster(cardId) || CardIntelligence.IsFloodgateSpellTrap(cardId))
+            {
+                return ThreatGrade.GradeS;
+            }
+
+            // 2. Grade A: Omni-Negates & Quick Disrupts (must not be disabled)
+            if (!card.IsDisabled() && (CardIntelligence.IsKnownNegator(cardId) || CardIntelligence.IsKnownNegator(altCode)))
+            {
+                return ThreatGrade.GradeA;
+            }
+
+            // 3. Grade B: High Threat Chokepoints / Starters / Engines
+            if (CardIntelligence.IsHighThreatChokepoint(cardId) || CardIntelligence.IsHighThreatChokepoint(altCode))
+            {
+                return ThreatGrade.GradeB;
+            }
+
+            // Grade C: Vanilla, Beatstick, or cards whose effects are negated
+            return ThreatGrade.GradeC;
+        }
+
+        /// <summary>
+        /// Compute threat score for a single enemy card according to the Unified Target Matrix.
+        /// Grade S (Floodgates, 1000+) > Grade A (Negates, 500+) > Grade B (Starters, 200+) > Grade C (ATK / 100).
+        /// Guarantees that pure beatsticks never override game-deciding floodgates or negators.
         /// </summary>
         public int ThreatScore(ClientCard card)
         {
             if (card == null) return 0;
             int score = 0;
 
-            // Base: ATK power
-            score += card.Attack / 100;
+            ThreatGrade grade = GetThreatGrade(card);
+            switch (grade)
+            {
+                case ThreatGrade.GradeS:
+                    score += 1000;
+                    break;
+                case ThreatGrade.GradeA:
+                    score += 500;
+                    break;
+                case ThreatGrade.GradeB:
+                    score += 200;
+                    break;
+                default:
+                    break;
+            }
 
-            // Extra Deck monsters are usually boss monsters with dangerous effects
-            if (card.HasType(CardType.Fusion)) score += 30;
-            if (card.HasType(CardType.Synchro)) score += 35;
-            if (card.HasType(CardType.Xyz)) score += 30;
-            if (card.HasType(CardType.Link)) score += 25;
-            if (card.HasType(CardType.Ritual)) score += 25;
+            // Secondary metrics within grade:
+            // Scaled ATK (capped so ATK never overrides a higher grade)
+            score += Math.Min(40, card.Attack / 100);
 
-            // High ATK bonus
-            if (card.Attack >= 3000) score += 20;
-            else if (card.Attack >= 2500) score += 10;
+            // Extra Deck monsters usually have dangerous combo potential
+            if (card.HasType(CardType.Fusion)) score += 10;
+            if (card.HasType(CardType.Synchro)) score += 15;
+            if (card.HasType(CardType.Xyz)) score += 12;
+            if (card.HasType(CardType.Link)) score += 10;
+            if (card.HasType(CardType.Ritual)) score += 10;
 
-            // Floodgate detection — these cards define the game state
-            if (card.IsFloodgate() || CardIntelligence.IsFloodgate(card.Id)) score += 50;
-
-            // Known negators and disruptions (Baronne, Apollousa, Savage, Infinity, etc.)
-            if (!card.IsDisabled() && CardIntelligence.IsKnownNegator(card.Id)) score += 45;
-
-            // High threat chokepoints (Union Hangar, Circle, Eternal Soul, Multifaker, etc.)
-            if (CardIntelligence.IsHighThreatChokepoint(card.Id)) score += 35;
+            // High ATK bonus (useful within Grade C)
+            if (card.Attack >= 3000) score += 10;
+            else if (card.Attack >= 2500) score += 5;
 
             // Dangerous battle effects (honest, utopia lightning, etc.)
-            if (card.IsMonsterDangerous()) score += 40;
+            if (card.IsMonsterDangerous()) score += 25;
 
             // Invincible in battle (can't be destroyed)
             if (card.IsMonsterInvincible()) score += 15;
 
-            // Has negation or disruption potential (Extra Deck monsters with effects)
-            if (!card.IsDisabled() && (card.HasType(CardType.Fusion) || card.HasType(CardType.Synchro)
-                || card.HasType(CardType.Xyz) || card.HasType(CardType.Link)))
-                score += 15;
-
             // Face-up continuous / field spells provide permanent advantage
             if (card.IsFaceup() && (card.HasType(CardType.Continuous) || card.HasType(CardType.Field)))
-                score += 25;
+                score += 15;
 
             // Face-down unknown card — treat as moderate threat
-            if (card.IsFacedown()) score = 20;
+            if (card.IsFacedown()) score = 15;
 
             return score;
         }
@@ -109,11 +154,11 @@ namespace WindBot.Game.AI
         /// Get the highest-threat enemy monster on the field.
         /// Filters out cards that shouldn't be targeted.
         /// </summary>
-        public ClientCard GetHighestThreat(bool onlyFaceup = true, bool canBeTarget = true)
+        public ClientCard GetHighestThreat(bool onlyFaceup = true, bool canBeTarget = true, bool ignoreDisabled = false)
         {
             if (_enemy == null) return null;
             return _enemy.GetMonsters()
-                .Where(c => c != null && (!onlyFaceup || c.IsFaceup()) && (!canBeTarget || !c.IsShouldNotBeTarget()))
+                .Where(c => c != null && (!onlyFaceup || c.IsFaceup()) && (!canBeTarget || !c.IsShouldNotBeTarget()) && (!ignoreDisabled || !c.IsDisabled()))
                 .OrderByDescending(c => ThreatScore(c))
                 .FirstOrDefault();
         }
@@ -121,22 +166,24 @@ namespace WindBot.Game.AI
         /// <summary>
         /// Get the highest-threat enemy spell/trap.
         /// </summary>
-        public ClientCard GetHighestThreatSpell()
+        public ClientCard GetHighestThreatSpell(bool canBeTarget = true)
         {
             if (_enemy == null) return null;
             return _enemy.GetSpells()
-                .Where(c => c != null)
+                .Where(c => c != null && (!canBeTarget || !c.IsShouldNotBeTarget()))
                 .OrderByDescending(c => ThreatScore(c))
                 .FirstOrDefault();
         }
 
         /// <summary>
-        /// Combined: best removal target across monsters and spells.
+        /// Combined: best removal target across monsters and spells according to Unified Target Matrix.
         /// </summary>
-        public ClientCard GetBestRemovalTarget()
+        public ClientCard GetBestRemovalTarget(bool onlyFaceup = false, bool canBeTarget = true)
         {
-            var monster = GetHighestThreat();
-            var spell = GetHighestThreatSpell();
+            var monster = GetHighestThreat(onlyFaceup, canBeTarget);
+            var spell = GetHighestThreatSpell(canBeTarget);
+            if (monster == null) return spell;
+            if (spell == null) return monster;
             int monsterScore = ThreatScore(monster);
             int spellScore = ThreatScore(spell);
             return monsterScore >= spellScore ? monster : spell;

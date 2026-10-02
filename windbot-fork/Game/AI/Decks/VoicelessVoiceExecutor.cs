@@ -78,6 +78,11 @@ namespace WindBot.Game.AI.Decks
             : base(ai, duel)
         {
             Plugin = new VoicelessVoicePlugin(this);
+
+            // Register Combo Starters & Bait Cards for Intelligent Sequencing
+            BaitPlanner.RegisterComboStarters(CardId.PrePreparationOfRites, CardId.LoThePrayers, CardId.BarrierOfTheVoicelessVoice, CardId.DivinerOfTheHerald);
+            BaitPlanner.RegisterBaitCards(CardId.PotOfProsperity, CardId.PreparationOfRites);
+
             RegisterComboLines();
             RegisterExecutors();
         }
@@ -435,8 +440,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool NtssEffect()
         {
-            ClientCard oppTarget = Enemy.GetMonsters().OrderByDescending(m => m.Attack).FirstOrDefault()
-                                ?? Enemy.GetSpells().FirstOrDefault();
+            ClientCard oppTarget = GetBestRemovalTarget(onlyFaceup: false, canBeTarget: true);
             if (oppTarget != null)
             {
                 AI.SelectCard(oppTarget);
@@ -473,8 +477,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool DynaMondoEffect()
         {
-            ClientCard oppTarget = Enemy.GetMonsters().OrderByDescending(m => m.Attack).FirstOrDefault()
-                                ?? Enemy.GetSpells().FirstOrDefault();
+            ClientCard oppTarget = GetBestRemovalTarget(onlyFaceup: false, canBeTarget: true);
             if (oppTarget != null)
             {
                 AI.SelectCard(oppTarget);
@@ -492,8 +495,7 @@ namespace WindBot.Game.AI.Decks
         {
             ClientCard lastCard = LastChainCard;
             if (lastCard != null && lastCard.Controller == 1) return true;
-            ClientCard oppTarget = Enemy.GetMonsters().OrderByDescending(m => m.Attack).FirstOrDefault()
-                                ?? Enemy.GetSpells().FirstOrDefault();
+            ClientCard oppTarget = GetBestRemovalTarget(onlyFaceup: false, canBeTarget: true);
             if (oppTarget != null)
             {
                 AI.SelectCard(oppTarget);
@@ -510,8 +512,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool SPLittleKnightEffect()
         {
-            ClientCard oppTarget = Enemy.GetMonsters().OrderByDescending(m => m.Attack).FirstOrDefault()
-                                ?? Enemy.GetSpells().FirstOrDefault();
+            ClientCard oppTarget = GetBestRemovalTarget(onlyFaceup: false, canBeTarget: true);
             if (oppTarget != null)
             {
                 AI.SelectCard(oppTarget);
@@ -613,7 +614,7 @@ namespace WindBot.Game.AI.Decks
                     var enemyTargets = cards.Where(c => c.Controller == 1).ToList();
                     if (enemyTargets.Count >= min)
                     {
-                        var sorted = enemyTargets.OrderByDescending(c => c.Attack).ToList();
+                        var sorted = enemyTargets.OrderByDescending(c => Scorer.ThreatScore(c)).ToList();
                         int takeCount = Math.Min(max, sorted.Count);
                         return sorted.Take(takeCount).ToList();
                     }

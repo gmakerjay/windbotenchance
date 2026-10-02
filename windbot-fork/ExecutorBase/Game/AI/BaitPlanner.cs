@@ -46,6 +46,29 @@ namespace WindBot.Game.AI
         /// <summary>Card IDs that should never be used as bait (too valuable).</summary>
         private readonly HashSet<int> _neverBait = new HashSet<int>();
 
+        /// <summary>Universal bait cards that almost every deck can use to bait disruptions.</summary>
+        private static readonly int[] UniversalBaitCardIds = new[]
+        {
+            84211599, // Pot of Prosperity
+            49238328, // Pot of Extravagance
+            98645731, // Pot of Duality
+            55144522, // Pot of Desires
+            70368879, // Upstart Goblin
+            73628505, // Terraforming
+            43422537, // Preparation of Rites
+            54693926, // Dark Ruler No More
+            14532163, // Lightning Storm
+            24299458, // Forbidden Droplet
+            48130397, // Super Polymerization
+            14087893, // Book of Moon
+        };
+
+        public BaitPlanner()
+        {
+            foreach (int id in UniversalBaitCardIds)
+                _goodBaitCards.Add(id);
+        }
+
         /// <summary>Track if we already baited this turn (don't double-bait).</summary>
         private bool _baitedThisTurn = false;
 
@@ -158,22 +181,27 @@ namespace WindBot.Game.AI
             int turn,
             bool opponentHasChainedThisTurn,
             bool isGoingFirst,
-            int minHandSizeToBait = 2)
+            int minHandSizeToBait = 2,
+            bool hasOnFieldDisruption = false)
         {
             if (!Enabled) return false;
             if (_baitedThisTurn) return false;
-            if (_opponentRespondedThisTurn) return false; // They already burned a hand trap
+            if (_opponentRespondedThisTurn) return false; // They already burned a hand trap / negation
             if (intendedCard == null) return false;
             if (bot == null || bot.Hand.Count < minHandSizeToBait) return false;
 
             // Only trigger baiting if the intended card is a combo starter
             if (!_comboStarters.Contains(intendedCard.Id)) return false;
 
-            // Estimate hand trap likelihood
-            double likelihood = EstimateHandTrapLikelihood(
-                opponentHandCount, turn, opponentHasChainedThisTurn, isGoingFirst);
+            // If opponent has on-field disruptions (Omni-Negate / Quick Disruptions), baiting is mandatory!
+            if (!hasOnFieldDisruption)
+            {
+                // Estimate hand trap likelihood
+                double likelihood = EstimateHandTrapLikelihood(
+                    opponentHandCount, turn, opponentHasChainedThisTurn, isGoingFirst);
 
-            if (likelihood < BaitThreshold) return false;
+                if (likelihood < BaitThreshold) return false;
+            }
 
             // Check if we have a bait card in hand
             bool hasBait = bot.Hand.Any(c => c != null && IsBaitCandidate(c));

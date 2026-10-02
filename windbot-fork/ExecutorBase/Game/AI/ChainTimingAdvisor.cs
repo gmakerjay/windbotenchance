@@ -48,6 +48,7 @@ namespace WindBot.Game.AI
         private readonly HashSet<int> _comboStarters = new HashSet<int>();
         private readonly HashSet<int> _comboExtenders = new HashSet<int>();
         private readonly HashSet<int> _lowValueTargets = new HashSet<int>();
+        private readonly HashSet<int> _potAndBaitCards = new HashSet<int>();
         private readonly HashSet<int> _handTrapIds = new HashSet<int>();
 
         // Deck-specific overrides (registered at runtime by each executor)
@@ -154,8 +155,6 @@ namespace WindBot.Game.AI
                 // Generic Searchers & Power Cards
                 32807846, // Reinforcement of the Army
                 73628505, // Terraforming
-                84211599, // Pot of Prosperity
-                35261759, // Pot of Desires
             });
 
             // Built-in Extenders
@@ -176,6 +175,21 @@ namespace WindBot.Game.AI
                 74117290, // Dark World Dealings
                 74519184, // Hand Destruction
                 43218406, // Gizmek Orochi
+            });
+
+            // Handtrap Budgeting: Pot & General Bait Cards (Strict Section 5.3)
+            _potAndBaitCards.UnionWith(new[] {
+                70368879, // Upstart Goblin
+                93946239, // Into the Void
+                74117290, // Dark World Dealings
+                74519184, // Hand Destruction
+                67616300, // Chicken Game
+                84211599, // Pot of Prosperity
+                35261759, // Pot of Desires
+                72426662, // Pot of Extravagance
+                49238328, // Pot of Extravagance (alt)
+                98645731, // Pot of Duality
+                55144522, // Pot of Greed
             });
         }
 
@@ -296,23 +310,37 @@ namespace WindBot.Game.AI
             int score = 50; // Neutral baseline
 
             int targetId = targetCard.Id;
+            int altCode = targetCard.GetNonAltartCode();
 
-            if (_deckSpecificHighValue.Contains(targetId) || _comboStarters.Contains(targetId) ||
-                CardIntelligence.IsHighThreatChokepoint(targetId) || CardIntelligence.IsKnownNegator(targetId))
+            // ── Section 5.3: Handtrap Budgeting & Anti-Bait Guard ──
+            bool isPotOrBait = _potAndBaitCards.Contains(targetId) || _potAndBaitCards.Contains(altCode)
+                || _lowValueTargets.Contains(targetId) || _deckSpecificLowValue.Contains(targetId);
+
+            if (isPotOrBait)
             {
-                score += 35; // Critical target — definitely negate
+                // Strict Rule: If we only have 1 interactive card (e.g. 1 Ash in hand),
+                // NEVER waste it on Pot of Extravagance / Duality / Upstart / Prosperity!
+                // Reserve it for the true chokepoint (Branded Fusion, Normal Summon starter, etc.).
+                if (ourInteractiveCount <= 1)
+                {
+                    return 15; // Threshold is 45 -> ALWAYS HOLD
+                }
+                // With 2+ handtraps in hand, allow interrupting Pot cards
+                score = 48;
             }
-            else if (isChokepoint || CardIntelligence.IsFloodgate(targetId))
+            else if (_deckSpecificHighValue.Contains(targetId) || _comboStarters.Contains(targetId) ||
+                CardIntelligence.IsHighThreatChokepoint(targetId) || CardIntelligence.IsHighThreatChokepoint(altCode)
+                || CardIntelligence.IsKnownNegator(targetId) || CardIntelligence.IsKnownNegator(altCode))
             {
-                score += 30; // Known chokepoint or floodgate from intelligence
+                score += 40; // Critical starter or negator — definitely negate (score 90)
             }
-            else if (_comboExtenders.Contains(targetId))
+            else if (isChokepoint || CardIntelligence.IsFloodgate(targetId) || CardIntelligence.IsFloodgate(altCode))
+            {
+                score += 35; // Known chokepoint or floodgate from intelligence (score 85)
+            }
+            else if (_comboExtenders.Contains(targetId) || _comboExtenders.Contains(altCode))
             {
                 score += 15; // Worth negating but not critical
-            }
-            else if (_deckSpecificLowValue.Contains(targetId) || _lowValueTargets.Contains(targetId))
-            {
-                score -= 30; // Not worth spending resources on
             }
             else
             {

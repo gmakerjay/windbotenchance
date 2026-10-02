@@ -402,9 +402,10 @@ namespace WindBot.Game.AI
         protected new bool DefaultAshBlossomAndJoyousSpring()
         {
             if (Duel.LastChainPlayer != 1) return false;
+            if (!SmartHandTrapChain()) return false;
             ClientCard ash = Bot.Hand.FirstOrDefault(c => c.Id == 14558127 || c.Id == 14558128);
             if (ash == null) return false;
-            return AIContext != null && AIContext.ShouldActivate(ash, Util.GetLastChainCard(), "AshBlossom");
+            return AIContext == null || AIContext.ShouldActivate(ash, Util.GetLastChainCard(), "AshBlossom");
         }
 
         /// <summary>
@@ -1245,7 +1246,7 @@ namespace WindBot.Game.AI
             // ═══ ComboRouter: Activate best combo line from hand ═══
             if (ComboRouter != null && ComboRouter.Enabled && Duel.Phase == DuelPhase.Main1)
             {
-                ComboRouter.ActivateBestLine(Bot);
+                ComboRouter.ActivateBestLine(Bot, HasEnemyDisruption());
             }
 
             // ═══ ComboRouter: Execute active combo step ═══
@@ -2150,6 +2151,85 @@ namespace WindBot.Game.AI
         }
 
         /// <summary>
+        /// Going Second Preemptive Impermanence:
+        /// During our Main Phase 1, if we control 0 monsters, and the opponent controls a Grade S (Floodgate)
+        /// or Grade A (Omni-Negate / Quick Disrupt like Apollousa, Baronne, Bagooska), activate Impermanence
+        /// from hand to neutralize the threat before committing our combo starters.
+        /// </summary>
+        protected bool DefaultPreemptiveImpermanence()
+        {
+            if (Card == null || !Card.IsCode(10045474)) return false;
+            if (Card.Location != CardLocation.Hand) return false;
+            if (Duel.Player != 0 || Duel.Phase != DuelPhase.Main1) return false;
+            if (Bot.GetMonsterCount() > 0) return false;
+
+            // Find best monster target that is Grade S or Grade A
+            var target = Enemy.GetMonsters().FirstOrDefault(m => m != null && m.IsFaceup() && !m.IsDisabled() 
+                && !m.IsShouldNotBeTarget() && !m.IsShouldNotBeSpellTrapTarget()
+                && (Scorer.GetThreatGrade(m) == BoardScorer.ThreatGrade.GradeS || Scorer.GetThreatGrade(m) == BoardScorer.ThreatGrade.GradeA));
+
+            if (target != null)
+            {
+                try
+                {
+                    AI?.Log(LogLevel.Info, $"[PREEMPTIVE-IMPERM] Negating {target.Name ?? target.Id.ToString()} (Grade {Scorer.GetThreatGrade(target)}) before combo commitment");
+                }
+                catch { }
+                AI.SelectCard(target);
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Select the best removal target on the opponent's field according to the Unified Target Matrix:
+        /// Grade S (Floodgates) > Grade A (Negators/Quick Disrupts) > Grade B (Starters/Engines) > Grade C (Beatsticks).
+        /// Replaces legacy OrderByDescending(Attack).
+        /// </summary>
+        protected ClientCard GetBestRemovalTarget(bool onlyFaceup = false, bool canBeTarget = true)
+        {
+            return Scorer?.GetBestRemovalTarget(onlyFaceup, canBeTarget)
+                ?? Enemy.GetMonsters().Where(m => m != null && (!onlyFaceup || m.IsFaceup()) && (!canBeTarget || !m.IsShouldNotBeTarget())).OrderByDescending(m => m.Attack).FirstOrDefault()
+                ?? Enemy.GetSpells().FirstOrDefault(s => s != null && (!canBeTarget || !s.IsShouldNotBeTarget()));
+        }
+
+        /// <summary>
+        /// Select the highest-threat monster on the opponent's field according to the Unified Target Matrix.
+        /// </summary>
+        protected ClientCard GetBestMonsterRemovalTarget(bool onlyFaceup = true, bool canBeTarget = true, bool ignoreDisabled = false)
+        {
+            return Scorer?.GetHighestThreat(onlyFaceup, canBeTarget, ignoreDisabled)
+                ?? Enemy.GetMonsters().Where(m => m != null && (!onlyFaceup || m.IsFaceup()) && (!canBeTarget || !m.IsShouldNotBeTarget()) && (!ignoreDisabled || !m.IsDisabled())).OrderByDescending(m => m.Attack).FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Select the highest-threat spell/trap on the opponent's field according to the Unified Target Matrix.
+        /// </summary>
+        protected ClientCard GetBestSpellRemovalTarget(bool canBeTarget = true)
+        {
+            return Scorer?.GetHighestThreatSpell(canBeTarget)
+                ?? Enemy.GetSpells().FirstOrDefault(s => s != null && (!canBeTarget || !s.IsShouldNotBeTarget()));
+        }
+
+        /// <summary>
+        /// Checks if the opponent currently controls an active floodgate (Grade S) that restricts plays.
+        /// </summary>
+        protected bool HasEnemyFloodgate()
+        {
+            return Enemy.GetMonsters().Any(m => m != null && m.IsFaceup() && !m.IsDisabled() && (m.IsFloodgate() || CardIntelligence.IsFloodgate(m.Id) || CardIntelligence.IsFloodgateMonster(m.Id)))
+                || Enemy.GetSpells().Any(s => s != null && s.IsFaceup() && !s.IsDisabled() && (CardIntelligence.IsFloodgate(s.Id) || CardIntelligence.IsFloodgateSpellTrap(s.Id)));
+        }
+
+        /// <summary>
+        /// Checks if the opponent currently controls active negations / disruptions (Grade A).
+        /// </summary>
+        protected bool HasEnemyDisruption()
+        {
+            return Enemy.GetMonsters().Any(m => m != null && m.IsFaceup() && !m.IsDisabled() && CardIntelligence.IsKnownNegator(m.Id));
+        }
+
+        /// <summary>
         /// Check if bait should be played before the intended card.
         /// Returns the bait card to play, or null if no baiting needed.
         /// Deck executors call this at the top of their combo starter logic.
@@ -2165,7 +2245,8 @@ namespace WindBot.Game.AI
                 opponentHandCount: Enemy.Hand.Count,
                 turn: Duel.Turn,
                 opponentHasChainedThisTurn: Brain?.EnemyChainedThisChain ?? false,
-                isGoingFirst: !_isGoingSecond
+                isGoingFirst: !_isGoingSecond,
+                hasOnFieldDisruption: HasEnemyDisruption()
             );
 
             if (!shouldBait) return null;
