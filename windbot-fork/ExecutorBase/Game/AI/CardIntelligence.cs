@@ -117,6 +117,8 @@ namespace WindBot.Game.AI
             73580471,  // Black Rose Dragon (wipe)
             46772449,  // Evilswarm Exciton Knight (wipe)
             1621413,   // Dark Requiem Xyz Dragon (3x monster effect negate + pop + revive)
+            69946549,  // Predaplant Dragostapelia (Quick monster negate + counter)
+            14529511,  // Mementomictlan Tecuhtlica - Creation King (Quick field pop)
         };
 
         // ═══════════════════════════════════════════════════════════════
@@ -178,6 +180,15 @@ namespace WindBot.Game.AI
             49867899,  // Fiendsmith's Sequence
             29301450,  // S:P Little Knight
             29301451,  // S:P Little Knight (alt)
+            // Memento Engine
+            54550967,  // Mementotlan Angwitch (Search starter)
+            18165869,  // Mementotlan Dark Blade (Summon starter)
+            81677154,  // Mementotlan Tatsunootoshigo (Special Summon & multi-dump)
+            80722024,  // Mementotlan Bone Party (Deck summon / search)
+            66518509,  // Mementotlan Fusion (Grave fusion & S/T searcher)
+            23288411,  // Mementoal Tecuhtlica - Combined Creation (5000 ATK Boss)
+            29111045,  // Goblin Biker Grand Breakout (Goblin summoner)
+            98476659,  // Pot of Sloth (Hand replenisher)
         };
 
         // ═══════════════════════════════════════════════════════════════
@@ -189,6 +200,7 @@ namespace WindBot.Game.AI
             14558128,  // Ash Blossom (alt art)
             23434538,  // Maxx "C"
             94145021,  // Droll & Lock Bird
+            94145022,  // Droll & Lock Bird (alt)
             97268402,  // Effect Veiler
             10045474,  // Infinite Impermanence
             42141493,  // Mulcharmy Fuwalos
@@ -200,6 +212,7 @@ namespace WindBot.Game.AI
             34267821,  // Artifact Lancea
             27204311,  // Nibiru, the Primal Being
             24224830,  // Called by the Grave
+            24224831,  // Called by the Grave (alt)
             65681983,  // Crossout Designator (canonical)
             65681982,  // Crossout Designator (alt)
             24299458,  // Forbidden Droplet

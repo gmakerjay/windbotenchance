@@ -1,5 +1,42 @@
 # Progress Log: Central Core Architecture & Universal Heuristics Overhaul
 
+## 0.072. Memento (Mementotlan) Deck Implementation, Core Registration & Deployment (2026-10-02)
+
+### 1. Deck Building & Verification
+- **Card List Parsing**: แยกการ์ดทั้ง 74 ใบจากข้อมูล Raw List ออกเป็น Main Deck (59 ใบ) และ Extra Deck (15 ใบ) ได้อย่างถูกต้องตรงตามกฎกติกา 100%
+- **CDB Verification**: ตรวจสอบ Card ID, Effect, Stats, Type, Level/Rank/Link, และ Setcode (`0x19a`) เทียบกับฐานข้อมูล `cards.cdb` และ Official Lua Scripts ทั้งหมด ปราศจากการเดาข้อมูล
+- **Deck Files Generation**: สร้างไฟล์ `.ydk` (`2026_Memento.ydk` และ `Memento.ydk`) วางใน `windbot-fork/Decks/`, `WindBot/Decks/`, และ `deck/` สำหรับการเล่นในเกมจริง
+
+### 2. Central Core Registration
+- **CardIntelligence.cs**:
+  - ลงทะเบียน Memento Engine เข้าสู่ `HighThreatChokepoints`: Angwitch (`54550967`), Dark Blade (`18165869`), Tatsunootoshigo (`81677154`), Bone Party (`80722024`), Mementotlan Fusion (`66518509`), Combined Creation (`23288411`), Goblin Biker Grand Breakout (`29111045`), Pot of Sloth (`98476659`)
+  - ลงทะเบียน `KnownNegators`: Predaplant Dragostapelia (`69946549`), Creation King (`14529511`)
+  - ลงทะเบียน `UniversalHandtraps`: Droll & Lock Bird alt art (`94145022`), Called by the Grave alt art (`24224831`)
+- **bots.json**:
+  - ลงทะเบียนบอท `"Memento"` และ `"2026_Memento"` ลงใน `windbot-fork/bots.json` และ `WindBot/bots.json` เพื่อให้ผู้เล่นเลือกประลองใน DashBot / WindBot ได้ทันที
+
+### 3. Architecture & Deck Plugin Implementation
+- **MementoPlugin.cs**:
+  - `MementoStrategy`: วางแผน Combo Starters, ตรวจสอบ Lethal (Combined Creation 5000 ATK + Creation King 3000 ATK), และ Stop Condition
+  - `MementoMaterialEvaluator`: ลำดับความสำคัญการสละ/ทำลายการ์ด (Fodder: Shleepy, Akihiron, Ghattic, Horned Dragon ได้ประโยชน์จากการถูกทำลาย) พร้อมระบบป้องกันบอส (ห้ามทำลาย/สังเวย Combined Creation และ Creation King)
+  - `MementoThreatEvaluator`: คัดเลือกเป้าหมายการขัดขวางและขโมยมอนสเตอร์ (Mace Quick Steal, Creation King Quick Pop, Super Poly, Droplet)
+  - `MementoResourceLoop`: ตรวจสอบจำนวนชื่อ Memento ในสุสาน/มือเพื่อเงื่อนไขอัญเชิญบอส 5,000 ATK
+  - `MementoBoardAssessor`: ตรวจจับสถานะบอร์ดและการป้องกันของ Field Spell และ Goblin
+- **MementoExecutor.cs**:
+  - พัฒนาบนสถาปัตยกรรม `ModernExecutor`
+  - รองรับ Combo Line: Angwitch Starter (Route A), Dark Blade Starter (Route B), Tatsunootoshigo Starter (Route C), Bone Party / Goblin Biker / One for One (Route D), และ Turn 2 Board Break / OTK (Route E)
+  - รองรับ OnSelectCard overrides ทุก Hint (501 Discard, 502/503 Destroy, 507 Return to Deck, 511 Fusion Material)
+
+### 4. Build & Exclusive Deployment
+- คอมไพล์โปรเจกต์ผ่านสคริปต์กลาง `BUILD_AND_DEPLOY.ps1`: สำเร็จ 100% (0 Errors, 0 Violations)
+- Deploy ไบนารีชุดใหม่ (`WindBot.dll`, `ExecutorBase.dll`, `core.dll`, `bots.json`, Deck files, DashBot) มายังโฟลเดอร์หลัก `C:\Users\admin\Documents\EdoGame\` ครบถ้วน
+- จัดส่งไฟล์เด็คทั้ง 2 รูปแบบ:
+  1. `2026_Memento.ydk` & `Memento.ydk`: สูตร Competitive 40 ใบเสถียรสูงสุด (Starter Rate 90%, Brick Rate 10%)
+  2. `2026_Memento_Heavy59.ydk`: สูตร 59 ใบคงเดิมสำหรับผู้เล่นที่ต้องการทดสอบสไตล์ Blind Second
+- บันทึกเอกสารวิเคราะห์โครงสร้างและคู่มือการเล่นไว้ที่ `Docs/MEMENTO_DECK_ANALYSIS_AND_AI_PLAYBOOK.md`
+
+---
+
 ## 0.071. Unified Target Matrix & Smart Interruption Architecture: Proof, Implementation & Validation (2026-10-02)
 
 ### 1. Verification of Gap Analysis Claims ("พิสูจน์ข้อเท็จจริงตามหลักฐานเชิงประจักษ์")
@@ -470,4 +507,25 @@
 - **Verification**:
   - Tested `Client_Headless_Fortest` (ABC vs DarkMagician, 3 Games): 3 Wins / 0 Losses (100% Win Rate), 0 Violations, 0 Errors in `error.log`.
   - Comprehensive documentation added: `Docs/CONTACT_FUSION_LUA_BUG_FIX_REPORT.md`.
+
+---
+
+## 🚀 Sprint Summary: 2026_Memento Deck & Rule-Based AI Executor Optimization
+- **Deck & Card Database Architecture**:
+  - Analyzed and built competitive 40-card Memento deck (`2026_Memento.ydk` & `Memento.ydk`).
+  - Removed legacy 59-card variant (`2026_Memento_Heavy59.ydk`) completely from deck folders, bots.json, and executor registrations to standardize on competitive 40-card build.
+  - Registered all Memento engine IDs into Central Core `CardIntelligence.cs` (chokepoints, negators, handtraps).
+  - Built Decoupled Plugin `MementoPlugin.cs` with `MementoStrategy`, `MementoMaterialEvaluator`, `MementoThreatEvaluator`, `MementoResourceLoop`, and `MementoBoardAssessor`.
+  - Implemented `MementoExecutor.cs` using `ModernExecutor` architecture.
+- **Forensic Duel Log Diagnosis & Critical Bug Fixes**:
+  - **Fix 1 (Creation King Suicide Loop)**: Resolved critical bug where `Creation King` targeted itself for destruction during Quick Effect. Enforced strict exclusion of `CreationKing` and `MementoalTecuhtlica` from sacrifice lists, and prevented Quick Effect activation unless valid sacrificial fodder exists.
+  - **Fix 2 (Creation King 3-Card Dump)**: Added dedicated `hint == 504 (min=3, max=3)` handler to prioritize sending `Mementoal Tecuhtlica` (5000 ATK Boss), `Ghattic` (triggers to revive itself & recycle card), and `Twin Dragon` from Extra Deck.
+  - **Fix 3 (Tatsunootoshigo Lv5 Dump)**: Fixed empty selection on second dump card (`min=0, max=1`) so that `Ghattic` (Lv2) is always selected after `Shleepy` (Lv3) to complete the 5-level budget.
+  - **Fix 4 (Forbidden Droplet Strategy & Cost Protection)**: Restricted Droplet activation to legitimate threats/negators/lethal, and protected key starters (`Mementotlan Fusion`, `Bone Party`, `Super Poly`) from being discarded.
+  - **Fix 5 (Mementotlan Fusion Material Hierarchy)**: Elevated GY material priority to 5000 so that `Mementotlan Fusion` shuffles monsters from Graveyard instead of wiping friendly board monsters.
+- **Build & Exclusive Target Deployment**:
+  - Built and verified with 0 errors via `BUILD_AND_DEPLOY.ps1`.
+  - Deployed binaries (`WindBot.dll`, `ExecutorBase.dll`, `bots.json`, deck lists, CDBs) exclusively to `C:\Users\admin\Documents\EdoGame\`.
+  - Documented in `Docs/MEMENTO_DECK_ANALYSIS_AND_AI_PLAYBOOK.md` and `Docs/MEMENTO_DUEL_LOG_ANALYSIS_AND_AI_FIX_REPORT.md`.
+
 
