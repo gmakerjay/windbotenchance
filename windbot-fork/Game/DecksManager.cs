@@ -43,7 +43,7 @@ namespace WindBot.Game
                     if (attribute is DeckAttribute)
                     {
                         DeckAttribute deck = (DeckAttribute)attribute;
-                        _decks.Add(deck.Name, new DeckInstance(deck.File, type, deck.Level));
+                        _decks[deck.Name] = new DeckInstance(deck.File, type, deck.Level);
                     }
                 }
             }
@@ -67,7 +67,7 @@ namespace WindBot.Game
                                 if (attribute is DeckAttribute)
                                 {
                                     DeckAttribute deck = (DeckAttribute)attribute;
-                                    _decks.Add(deck.Name, new DeckInstance(deck.File, type, deck.Level));
+                                    _decks[deck.Name] = new DeckInstance(deck.File, type, deck.Level);
                                 }
                             }
                         }

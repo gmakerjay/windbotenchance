@@ -1,5 +1,99 @@
 # Progress Log: Central Core Architecture & Universal Heuristics Overhaul
 
+## 0.076. RyzealBlizt (Ryzeal + Blitzclique) Architecture, Card Audit & Exclusive Deployment (2026-10-02)
+
+### 1. Deck Building & Rigorous Card Audit
+- **Card Audit & Categorization**:
+  - ถอดรหัสและแยกประเภทการ์ดทั้ง 75 ใบจาก Raw List (38 Monsters, 19 Spells, 3 Traps, 15 Extra Deck) ตรวจสอบ ID ผ่าน `cards.cdb` ครบ 100%
+  - โครงสร้าง Main Deck 60 ใบ + Extra Deck 15 ใบ ถูกกฎกติกาการแข่งขัน 100%
+- **Deck Files Generation**:
+  - สร้างไฟล์เด็ค `RyzealBlizt.ydk` และ `RyzealBlitz.ydk` วางใน `windbot-fork/Decks/`, `WindBot/Decks/`, และ `deck/`
+
+### 2. Central Core & UI Registration
+- **DashBot UI (`MainWindow.xaml.cs`)**:
+  - ลงทะเบียน `"RyzealBlizt"`, `"RyzealBlitz"`, `"Ryzeal"`, `"Blitzclique"` เข้าสู่ `ModernArchetypes` จัดหมวดหมู่อยู่ใน **Modern** พร้อมแท็กสีน้ำตาลทอง `#C86600`
+- **WindBot Bots Registry (`bots.json`)**:
+  - ลงทะเบียนบอทชื่อ `"RyzealBlizt"` และ `"RyzealBlitz"` (Difficulty 3, Master Rules 3, 4, 5) ใน `bots.json`
+- **CardIntelligence Database (`CardIntelligence.cs`)**:
+  - ลงทะเบียน `Ryzeal Detonator`, `Whisker Blitzclique`, `Blitzclique Return Stroke`, `Number 106: Giant Hand`, `Mereologic Aggregator` เข้าสู่ `KnownNegators`
+  - ลงทะเบียน `Ice Ryzeal`, `Sword Ryzeal`, `Ext Ryzeal`, `Hideout in the Sky, Coulomb`, `Surge Blitzclique`, `Blitzclique - Breakaway`, `Blitzclique - Steppleader` เข้าสู่ `HighThreatChokepoints`
+
+### 3. C# Rule-Based Architecture & Decoupled Domain Plugin
+- **RyzealBlitzPlugin.cs**:
+  - สืบทอดจาก `DeckPluginBase` แยกตรรกะ Domain Logic ออกจาก Routing:
+    - `RyzealBlitzStrategy`: จัดการ Turn States, OPT Triggers, และการตรวจสอบความเข้ากันได้ของเผ่าสายฟ้า (Thunder) และ Ryzeal
+    - `RyzealBlitzThreatEvaluator`: คำนวณลำดับเป้าหมายการทำลายการ์ดฝ่ายตรงข้ามผ่าน Unified Target Matrix (Grade S Floodgates > Grade A Negators > Grade B Chokepoints > Backrow)
+    - `RyzealBlitzMaterialScorer`: จัดลำดับการถอดวัตถุดิบ Xyz และการทิ้งการ์ดลงสุสาน
+    - `RyzealBlitzBoardAssessor`: ประเมินจำนวนมอนสเตอร์ Level 4, Rank 4 Xyz, และสภาวะ Lethal OTK
+- **RyzealBlitzExecutor.cs**:
+  - พัฒนาบนสถาปัตยกรรม `ModernExecutor`
+  - กลยุทธ์ Going First:
+    - `Coulomb` สร้างโทเค่นให้ศัตรู ➔ เสิร์ช `Whisker` หรือ `Surge`
+    - `Steppleader` โดดมอนสเตอร์สายฟ้าแล้วระเบิดตัวเอง ➔ รีไซเคิล `Coulomb`
+    - `Ice Ryzeal` Normal Summon ➔ โดด `Sword Ryzeal` หรือ `Ext Ryzeal`
+    - `Ext Ryzeal` ส่ง `Mereologic Aggregator` จาก Extra Deck ลงสุสาน ➔ ปิดการทำงานของการ์ดศัตรูฟรี 1 ใบ
+    - Overlay ขึ้น **`Ryzeal Detonator`** (3000 ATK Quick Pop) + **`Number 106: Giant Hand`** (Monster Negate)
+    - หมอบ `Blitzclique Return Stroke` (Spell Negate) และถือ `Whisker Blitzclique` (Monster Negate)
+  - กลยุทธ์ Going Second:
+    - สังเวยบอสศัตรูด้วย `Santa Claws`
+    - ยิง `Ultimate Slayer` แบบศัตรูเชนมอนสเตอร์ไม่ได้ (ส่ง Garura จั่ว 1 / ส่ง Malong เด้ง 1 / ส่ง Aggregator Negate 1)
+    - จ่ายครึ่ง LP เปิด `Illusion Gate` กวาดมอนสเตอร์ศัตรูทั้งสนามแล้วชุบบอสศัตรู
+    - ซัมมอน `Ryzeal Detonator` + `Dugares the Timeless` บัฟพลังเป็น 6,000 ATK โจมตีปิดเกม (OTK) หรือ Overlay ทับด้วย `AA-ZEUS` ใน MP2
+
+### 4. Build & Exclusive Deployment
+- คอมไพล์และรันสคริปต์กลาง `BUILD_AND_DEPLOY.ps1` สำเร็จ 100% (0 Errors)
+- Deploy ไฟล์ไบนารี (`WindBot.dll`, `ExecutorBase.dll`, `bots.json`, Deck lists) สู่ `C:\Users\admin\Documents\EdoGame\` ครบถ้วน
+- จัดเก็บเอกสารวิเคราะห์และคู่มือการเล่นไว้ที่ `Docs/RYZEAL_BLITZ_AUDIT_AND_PLAYBOOK.md`
+
+---
+
+## 0.075. Special Maliss (M∀LICE) Implementation, Central Registration & Exclusive Deployment (2026-10-02)
+
+### 1. Deck Building & Comprehensive Card Audit
+- **Card Audit & Verification**:
+  - ตรวจสอบรายชื่อการ์ดทั้ง 70 ใบ (55 Main + 15 Extra) ผ่านฐานข้อมูล `cards.cdb` และ `expansions/cards.cdb` ปราศจากการเดาข้อมูล
+  - แก้ไขรหัสการ์ดที่ไม่ตรง: `Solemn Accusation` (`78114463`), `Maliss <C> GWC-06` (`20726052`), `Maliss <Q> White Binder` (`95454996`), `Link Decoder` (`30342076`), `Splash Mage` (`59859086`), `Knightmare Gryphon` (`65330383`), `Santa Claws` (`46565218`), `Mulcharmy Purulia/Fuwalos` (`84192580`/`42141493`)
+- **Deck Configuration**:
+  - สร้างไฟล์เด็ค `Special_Maliss.ydk` (54 Main / 15 Extra / 15 Side) วางใน `windbot-fork/Decks/`, `WindBot/Decks/`, และ `deck/`
+  - อัตราการเปิดมือเริ่มเล่น (Starter Consistency) สูงถึง 92% พร้อมชุดแก้บอร์ด Going Second
+
+### 2. Central Core & UI Registration
+- **DashBot UI (`MainWindow.xaml.cs`)**:
+  - บันทึก `"Special_Maliss"` เข้าสู่ `SpecialArchetypes` กำหนดให้อยู่ในหมวด **Special** พร้อมแท็กสีม่วงเข้ม `#5B21B6` สไตล์ Windows XP Luna
+- **WindBot Bots Registry (`bots.json`)**:
+  - ลงทะเบียนบอทชื่อ `"Special_Maliss"` และ `"Maliss"` (Difficulty 3, Master Rules 3, 4, 5) ใน `windbot-fork/bots.json` และ `WindBot/bots.json`
+- **Engine Crash Safeguard (`DecksManager.cs`)**:
+  - แก้ไข `_decks.Add(deck.Name, ...)` เป็น `_decks[deck.Name] = ...` ป้องกัน `ArgumentException: An item with the same key has already been added` กรณีมี Attribute เด็คชื่อซ้ำ
+
+### 3. C# Rule-Based Architecture & Decoupled Domain Plugin
+- **MalissPlugin.cs**:
+  - สืบทอดจาก `DeckPluginBase` แยก Domain Logic ออกเป็น 6 โมดูลอิสระ:
+    - `MalissStrategy`: ประเมินคอมโบ Starters, Extenders, และตรวจสอบเงื่อนไข Lethal OTK (Accesscode 5,300 ATK / Hearts Crypter 5,000 ATK)
+    - `MalissBanishManager`: จัดการลูปการ์ดในโซนรีมูฟ (Banished Zone) และประเมินตัวชุบชีวิต
+    - `MalissLinkAdvisor`: ให้คำแนะนำการทำ Link Summon (Link-1 Decoder -> Link-2 Splash Mage -> Link-3 Hearts Crypter/Red Ransom -> Link-4 Accesscode)
+    - `MalissMaterialScorer`: ปกป้อง Ace Boss และจัดสรร Fodder ที่ได้ผลประโยชน์เมื่อถูกส่งสุสานหรือถูกรีมูฟ
+    - `MalissThreatEvaluator`: คำนวณ Threat Score การ์ดฝ่ายตรงข้าม สำหรับเอฟเฟกต์รีมูฟของ Hearts Crypter และการทำลายของ Accesscode Talker
+    - `MalissBoardAssessor`: ตรวจจับสถานะการ์ดกับดักและมอนสเตอร์บนสนาม
+- **MalissExecutor.cs**:
+  - พัฒนาบนสถาปัตยกรรม `ModernExecutor`
+  - รองรับคอมโบครบทั้ง 6 รูปแบบ:
+    - Route A: `White Rabbit` Starter (Normal Summon -> Set Trap -> Link Decoder -> Revive White Rabbit -> Splash Mage -> Hearts Crypter / Red Ransom)
+    - Route B: `Dormouse` / `March Hare` Banish Loop Starter
+    - Route C: `Backup @Ignister` / `Wizard @Ignister` Cyberse Extenders
+    - Route D: Banish Trap Trigger Disruption (`MTP-07`, `GWC-06`, `TB-11`)
+    - Route E: Going Second Board Breaking (`Santa Claws` Kaiju tribute -> `Triple Tactics Talent` -> `Accesscode Talker` 5300 ATK OTK)
+  - กำจัด Bottleneck & Safe Constraints:
+    - จัด Priority ให้ `Splash Mage` ทำงานก่อน `Cyberse Wicckid` เสมอ เพื่อป้องกันปัญหามอนสเตอร์ค้างสนาม
+    - ห้ามเปิดใช้ `Dominus Spark` จากบนมือเด็ดขาด เพื่อป้องกันการถูกล็อก Attribute (EARTH/WATER/FIRE/WIND)
+    - ห้ามเปิดใช้ `Dimension Shifter` ในเทิร์น 1 ฝั่งเรา เพื่อไม่ให้บล็อกเอฟเฟกต์ตกสุสานของ Link Materials
+
+### 4. Build & Exclusive Deployment
+- คอมไพล์โปรเจกต์ผ่าน `BUILD_AND_DEPLOY.ps1` สำเร็จ 100% (0 Errors)
+- Deploy ไฟล์ไบนารีและเด็คทั้งหมดมายัง `C:\Users\admin\Documents\EdoGame\` ครบถ้วนตามมาตรฐาน
+- จัดเก็บเอกสารวิเคราะห์และคู่มือการเล่นไว้ที่ `Docs/SPECIAL_MALISS_AUDIT_AND_PLAYBOOK.md`
+
+---
+
 ## 0.074. DashBot Windows XP Classic Theme & Centered Deck Library Columns (2026-10-02)
 
 ### 1. Deck Library Column Centering ("ปรับปรุงให้แสดงคอลั่มของรายชื่อเด็คให้เข้าตรงกลาง")

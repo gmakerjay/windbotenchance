@@ -119,6 +119,12 @@ namespace WindBot.Game.AI
             1621413,   // Dark Requiem Xyz Dragon (3x monster effect negate + pop + revive)
             69946549,  // Predaplant Dragostapelia (Quick monster negate + counter)
             14529511,  // Mementomictlan Tecuhtlica - Creation King (Quick field pop)
+            34909328,  // Ryzeal Detonator (Quick pop on opponent activation)
+            85523502,  // Whisker Blitzclique (Quick monster negate + pop)
+            23526128,  // Blitzclique Return Stroke (Quick spell negate + pop)
+            63746411,  // Number 106: Giant Hand (Quick monster negate)
+            27548199,  // Borreload Savage Dragon (Omni-negate)
+            9940036,   // Mereologic Aggregator (GY send negation)
         };
 
         // ═══════════════════════════════════════════════════════════════
@@ -189,6 +195,15 @@ namespace WindBot.Game.AI
             23288411,  // Mementoal Tecuhtlica - Combined Creation (5000 ATK Boss)
             29111045,  // Goblin Biker Grand Breakout (Goblin summoner)
             98476659,  // Pot of Sloth (Hand replenisher)
+            // Ryzeal Engine
+            8633261,   // Ice Ryzeal (Starter)
+            35844557,  // Sword Ryzeal (Starter / Searcher)
+            34022970,  // Ext Ryzeal (Extender / Searcher)
+            // Blitzclique Engine
+            37654623,  // Hideout in the Sky, Coulomb (Field Spell Searcher)
+            22912101,  // Surge Blitzclique (Pop & Summon)
+            64049762,  // Blitzclique - Breakaway (Trap placement / pop)
+            433377,    // Blitzclique - Steppleader (Self-destruct summoner)
         };
 
         // ═══════════════════════════════════════════════════════════════

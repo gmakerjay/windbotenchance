@@ -337,7 +337,7 @@ namespace dashbot
 
         private static readonly HashSet<string> SpecialArchetypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            "HorusExodia", "HorusRa", "ExodiaRaHorus"
+            "HorusExodia", "HorusRa", "ExodiaRaHorus", "Special_Maliss"
         };
 
         private static readonly HashSet<string> ModernArchetypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -352,7 +352,7 @@ namespace dashbot
             "SuperHeavySamurai", "Mathmech", "Cyberse", "Synchron", "Exosister",
             "SacrBeatsMach", "ScarbeatMach", "SacredBeats", "Machina",
             "PhantomKnight", "PhantomKnights",
-            "SkyStrikerZero"
+            "SkyStrikerZero", "RyzealBlizt", "RyzealBlitz", "Ryzeal", "Blitzclique"
         };
 
         private static DeckItem ParseDeckItem(string originalName)

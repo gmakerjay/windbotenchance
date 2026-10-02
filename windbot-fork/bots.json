@@ -3063,5 +3063,65 @@
       4,
       5
     ]
+  },
+  {
+    "name": "Special_Maliss",
+    "deck": "Special_Maliss",
+    "difficulty": 3,
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ],
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Maliss",
+    "deck": "Special_Maliss",
+    "difficulty": 3,
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ],
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "RyzealBlizt",
+    "deck": "RyzealBlizt",
+    "difficulty": 3,
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ],
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "name": "RyzealBlitz",
+    "deck": "RyzealBlizt",
+    "difficulty": 3,
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ],
+    "masterRules": [
+      3,
+      4,
+      5
+    ]
   }
 ]
