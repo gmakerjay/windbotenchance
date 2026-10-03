@@ -550,15 +550,15 @@ namespace WindBot.Game.AI.Decks
                 35261759,                                // Pot of Desires
                 38120068,                                // Trade-In
                 84211599,                                // Pot of Prosperity
-                35269904,                                // Pot of Extravagance
+                49238328,                                // Pot of Extravagance
                 71039903,                                // The White Stone of Ancients
                 79814787,                                // The White Stone of Legend
                 53143898,                                // Altergeist Marionetter
                 42790071,                                // Altergeist Multifaker
                 53936268,                                // Altergeist Spoofing
                 66399653,                                // ABC Union Hangar
-                89917387,                                // ABC Union Driver
-                04367828,                                // Branded Fusion
+                99249638,                                // ABC Union Driver
+                44362883,                                // Branded Fusion
                 73628505                                 // Terraforming
             )) return false;
             return DefaultAshBlossomAndJoyousSpring();

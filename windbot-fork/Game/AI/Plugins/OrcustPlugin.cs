@@ -251,10 +251,10 @@ namespace WindBot.Game.AI.Plugins
             // 1. Critical S/T Floodgates (Grade S)
             if (card.Id == 48680970) score += 2500; // Eternal Soul
             else if (card.Id == 68462976) score += 2200; // Secret Village of the Spellcasters
-            else if (card.Id == 38009249) score += 2000; // Runick Fountain
-            else if (card.Id == 66970002) score += 1800; // Union Hangar
+            else if (card.Id == 92107604) score += 2000; // Runick Fountain
+            else if (card.Id == 66399653) score += 1800; // Union Hangar
             else if (card.Id == 47222536) score += 1700; // Dark Magical Circle
-            else if (card.Id == 82828051) score += 2200; // Skill Drain
+            else if (card.Id == 82732705) score += 2200; // Skill Drain
 
             // 2. Continuous / Field Spells
             if (card.IsFaceup() && (card.HasType(CardType.Continuous) || card.HasType(CardType.Field)))

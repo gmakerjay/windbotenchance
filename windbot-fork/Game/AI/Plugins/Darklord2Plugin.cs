@@ -36,11 +36,7 @@ namespace WindBot.Game.AI.Plugins
             ThreatImpl = new Darklord2ThreatEvaluator(exec);
         }
 
-        public override void ResetTurnState()
-        {
-            base.ResetTurnState();
-            StrategyImpl.Reset();
-        }
+        // ResetTurnState: DeckPluginBase already resets Strategy (= StrategyImpl) and ResourceEvaluator.
     }
 
     public class Darklord2Strategy : IDeckStrategy

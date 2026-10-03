@@ -1052,8 +1052,8 @@ namespace WindBot.Game.AI.Decks
                     12580477, // Raigeki
                     18144506, // Harpie's Feather Duster
                     14532163, // Lightning Storm
-                    32807846, // Evenly Matched
-                    5318639,  // Dark Hole
+                    15693423, // Evenly Matched
+                    53129443, // Dark Hole
                     24224830, // Called by the Grave
                     10045474  // Infinite Impermanence
                 ))
@@ -1167,9 +1167,9 @@ namespace WindBot.Game.AI.Decks
             if (Enemy.ExtraDeck.Count < 5) return false;
 
             int[] nonEdCardIds = {
-                82331575, 65004735, 37376378, 28189874, 16674826, 52758156, // Floowandereeze
-                68482979, 32800889, 73384260, 61845184, 80112101, 29334547, 65002047, 81373516, // True Draco
-                78884013 // Domain of the True Monarchs
+                18940725, 54334420, 80433039, 17827173, 80611581, 28126717, // Floowandereeze (Robina, Eglen, Stri, Toccan, Empen, Map)
+                22499034, 58984738, 95004025, 21377582, 13035077, 49430782, 75425320, 35125879, 61529473, // True Draco
+                84171830 // Domain of the True Monarchs
             };
 
             bool hasNonEdIndicators = Enemy.GetMonsters().Any(c => c != null && nonEdCardIds.Contains(c.Id))

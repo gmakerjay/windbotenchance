@@ -377,14 +377,14 @@ namespace WindBot.Game.AI.Plugins
 
             // Continuous Floodgates & Engine Pillars
             // 48680970 = Eternal Soul (DM: wipes all DM monsters when popped!)
-            // 99188141 = Skill Drain
-            // 66399444 = Union Hangar
+            // 82732705 = Skill Drain
+            // 66399653 = Union Hangar
             // 47222536 = Dark Magical Circle
             if (c.Id == 48680970) score += 120;
-            if (c.Id == 99188141) score += 110;
-            if (c.Id == 66399444) score += 95;
+            if (c.Id == 82732705) score += 110;
+            if (c.Id == 66399653) score += 95;
             if (c.Id == 47222536) score += 80;
-            if (c.Id == 82732047 || c.Id == 82732705 || c.Id == 30241314) score += 85;
+            if (c.Id == 82732705 || c.Id == 30241314) score += 85;
 
             // Mass Backrow Wipes
             if (c.Id == 18144506 || c.Id == 14532163 || c.Id == 15693423) score += 90;

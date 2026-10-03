@@ -244,7 +244,7 @@ namespace WindBot.Game.AI.Decks
                     || id == 12580477  // Raigeki
                     || id == 15693423  // Evenly Matched
                     || id == 5318639   // Mystical Space Typhoon
-                    || id == 98338152  // Cosmic Cyclone
+                    || id == 8267140   // Cosmic Cyclone
                     || id == 43898403  // Twin Twisters
                     || id == 44362883  // Branded Fusion
                     || CardIntelligence.IsHighThreatChokepoint(id))

@@ -223,10 +223,10 @@ namespace WindBot.Game.AI.Plugins
 
         private static readonly int[] HeavyFloodgates = {
             82732705, // Skill Drain
-            58921041, // Mystic Mine
-            39239728, // Anti-Spell Fragrance
-            73125233, // Imperial Order
-            99510761, // Vanity's Emptiness
+            76375976, // Mystic Mine
+            58921041, // Anti-Spell Fragrance
+            61740673, // Imperial Order
+            5851097,  // Vanity's Emptiness
             40605147, // Solemn Strike
             41420027  // Solemn Judgment
         };

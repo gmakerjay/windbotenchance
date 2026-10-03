@@ -311,7 +311,7 @@ namespace WindBot.Game.AI.Decks
             {
                 if (c == null || !c.IsFaceup() || c.IsDisabled()) continue;
                 if (c.IsCode(CardId.Number38, CardId.BaronneDeFleur, CardId.BorreloadSavageDragon,
-                             CardId.CyberDragonInfinity, CardId.Hexstia, 17330115))
+                             CardId.CyberDragonInfinity, CardId.Hexstia) || CardIntelligence.IsKnownNegator(c.Id))
                 {
                     return true;
                 }
@@ -1408,9 +1408,9 @@ namespace WindBot.Game.AI.Decks
             }
 
             // 3. Eternal Soul checks (reproduced from ModernExecutor)
-            const int EternalSoul = 48682656;
+            const int EternalSoul = 48680970;
             const int DarkMagician = 46986414;
-            const int DarkMagicianTheDragonKnight = 1395963;
+            const int DarkMagicianTheDragonKnight = 41721210;
 
             bool isEternalSoulActive = Enemy.GetSpells().Concat(Bot.GetSpells()).Any(s =>
                 s != null && s.IsFaceup() && s.IsCode(EternalSoul) && !s.IsDisabled());

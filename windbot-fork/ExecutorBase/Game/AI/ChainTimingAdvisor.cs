@@ -130,7 +130,7 @@ namespace WindBot.Game.AI
                 62318994, // Samsara D Lotus
                 // Tenpai Dragon
                 39931513, // Tenpai Dragon Paidra
-                71983925, // Tenpai Dragon Chundra
+                91810826, // Tenpai Dragon Chundra
                 66730191, // Sangen Kaimen
                 // Voiceless Voice
                 25801745, // Lo, the Prayers of the Voiceless Voice
@@ -147,14 +147,14 @@ namespace WindBot.Game.AI
                 // Branded / Despia
                 44362883, // Branded Fusion
                 62962630, // Aluber the Jester of Despia
-                73819701, // Fallen of Albaz
+                68468459, // Fallen of Albaz
                 45883110, // Guiding Quem, the Virtuous
                 // Snake-Eye / Fire King
-                27381364, // Snake-Eye Ash
-                60953949, // Snake-Eyes Poplar
-                68468459, // WANTED: Seeker of Sinful Spoils
-                49868263, // Original Sinful Spoils - Snake-Eye
-                368382,   // Legendary Fire King Ponix
+                9674034, // Snake-Eye Ash
+                90241276, // Snake-Eyes Poplar
+                80845034, // WANTED: Seeker of Sinful Spoils
+                89023486, // Original Sinful Spoils - Snake-Eye
+                90681088,   // Legendary Fire King Ponix
                 // ABC
                 66399653, // Union Hangar
                 77411244, // B-Buster Drake
@@ -162,32 +162,32 @@ namespace WindBot.Game.AI
                 // Altergeist
                 42790071, // Altergeist Multifaker
                 53143898, // Altergeist Meluseek
-                99111728, // Altergeist Marionetter
+                53143898, // Altergeist Marionetter
                 // Dark Magician
-                38033121, // Dark Magical Circle
-                70781052, // Magician's Rod
+                47222536, // Dark Magical Circle
+                7084129, // Magician's Rod
                 48680970, // Eternal Soul
                 // Blue-Eyes
                 8240199,  // Sage with Eyes of Blue
-                71039903, // Maiden with Eyes of Blue
-                99789342, // The Melody of Awakening Dragon
+                88241506, // Maiden with Eyes of Blue
+                48800175, // The Melody of Awakening Dragon
                 // Labrynth
                 1225009,  // Arianna the Labrynth Servant
-                2347656,  // Welcome Labrynth
-                78231355, // Big Welcome Labrynth
+                5380979,  // Welcome Labrynth
+                92714517, // Big Welcome Labrynth
                 // Spright / Runick / Kashtira / Tearlaments / Cyberse
-                39477584, // Spright Starter
-                54498517, // Spright Blue
-                80036531, // Spright Jet
-                15394972, // Runick Tip
-                38009249, // Runick Fountain
+                15443125, // Spright Starter
+                76145933, // Spright Blue
+                13533678, // Spright Jet
+                31562086, // Runick Tip
+                92107604, // Runick Fountain
                 32909498, // Kashtira Fenrir
-                8809344,  // Kashtira Unicorn
-                68823957, // Pressured Planet Wraitsoth
-                74063034, // Tearlaments Reinoheart
-                42386471, // Primeval Planet Perlereino
-                74064212, // Mathmech Circular
-                5043010,  // Cynet Mining
+                68304193,  // Kashtira Unicorn
+                71832012, // Pressured Planet Wraitsoth
+                73956664, // Tearlaments Reinoheart
+                77103950, // Primeval Planet Perlereino
+                36521307, // Mathmech Circular
+                57160136,  // Cynet Mining
                 // Generic Searchers & Power Cards
                 32807846, // Reinforcement of the Army
                 73628505, // Terraforming
@@ -210,7 +210,7 @@ namespace WindBot.Game.AI
                 93946239, // Into the Void
                 74117290, // Dark World Dealings
                 74519184, // Hand Destruction
-                43218406, // Gizmek Orochi
+                71197066, // Gizmek Orochi, the Serpentron Sky Slasher
             });
 
             // Handtrap Budgeting: Pot & General Bait Cards (Strict Section 5.3)
@@ -222,7 +222,7 @@ namespace WindBot.Game.AI
                 67616300, // Chicken Game
                 84211599, // Pot of Prosperity
                 35261759, // Pot of Desires
-                72426662, // Pot of Extravagance
+                49238328, // Pot of Extravagance
                 49238328, // Pot of Extravagance (alt)
                 49238329, // Pot of Extravagance (alt 2)
                 98645731, // Pot of Duality

@@ -56,7 +56,7 @@ namespace WindBot.Game.AI
             35261759, // Pot of Desires
             70368879, // Upstart Goblin
             73628505, // Terraforming
-            43422537, // Preparation of Rites
+            96729612, // Preparation of Rites
             54693926, // Dark Ruler No More
             14532163, // Lightning Storm
             24299458, // Forbidden Droplet

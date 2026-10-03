@@ -235,7 +235,7 @@ namespace WindBot.Game.AI
 
             // ── ACTION / HINT SITUATIONAL MODIFIERS ──
             const long HINTMSG_DESTROY = 502;
-            const long HINTMSG_TARGET = 506;
+            const long HINTMSG_TARGET = 551; // script/constant.lua (506 = ATOHAND)
 
             if (hint == HINTMSG_DESTROY)
             {

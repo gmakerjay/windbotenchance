@@ -65,7 +65,7 @@ namespace WindBot.Game.AI
         {
             if (card == null) return false;
             if (card.IsDisabled()) return false;
-            if (card.EquipCards != null && card.EquipCards.Any(c => c != null && (c.IsCode(30012506, 15622650) || c.IsCode(77411244) || c.IsCode(3405259, 34050266) || c.IsCode(89812483)) && !c.IsDisabled()))
+            if (card.EquipCards != null && card.EquipCards.Any(c => c != null && (c.IsCode(30012506) || c.IsCode(77411244) || c.IsCode(3405259) || c.IsCode(89812483)) && !c.IsDisabled()))
                 return true;
             if (card.Overlays != null && card.Overlays.Any(code => code == 91025875))
                 return true;
@@ -81,7 +81,7 @@ namespace WindBot.Game.AI
         {
             if (card == null) return false;
             if (card.IsDisabled()) return false;
-            if (card.EquipCards != null && card.EquipCards.Any(c => c != null && (c.IsCode(30012506, 15622650) || c.IsCode(89812483)) && !c.IsDisabled()))
+            if (card.EquipCards != null && card.EquipCards.Any(c => c != null && (c.IsCode(30012506) || c.IsCode(89812483)) && !c.IsDisabled()))
                 return true;
             return Enum.IsDefined(typeof(ShouldNotBeMonsterTarget), card.Id);
         }
@@ -93,7 +93,7 @@ namespace WindBot.Game.AI
         {
             if (card == null) return false;
             if (card.IsDisabled()) return false;
-            if (card.EquipCards != null && card.EquipCards.Any(c => c != null && (c.IsCode(77411244) || c.IsCode(3405259, 34050266) || c.IsCode(89812483)) && !c.IsDisabled()))
+            if (card.EquipCards != null && card.EquipCards.Any(c => c != null && (c.IsCode(77411244) || c.IsCode(3405259) || c.IsCode(89812483)) && !c.IsDisabled()))
                 return true;
             return Enum.IsDefined(typeof(ShouldNotBeSpellTrapTarget), card.Id);
         }

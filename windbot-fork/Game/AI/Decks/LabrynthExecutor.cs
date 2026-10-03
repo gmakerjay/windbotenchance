@@ -988,7 +988,7 @@ namespace WindBot.Game.AI.Decks
                 c.Id == 43722862 || // Windwitch - Ice Bell
                 c.Id == 71007216 || // Windwitch - Glass Bell
                 c.Id == 70117860 || // Windwitch - Snow Bell
-                c.Id == 21044178 || // Windwitch - Winter Bell
+                c.Id == 14577226 || // Windwitch - Winter Bell
                 c.Id == 50954680    // Crystal Wing Synchro Dragon
             );
             if (isWindwitch) return 2; // Synchro!
@@ -1008,15 +1008,15 @@ namespace WindBot.Game.AI.Decks
                 c.Id == 89132148 || // Photon Orbital
                 c.Id == 46986414 || // Dark Magician
                 c.Id == 47222536 || // Dark Magical Circle
-                c.Id == 38033121 || // Dark Magical Circle (alt)
+                c.Id == 38033121 || // Dark Magician Girl
                 c.Id == 48680970 || // Eternal Soul
                 c.Id == 1784686  || // The Eye of Timaeus
                 c.Id == 7084129  || // Magician's Rod
                 c.Id == 30603688 || // Apprentice Illusion Magician
                 c.Id == 7922915  || // Magician Navigation
                 c.Id == 41721210 || // Dark Magician the Dragon Knight
-                c.Id == 71413901 || // Secrets of Dark Magic
-                c.Id == 70828912 || // Magicians' Souls
+                c.Id == 59514116 || // Secrets of Dark Magic
+                c.Id == 97631303 || // Magicians' Souls
                 c.Id == 24094653    // Polymerization
             );
             if (isFusionDeck) return 1; // 1 = Fusion
@@ -1037,8 +1037,7 @@ namespace WindBot.Game.AI.Decks
                 c.Id == 39701395 || // Cards of Consonance
                 c.Id == 48800175 || // The Melody of Awakening Dragon
                 c.Id == 6853254  || // Return of the Dragon Lords
-                c.Id == 18591577 || // Return of the Dragon Lords (alt)
-                c.Id == 22804644    // Bingo Machine, Go!!!
+                c.Id == 93437091    // Bingo Machine, Go!!!
             );
             if (isBlueEyes)
             {

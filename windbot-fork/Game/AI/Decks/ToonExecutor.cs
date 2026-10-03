@@ -1,4 +1,4 @@
-﻿using YGOSharp.OCGWrapper.Enums;
+using YGOSharp.OCGWrapper.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -1424,7 +1424,7 @@ namespace WindBot.Game.AI.Decks
 
                 // 2. If it is a known non-targeting removal or threat card:
                 int[] nonTargetThreats = {
-                    26412047, // Raigeki
+                    12580477, // Raigeki
                     53129443, // Dark Hole
                     14532163, // Lightning Storm
                     18144506, // Harpie's Feather Duster
@@ -1436,7 +1436,7 @@ namespace WindBot.Game.AI.Decks
                     86066372, // Accesscode Talker
                     44095762, // Mirror Force
                     53582587, // Torrential Tribute
-                    35218707, // Book of Eclipse
+                    35480699, // Book of Eclipse
                     33017964  // Illusion Gate
                 };
 

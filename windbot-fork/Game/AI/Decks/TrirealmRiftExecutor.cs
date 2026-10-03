@@ -372,8 +372,9 @@ namespace WindBot.Game.AI.Decks
                 || s.IsCode(68462976) // Secret Village of the Spellcasters
                 || s.IsCode(27541563) // Altergeist Protocol
                 || s.IsCode(66399653) // Union Hangar
-                || s.IsCode(71039903) // True Light
-                || s.IsCode(35146019) // Altergeist Spoofing
+                || s.IsCode(62089826) // True Light
+                || s.IsCode(53936268) // Altergeist Personal Spoofing
+                || s.IsCode(35146019) // Altergeist Manifestation
                 || s.IsCode(47222536) // Dark Magical Circle
                 || CardIntelligence.IsFloodgate(s.Id)
             )).ToList();
@@ -446,7 +447,8 @@ namespace WindBot.Game.AI.Decks
                     || c.Id == 79814787 // White Stone of Legend
                     || c.Id == 89631139 // Blue-Eyes White Dragon
                     || c.Id == 46986414 // Dark Magician
-                    || c.Id == 7084129  // Magicians' Souls
+                    || c.Id == 7084129  // Magician's Rod
+                    || c.Id == 97631303 // Magicians' Souls
                     || CardIntelligence.IsKnownNegator(c.Id)
                     || CardIntelligence.IsHighThreatChokepoint(c.Id)
                 )).ToList();
@@ -780,7 +782,7 @@ namespace WindBot.Game.AI.Decks
             if (Card.Location != CardLocation.Hand) return false;
             if (Duel.Turn == 1 || Duel.Phase != DuelPhase.Main1) return false;
 
-            bool enemyAlreadyHasKaiju = Enemy.GetMonsters().Any(m => m != null && m.IsFaceup() && (m.Id == CardId.GamecielKaiju || m.Id == 28674152 || m.Id == 63941224 || m.Id == 84749824));
+            bool enemyAlreadyHasKaiju = Enemy.GetMonsters().Any(m => m != null && m.IsFaceup() && (m.HasSetcode(0xd3) || m.Id == CardId.GamecielKaiju || m.Id == 28674152 || m.Id == 63941210 || m.Id == 29726552));
             if (enemyAlreadyHasKaiju)
             {
                 // Only summon 2nd Kaiju to OUR field if we can Rank 8 overlay immediately or push for lethal!
@@ -1971,8 +1973,9 @@ namespace WindBot.Game.AI.Decks
                         68462976, // Secret Village of the Spellcasters (Altergeist - Frees Spells!)
                         27541563, // Altergeist Protocol
                         66399653, // Union Hangar (ABC)
-                        71039903, // True Light (Blue-Eyes)
-                        35146019, // Altergeist Spoofing
+                        62089826, // True Light (Blue-Eyes)
+                        53936268, // Altergeist Personal Spoofing
+                        35146019, // Altergeist Manifestation
                         47222536  // Dark Magical Circle
                     };
 

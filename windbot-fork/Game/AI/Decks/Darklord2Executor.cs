@@ -120,7 +120,7 @@ namespace WindBot.Game.AI.Decks
             _eveningstarSetUsed = false;
             _copiedRebellionThisTurn = false;
             _copiedSanctifiedThisTurn = false;
-            Plugin.ResetTurnState();
+            // Plugin reset is done by ModernExecutor.OnNewTurn() → DeckPlugin?.ResetTurnState()
         }
 
         private bool IsGoingFirstTurn()

@@ -2327,7 +2327,7 @@ namespace WindBot.Game.AI.Decks
                     return true;
                 }
 
-                if (c.IsCode(42815418) && c.Attack >= 800 && ourCard != null && ourCard.IsMonster())
+                if (c.IsCode(4280258, 21123811) && c.Attack >= 800 && ourCard != null && ourCard.IsMonster())
                 {
                     return true;
                 }

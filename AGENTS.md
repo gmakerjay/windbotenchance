@@ -6,16 +6,22 @@
 
 ```
 C:\Users\admin\Documents\EdoGame\src\YGO_SOURCE_CLEAN\
+├── .agents/skills/yugioh-executor/  ← Skill หลักของ Agent (ต้อง Push ทุกครั้ง)
 ├── windbot-fork/             ← WindBot AI engine & Executors (C# net10.0)
 │   ├── Game/AI/Decks/        ← โฟลเดอร์รวม Executor ของแต่ละเด็ค
+│   ├── Game/AI/Plugins/      ← Decoupled Deck Plugin ของแต่ละเด็ค
 │   ├── ExecutorBase/         ← Base classes (ModernExecutor, ComboRouter, etc.)
 │   ├── Decks/                ← Deck lists (.ydk)
 │   └── bots.json             ← การลงทะเบียน Bot
 ├── dashbot/                  ← DashBot Launcher UI (WPF)
 ├── core/                     ← Shared core library (IPC, EventBus, Logger)
 ├── Client_Headless_Fortest/  ← Headless duel simulator (สำหรับทดสอบ AI logic)
-└── BUILD_AND_DEPLOY.ps1      ← สคริปต์คอมไพล์และ Deploy กลาง
+├── Docs/                     ← รายงาน / Playbook / Architecture (ต้อง Push ทุกครั้ง)
+├── BUILD_AND_DEPLOY.ps1      ← สคริปต์คอมไพล์และ Deploy กลาง
+└── SYNC_AGENT_ASSETS.ps1     ← ซิงค์ .agents/skills, Docs/, PROGRESS.md, AGENTS.md ระหว่าง workspace ↔ repo
 ```
+
+> 📘 รายละเอียดกฎการเขียน Executor ทั้งหมดอยู่ใน skill `.agents/skills/yugioh-executor/SKILL.md` — ทุก Agent ต้องอ่านก่อนแก้เด็ค/Executor
 
 ---
 
@@ -48,6 +54,29 @@ C:\Users\admin\Documents\EdoGame\
 cd C:\Users\admin\Documents\EdoGame\src\YGO_SOURCE_CLEAN
 powershell -ExecutionPolicy Bypass -File .\BUILD_AND_DEPLOY.ps1
 ```
+
+---
+
+## 📤 Git Pull / Commit & Push Workflow (STRICT MANDATORY RULE)
+
+Git repo อยู่ที่ `src\YGO_SOURCE_CLEAN` (workspace root ไม่ใช่ git repo) ดังนั้น skill/Docs ที่ IDE ใช้ที่ root ต้องซิงค์ด้วย `SYNC_AGENT_ASSETS.ps1` เสมอ
+
+1. **เมื่อสั่ง "Pull"**: `git pull` → `SYNC_AGENT_ASSETS.ps1` → `BUILD_AND_DEPLOY.ps1` (ถ้าโค้ดเปลี่ยน)
+2. **เมื่อสั่ง "Push" หรือ "Commit & Push"** ต้องส่งขึ้นพร้อมกันทุกครั้งโดยไม่มีข้อยกเว้น:
+   - Source Code ที่แก้ไข
+   - **`.agents/` (skill `yugioh-executor` + references) ทั้งหมด**
+   - **`Docs/` ทั้งหมด** (รวมไฟล์ที่เพิ่งสร้างใหม่)
+   - `PROGRESS.md` และ `AGENTS.md`
+   ```powershell
+   cd C:\Users\admin\Documents\EdoGame\src\YGO_SOURCE_CLEAN
+   powershell -ExecutionPolicy Bypass -File .\SYNC_AGENT_ASSETS.ps1
+   git add .agents/ Docs/ PROGRESS.md AGENTS.md SYNC_AGENT_ASSETS.ps1
+   git add -A
+   git commit -m "<type>(<scope>): <summary> (v0.0XX)"
+   git push
+   git status --short .agents Docs PROGRESS.md AGENTS.md   # ต้องว่าง
+   ```
+3. **ห้าม** commit/push เฉพาะ `.cs` หรือไบนารีแล้วทิ้ง `.agents/` หรือ `Docs/` เด็ดขาด
 
 ---
 

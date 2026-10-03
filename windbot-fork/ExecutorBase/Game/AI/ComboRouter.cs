@@ -46,6 +46,9 @@ namespace WindBot.Game.AI
 
             /// <summary>True if this step is optional (skip if card not in hand).</summary>
             public bool Optional { get; set; }
+
+            /// <summary>Optional condition checked before executing this specific step.</summary>
+            public Func<bool> Condition { get; set; }
         }
 
         /// <summary>
@@ -191,6 +194,9 @@ namespace WindBot.Game.AI
 
             foreach (var line in _registeredLines)
             {
+                // Lines that were aborted / failed this turn must not be re-selected
+                if (_failedLinesThisTurn.Contains(line.Name)) continue;
+
                 // Check required cards
                 bool hasRequired = line.RequiredCards.All(id => allAvailable.Contains(id));
                 if (!hasRequired) continue;

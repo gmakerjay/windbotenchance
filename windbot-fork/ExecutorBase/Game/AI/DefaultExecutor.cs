@@ -66,7 +66,7 @@ namespace WindBot.Game.AI
             public const int MulcharmyNyalus = 87126721;
 
             public const int CalledByTheGrave = 24224830;
-            public const int CrossoutDesignator = 65681982;
+            public const int CrossoutDesignator = 65681983;
             public const int InfiniteImpermanence = 10045474;
             public const int SolemnJudgment = 41420027;
             public const int SolemnWarning = 84749824;
@@ -1344,8 +1344,8 @@ namespace WindBot.Game.AI
                 // Safety Check: Avoid giving opponent a Kaiju we cannot handle.
                 // We only do it if the target is a critical threat/negator, or we have a way to handle it.
                 bool isCriticalThreat = target.IsCode(
-                    42009023, 7902349, 15397015, 19261966, 78193831, 67922702, 96015934, // Floodgates
-                    84815190, 4280258, 57793869, 86066372, 17330115, 63767246, 94977269, 33198886 // Negators/Bosses
+                    42009836, 41855169, 15397015, 19261966, 47084486, 59509952, 72634965, // Floodgates
+                    84815190, 4280258, 27548199, 48546368, 9753964, 63767246, 94977269 // Negators/Bosses
                 );
 
                 int kaijuPower = Card.Attack;
@@ -1362,13 +1362,13 @@ namespace WindBot.Game.AI
                     canHandleKaiju = true;
                 }
                 // 3. Do we have removal options in hand or set on field?
-                else if (Bot.Hand.Any(c => c != null && (c.Id == 12580477 || c.Id == 53129443 || c.Id == 24299458 || c.Id == 6430623 || c.Id == 37520316 || c.Id == 25311006)))
+                else if (Bot.Hand.Any(c => c != null && (c.Id == 12580477 || c.Id == 53129443 || c.Id == 24299458 || c.Id == 14532163 || c.Id == 37520316 || c.Id == 25311006)))
                 {
                     canHandleKaiju = true;
                 }
                 // 4. Contact fusion material (Cyber Dragon + Machine Kaiju)
                 else if (Card.Id == _CardId.JizukirutheStarDestroyingKaiju &&
-                         Bot.ExtraDeck.Any(c => c != null && c.Id == 21060005) && // Chimeratech Fortress Dragon
+                         Bot.ExtraDeck.Any(c => c != null && c.Id == 79229522) && // Chimeratech Fortress Dragon
                          (Bot.HasInHand(70095154) || Bot.HasInMonstersZone(70095154)))
                 {
                     canHandleKaiju = true;
@@ -1709,7 +1709,7 @@ namespace WindBot.Game.AI
         protected bool DefaultCheckWhetherNumber41IsActive()
         {
             return Bot.MonsterZone.Concat(Enemy.MonsterZone).Any(card =>
-                card != null && card.IsFaceup() && (card.IsCode(_CardId.Number41BagooskatheTerriblyTiredTapir, _CardId.Number41BagooskatheTerriblyTiredTapirAlt) || card.Id == 26273196 || card.Id == 85359414)
+                card != null && card.IsFaceup() && card.IsCode(_CardId.Number41BagooskatheTerriblyTiredTapir, _CardId.Number41BagooskatheTerriblyTiredTapirAlt)
                 && card.IsDefense() && !card.IsDisabled());
         }
 

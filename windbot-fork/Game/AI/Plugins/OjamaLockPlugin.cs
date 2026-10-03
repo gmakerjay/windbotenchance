@@ -473,8 +473,8 @@ namespace WindBot.Game.AI.Plugins
 
             // Key Continuous Floodgates & Engine Pillars
             if (c.Id == 48680970) score += 120; // Eternal Soul
-            if (c.Id == 99188141) score += 110; // Skill Drain
-            if (c.Id == 66399653 || c.Id == 66399444) score += 95;  // Union Hangar
+            if (c.Id == 82732705) score += 110; // Skill Drain
+            if (c.Id == 66399653) score += 95;  // Union Hangar
             if (c.Id == 47222536) score += 80;  // Dark Magical Circle
 
             // Bosses & Towers

@@ -15,38 +15,69 @@ namespace WindBot.Game.AI
         // ═══════════════════════════════════════════════════════════════
         //  1. SPECIAL SUMMON & FLOODGATE MONSTERS
         // ═══════════════════════════════════════════════════════════════
-        private static readonly HashSet<int> FloodgateMonsters = new HashSet<int>
+        private static readonly HashSet<int> SpecialSummonLockMonsters = new HashSet<int>
         {
-            42009023,  // Fossil Dyna Pachycephalo
-            42009836,  // Fossil Dyna (alt)
-            7902349,   // Jowgen the Spiritualist
-            15397015,  // Inspect Boarder
+            42009836,  // Fossil Dyna Pachycephalo
+            41855169,  // Jowgen the Spiritualist
             94977269,  // El Shaddoll Winda (1 SS per turn)
             94977270,  // El Shaddoll Winda (alt)
             19261966,  // El Shaddoll Anoyatyllis (no SpSummon from hand/GY by Spells/Traps)
-            78193831,  // Vanity's Fiend
-            47084486,  // Majesty's Fiend
-            67922702,  // Archlord Kristya
-            96015934,  // Vanity's Ruler
-            14212200,  // Amano-Iwato
-            71564252,  // Thunder King Rai-Oh
-            15291624,  // Thunder Dragon Colossus
-            90590303,  // Number 41: Bagooska the Terribly Tired Tapir
-            90590304,  // Number 41: Bagooska (alt)
-            26273196,  // Legacy fallback
-            85359414,  // Legacy fallback
-            3717252,   // Koa'ki Meiru Drago
-            99916754,  // Naturia Exterio
-            33198837,  // Naturia Beast
-            72634965,  // Denko Sekka
-            59509952,  // Lose 1 Turn (monster)
+            47084486,  // Vanity's Fiend
+            59509952,  // Archlord Kristya
+            72634965,  // Vanity's Ruler
+            12435193,  // Koa'ki Meiru Drago
             // Barrier Statues
             10963799,  // Barrier Statue of the Stormwinds
             19740112,  // Barrier Statue of the Drought
             47961808,  // Barrier Statue of the Inferno
             73356503,  // Barrier Statue of the Abyss
             84478195,  // Barrier Statue of the Torrent
-            86325573,  // Barrier Statue of the Heavens
+            46145256,  // Barrier Statue of the Heavens
+            91279700,  // Evilswarm Ophion (Lv5+ SS Lock)
+        };
+
+        private static readonly HashSet<int> SpecialSummonLockSpellsTraps = new HashSet<int>
+        {
+            5851097,   // Vanity's Emptiness
+            35059553,  // Kaiser Colosseum
+            90846359,  // Rivalry of Warlords
+            53334471,  // Gozen Match
+            24207889,  // There Can Be Only One
+            18114794,  // Summon Breaker
+            23516703,  // Summon Limit
+            84171830,  // Domain of the True Monarchs
+            83326048,  // Dimensional Barrier
+        };
+
+        private static readonly HashSet<int> FloodgateMonsters = new HashSet<int>
+        {
+            42009836,  // Fossil Dyna Pachycephalo
+            41855169,   // Jowgen the Spiritualist
+            15397015,  // Inspector Boarder
+            94977269,  // El Shaddoll Winda (1 SS per turn)
+            94977270,  // El Shaddoll Winda (alt)
+            19261966,  // El Shaddoll Anoyatyllis (no SpSummon from hand/GY by Spells/Traps)
+            47084486,  // Vanity's Fiend
+            33746252,  // Majesty's Fiend
+            59509952,  // Archlord Kristya
+            72634965,  // Vanity's Ruler
+            32181268,  // Amano-Iwato
+            71564252,  // Thunder King Rai-Oh
+            15291624,  // Thunder Dragon Colossus
+            90590303,  // Number 41: Bagooska the Terribly Tired Tapir
+            90590304,  // Number 41: Bagooska (alt)
+            12435193,   // Koa'ki Meiru Drago
+            99916754,  // Naturia Exterio
+            33198837,  // Naturia Beast
+            13974207,  // Denko Sekka
+            24348804,  // Lose 1 Turn (monster)
+            // Barrier Statues
+            10963799,  // Barrier Statue of the Stormwinds
+            19740112,  // Barrier Statue of the Drought
+            47961808,  // Barrier Statue of the Inferno
+            73356503,  // Barrier Statue of the Abyss
+            84478195,  // Barrier Statue of the Torrent
+            46145256,  // Barrier Statue of the Heavens
             91279700,  // Evilswarm Ophion (Lv5+ SS Lock)
             93039339,  // Super Starslayer TY-PHON - Sky Crisis (>=3000 ATK effect lock)
         };
@@ -57,29 +88,26 @@ namespace WindBot.Game.AI
         private static readonly HashSet<int> FloodgateSpellsTraps = new HashSet<int>
         {
             5851097,   // Vanity's Emptiness
-            4514109,   // Kaiser Colosseum
-            22046459,  // Rivalry of Warlords
-            90845713,  // Rivalry of Warlords (alt)
-            34487429,  // Gozen Match
-            53334641,  // Gozen Match (alt)
-            2429943,   // There Can Be Only One
-            3188710,   // Summon Breaker
-            47355498,  // Summon Limit
-            92746535,  // Summon Limit (alt)
+            35059553,   // Kaiser Colosseum
+            90846359,  // Rivalry of Warlords
+            53334471,  // Gozen Match
+            24207889,   // There Can Be Only One
+            18114794,   // Summon Breaker
+            23516703,  // Summon Limit
             81674782,  // Dimensional Fissure
             30241314,  // Macro Cosmos
-            82732047,  // Skill Drain
+            82732705,  // Skill Drain
             82732705,  // Skill Drain (alt)
             61740673,  // Imperial Order
             58921041,  // Anti-Spell Fragrance
             68462976,  // Secret Village of the Spellcasters
-            10833828,  // Mistake
-            34507039,  // Deck Lockdown
+            59305593,  // Mistake
+            1149109,  // Deck Lockdown
             83326048,  // Dimensional Barrier
-            4149689,   // Mistaken Arrest
+            4227096,   // Mistaken Arrest
             67616300,  // Chicken Game
             48680970,  // Eternal Soul
-            38009249,  // Runick Fountain
+            92107604,  // Runick Fountain
         };
 
         // ═══════════════════════════════════════════════════════════════
@@ -91,12 +119,12 @@ namespace WindBot.Game.AI
             4280258,   // Apollousa, Bow of the Goddess
             50954680,  // Crystal Wing Synchro Dragon
             10443957,  // Cyber Dragon Infinity
-            86066372,  // Herald of Ultimateness
+            48546368,  // Herald of Ultimateness
             44665365,  // Herald of Perfection
-            31801517,  // Evolzar Dolkka
-            42752141,  // Evolzar Laggia
-            57793869,  // Borreload Savage Dragon
-            17330115,  // Hot Red Dragon Archfiend Abyss
+            42752141,  // Evolzar Dolkka
+            74294676,  // Evolzar Laggia
+            27548199,  // Borreload Savage Dragon
+            9753964,  // Hot Red Dragon Archfiend Abyss
             21522601,  // Witchcrafter Madame Verre
             84523092,  // Witchcrafter Haine
             1508649,   // Altergeist Hexstia
@@ -110,7 +138,6 @@ namespace WindBot.Game.AI
             78397661,  // Ecclesia and the Dark Dragon
             76666602,  // The Dragon That Devours the Dogma
             37818794,  // Red-Eyes Dark Dragoon
-            37675907,  // Legacy ID mapping
             46396218,  // Azamina Ilia Silvia (Omni-Negate)
             4993187,   // W:P Fancy Ball (Monster Negate)
             90809975,  // Toadally Awesome
@@ -152,13 +179,13 @@ namespace WindBot.Game.AI
             27541563,  // Altergeist Protocol
             35146019,  // Altergeist Manifestation
             // ABC engine
-            66970002,  // Union Hangar
+            66399653,  // Union Hangar
             77411244,  // B-Buster Drake
             99249638,  // Union Driver
             46659709,  // Galaxy Soldier
             // Dark Magician engine
             47222536,  // Dark Magical Circle
-            38033121,  // Dark Magical Circle (alt)
+            47222537,  // Dark Magical Circle (alt)
             41721210,  // Dark Magician the Dragon Knight
             48680970,  // Eternal Soul
             97077563,  // Call of the Haunted
@@ -174,7 +201,7 @@ namespace WindBot.Game.AI
             25311006,  // Triple Tactics Talent
             48130397,  // Super Polymerization
             35261759,  // Pot of Desires
-            72426662,  // Pot of Extravagance
+            49238328,  // Pot of Extravagance
             49238328,  // Pot of Extravagance (alt)
             55144522,  // Pot of Greed
             79571449,  // Graceful Charity
@@ -186,7 +213,6 @@ namespace WindBot.Game.AI
             12580477,  // Raigeki
             5318639,   // Mystical Space Typhoon
             8267140,   // Cosmic Cyclone
-            35269904,  // Cosmic Cyclone (alt)
             // Modern Meta Engines (Snake-Eye / Fiendsmith / Generic Staples)
             85106525,  // Bonfire
             80845034,  // WANTED: Seeker of Sinful Spoils
@@ -257,22 +283,21 @@ namespace WindBot.Game.AI
             10045474,  // Infinite Impermanence
             42141493,  // Mulcharmy Fuwalos
             84192580,  // Mulcharmy Purulia
-            87126721,  // Mulcharmy Nyalus
+            87126721,  // Mulcharmy Meowls
             73642296,  // Ghost Belle & Haunted Mansion
             59438930,  // Ghost Ogre & Snow Rabbit
-            29726552,  // Ghost Sister & Spooky Dogwood
+            60643553,  // Ghost Sister & Spooky Dogwood
             34267821,  // Artifact Lancea
             27204311,  // Nibiru, the Primal Being
             24224830,  // Called by the Grave
             24224831,  // Called by the Grave (alt)
             65681983,  // Crossout Designator (canonical)
-            65681982,  // Crossout Designator (alt)
             24299458,  // Forbidden Droplet
             41420027,  // Solemn Judgment
             23002292,  // Red Reboot
             40366667,  // Dominus Impulse
             6325660,   // Dominus Spark
-            89264428,  // Dominus Purge
+            97045737,  // Dominus Purge
             62015408,  // Ghost Reaper & Winter Cherries
             38814750,  // PSY-Framegear Gamma
             91800273,  // Dimension Shifter
@@ -286,12 +311,11 @@ namespace WindBot.Game.AI
             55410871,  // Blue-Eyes Chaos MAX Dragon
             41721210,  // Dark Magician the Dragon Knight (protects backrow)
             37818794,  // Red-Eyes Dark Dragoon (untargetable & indestructible)
-            37675907,  // Legacy ID mapping
             70405001,  // Black Luster Soldier - Soldier of Light and Darkness (battle immune & activated unaffected)
             44001993,  // Magician of Dark Chaos - Black Chaos (protects S/T & activated unaffected)
             98684220,  // Black Chaos (activated unaffected with ritual spell in GY)
             21887175,  // Mekk-Knight Crusadia Avramax (untargetable by effects)
-            88264978,  // Red-Eyes Flare Metal Dragon (destruction immune with mats)
+            44405066,  // Red-Eyes Flare Metal Dragon (destruction immune with mats)
         };
 
         // ═══════════════════════════════════════════════════════════════
@@ -345,18 +369,15 @@ namespace WindBot.Game.AI
         // ═══════════════════════════════════════════════════════════════
         private static readonly HashSet<int> DrawStandbyFloodgates = new HashSet<int>
         {
-            82732047,  // Skill Drain
+            82732705,  // Skill Drain
             82732705,  // Skill Drain (alt)
             83326048,  // Dimensional Barrier
             58921041,  // Anti-Spell Fragrance
-            2429943,   // There Can Be Only One
-            34487429,  // Gozen Match
-            53334641,  // Gozen Match (alt)
-            22046459,  // Rivalry of Warlords
-            90845713,  // Rivalry of Warlords (alt)
-            47355498,  // Summon Limit
-            92746535,  // Summon Limit (alt)
-            34507039,  // Deck Lockdown
+            24207889,   // There Can Be Only One
+            53334471,  // Gozen Match
+            90846359,  // Rivalry of Warlords
+            23516703,  // Summon Limit
+            1149109,  // Deck Lockdown
             68462976,  // Secret Village of the Spellcasters
             30241314,  // Macro Cosmos
             81674782,  // Dimensional Fissure
@@ -457,9 +478,9 @@ namespace WindBot.Game.AI
                 if (card.IsFaceup())
                 {
                     if (id == 48680970) score += 12000; // Eternal Soul
-                    else if (id == 82732047) score += 11000; // Skill Drain
-                    else if (id == 38009249) score += 9500;  // Runick Fountain
-                    else if (id == 38033121) score += 9000;  // Dark Magical Circle
+                    else if (id == 82732705) score += 11000; // Skill Drain
+                    else if (id == 92107604) score += 9500;  // Runick Fountain
+                    else if (id == 47222536) score += 9000;  // Dark Magical Circle
                     else if (card.HasType(CardType.Continuous) || card.HasType(CardType.Field)) score += 2000;
                     else score += 1000;
                 }
@@ -510,6 +531,9 @@ namespace WindBot.Game.AI
             return false;
         }
 
+        public static bool IsSpecialSummonLockMonster(int id) => SpecialSummonLockMonsters.Contains(id);
+        public static bool IsSpecialSummonLockSpellTrap(int id) => SpecialSummonLockSpellsTraps.Contains(id);
+
         public static bool IsSpecialSummonBlocked(ClientField enemy, ClientField bot = null)
         {
             if (enemy == null) return false;
@@ -517,23 +541,29 @@ namespace WindBot.Game.AI
             // Check enemy monsters for SS locks
             foreach (var m in enemy.GetMonsters())
             {
-                if (m != null && m.IsFaceup() && !m.IsDisabled() && FloodgateMonsters.Contains(m.Id))
+                if (m != null && m.IsFaceup() && !m.IsDisabled() && SpecialSummonLockMonsters.Contains(m.Id))
                     return true;
             }
 
             // Check enemy spells/traps for SS locks
             foreach (var s in enemy.GetSpells())
             {
-                if (s != null && s.IsFaceup() && !s.IsDisabled() && FloodgateSpellsTraps.Contains(s.Id))
+                if (s != null && s.IsFaceup() && !s.IsDisabled() && SpecialSummonLockSpellsTraps.Contains(s.Id))
                     return true;
             }
 
-            // Check our own field if provided (e.g. self-inflicted Vanity's or Winda)
+            // Check our own field if provided (e.g. self-inflicted Vanity's Fiend, Kristya, Fossil Dyna, Winda)
             if (bot != null)
             {
                 foreach (var m in bot.GetMonsters())
                 {
-                    if (m != null && m.IsFaceup() && !m.IsDisabled() && (m.Id == 78193831 || m.Id == 42009023)) // Vanity's / Fossil Dyna
+                    // Vanity's Ruler (72634965) on our side only blocks opponent, not us!
+                    if (m != null && m.IsFaceup() && !m.IsDisabled() && m.Id != 72634965 && SpecialSummonLockMonsters.Contains(m.Id))
+                        return true;
+                }
+                foreach (var s in bot.GetSpells())
+                {
+                    if (s != null && s.IsFaceup() && !s.IsDisabled() && SpecialSummonLockSpellsTraps.Contains(s.Id))
                         return true;
                 }
             }

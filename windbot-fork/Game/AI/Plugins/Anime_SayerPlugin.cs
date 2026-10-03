@@ -289,15 +289,15 @@ namespace WindBot.Game.AI.Plugins
 
             // Anti-Spell / Anti-Synchro / Floodgates that shut down Psychic decks
             int[] antiPsychicCards = {
-                51452091, // Imperial Order
-                82044279, // Skill Drain
+                61740673, // Imperial Order
+                82732705, // Skill Drain
                 40605147, // Solemn Strike
                 84749824, // Solemn Warning
                 41420027, // Solemn Judgment
-                58851034, // Anti-Spell Fragrance
-                10833828, // Dimensional Barrier
-                53347303, // There Can Be Only One
-                15693423  // Summon Limit
+                58921041, // Anti-Spell Fragrance
+                83326048, // Dimensional Barrier
+                24207889, // There Can Be Only One
+                23516703  // Summon Limit
             };
 
             if (antiPsychicCards.Contains(card.Id))

@@ -103,54 +103,40 @@ namespace WindBot.Game.AI
 
         // ═══════════════════════════════════════════════════════════════
         //  FLOODGATE IDs — monsters that block Special Summoning
-        //  Compiled superset from all 2026 executor implementations
         // ═══════════════════════════════════════════════════════════════
         private static readonly HashSet<int> _spSummonBlockMonsters = new HashSet<int>
         {
-            // --- Commonly seen across all executors ---
-            42009023,  // Fossil Dyna Pachycephalo
-            7902349,   // Jowgen the Spiritualist
-            15397015,  // Inspect Boarder
-            19261966,  // El Shaddoll Winda (1 SS per turn)
-            78193831,  // Vanity's Fiend
-            67922702,  // Archlord Kristya
-            96015934,  // Vanity's Ruler
-            14212200,  // Amano-Iwato
-            86325573,  // Barrier Statue (multiple, check by effect)
-            3717252,   // Koa'ki Meiru Drago
-            85359414,  // Number 41: Bagooska (face-down floodgate mode)
+            42009836,  // Fossil Dyna Pachycephalo
+            41855169,  // Jowgen the Spiritualist
+            94977269,  // El Shaddoll Winda (1 SS per turn)
+            94977270,  // El Shaddoll Winda (alt)
+            19261966,  // El Shaddoll Anoyatyllis (no SpSummon from hand/GY by Spells/Traps)
+            47084486,  // Vanity's Fiend
+            59509952,  // Archlord Kristya
+            72634965,  // Vanity's Ruler
+            12435193,  // Koa'ki Meiru Drago
+            91279700,  // Evilswarm Ophion (Lv5+ SS Lock)
 
-            // --- Extended from Dreadnought/Branded/other variants ---
-            42009836,  // Fossil Dyna (alt ID variant)
-            47084486,  // Majesty's Fiend
-            72634965,  // Denko Sekka (own-only check needed)
-            59509952,  // Lose 1 Turn (monster)
-            94977269,  // Naturia Exterio
-
-            // --- Barrier Statues (full set) ---
+            // Barrier Statues
             10963799,  // Barrier Statue of the Stormwinds
             19740112,  // Barrier Statue of the Drought
             47961808,  // Barrier Statue of the Inferno
             73356503,  // Barrier Statue of the Abyss
             84478195,  // Barrier Statue of the Torrent
+            46145256,  // Barrier Statue of the Heavens
         };
 
         private static readonly HashSet<int> _spSummonBlockSpells = new HashSet<int>
         {
             5851097,   // Vanity's Emptiness
-            4514109,   // Kaiser Colosseum
-            22046459,  // Rivalry of Warlords
-            34487429,  // Gozen Match
-            2429943,   // There Can Be Only One
-            3188710,   // Summon Breaker
-            81674782,  // Dimensional Fissure (indirect block in some combos)
-            47355498,  // Summon Limit
+            35059553,  // Kaiser Colosseum
+            90846359,  // Rivalry of Warlords
+            53334471,  // Gozen Match
+            24207889,  // There Can Be Only One
+            18114794,  // Summon Breaker
+            23516703,  // Summon Limit
+            84171830,  // Domain of the True Monarchs
             83326048,  // Dimensional Barrier (when active)
-            92746535,  // Summon Limit (alt)
-            82732047,  // Skill Drain (blocks effects used to SS)
-            30241314,  // Macro Cosmos
-            53334641,  // Gozen Match (alt)
-            90845713,  // Rivalry of Warlords (alt)
         };
 
         // ═══════════════════════════════════════════════════════════════
@@ -162,10 +148,11 @@ namespace WindBot.Game.AI
             4280258,   // Apollousa, Bow of the Goddess (negate monster effect; ATK check)
             50954680,  // Crystal Wing Synchro Dragon (negate Lv5+ monster effects)
             10443957,  // Cyber Dragon Infinity (absorb + negate)
-            86066372,  // Herald of Ultimateness / Perfection
-            31801517,  // Evolzar Dolkka (negate monster effects)
-            57793869,  // Borreload Savage Dragon (negate any 1 activation)
-            17330115,  // Hot Red Dragon Archfiend Abyss (negate S/T)
+            48546368,  // Herald of Ultimateness
+            44665365,  // Herald of Perfection
+            42752141,  // Evolzar Dolkka (negate monster effects)
+            27548199,  // Borreload Savage Dragon (negate any 1 activation)
+            9753964,  // Hot Red Dragon Archfiend Abyss (negate S/T)
             21522601,  // Witchcrafter Madame Verre (negate monster effects)
             84523092,  // Witchcrafter Haine (can destroy + immune)
             1508649,   // Altergeist Hexstia (negate S/T activation)
@@ -254,9 +241,9 @@ namespace WindBot.Game.AI
 
             foreach (var card in allMonsters)
             {
-                if (_spSummonBlockMonsters.Contains(card.Id) || CardIntelligence.IsFloodgateMonster(card.Id))
+                if (_spSummonBlockMonsters.Contains(card.Id) || CardIntelligence.IsSpecialSummonLockMonster(card.Id))
                 {
-                    // Denko Sekka only blocks the opponent — skip if it's ours
+                    // Vanity's Ruler only blocks the opponent — skip if it's ours
                     if (card.Id == 72634965 && card.Controller == 0) continue;
                     return true;
                 }
@@ -268,7 +255,7 @@ namespace WindBot.Game.AI
 
             foreach (var card in allSpells)
             {
-                if (_spSummonBlockSpells.Contains(card.Id) || CardIntelligence.IsFloodgateSpellTrap(card.Id))
+                if (_spSummonBlockSpells.Contains(card.Id) || CardIntelligence.IsSpecialSummonLockSpellTrap(card.Id))
                     return true;
             }
 
@@ -337,8 +324,8 @@ namespace WindBot.Game.AI
             29021114,  // Silver Gadget
             57774843,  // Judgment Dragon
             423585,    // Summoner Monk
-            43218406,  // Water Gizmek
-            30208479,  // Macro Cosmos
+            43218406,  // Gizmek Okami, the Dreaded Deluge Dragon
+            30241314,  // Macro Cosmos
         };
 
         /// <summary>Equip/Union effects from hand — cost already paid, negate is wasteful.</summary>
@@ -827,7 +814,7 @@ namespace WindBot.Game.AI
 
                 // 6. Medius the Pure (19000840)
                 // Option index 1 is Special Summon from deck/hand; Option index 0 is Search.
-                if (cardId == 19000840)
+                if (cardId == 97556336)
                 {
                     if (optIndex == 1 && Bot.GetMonsterCount() < 5) return i;
                     if (optIndex == 0) return i;
@@ -1310,6 +1297,30 @@ namespace WindBot.Game.AI
                     bool executed = false;
                     MainPhaseAction comboAction = null;
 
+                    if (step.Condition != null && !step.Condition())
+                    {
+                        if (step.Optional)
+                        {
+                            ComboRouter.SkipCurrentStep(Bot);
+                            continue;
+                        }
+                        else
+                        {
+                            bool switched = ComboRouter.TrySwitchToFallback(Bot);
+                            if (switched)
+                            {
+                                try
+                                {
+                                    AI?.Log(LogLevel.Info, $"[COMBO-FALLBACK] Step {step.CardId} condition failed — switched to fallback combo: {ComboRouter.ActiveComboName}");
+                                }
+                                catch { }
+                                continue;
+                            }
+                            ComboRouter.AbortCombo($"Step card {step.CardId} ({step.ActionType}) condition failed and no fallback viable");
+                            break;
+                        }
+                    }
+
                     if (step.ActionType == ExecutorType.Activate)
                     {
                         for (int i = 0; i < main.ActivableCards.Count; ++i)
@@ -1317,6 +1328,13 @@ namespace WindBot.Game.AI
                             var card = main.ActivableCards[i];
                             if (card != null && (card.Id == step.CardId || card.GetNonAltartCode() == step.CardId))
                             {
+                                if (!ShouldAllowActivate(card)) continue;
+                                var cardExec = Executors.FirstOrDefault(e => e.Type == ExecutorType.Activate && (e.CardId == -1 || e.CardId == step.CardId));
+                                if (cardExec?.Func != null)
+                                {
+                                    Card = card;
+                                    if (!cardExec.Func()) continue;
+                                }
                                 comboAction = new MainPhaseAction(MainPhaseAction.MainAction.Activate, card.ActionActivateIndex[main.ActivableDescs[i]]);
                                 executed = true;
                                 break;
@@ -1329,6 +1347,13 @@ namespace WindBot.Game.AI
                         {
                             if (card != null && (card.Id == step.CardId || card.GetNonAltartCode() == step.CardId))
                             {
+                                if (!ShouldAllowSummon(card)) continue;
+                                var cardExec = Executors.FirstOrDefault(e => (e.Type == ExecutorType.Summon || e.Type == ExecutorType.SummonOrSet) && (e.CardId == -1 || e.CardId == step.CardId));
+                                if (cardExec?.Func != null)
+                                {
+                                    Card = card;
+                                    if (!cardExec.Func()) continue;
+                                }
                                 comboAction = new MainPhaseAction(MainPhaseAction.MainAction.Summon, card.ActionIndex);
                                 executed = true;
                                 break;
@@ -1341,6 +1366,13 @@ namespace WindBot.Game.AI
                         {
                             if (card != null && (card.Id == step.CardId || card.GetNonAltartCode() == step.CardId))
                             {
+                                if (!ShouldAllowSpSummon(card) || IsSpecialSummonBlocked()) continue;
+                                var cardExec = Executors.FirstOrDefault(e => e.Type == ExecutorType.SpSummon && (e.CardId == -1 || e.CardId == step.CardId));
+                                if (cardExec?.Func != null)
+                                {
+                                    Card = card;
+                                    if (!cardExec.Func()) continue;
+                                }
                                 comboAction = new MainPhaseAction(MainPhaseAction.MainAction.SpSummon, card.ActionIndex);
                                 executed = true;
                                 break;
@@ -1353,6 +1385,13 @@ namespace WindBot.Game.AI
                         {
                             if (card != null && (card.Id == step.CardId || card.GetNonAltartCode() == step.CardId))
                             {
+                                if (!ShouldAllowSpellSet(card)) continue;
+                                var cardExec = Executors.FirstOrDefault(e => e.Type == ExecutorType.SpellSet && (e.CardId == -1 || e.CardId == step.CardId));
+                                if (cardExec?.Func != null)
+                                {
+                                    Card = card;
+                                    if (!cardExec.Func()) continue;
+                                }
                                 comboAction = new MainPhaseAction(MainPhaseAction.MainAction.SetSpell, card.ActionIndex);
                                 executed = true;
                                 break;
@@ -1500,7 +1539,7 @@ namespace WindBot.Game.AI
                 if (card == null) continue;
 
                 // Rule 12: Bagooska MUST ALWAYS be in Defense position
-                if (card.Id == 26593852 && card.IsAttack())
+                if (IsBagooska(card) && card.IsAttack())
                 {
                     try { AI?.Log(LogLevel.Info, $"[SMART-REPOS] Changing Bagooska to Defense (Floodgate condition)"); } catch { }
                     return new MainPhaseAction(MainPhaseAction.MainAction.Repos, card.ActionIndex);
@@ -1823,7 +1862,7 @@ namespace WindBot.Game.AI
             if (card == null) return false;
 
             // Number 41: Bagooska MUST ALWAYS be in Defense position (Rule 12)
-            if (card.Id == 26593852)
+            if (IsBagooska(card))
             {
                 if (card.IsAttack()) return true;
                 return false;
@@ -1864,6 +1903,33 @@ namespace WindBot.Game.AI
         }
 
         /// <summary>
+        /// Enable or disable the MP2 guard that halts search/draw activations when the board is strong enough.
+        /// Defaults to true; deck executors that need full MP2 setup (e.g. Tenpai, Sky Striker) can set to false.
+        /// </summary>
+        protected bool EnableMP2Guard { get; set; } = true;
+
+        /// <summary>
+        /// Determine if an activation should be allowed in Main Phase 2.
+        /// Decks can override to allow specific search/draw cards in MP2.
+        /// </summary>
+        protected virtual bool ShouldAllowMP2Activation(ClientCard card, ActionPriority priority)
+        {
+            if (!EnableMP2Guard) return true;
+
+            // If ResourcePlan says we still need extension or resources, allow it
+            if (!ShouldStopExtending())
+                return true;
+
+            if (IsBoardStrongEnough() &&
+                (priority == ActionPriority.ResourceGain || priority == ActionPriority.ComboStarter))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Evaluate whether an effect activation is worth doing right now.
         /// 
         /// Smart Flow v2 enhanced:
@@ -1875,6 +1941,22 @@ namespace WindBot.Game.AI
         public override bool ShouldAllowActivate(ClientCard card)
         {
             if (card == null) return true;
+
+            // === MP2 COMPLETION MODE: After battle, skip wasteful activations if board is done ===
+            // In MP2 the bot has already attacked. If the board is strong enough,
+            // block search/draw/GY-recovery effects that would waste resources.
+            // Only allow CombatEssential / ComboExtender / Deferrable (backrow setup).
+            if (Duel.Phase == DuelPhase.Main2)
+            {
+                ActionPriority mp2Priority = ClassifyAction(card, ExecutorType.Activate);
+                if (!ShouldAllowMP2Activation(card, mp2Priority))
+                {
+                    LogPhaseGuard("BLOCKED", "Activate", card,
+                        "MP2 with strong board — skip activation, pass turn");
+                    return false;
+                }
+                return true;
+            }
             if (Duel.Phase != DuelPhase.Main1) return true;
 
             ActionPriority priority = ClassifyAction(card, ExecutorType.Activate);
@@ -1929,20 +2011,23 @@ namespace WindBot.Game.AI
                 }
             }
 
-            // === MP2 COMPLETION MODE: After battle, skip wasteful activations if board is done ===
-            // In MP2, the bot has already attacked. If the board is strong enough,
-            // block search/draw/GY-recovery effects that would waste resources.
-            // Only allow CombatEssential (field monster effects, trap activations).
-            // Setting backrow still happens (SpellSet is a separate check in GameAI).
-            if (Duel.Phase == DuelPhase.Main2 && IsBoardStrongEnough() &&
-                (priority == ActionPriority.ResourceGain || priority == ActionPriority.ComboStarter))
-            {
-                LogPhaseGuard("BLOCKED", "Activate", card,
-                    "MP2 with strong board — skip activation, pass turn");
-                return false;
-            }
-
             return true;
+        }
+
+        /// <summary>Number 41: Bagooska the Terribly Tired Tapir (90590303 / alt 90590304).</summary>
+        protected static bool IsBagooska(ClientCard card)
+            => card != null && (card.Id == 90590303 || card.Id == 90590304);
+
+        /// <summary>
+        /// True when we already have a card with the same name as the current Card on the chain
+        /// (AGENTS.md rule 13: never chain the same handtrap/negate twice in one chain).
+        /// </summary>
+        protected bool IsDuplicateOwnChainActivation()
+        {
+            if (Card == null || Duel.CurrentChain == null) return false;
+            int code = Card.GetNonAltartCode();
+            return Duel.CurrentChain.Any(c => c != null && c.Controller == 0 &&
+                (c.Id == Card.Id || c.GetNonAltartCode() == code));
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -2053,8 +2138,8 @@ namespace WindBot.Game.AI
                 10045474,          // Infinite Impermanence
                 24224830,          // Called by the Grave
                 41420027,          // Solemn Judgment
-                84256858,          // Solemn Strike
-                92584307,          // Solemn Warning
+                40605147,          // Solemn Strike
+                84749824,          // Solemn Warning
                 23002292           // Red Reboot
             };
             if (negateIds.Contains(card.Id)) return true;
@@ -2094,6 +2179,11 @@ namespace WindBot.Game.AI
         /// </summary>
         protected bool SmartHandTrapChain()
         {
+            // Universal Safeguard: Prevent duplicate handtrap activations in the same chain
+            // (checked first so it also applies when ChainAdvisor is disabled)
+            if (IsDuplicateOwnChainActivation())
+                return false;
+
             // Fallback: if advisor is disabled or not available, use default behavior
             if (ChainAdvisor == null || !ChainAdvisor.Enabled)
                 return Duel.LastChainPlayer == 1;
@@ -2101,13 +2191,6 @@ namespace WindBot.Game.AI
             // Must be opponent's activation
             if (Duel.LastChainPlayer != 1)
                 return false;
-
-            // Universal Safeguard: Prevent duplicate handtrap activations in the same chain
-            if (Card != null && Duel.CurrentChain != null &&
-                Duel.CurrentChain.Any(c => c != null && c.Controller == 0 && (c.Id == Card.Id || c.GetNonAltartCode() == Card.GetNonAltartCode())))
-            {
-                return false;
-            }
 
             var targetCard = Util.GetLastChainCard();
             if (targetCard == null)
@@ -2148,6 +2231,9 @@ namespace WindBot.Game.AI
         /// </summary>
         protected bool SmartHandTrapChain(params int[] chokepointIds)
         {
+            if (IsDuplicateOwnChainActivation())
+                return false;
+
             if (ChainAdvisor == null || !ChainAdvisor.Enabled)
                 return Duel.LastChainPlayer == 1;
 
@@ -2474,9 +2560,11 @@ namespace WindBot.Game.AI
             var ourCards = cards.Where(c => c != null && c.Controller == 0).ToList();
 
             // ── 1. Removal & Disruption against Enemy Cards ──
-            if (hint == HINTMSG_DESTROY || hint == HINTMSG_REMOVE || hint == 504 /* old remove alias */ ||
+            // TOGRAVE (504) / RTOHAND (505) / TODECK (507) only count as removal when enough enemy cards
+            // are in the pool; our-side variants are handled as costs / positive picks below.
+            if (hint == HINTMSG_DESTROY || hint == HINTMSG_REMOVE || hint == HINTMSG_TOGRAVE ||
                 hint == HINTMSG_RTOHAND || hint == HINTMSG_TODECK || hint == HINTMSG_CONTROL ||
-                hint == HINTMSG_TARGET || hint == HINTMSG_NEGATE || hint == HINTMSG_FACEUP || hint == 552)
+                hint == HINTMSG_TARGET || hint == HINTMSG_NEGATE || hint == HINTMSG_FACEUP)
             {
                 if (enemyCards.Count >= min)
                 {
@@ -2497,8 +2585,30 @@ namespace WindBot.Game.AI
                 }
             }
 
-            // ── 2. Discard / Send to GY / Tribute / Cost from our Hand or Field ──
-            if (hint == HINTMSG_DISCARD || hint == HINTMSG_RELEASE || (hint == HINTMSG_TOGRAVE && enemyCards.Count == 0))
+            // ── 1.8 Deck → GY (Foolish Burial style, 504 with every candidate in the Deck) ──
+            // This is a POSITIVE pick (we want the card in the GY), not a cost.
+            // 1. If AI.SelectCard pre-selection is queued, respect it before plugin.
+            // 2. If plugin provides dedicated PickFoolishGraveTarget, route to it.
+            // 3. Otherwise fall through to PickSearchTarget (if plugin defines it) or base OnSelectCard / Fallback.
+            if (hint == HINTMSG_TOGRAVE && enemyCards.Count == 0 && ourCards.Count >= min &&
+                ourCards.All(c => c.Location == CardLocation.Deck))
+            {
+                if (AI != null && AI.HasPreselectedCard())
+                    return base.OnSelectCard(cards, min, max, hint, cancelable);
+
+                var foolishTarget = DeckPlugin?.Strategy?.PickFoolishGraveTarget(ourCards, Card);
+                if (foolishTarget != null) return new List<ClientCard> { foolishTarget };
+
+                var pluginTarget = DeckPlugin?.Strategy?.PickSearchTarget(ourCards, Card);
+                if (pluginTarget != null) return new List<ClientCard> { pluginTarget };
+
+                return base.OnSelectCard(cards, min, max, hint, cancelable);
+            }
+
+            // ── 2. Discard / Send to GY / Return to Deck / Tribute / Cost from our side ──
+            if (hint == HINTMSG_DISCARD || hint == HINTMSG_RELEASE ||
+                (hint == HINTMSG_TOGRAVE && enemyCards.Count == 0) ||
+                (hint == HINTMSG_TODECK && enemyCards.Count < min))
             {
                 if (ourCards.Count >= min)
                 {
@@ -2567,7 +2677,7 @@ namespace WindBot.Game.AI
             }
 
             // ── 5. Position Change (e.g. Book of Moon) ──
-            if (hint == HINTMSG_POSCHANGE || hint == 518 /* old alias */)
+            if (hint == HINTMSG_POSCHANGE)
             {
                 if (enemyCards.Count >= min)
                 {
@@ -2579,7 +2689,7 @@ namespace WindBot.Game.AI
             }
 
             // ── 6. Equip Card ──
-            if (hint == HINTMSG_EQUIP || hint == 507 /* old equip alias */)
+            if (hint == HINTMSG_EQUIP)
             {
                 if (ourCards.Count >= min)
                 {
@@ -2594,6 +2704,30 @@ namespace WindBot.Game.AI
         public override IList<ClientCard> OnSelectFusionMaterial(IList<ClientCard> cards, int min, int max)
         {
             if (cards == null || cards.Count == 0) return base.OnSelectFusionMaterial(cards, min, max);
+            if (DeckPlugin?.MaterialEvaluator != null)
+            {
+                var scored = DeckPlugin.MaterialEvaluator.SortMaterials(cards, min);
+                if (scored != null && scored.Count >= min) return scored.Take(min).ToList();
+            }
+            var sorted = cards.OrderBy(c => GetMaterialSacrificePriority(c)).ToList();
+            return sorted.Take(min).ToList();
+        }
+
+        public override IList<ClientCard> OnSelectSynchroMaterial(IList<ClientCard> cards, int sum, int min, int max)
+        {
+            if (cards == null || cards.Count == 0) return base.OnSelectSynchroMaterial(cards, sum, min, max);
+            if (DeckPlugin?.MaterialEvaluator != null)
+            {
+                var scored = DeckPlugin.MaterialEvaluator.SortMaterials(cards, min);
+                if (scored != null && scored.Count >= min) return scored.Take(min).ToList();
+            }
+            var sorted = cards.OrderBy(c => GetMaterialSacrificePriority(c)).ToList();
+            return sorted.Take(min).ToList();
+        }
+
+        public override IList<ClientCard> OnSelectSynchroMaterial(IList<ClientCard> cards, IList<ClientCard> mandatoryCards, int sum, int min, int max)
+        {
+            if (cards == null || cards.Count == 0) return base.OnSelectSynchroMaterial(cards, mandatoryCards, sum, min, max);
             if (DeckPlugin?.MaterialEvaluator != null)
             {
                 var scored = DeckPlugin.MaterialEvaluator.SortMaterials(cards, min);
@@ -2651,8 +2785,16 @@ namespace WindBot.Game.AI
 
             // Universal Safeguard: Number 41: Bagooska the Terribly Tired Tapir (90590303, 90590304)
             // MUST be summoned in Defense Position to activate its continuous floodgate effect!
-            if ((cardId == 90590303 || cardId == 90590304 || cardId == 26273196 || cardId == 85359414) && positions.Contains(CardPosition.FaceUpDefence))
+            if ((cardId == 90590303 || cardId == 90590304) && positions.Contains(CardPosition.FaceUpDefence))
                 return CardPosition.FaceUpDefence;
+
+            // Universal Safeguard: Dynamic ATK Boosters & 0-DEF Lethal Finishers
+            // (e.g. Number 100: Numeron Dragon [57314798], Gren Maju Da Eiza [36584821], Eater of Millions [63845230], Danger! Bigfoot! [43316238])
+            // These monsters have low or variable printed ATK/DEF (0 or ?), but gain immense ATK through their effects.
+            // Placing them in Defense Position leaves them unable to attack, and with 0 DEF they are destroyed next turn.
+            // They MUST ALWAYS be placed in FaceUpAttack position!
+            if ((cardId == 57314798 || cardId == 36584821 || cardId == 63845230 || cardId == 43316238) && positions.Contains(CardPosition.FaceUpAttack))
+                return CardPosition.FaceUpAttack;
 
             var card = YGOSharp.OCGWrapper.NamedCard.Get(cardId);
             if (card == null) return base.OnSelectPosition(cardId, positions);
@@ -2686,14 +2828,14 @@ namespace WindBot.Game.AI
         /// <summary>Registry of card IDs that have optional field-removal effects.</summary>
         protected readonly HashSet<int> _optionalFieldRemovalCards = new HashSet<int>
         {
-            95232014, // Dracotail Pan
-            95232011, // Dracotail Urgula
-            74701381, // Epurrely Plump
-            92487127, // Tensei Ryu-Ge Anva
-            24094258, // Varudras, the Final Bringer of the End Times
+            44482554, // Dracotail Pan
+            70871153, // Dracotail Urgula
+            24434049, // Epurrely Plump
+            56322832, // Tensei Ryu-Ge Anva
+            70636044, // Varudras, the Final Bringer of the End Times
             2526224,  // Fire King High Avatar Kirin
-            91230101, // Cooky Way
-            101402003 // Fisherman Legend of the Sea
+            67098897, // Cooky Yummy Way
+            101402004 // Fisherman Legend of the Sea
         };
 
         /// <summary>
@@ -2716,20 +2858,20 @@ namespace WindBot.Game.AI
         /// </summary>
         public override bool OnSelectYesNo(long desc)
         {
-            // Safeguard 1: Dracotail Pan (95232014) optional destroy 1 monster on field
-            if (desc == Util.GetStringId(95232014, 2))
+            // Safeguard 1: Dracotail Pan (44482554) optional destroy 1 monster on field
+            if (desc == Util.GetStringId(44482554, 2))
             {
                 return Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsShouldNotBeTarget());
             }
 
-            // Safeguard 2: Dracotail Urgula (95232011) optional destroy 1 spell/trap on field
-            if (desc == Util.GetStringId(95232011, 2))
+            // Safeguard 2: Dracotail Urgula (70871153) optional destroy 1 spell/trap on field
+            if (desc == Util.GetStringId(70871153, 2))
             {
                 return Enemy.GetSpells().Any(c => c != null);
             }
 
-            // Safeguard 3: Epurrely Plump (74701381) optional banish 1 monster on field
-            if (desc == Util.GetStringId(74701381, 2))
+            // Safeguard 3: Epurrely Plump (24434049) optional banish 1 monster on field
+            if (desc == Util.GetStringId(24434049, 2))
             {
                 return Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsShouldNotBeTarget());
             }
@@ -2759,9 +2901,9 @@ namespace WindBot.Game.AI
             {
                 long cardIdFromDesc20 = (desc >> 20);
                 long cardIdFromDesc4 = (desc >> 4);
-                if (cardIdFromDesc20 == 95232014 || cardIdFromDesc4 == 95232014 || // Pan
-                    cardIdFromDesc20 == 74701381 || cardIdFromDesc4 == 74701381 || // Plump
-                    cardIdFromDesc20 == 92487127 || cardIdFromDesc4 == 92487127)   // Anva
+                if (cardIdFromDesc20 == 44482554 || cardIdFromDesc4 == 44482554 || // Pan
+                    cardIdFromDesc20 == 24434049 || cardIdFromDesc4 == 24434049 || // Plump
+                    cardIdFromDesc20 == 56322832 || cardIdFromDesc4 == 56322832)   // Anva
                 {
                     return false;
                 }
@@ -2772,7 +2914,7 @@ namespace WindBot.Game.AI
             {
                 long cardIdFromDesc20 = (desc >> 20);
                 long cardIdFromDesc4 = (desc >> 4);
-                if (cardIdFromDesc20 == 95232011 || cardIdFromDesc4 == 95232011) // Urgula
+                if (cardIdFromDesc20 == 70871153 || cardIdFromDesc4 == 70871153) // Urgula
                 {
                     return false;
                 }

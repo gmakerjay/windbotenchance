@@ -10,5 +10,6 @@ namespace WindBot.Game.AI.Plugin
         void Reset();
         ClientCard PickSpecialSummonTarget(IList<ClientCard> candidates);
         ClientCard PickSearchTarget(IList<ClientCard> candidates, ClientCard context);
+        ClientCard PickFoolishGraveTarget(IList<ClientCard> candidates, ClientCard context) => null;
     }
 }

@@ -521,8 +521,8 @@ namespace WindBot.Game.AI.Decks
 
         private bool EnemyHasSpellNegator()
         {
-            int[] negators = { 84815190, 27548133, 9753964, 63767246, CardId.DarkMagicianDragonKnight };
-            return Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsDisabled() && negators.Contains(c.Id));
+            int[] negators = { 84815190, 44665365, 27548199, 9753964, 63767246, CardId.DarkMagicianDragonKnight };
+            return Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsDisabled() && (negators.Contains(c.Id) || CardIntelligence.IsKnownNegator(c.Id)));
         }
 
         // ==========================================

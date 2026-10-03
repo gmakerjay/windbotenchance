@@ -289,11 +289,11 @@ namespace WindBot.Game.AI.Decks
             int id = card.Id;
             return id == 18144506 || // Harpie's Feather Duster
                    id == 12580477 || // Raigeki
-                   id == 43898403 || // Lightning Storm
-                   id == 57728570 || // Evenly Matched
+                   id == 14532163 || // Lightning Storm
+                   id == 15693423 || // Evenly Matched
                    id == 27204311 || // Nibiru
                    id == 24299458 || // Forbidden Droplet
-                   id == 10045474 || // Dark Ruler No More
+                   id == 54693926 || // Dark Ruler No More
                    id == 48130397 || // Super Polymerization
                    id == 72302403 || // Swords of Revealing Light
                    id == 23002292;   // Red Reboot

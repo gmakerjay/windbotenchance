@@ -358,11 +358,11 @@ namespace WindBot.Game.AI.Decks
 
         private static readonly int[] TargetProtectionIds = {
             40908371,  // Azure-Eyes Silver Dragon
-            21887179,  // The Arrival Cyberse @Ignister
-            86157908,  // Marincess Bubble Reef
-            68957034,  // (placeholder โ€” cards with "unaffected by card effects")
-            10000030,  // Blue-Eyes Jet Dragon
-            25290459,  // Raidraptor - Ultimate Falcon
+            11738489,  // The Arrival Cyberse @Ignister
+            47910940,  // Marincess Great Bubble Reef
+            68957034,  // (cards with "unaffected by card effects")
+            30576089,  // Blue-Eyes Jet Dragon
+            86221741,  // Raidraptor - Ultimate Falcon
             30674956,  // (cards that can't be targeted)
         };
 

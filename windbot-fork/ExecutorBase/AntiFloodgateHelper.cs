@@ -39,10 +39,10 @@ namespace WindBot.Game.AI
             4280258,   // Apollousa, Bow of the Goddess
             84815190,  // Baronne de Fleur
             10443957,  // Cyber Dragon Infinity
-            86066372,  // Herald of Ultimateness
-            31801517,  // Evolzar Dolkka
-            57793869,  // Borreload Savage Dragon
-            17330115,  // Hot Red Dragon Archfiend Abyss
+            48546368,  // Herald of Ultimateness
+            42752141,  // Evolzar Dolkka
+            27548199,  // Borreload Savage Dragon
+            9753964,  // Hot Red Dragon Archfiend Abyss
             21522601,  // Witchcrafter Madame Verre
             84523092,  // Witchcrafter Haine
             1508649,   // Altergeist Hexstia
@@ -55,14 +55,18 @@ namespace WindBot.Game.AI
         /// Consolidated from 12+ executor files.
         /// </summary>
         public static readonly int[] FloodgateMonsterIds = {
-            78193831,  // Vanity's Fiend
-            67922702,  // Fossil Dyna Pachycephalo
-            96015934,  // Jowgen the Spiritualist
-            14212200,  // Archlord Kristya
-            86325573,  // Barrier Statue of the Stormwinds
-            3717252,   // Vanity's Ruler
-            85359414,  // El Shaddoll Winda
-            87294958,  // Known SS-blocking floodgate (used in original executors)
+            47084486,  // Vanity's Fiend
+            42009836,  // Fossil Dyna Pachycephalo
+            41855169,  // Jowgen the Spiritualist
+            59509952,  // Archlord Kristya
+            10963799,  // Barrier Statue of the Stormwinds
+            73356503,  // Barrier Statue of the Abyss
+            72634965,  // Vanity's Ruler
+            94977269,  // El Shaddoll Winda
+            94977270,  // El Shaddoll Winda (alt)
+            19261966,  // El Shaddoll Anoyatyllis
+            12435193,  // Koa'ki Meiru Drago
+            91279700,  // Evilswarm Ophion
         };
 
         /// <summary>
@@ -71,10 +75,14 @@ namespace WindBot.Game.AI
         /// </summary>
         public static readonly int[] FloodgateSpellIds = {
             5851097,   // Vanity's Emptiness
-            4514109,   // Summon Limit
-            22046459,  // Gozen Match
-            34487429,  // Rivalry of Warlords
-            2429943,   // Anti-Spell Fragrance
+            23516703,  // Summon Limit
+            53334471,  // Gozen Match
+            90846359,  // Rivalry of Warlords
+            24207889,  // There Can Be Only One
+            35059553,  // Kaiser Colosseum
+            18114794,  // Summon Breaker
+            84171830,  // Domain of the True Monarchs
+            83326048,  // Dimensional Barrier
         };
 
         /// <summary>
@@ -82,9 +90,9 @@ namespace WindBot.Game.AI
         /// Consolidated from Branded executor.
         /// </summary>
         public static readonly int[] SpellNegatorIds = {
-            63767246,  // Unknown Negator (generic)
+            63767246,  // Number 38: Hope Harbinger Dragon Titanic Galaxy (negates Spell activations)
             84815190,  // Baronne de Fleur
-            27548133,  // Borreload Savage Dragon
+            27548199,  // Borreload Savage Dragon
             9753964,   // Hot Red Dragon Archfiend Abyss
         };
 
@@ -121,12 +129,12 @@ namespace WindBot.Game.AI
 
             foreach (var card in allMonsters)
             {
-                // Built-in floodgate check
-                if (card.IsFloodgate() || CardIntelligence.IsFloodgateMonster(card.Id)) return true;
-                // Known floodgate monster IDs
-                if (FloodgateMonsterIds.Contains(card.Id)) return true;
-                // El Shaddoll Winda & Bagooska checks
-                if (card.IsCode(19261966, 85359414, 26273196, 94977269, 94977270, 90590303, 90590304)) return true;
+                // Vanity's Ruler on our side only blocks opponent
+                if (card.Id == 72634965 && card.Controller == 0) continue;
+
+                // Built-in SS lock check
+                if (CardIntelligence.IsSpecialSummonLockMonster(card.Id) || FloodgateMonsterIds.Contains(card.Id))
+                    return true;
             }
 
             // Check spells/traps
@@ -135,7 +143,8 @@ namespace WindBot.Game.AI
 
             foreach (var card in allSpells)
             {
-                if (CardIntelligence.IsFloodgateSpellTrap(card.Id) || FloodgateSpellIds.Contains(card.Id)) return true;
+                if (CardIntelligence.IsSpecialSummonLockSpellTrap(card.Id) || FloodgateSpellIds.Contains(card.Id))
+                    return true;
             }
 
             return false;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using YGOSharp.OCGWrapper.Enums;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -17,7 +17,7 @@ namespace WindBot.Game.AI.Decks
         {
             //monsters
             public const int TimeThiefWinder = 56308388;
-            public const int TimeThiefBezelShip = 82496079;
+            public const int TimeThiefBezelShip = 82496097;
             public const int TimeThiefCronocorder = 74578720;
             public const int TimeThiefRegulator = 19891131;
             public const int PhotonTrasher = 65367484;

@@ -26,7 +26,7 @@ namespace WindBot.Game.AI.DecisionEngine
             { 25311006, 75 },  // Triple Tactics Talent
             { 84211599, 70 },  // Pot of Prosperity
             { 44335251, 65 },  // Souleating Oviraptor
-            { 53582565, 30 },  // Raigeki (base is moderate because it's situational)
+            { 12580477, 30 },  // Raigeki (base is moderate because it's situational)
         };
 
         public DynamicValueEvaluator(OpponentProfiler profiler, BeliefState beliefState)
@@ -79,7 +79,7 @@ namespace WindBot.Game.AI.DecisionEngine
             double val = 0;
 
             // If it's a board clear (like Raigeki) and opponent controls monsters
-            if (card.Id == 53582565) // Raigeki
+            if (card.Id == 12580477) // Raigeki
             {
                 // Scaled by opponent's monster count
                 val += opponentSummons * 15.0;

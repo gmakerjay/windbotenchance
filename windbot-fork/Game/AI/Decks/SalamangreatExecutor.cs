@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -87,7 +87,7 @@ namespace WindBot.Game.AI.Decks
             53262004, 98338152, 32617464, 45041488, CardId.SolemnStrike,
             61257789, 23440231, 27354732, 12408276, 82419869, CardId.Impermanence,
             49680980, 18621798, 38814750, 17266660, 94689635,CardId.AshBlossom,
-            74762582, 75286651, 4810828,  44665365, 21123811, _CardId.CrystalWingSynchroDragon,
+            74762582, 75286621, 4810828,  44665365, 21123811, _CardId.CrystalWingSynchroDragon,
             82044279, 82044280, 79606837, 10443957, 1621413,
             90809975, 8165596,  9753964,  53347303, 88307361, _CardId.GamecieltheSeaTurtleKaiju,
             5818294,  2948263,  6150044,  26268488, 51447164, _CardId.JizukirutheStarDestroyingKaiju,

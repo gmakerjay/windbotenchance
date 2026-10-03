@@ -337,7 +337,7 @@ namespace dashbot
 
         private static readonly HashSet<string> SpecialArchetypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            "HorusExodia", "HorusRa", "ExodiaRaHorus", "Special_Maliss"
+            "HorusExodia", "HorusRa", "ExodiaRaHorus", "Special_Maliss", "GrenMaju"
         };
 
         private static readonly HashSet<string> ModernArchetypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -354,7 +354,9 @@ namespace dashbot
             "PhantomKnight", "PhantomKnights",
             "SkyStrikerZero", "RyzealBlitz", "Ryzeal", "Blitzclique",
             "FiendsmithSacred", "Fiendsmith Sacred",
-            "OrcustWCQ", "Orcust WCQ", "Orcust"
+            "OrcustWCQ", "Orcust WCQ", "Orcust",
+            "Watenpai", "Darklord 2", "Darklord2",
+            "Raioh", "RaiOh", "BarrierStun"
         };
 
         private static DeckItem ParseDeckItem(string originalName)
@@ -480,7 +482,8 @@ namespace dashbot
                 { "ScarbeatMach", "Sacred Beasts Machina (FTK)" },
                 { "SacredBeats", "Sacred Beasts" },
                 { "PhantomKnight", "Phantom Knights" },
-                { "PhantomKnights", "Phantom Knights" }
+                { "PhantomKnights", "Phantom Knights" },
+                { "GrenMaju", "Gren Maju OTK" }
             };
 
             if (overrides.TryGetValue(name, out var customName))

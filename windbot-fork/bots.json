@@ -1,5 +1,61 @@
 [
   {
+    "name": "GrenMaju",
+    "deck": "GrenMaju",
+    "difficulty": 3,
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ],
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
+    "name": "BarrierStun",
+    "deck": "BarrierStun",
+    "difficulty": 3,
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ],
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Raioh",
+    "deck": "Raioh",
+    "difficulty": 3,
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ],
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
+    "name": "RaiOh",
+    "deck": "Raioh",
+    "difficulty": 3,
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ],
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
     "name": "Watenpai",
     "deck": "Watenpai",
     "difficulty": 3,
@@ -1622,7 +1678,7 @@
   },
   {
     "name": "2026_RaiOh",
-    "deck": "2026_RaiOh",
+    "deck": "Raioh",
     "difficulty": 3,
     "masterRules": [
       3,
@@ -1632,7 +1688,7 @@
   },
   {
     "name": "Expert_2026_RaiOh",
-    "deck": "2026_RaiOh",
+    "deck": "Raioh",
     "difficulty": 3,
     "masterRules": [
       3,

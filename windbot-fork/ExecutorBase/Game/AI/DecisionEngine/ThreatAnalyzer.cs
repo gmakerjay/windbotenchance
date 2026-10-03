@@ -17,13 +17,13 @@ namespace WindBot.Game.AI.DecisionEngine
         // Floodgates that completely block play (threat = 100)
         private static readonly HashSet<int> HardFloodgates = new HashSet<int>
         {
-            42009023,  // Fossil Dyna Pachycephalo
-            7902349,   // Jowgen the Spiritualist
+            42009836,  // Fossil Dyna Pachycephalo
+            41855169,   // Jowgen the Spiritualist
             19261966,  // El Shaddoll Winda
-            78193831,  // Vanity's Fiend
+            47084486,  // Vanity's Fiend
             82732705,  // Skill Drain
             5851097,   // Vanity's Emptiness
-            4514109,   // Kaiser Colosseum
+            35059553,   // Kaiser Colosseum
         };
 
         // Key combo starters / high resource swing generators
@@ -35,7 +35,7 @@ namespace WindBot.Game.AI.DecisionEngine
             { 44335251, 85 },  // Souleating Oviraptor (Resource Swing: +1 search / summon)
             { 14558127, 88 },  // Ash Blossom (Resource Swing: -1 negate)
             // Snake-Eye cards
-            { 4611341,  92 },  // Snake-Eye Ash (Resource Swing: +2 searches/summons)
+            { 9674034,  92 },  // Snake-Eye Ash (Resource Swing: +2 searches/summons)
             { 15778492, 85 },  // Gaming Gamer GG
         };
 

@@ -693,11 +693,11 @@ namespace WindBot.Game.AI.Decks
                 32807846,   // Reinforcement of the Army
                 73628505,   // Terraforming
                 66399653,   // Union Hangar
-                04367828,   // Branded Fusion
-                57959858,   // Nadir Servant
-                44599277,   // Fossil Dig
-                75452921,   // Small World
-                73853976    // Pot of Extravagance
+                44362883,   // Branded Fusion
+                1984618,    // Nadir Servant
+                47325505,   // Fossil Dig
+                89558743,   // Small World
+                49238328    // Pot of Extravagance
             )) return false;
             return DefaultAshBlossomAndJoyousSpring();
         }

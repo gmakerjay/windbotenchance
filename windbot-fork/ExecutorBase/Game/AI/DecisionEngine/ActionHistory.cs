@@ -90,7 +90,7 @@ namespace WindBot.Game.AI.DecisionEngine
             int[] baitIds = {
                 84211599, // Pot of Prosperity
                 35261759, // Pot of Desires
-                55144522, // Pot of Extravagance
+                49238328, // Pot of Extravagance
                 25311006, // Triple Tactics Talent
             };
 

@@ -102,11 +102,11 @@ namespace WindBot.Game.AI.Decks
             42790071, // Multifaker
             53143898, // Marionetter
             52927340, // Kunquery
-            49725936, // Hexstia
-            18528996, // Primebanshee
-            85289965, // Protocol
-            41999284, // Manifestation
-            94259633  // Pookuery
+            1508649,  // Hexstia
+            93503294, // Primebanshee
+            27541563, // Protocol
+            35146019, // Manifestation
+            59185998  // Pookuery
         };
 
         private bool IsAltergeistCard(ClientCard card)
@@ -1041,7 +1041,7 @@ namespace WindBot.Game.AI.Decks
                         if (c.IsFaceup() && !c.IsDisabled())
                         {
                             if (c.Attack >= 2500 && c.HasType(CardType.Effect)) return score + 5000;
-                            if (c.IsCode(49725936)) return score + 4500; // Hexstia
+                            if (c.IsCode(1508649)) return score + 4500; // Hexstia
                             if (c.IsCode(89538537)) return score + 4000; // Silquitous
                             if (c.IsCode(42790071)) return score + 3500; // Multifaker
                         }
@@ -1051,8 +1051,8 @@ namespace WindBot.Game.AI.Decks
                     {
                         if (c.IsFaceup())
                         {
-                            if (c.IsCode(85289965)) return score + 4800; // Altergeist Protocol
-                            if (c.IsCode(41999284)) return score + 3000; // Manifestation
+                            if (c.IsCode(27541563)) return score + 4800; // Altergeist Protocol
+                            if (c.IsCode(35146019)) return score + 3000; // Manifestation
                             if (c.HasType(CardType.Continuous) || c.HasType(CardType.Field)) return score + 2000;
                             return score + 500;
                         }
@@ -1178,10 +1178,10 @@ namespace WindBot.Game.AI.Decks
             {
                 if (cards.Any(c => c != null && c.Location == CardLocation.Extra))
                 {
-                    return SelectPreferred(cards, min, max, 49725936, 18528996);
+                    return SelectPreferred(cards, min, max, 1508649, 93503294);
                 }
                 var oppCards = cards.Where(c => c != null && c.Controller == 1).OrderBy(c => {
-                    if (c.IsCode(85289965)) return 1;
+                    if (c.IsCode(27541563)) return 1;
                     if (c.IsCode(53936268)) return 2;
                     if (c.Location == CardLocation.MonsterZone && c.IsFaceup()) return 3;
                     if (c.Location == CardLocation.SpellZone && c.IsFaceup()) return 4;
@@ -1271,7 +1271,7 @@ namespace WindBot.Game.AI.Decks
                 if (c.IsCode(25533642)) return 11; // Meluseek
                 if (c.IsCode(89538537)) return 12; // Silquitous
                 if (c.IsCode(53143898)) return 13; // Marionetter
-                if (c.IsCode(49725936)) return 14; // Hexstia
+                if (c.IsCode(1508649)) return 14; // Hexstia
                 return 20;
             }
             

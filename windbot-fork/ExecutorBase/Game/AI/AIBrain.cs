@@ -126,7 +126,7 @@ namespace WindBot.Game.AI
                 var enemy = _executor?.Enemy;
                 if (enemy == null) return false;
                 return enemy.HasInMonstersZone(33198837, true, false, true)   // Naturia Beast (negate spells)
-                    || enemy.HasInMonstersZone(86221708, true, false, true);  // Apollousa, Bow of the Goddess
+                    || enemy.HasInMonstersZone(4280258, true, false, true);  // Apollousa, Bow of the Goddess
             }
         }
 

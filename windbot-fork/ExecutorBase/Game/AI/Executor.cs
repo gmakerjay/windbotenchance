@@ -21,7 +21,7 @@ namespace WindBot.Game.AI
         protected BattlePhase Battle { get; private set; }
 
         protected ExecutorType Type { get; private set; }
-        protected ClientCard Card { get; private set; }
+        protected ClientCard Card { get; set; }
         protected long ActivateDescription { get; private set; }
 
         public ClientField Bot { get; private set; }
@@ -276,10 +276,12 @@ namespace WindBot.Game.AI
                 var enemyCards = validCards.Where(c => c.Controller == 1).ToList();
                 var ourCards = validCards.Where(c => c.Controller == 0).ToList();
 
-                // ── Case 1: Enemy Target Selection (Destroy, Banish, Return to hand/deck, Target, Negate, Attack Target) ──
-                // Hints: 502 (DESTROY), 503 (REMOVE/BANISH), 504 (TOGRAVE), 505 (RTOHAND), 507 (TODECK), 519 (CONTROL), 549 (ATTACK), 551 (TARGET), 552 (DISABLE), 572 (NEGATE), 575 (FACEUP)
-                if (hint == 502 || hint == 503 || hint == 504 || hint == 505 || hint == 507 || hint == 519 ||
-                    hint == 549 || hint == 551 || hint == 552 || hint == 572 || hint == 575)
+                // ── Case 1: Enemy Target Selection (only when enough enemy cards are in the pool) ──
+                // Hints (script/constant.lua): 502 DESTROY, 503 REMOVE, 504 TOGRAVE, 505 RTOHAND, 507 TODECK,
+                // 520 CONTROL, 528 POSCHANGE, 549 ATTACKTARGET, 551 TARGET, 575 NEGATE
+                // (519 = REMOVEXYZ, 552 = COIN, 572 = COUNTER are NOT enemy-target hints)
+                if (hint == 502 || hint == 503 || hint == 504 || hint == 505 || hint == 507 || hint == 520 ||
+                    hint == 528 || hint == 549 || hint == 551 || hint == 575)
                 {
                     if (enemyCards.Count >= min)
                     {
@@ -290,9 +292,14 @@ namespace WindBot.Game.AI
                     }
                 }
 
-                // ── Case 2: Sacrifice / Cost Selection from our side (Tribute, Discard, Send to GY, Materials) ──
-                // Hints: 500 (RELEASE), 501 (DISCARD), 504 (TOGRAVE), 508 (SUMMON/TOGRAVE), 511-513 (MATERIALS), 533 (LMATERIAL)
-                if (hint == 500 || hint == 501 || (hint == 504 && enemyCards.Count == 0) || hint == 508 || hint == 511 || hint == 512 || hint == 513 || hint == 533)
+                bool deckOnly = validCards.All(c => c.Location == CardLocation.Deck);
+
+                // ── Case 2: Sacrifice / Cost Selection from our side ──
+                // Hints: 500 RELEASE, 501 DISCARD, 504 TOGRAVE (not Deck→GY), 507 TODECK (our cards),
+                // 511 FMATERIAL, 512 SMATERIAL, 513 XMATERIAL, 519 REMOVEXYZ (detach), 531 TRIBUTE, 533 LMATERIAL
+                if (hint == 500 || hint == 501 || (hint == 504 && enemyCards.Count == 0 && !deckOnly) ||
+                    (hint == 507 && enemyCards.Count < min) || hint == 511 || hint == 512 || hint == 513 ||
+                    hint == 519 || hint == 531 || hint == 533)
                 {
                     if (ourCards.Count >= min)
                     {
@@ -307,9 +314,10 @@ namespace WindBot.Game.AI
                     }
                 }
 
-                // ── Case 3: Positive Selection for our side (Special Summon, Add to Hand, Search, Equip) ──
-                // Hints: 506 (ATOHAND / SEARCH), 509 (SPSUMMON), or bounce where only our cards exist
-                if (hint == 506 || hint == 509 || (hint == 505 && enemyCards.Count == 0))
+                // ── Case 3: Positive Selection for our side ──
+                // Hints: 506 ATOHAND, 508 SUMMON, 509 SPSUMMON, 505 RTOHAND (our cards only), 504 Deck→GY (Foolish-style)
+                if (hint == 506 || hint == 508 || hint == 509 || (hint == 505 && enemyCards.Count == 0) ||
+                    (hint == 504 && enemyCards.Count == 0 && deckOnly))
                 {
                     if (ourCards.Count >= min)
                     {
@@ -458,7 +466,7 @@ namespace WindBot.Game.AI
             for (int i = 0; i < cards.Count; ++i)
             {
                 ClientCard c = cards[i];
-                if (c != null && (c.Id == 65681983 || c.Id == 65681982))
+                if (c != null && (c.Id == 65681983))
                 {
                     if (GetRemainingInDeckCount(oppCanonical) > 0)
                     {
@@ -512,7 +520,7 @@ namespace WindBot.Game.AI
                         continue;
 
                     // For Skill Drain: ensure Bot has at least 1000 LP
-                    if (card.IsCode(82732047, 82732705) && Bot.LifePoints <= 1000)
+                    if (card.IsCode(82732705) && Bot.LifePoints <= 1000)
                         continue;
 
                     try { AI.Log(LogLevel.Info, $"[FLOODGATE-FLIP] Pre-emptively flipping {card.Name ?? card.Id.ToString()} in {Duel.Phase}"); } catch {}
@@ -889,15 +897,16 @@ namespace WindBot.Game.AI
 
         /// <summary>
         /// Override in deck executors to mark boss/ace monsters for protection.
-        /// Default: treats monsters with ATK ≥ 2500 or Extra Deck types as ace-worthy.
+        /// Default: checks registered aces, known negators/bosses, high-impact finishers (ATK >= 3000), or Link-4+ bosses.
+        /// Generic intermediate Extra Deck extenders (Link 1-2, low ATK synchro/xyz) are NOT treated as aces by default.
         /// </summary>
         public virtual bool IsAceCard(ClientCard card)
         {
             if (card == null) return false;
-            if (card.Attack >= 2500) return true;
-            if (card.HasType(CardType.Fusion) || card.HasType(CardType.Synchro) ||
-                card.HasType(CardType.Xyz) || card.HasType(CardType.Link))
-                return true;
+            if (HeuristicGuard.IsAceCard(card.Id)) return true;
+            if (CardIntelligence.IsKnownNegator(card.Id)) return true;
+            if (card.Attack >= 3000) return true;
+            if (card.HasType(CardType.Link) && card.LinkCount >= 4) return true;
             return false;
         }
 

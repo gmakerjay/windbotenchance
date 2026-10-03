@@ -164,6 +164,16 @@ Copy-Item $sourceDecks (Join-Path $TargetDir "deck\") -Recurse -Force
 Copy-Item $sourceDialogs (Join-Path $TargetDir "WindBot\Dialogs\") -Recurse -Force
 Write-OK "Deployed Decks & Dialogs to WindBot and game deck folder"
 
+# Deploy data-driven configs (chain_targets.json, archetypes.json) -> WindBot\configs
+# ModernExecutor.FindConfigDirectory() looks for <WindBot.dll dir>\configs
+$sourceConfigs = Join-Path $ScriptDir "configs"
+if (Test-Path $sourceConfigs) {
+    $targetConfigs = Join-Path $TargetDir "WindBot\configs"
+    if (!(Test-Path $targetConfigs)) { New-Item -ItemType Directory -Path $targetConfigs -Force | Out-Null }
+    Copy-Item (Join-Path $sourceConfigs "*.json") $targetConfigs -Force
+    Write-OK "Deployed configs (*.json) to WindBot\configs"
+}
+
 # Deploy cards.cdb (Ensure full custom/prerelease cards are available for WindBot and EdoGame)
 $sourceCdb = Join-Path $ScriptDir "windbot-fork\cards.cdb"
 if (Test-Path $sourceCdb) {

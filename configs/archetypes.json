@@ -1,6 +1,6 @@
 {
   "_comment": "Opponent Profiler — Archetype detection config",
-  "_updated": "2026-06-19",
+  "_updated": "2026-10-03",
   "_description": "แก้ไฟล์นี้เมื่อ meta เปลี่ยน — เพิ่ม archetype ใหม่, ลบ archetype ที่หายไปจาก meta, ปรับ HandTrapDensity ตามจริง",
 
   "DefaultHandTrapDensity": 0.15,
@@ -18,7 +18,7 @@
     {
       "Name": "SnakeEye",
       "CardKeywords": ["snake-eye", "sinful spoils", "diabellstar", "flamberge"],
-      "KnownCardIds": [16431364, 79979666, 72270339],
+      "KnownCardIds": [9674034, 89023486, 80845034, 72270339, 90241276, 48452496],
       "PlayStyle": "Combo",
       "HandTrapDensity": 0.12,
       "LikelyComboStarters": ["Snake-Eye Ash", "Original Sinful Spoils"],
@@ -27,7 +27,7 @@
     {
       "Name": "Kashtira",
       "CardKeywords": ["kashtira", "scareclaw"],
-      "KnownCardIds": [37578679, 50810455, 82896609],
+      "KnownCardIds": [68304193, 32909498, 48626373, 71832012],
       "PlayStyle": "Combo",
       "HandTrapDensity": 0.10,
       "LikelyComboStarters": ["Kashtira Unicorn", "Kashtira Fenrir"],
@@ -36,7 +36,7 @@
     {
       "Name": "Altergeist",
       "CardKeywords": ["altergeist", "multifaker", "silquitous", "hexstia", "meluseek"],
-      "KnownCardIds": [44728221, 75425043, 1508649, 7034515],
+      "KnownCardIds": [42790071, 25533642, 1508649, 89538537],
       "PlayStyle": "Control",
       "HandTrapDensity": 0.20,
       "LikelyComboStarters": ["Multifaker", "Meluseek"],
@@ -45,7 +45,7 @@
     {
       "Name": "SkyStriker",
       "CardKeywords": ["sky striker", "raye", "roze", "kagari", "shizuku", "hayate"],
-      "KnownCardIds": [63166095, 24010609, 26077387],
+      "KnownCardIds": [63166095, 26077387, 37351133, 63288573, 90673288],
       "PlayStyle": "Control",
       "HandTrapDensity": 0.18,
       "LikelyComboStarters": ["Engage", "Raye", "Roze"],
@@ -54,7 +54,7 @@
     {
       "Name": "Labrynth",
       "CardKeywords": ["labrynth", "lovely", "arianna", "chandraglier", "welcome"],
-      "KnownCardIds": [2347656, 72461046],
+      "KnownCardIds": [2347656, 1225009, 5380979, 92714517],
       "PlayStyle": "Control",
       "HandTrapDensity": 0.15,
       "LikelyComboStarters": ["Arianna", "Welcome Labrynth"],
@@ -63,7 +63,7 @@
     {
       "Name": "Spright",
       "CardKeywords": ["spright", "gigantic"],
-      "KnownCardIds": [16204028, 44097011],
+      "KnownCardIds": [76145933, 13533678, 54498517, 15443125],
       "PlayStyle": "Combo",
       "HandTrapDensity": 0.12,
       "LikelyComboStarters": ["Spright Blue", "Spright Jet"],
@@ -72,7 +72,7 @@
     {
       "Name": "Mathmech",
       "CardKeywords": ["mathmech", "primathmech", "superfactorial"],
-      "KnownCardIds": [67627076, 48411748],
+      "KnownCardIds": [36521307, 80965043, 87804365, 27182739],
       "PlayStyle": "OTK",
       "HandTrapDensity": 0.15,
       "LikelyComboStarters": ["Mathmech Circular", "Mathmech Addition"],
@@ -81,7 +81,7 @@
     {
       "Name": "FireKing",
       "CardKeywords": ["fire king", "garunix", "ponix", "island"],
-      "KnownCardIds": [35261759, 36211150],
+      "KnownCardIds": [57554544, 66431519, 90681088],
       "PlayStyle": "Midrange",
       "HandTrapDensity": 0.12,
       "LikelyComboStarters": ["Fire King Island", "Sacred Fire King Garunix"],
@@ -90,7 +90,7 @@
     {
       "Name": "Melodious",
       "CardKeywords": ["melodious", "ostinato", "bloom diva", "score"],
-      "KnownCardIds": [],
+      "KnownCardIds": [9113513, 84988419, 57594700],
       "PlayStyle": "Combo",
       "HandTrapDensity": 0.10,
       "LikelyComboStarters": ["Ostinato"],
@@ -99,7 +99,7 @@
     {
       "Name": "Tenpai",
       "CardKeywords": ["tenpai", "sangen"],
-      "KnownCardIds": [],
+      "KnownCardIds": [39931513, 91810826, 66730191],
       "PlayStyle": "OTK",
       "HandTrapDensity": 0.15,
       "LikelyComboStarters": ["Tenpai Dragon Paidra"],
@@ -108,7 +108,7 @@
     {
       "Name": "Yubel",
       "CardKeywords": ["yubel", "nightmare", "spirit of yubel"],
-      "KnownCardIds": [],
+      "KnownCardIds": [78371393, 90829280, 65261141],
       "PlayStyle": "Midrange",
       "HandTrapDensity": 0.12,
       "LikelyComboStarters": ["Spirit of Yubel", "Nightmare Pain"],

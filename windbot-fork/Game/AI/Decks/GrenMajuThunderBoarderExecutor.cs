@@ -9,7 +9,6 @@ namespace WindBot.Game.AI.Decks
 {
     [Deck("GrenMajuThunderBoarder", "AI_GrenMajuThunderBoarder")]
     [Deck("Gren Maju Stun", "AI_GrenMajuThunderBoarder")]
-    [Deck("GrenMaju", "AI_GrenMajuThunderBoarder")]
     public class GrenMajuThunderBoarderExecutor : ModernExecutor
     {
         public ClientCard CurrentExecutingCard => Card;

@@ -482,8 +482,8 @@ namespace WindBot.Game.AI.Decks
 
             // Do not force attack if enemy controls damage reflect monsters (Mikanko, Daigusto Sphreez, Yubel, Amazoness Swords Woman)
             if (Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() &&
-                (c.IsCode(29552709) || c.HasSetcode(0x18d) || c.IsCode(73915051) ||
-                 c.IsCode(78371393) || c.IsCode(4779091) || c.IsCode(31764782))))
+                (c.IsCode(29552709) || c.HasSetcode(0x18d) || c.IsCode(94004268) ||
+                 c.IsCode(78371393) || c.IsCode(4779091) || c.IsCode(31764700))))
             {
                 return false;
             }

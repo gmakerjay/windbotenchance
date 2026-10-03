@@ -285,10 +285,10 @@ namespace WindBot.Game.AI.Plugins
             // S/T board wipes that destroy True Light (which would blow up our entire field!)
             int[] backrowThreats = {
                 18144506, // Harpie's Feather Duster
-                9952083,  // Lightning Storm
-                53582587, // Heavy Storm
-                15693423, // Summon Limit
-                82044279, // Skill Drain
+                14532163, // Lightning Storm
+                19613556, // Heavy Storm
+                23516703, // Summon Limit
+                82732705, // Skill Drain
                 41420027  // Solemn Judgment
             };
 

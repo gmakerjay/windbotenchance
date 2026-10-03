@@ -205,8 +205,8 @@ namespace WindBot.Game.AI
                 case 51788412: // Chaos Ancient Gear Giant
                 case 12652643: // Ultimate Ancient Gear Golem
                 case 12307878: // Invoked Purgatrio
-                case 2055794:  // Cyber End Dragon
-                case 11954712: // Dark Driceratops
+                case 1546123:  // Cyber End Dragon
+                case 65287621: // Dark Driceratops
                 case 27143874: // Dino Sewing
                     return true;
                 default:

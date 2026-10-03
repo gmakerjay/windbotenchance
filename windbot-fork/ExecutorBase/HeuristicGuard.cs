@@ -68,6 +68,11 @@ namespace WindBot
                 _aceCardIds.Add(id);
         }
 
+        public static bool IsAceCard(int cardId)
+        {
+            return _aceCardIds.Contains(cardId);
+        }
+
         /// <summary>
         /// Reset counters at the start of a new duel session.
         /// </summary>
@@ -128,7 +133,7 @@ namespace WindBot
                     {
                         // Exemption: Known self-destruct beneficial triggers (DPE, Clock Tower, Fire Kings, Tokens)
                         bool hasBeneficialSelfPop = ownFieldCards.Any(c => 
-                            c.IsCode(60461880, 27552504, 75500286, 21887175, 48680970)
+                            c.IsCode(75041269, 27552504, 75500286, 21887175, 48680970)
                             || (_aceCardIds.Contains(c.Id) == false && (c.HasType(CardType.Token) || c.Id == 0)));
 
                         bool targetingOurAce = ownFieldCards.Any(c => _aceCardIds.Contains(c.Id) || c.Attack >= 2000 || c.IsExtraCard());
