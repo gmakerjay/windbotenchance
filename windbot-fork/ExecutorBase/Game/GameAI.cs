@@ -482,6 +482,7 @@ namespace WindBot.Game
                 for (int i = 0; i < cards.Count; ++i)
                 {
                     ClientCard card = cards[i];
+                    int chainCheckpoint = PreselectCheckpoint();
                     if (ShouldExecute(exec, card, ExecutorType.Activate, descs[i]))
                     {
                         // Universal Safety: If this is a once-per-turn handtrap or response,
@@ -489,6 +490,7 @@ namespace WindBot.Game
                         if (CardIntelligence.IsHandtrap(card.Id) && Duel.CurrentChain != null &&
                             Duel.CurrentChain.Any(c => c != null && c.Controller == 0 && (c.Id == card.Id || c.GetNonAltartCode() == card.GetNonAltartCode())))
                         {
+                            RollbackPreselect(chainCheckpoint);
                             continue;
                         }
 
@@ -625,6 +627,12 @@ namespace WindBot.Game
             {
                 Log(LogLevel.Info, $"[DEBUG-IDLE] Logging error: {ex.Message}");
             }
+
+            // [Core v0.094] Any preselection still queued at a fresh idle prompt is stale: the action it was
+            // queued for has fully resolved (chain end clears too), or it came from an executor func that
+            // returned false. Clearing here stops leftovers from hijacking the next selection prompt.
+            m_selector.Clear();
+            m_selector_pointer = -1;
 
             Executor.SetMain(main);
             MainPhaseAction action = Executor.OnSelectIdleCmd(main);
@@ -1366,6 +1374,54 @@ namespace WindBot.Game
             return m_selector != null && m_selector.Count > 0;
         }
 
+        /// <summary>[Core v0.094] Current depth of the preselection queue (use with RollbackPreselect).</summary>
+        public int PreselectCheckpoint()
+        {
+            return m_selector?.Count ?? 0;
+        }
+
+        /// <summary>
+        /// [Core v0.094] Drop every preselection queued after <paramref name="checkpoint"/>.
+        /// Used when an executor func queued AI.SelectCard(...) but then returned false.
+        /// </summary>
+        public void RollbackPreselect(int checkpoint)
+        {
+            if (m_selector == null) return;
+            if (checkpoint < 0) checkpoint = 0;
+            if (m_selector.Count <= checkpoint) return;
+            while (m_selector.Count > checkpoint)
+                m_selector.RemoveAt(m_selector.Count - 1);
+            if (m_selector_pointer > m_selector.Count)
+                m_selector_pointer = m_selector.Count == 0 ? -1 : m_selector.Count;
+        }
+
+        /// <summary>
+        /// [Core v0.094] Peek the next queued AI.SelectCard(...) preselection. If at least one card in
+        /// <paramref name="cards"/> matches it, the preselection is consumed (popped) and the matching
+        /// cards are returned (trimmed to <paramref name="max"/>, NOT padded to min).
+        /// If nothing matches, the queue is left untouched and null is returned, so a preselection meant
+        /// for a later prompt (e.g. target after a cost) is not wasted.
+        /// When <paramref name="explicitOnly"/> is true, only explicit ClientCard preselections are honoured
+        /// (ID / location preselections are left queued) — used for cost prompts (discard/tribute).
+        /// </summary>
+        public IList<ClientCard> TryConsumePreselectedCards(IList<ClientCard> cards, int max, bool explicitOnly = false)
+        {
+            if (m_selector == null || m_selector.Count == 0 || cards == null || cards.Count == 0)
+                return null;
+
+            CardSelector top = m_selector[m_selector.Count - 1];
+            if (top == null) return null;
+            if (explicitOnly && !top.IsExplicitCardSelection) return null;
+
+            IList<ClientCard> matched = top.Match(cards);
+            if (matched == null || matched.Count == 0) return null;
+
+            m_selector.RemoveAt(m_selector.Count - 1);
+            if (max > 0 && matched.Count > max)
+                matched = matched.Take(max).ToList();
+            return matched;
+        }
+
         public CardSelector GetSelectedCards()
         {
             CardSelector selected = null;
@@ -1560,8 +1616,9 @@ namespace WindBot.Game
             {
                 if (card.IsCode(10045474) || card.IsCode(97268402) || CardIntelligence.IsHandtrap(card.Id) || CardIntelligence.IsHandtrap(card.GetNonAltartCode()))
                 {
-                    // 1. Never activate the same handtrap/negator twice in the same chain
-                    if (Duel.CurrentChain.Any(c => c != null && (c.IsCode(card.Id) || c.IsCode(card.GetNonAltartCode()))))
+                    // 1. Never activate the same handtrap/negator twice in the same chain (OUR copies only —
+                    //    an opponent activating the same name must not block our response).
+                    if (Duel.CurrentChain.Any(c => c != null && c.Controller == 0 && (c.IsCode(card.Id) || c.IsCode(card.GetNonAltartCode()))))
                         return false;
 
                     // 2. Never chain targeted monster negators (Imperm/Veiler) to our own card's activation
@@ -1578,7 +1635,10 @@ namespace WindBot.Game
                 }
             }
 
+            int preselectCheckpoint = PreselectCheckpoint();
             bool result = exec.Func == null || exec.Func();
+            // [Core v0.094] A func that declined must not leave its AI.SelectCard(...) picks behind.
+            if (!result) RollbackPreselect(preselectCheckpoint);
 
             // Layer 1: Auto-trace every executor decision for all decks
             try

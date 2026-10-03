@@ -80,10 +80,14 @@ long hint = Util.GetStringId(cardId, n);   // = (cardId << 20) | n   (AIUtil.cs 
 
 ```text
 1. Executor.OnSelectCard(cards,min,max,hint,cancelable)   ← deck override → ModernExecutor.OnSelectCard
+   ├─ step 0 (v0.094): AI.SelectCard/SelectNextCard ที่ match pool → ใช้ทันที (ขาด → เติมด้วย heuristic ของ hint นั้น)
+   │    · ไม่ใช้กับ material hint 511/512/513/533 (ไปข้อ 3)
+   │    · hint แบบ cost (500/501/504 ฝั่งเราไม่ใช่ Deck/507 ฝั่งเรา) ใช้เฉพาะ preselect แบบ ClientCard/IList<ClientCard>
+   │    · ไม่ match → ไม่ pop (เก็บไว้ให้ prompt ถัดไป)
    └─ ถ้าคืนค่า != null → ใช้เลย
 2. (hint 509, min==1, max>min) → OnSelectPendulumSummon
 3. hint 511/512/513/533 → m_materialSelector หรือ OnSelect{Fusion,Synchro,Xyz,Link}Material
-4. AI.SelectCard / SelectNextCard  (CardSelector stack — LIFO, ล้างเมื่อ OnChainEnd / OnNewPhase)
+4. AI.SelectCard / SelectNextCard  (CardSelector stack — ล้างเมื่อ OnChainEnd / OnNewPhase / ทุก idle prompt (v0.094) / func คืน false → rollback)
 5. Executor.FallbackSelectCard (heuristic)
    ├─ Case1 เลือกศัตรู : 502/503/504/505/507/520/528/549/551/575
    ├─ Case2 cost ฝั่งเรา: 500/501, 504 (ไม่ใช่ Deck), 507 (เรา), 511/512/513/519/531/533
@@ -92,9 +96,10 @@ long hint = Util.GetStringId(cardId, n);   // = (cardId << 20) | n   (AIUtil.cs 
 → ทุกเส้นทางผ่าน HeuristicGuard.SanitizeSelection + ValidateSelection ก่อนส่งจริง
 ```
 
-> 🔒 **ผลที่ตามมา**: ใน ModernExecutor, `AI.SelectCard(...)` จะถูก **ข้าม** สำหรับ hint ที่ ModernExecutor จัดการแล้ว
-> (500/501/502/503/504/505/506/507/509/514/518/520/528/551/575 เมื่อ pool ตรงเงื่อนไข) — ยกเว้น 504 Deck→GY ที่ plugin คืน null
-> ถ้าต้องการเจาะจงการ์ด ให้ตัดสินใน deck `OnSelectCard` override (ดู `executor_template.md` → Pending-Select Pattern)
+> ✅ **v0.094**: `AI.SelectCard(...)` ใน activate func **ใช้ได้แล้ว** กับ hint ที่ ModernExecutor route (target/search/removal/SS) เมื่อการ์ดที่เลือกอยู่ใน pool จริง
+> — ตั้ง preselect แล้ว func `return false` → core rollback ให้เอง ไม่ค้างไป hijack prompt อื่น
+> ⚠️ ยังต้องระวัง: (1) deck override `OnSelectCard` ที่คืนค่าก่อน `base` จะข้าม preselect (2) cost prompt ใช้เฉพาะ preselect แบบระบุ `ClientCard`
+> (3) HeuristicGuard ยังอาจแก้ selection ที่เล็งการ์ดตัวเองโดยตั้งใจ → ใช้ Pending-Select (`executor_template.md`) ถ้าต้องการบังคับเด็ดขาด
 
 ## 4. รู้ว่า "การเลือกนี้มาจากการ์ดไหน"
 

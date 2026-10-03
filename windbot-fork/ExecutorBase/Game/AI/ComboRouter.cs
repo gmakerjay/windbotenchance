@@ -111,6 +111,18 @@ namespace WindBot.Game.AI
         private ComboLine _activeLine = null;
         private int _activeStepIndex = 0;
 
+        // [Core v0.094] (cardId, action) pairs already executed by the router this turn, with counts.
+        // Used to auto-complete matching steps when switching to a fallback / next-best line.
+        private readonly Dictionary<long, int> _executedThisTurn = new Dictionary<long, int>();
+        private bool _lastHasEnemyDisruption = false;
+
+        private static long ActionKey(int cardId, ExecutorType type)
+        {
+            // Summon and SummonOrSet are the same physical action
+            if (type == ExecutorType.SummonOrSet) type = ExecutorType.Summon;
+            return ((long)cardId << 8) | (long)(int)type;
+        }
+
         /// <summary>True if there's currently an active combo line being executed.</summary>
         public bool HasActiveCombo => _activeLine != null && _activeStepIndex < _activeLine.Steps.Count;
 
@@ -161,11 +173,61 @@ namespace WindBot.Game.AI
             _activeLine = null;
             _activeStepIndex = 0;
             _failedLinesThisTurn.Clear();
+            _executedThisTurn.Clear();
             foreach (var line in _registeredLines)
             {
                 foreach (var step in line.Steps)
                     step.Completed = false;
             }
+        }
+
+        /// <summary>
+        /// [Core v0.094] Record that an action was physically executed this turn (called by ModernExecutor
+        /// whenever a combo step is played). Fallback lines will treat matching steps as already done.
+        /// </summary>
+        public void RecordExecutedAction(int cardId, ExecutorType type)
+        {
+            if (cardId <= 0) return;
+            long key = ActionKey(cardId, type);
+            _executedThisTurn.TryGetValue(key, out int n);
+            _executedThisTurn[key] = n + 1;
+        }
+
+        /// <summary>[Core v0.094] How many times (cardId, type) was executed by the router this turn.</summary>
+        public int GetExecutedCount(int cardId, ExecutorType type)
+        {
+            _executedThisTurn.TryGetValue(ActionKey(cardId, type), out int n);
+            return n;
+        }
+
+        /// <summary>
+        /// [Core v0.094] When a new line becomes active mid-turn, mark its leading/any steps that were already
+        /// executed this turn as Completed (respecting multiplicity: one execution completes one step).
+        /// </summary>
+        private void ApplyExecutedHistory(ComboLine line)
+        {
+            if (line == null) return;
+            foreach (var step in line.Steps)
+                step.Completed = false;
+            if (_executedThisTurn.Count == 0) return;
+
+            var remaining = new Dictionary<long, int>(_executedThisTurn);
+            foreach (var step in line.Steps)
+            {
+                long key = ActionKey(step.CardId, step.ActionType);
+                if (remaining.TryGetValue(key, out int n) && n > 0)
+                {
+                    step.Completed = true;
+                    remaining[key] = n - 1;
+                }
+            }
+        }
+
+        private void SetActiveLine(ComboLine line)
+        {
+            _activeLine = line;
+            _activeStepIndex = 0;
+            ApplyExecutedHistory(line);
         }
 
         // ═══════════════════════════════════════
@@ -185,10 +247,13 @@ namespace WindBot.Game.AI
             // Also count cards on field and in GY (some combo lines use them)
             var fieldIds = new HashSet<int>(bot.GetMonsters().Where(c => c != null).SelectMany(c => new[] { c.Id, c.GetNonAltartCode() }));
             var gyIds = new HashSet<int>(bot.Graveyard.Where(c => c != null).SelectMany(c => new[] { c.Id, c.GetNonAltartCode() }));
+            // [Core v0.094] Field spells / continuous cards / set backrow are valid combo pieces too
+            var spellIds = new HashSet<int>(bot.GetSpells().Where(c => c != null).SelectMany(c => new[] { c.Id, c.GetNonAltartCode() }));
 
             var allAvailable = new HashSet<int>(handIds);
             allAvailable.UnionWith(fieldIds);
             allAvailable.UnionWith(gyIds);
+            allAvailable.UnionWith(spellIds);
 
             var viable = new List<ComboLine>();
 
@@ -245,13 +310,13 @@ namespace WindBot.Game.AI
         public bool ActivateBestLine(ClientField bot, bool hasEnemyDisruption = false)
         {
             if (!Enabled) return false;
+            _lastHasEnemyDisruption = hasEnemyDisruption;
             if (_activeLine != null) return true; // Already have an active line
 
             var viable = GetViableLines(bot, hasEnemyDisruption);
             if (viable.Count == 0) return false;
 
-            _activeLine = viable[0];
-            _activeStepIndex = 0;
+            SetActiveLine(viable[0]);
 
             System.Diagnostics.Debug.WriteLine($"[ComboRouter] Activated line: {_activeLine.Name} " +
                 $"(score={_activeLine.EndBoardScore}, steps={_activeLine.Steps.Count})");
@@ -289,7 +354,9 @@ namespace WindBot.Game.AI
             if (_activeLine == null) return;
             if (_activeStepIndex < _activeLine.Steps.Count)
             {
-                _activeLine.Steps[_activeStepIndex].Completed = true;
+                var done = _activeLine.Steps[_activeStepIndex];
+                done.Completed = true;
+                RecordExecutedAction(done.CardId, done.ActionType);
                 _activeStepIndex++;
             }
 
@@ -333,6 +400,15 @@ namespace WindBot.Game.AI
         /// </summary>
         public bool TrySwitchToFallback(ClientField bot = null)
         {
+            return TrySwitchToFallback(bot, _lastHasEnemyDisruption);
+        }
+
+        /// <summary>
+        /// [Core v0.094] Disruption-aware overload. Steps already executed this turn are auto-completed
+        /// on the new line so the bot does not try to re-play a card it already used.
+        /// </summary>
+        public bool TrySwitchToFallback(ClientField bot, bool hasEnemyDisruption)
+        {
             if (_activeLine != null)
             {
                 _failedLinesThisTurn.Add(_activeLine.Name);
@@ -348,8 +424,7 @@ namespace WindBot.Game.AI
                 var fallback = _registeredLines.FirstOrDefault(l => l.Name == fallbackName);
                 if (fallback != null && (fallback.Condition == null || SafeInvoke(fallback.Condition)))
                 {
-                    _activeLine = fallback;
-                    _activeStepIndex = 0;
+                    SetActiveLine(fallback);
                     System.Diagnostics.Debug.WriteLine(
                         $"[ComboRouter] ↩ Fallback switched: {abortedName} → {fallback.Name}");
                     return true;
@@ -359,13 +434,12 @@ namespace WindBot.Game.AI
             // If no specific fallback registered, re-evaluate hand for any alternative viable line not already failed
             if (bot != null)
             {
-                var viable = GetViableLines(bot)
+                var viable = GetViableLines(bot, hasEnemyDisruption)
                     .Where(l => l.Name != abortedName && !_failedLinesThisTurn.Contains(l.Name))
                     .ToList();
                 if (viable.Count > 0)
                 {
-                    _activeLine = viable[0];
-                    _activeStepIndex = 0;
+                    SetActiveLine(viable[0]);
                     System.Diagnostics.Debug.WriteLine(
                         $"[ComboRouter] ↩ Auto-switched to next best line: {abortedName} → {viable[0].Name}");
                     return true;
@@ -440,10 +514,10 @@ namespace WindBot.Game.AI
             if (!string.IsNullOrEmpty(fallbackName))
             {
                 var fallback = _registeredLines.FirstOrDefault(l => l.Name == fallbackName);
-                if (fallback != null && (fallback.Condition == null || SafeInvoke(fallback.Condition)))
+                if (fallback != null && !_failedLinesThisTurn.Contains(fallback.Name)
+                    && (fallback.Condition == null || SafeInvoke(fallback.Condition)))
                 {
-                    _activeLine = fallback;
-                    _activeStepIndex = 0;
+                    SetActiveLine(fallback);
                     System.Diagnostics.Debug.WriteLine(
                         $"[ComboRouter] ↩ Fallback: {abortedName} → {fallback.Name} (switched due to negation)");
                 }

@@ -118,6 +118,33 @@ namespace WindBot.Game.AI.DecisionEngine
         }
 
         /// <summary>
+        /// [Core v0.094] Threat of an ACTIVATION (chain link) rather than of a card sitting on the board.
+        /// GetThreatScore() rates a Normal Spell / monster effect from hand / GY effect at ~10 because of its
+        /// location, which made the decision engine "hold" handtraps against real starters. This reads the
+        /// card text generically (search / Special Summon from Deck-Extra-GY / draw) and returns
+        /// max(board threat, activation threat).
+        /// </summary>
+        public double GetActivationThreatScore(ClientCard card)
+        {
+            if (card == null) return 0;
+            double boardThreat = GetThreatScore(card);
+
+            double activation = 40.0;
+            try
+            {
+                if (CardTextSemantics.IsEngineEffect(card)) activation += 30.0;   // starter / extender engine
+            }
+            catch { }
+            if (card.IsExtraCard()) activation += 10.0;
+            if (card.HasType(CardType.Spell) && !card.HasType(CardType.Continuous)
+                && !card.HasType(CardType.Field) && !card.HasType(CardType.Equip))
+                activation += 5.0; // one-shot spell from hand = deliberate play
+            if (card.IsDisabled()) activation *= 0.5;
+
+            return Math.Min(100.0, Math.Max(boardThreat, activation));
+        }
+
+        /// <summary>
         /// Find the highest threat monster currently on the opponent's board.
         /// </summary>
         public ClientCard GetHighestThreatMonster(IEnumerable<ClientCard> monsters)

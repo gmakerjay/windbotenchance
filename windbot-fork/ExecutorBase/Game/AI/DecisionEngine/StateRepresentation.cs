@@ -71,7 +71,8 @@ namespace WindBot.Game.AI.DecisionEngine
             // Negate check
             OpponentHasNegate = executor.Enemy.GetMonsters().Any(m => 
                 m != null && m.IsFaceup() && !m.IsDisabled() && 
-                (m.Id == 84815190 || m.Id == 4280258 || m.Id == 57793869 || m.Id == 10443957));
+                (m.Id == 84815190 || m.Id == 4280258 || m.Id == 57793869 || m.Id == 10443957
+                 || CardIntelligence.IsKnownNegator(m.Id) || CardIntelligence.IsKnownNegator(m.GetNonAltartCode())));
 
             // Disruptions Count
             DisruptionsCount = CalculateDisruptions(executor);
@@ -87,7 +88,7 @@ namespace WindBot.Game.AI.DecisionEngine
                 if (m != null && m.IsFaceup() && !m.IsDisabled())
                 {
                     int[] negators = { 84815190, 4280258, 57793869, 10443957 };
-                    if (negators.Contains(m.Id)) count += 2;
+                    if (negators.Contains(m.Id) || CardIntelligence.IsKnownNegator(m.Id) || CardIntelligence.IsKnownNegator(m.GetNonAltartCode())) count += 2;
                 }
             }
 
@@ -95,8 +96,8 @@ namespace WindBot.Game.AI.DecisionEngine
             count += executor.Bot.GetSpells().Count(c => c != null && c.IsFacedown());
 
             // Hand traps in hand
-            int[] handTraps = { 14558127, 23434538, 97268402, 63845230, 10045474 };
-            count += executor.Bot.Hand.Count(c => c != null && (handTraps.Contains(c.Id) || CardIntelligence.IsHandtrap(c.Id)));
+            int[] handTraps = { 14558127, 14558128, 23434538, 97268402, 10045474 };
+            count += executor.Bot.Hand.Count(c => c != null && (handTraps.Contains(c.Id) || CardIntelligence.IsHandtrap(c.Id) || CardIntelligence.IsHandtrap(c.GetNonAltartCode())));
 
             return count;
         }

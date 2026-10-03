@@ -1,7 +1,8 @@
-# Known Core Issues & Pitfalls (Audit 2026-10-03, v0.086)
+# Known Core Issues & Pitfalls (Audit 2026-10-03 v0.086 → Pro Audit 2026-10-04 v0.094)
 
 > สถานะข้อบกพร่องใน Central Core (`windbot-fork/ExecutorBase`) ที่พบตอน audit skill
-> ✅ = แก้ใน core แล้ว (v0.086) — เด็คไม่ต้องหลบอีก · ⚠️ = ยังเป็นพฤติกรรม/ข้อจำกัดของ core ที่ต้องรู้
+> ✅ = แก้ใน core แล้ว — เด็คไม่ต้องหลบอีก · ⚠️ = ยังเป็นพฤติกรรม/ข้อจำกัดของ core ที่ต้องรู้
+> รายงานเต็ม v0.094: `Docs/CORE_PRO_AUDIT_2026-10-04.md`
 > Card ID ทุกตัวตรวจกับ `cards.cdb` + `WindBot\*.cdb` แล้ว
 
 ## ✅ แก้แล้วใน v0.086
@@ -34,8 +35,32 @@
 | 25 | `Executor.IsAceCard` | default นับ Extra Deck ทุกใบเป็น Ace | ตรวจสอบ `HeuristicGuard.IsAceCard`, `CardIntelligence.IsKnownNegator`, ATK $\ge 3000$, หรือ Link $\ge 4$ เท่านั้น |
 | 26 | Card ID ปลอม/ผิดการ์ดในระดับเด็คและปลั๊กอิน (236 จุด) | RaiOh, Invoke, Blackwings, EneaCraft, Radiant, Dinomorphia, DogmaStun, Labrynth, ModernBlueEyes, Toon, TrirealmRift, Plugins | แก้ครบทุกจุด + ปรับปรุง `tools/audit_card_ids.py` → **0 issue(s) in 243 file(s)** |
 
+## ✅ แก้แล้วใน v0.094 (Central Core Pro Refactor)
+
+| # | ไฟล์ | ปัญหาเดิม | แก้เป็น |
+|---|---|---|---|
+| 27 | `ModernExecutor.OnSelectIdleCmd` | `Analysis` refresh เฉพาะต้นเทิร์น/เฟส → อ่านบอร์ดค้างทั้ง Main Phase | `Analysis?.Refresh()` ทุก idle prompt |
+| 28 | `DecisionContext.ShouldActivate` / `ThreatAnalyzer` | state จับตอน OnNewTurn (0/0); คะแนน activation ตาม location (~10) → Counterfactual ถือ Ash/Veiler ไว้เกือบทุก starter | `UpdateState(Brain.OwnSummons, Brain.OpponentSummonCount)` ก่อนตัดสิน + `GetActivationThreatScore` (engine text / Extra Deck / one-shot spell / disabled) |
+| 29 | `ChainTimingAdvisor` | early-combo −10 ทำให้ starter ที่ไม่รู้จักได้ 40 (< 45) → แทบไม่ Ash starter; Eater of Millions อยู่ใน handtrap; Meluseek ID ผิด (53143898 = Marionetter) | unknown engine +15, early −5 (score < 60); ลบ Eater 63845230; Meluseek = 25533642; `CountInteractiveCards` ใช้ `CardIntelligence.IsHandtrap` |
+| 30 | `GameAI` / `CardSelector` / `ModernExecutor.OnSelectCard` | `AI.SelectCard` ถูกข้ามใน hint ที่ route (Called by CL3, `DefaultPreemptiveImpermanence`, deck target) แล้ว preselect ค้างไป hijack prompt ถัดไป | step 0 `TryConsumePreselectedCards` (match-only, explicitOnly สำหรับ cost); `PreselectCheckpoint/RollbackPreselect` เมื่อ func คืน false / skip duplicate chain; ล้าง selector ทุก idle prompt |
+| 31 | `ModernExecutor.OnSelectCard` | plugin คืน 1 ใบแต่ min > 1 → GameAI เติมแบบสุ่ม | `CompleteSelection(primary, orderedPool, min)` เติมตามลำดับ heuristic (popSub, foolish, 504/506/509 plugin) |
+| 32 | `ModernExecutor` ↔ `ComboRouter` | step เรียก executor ตัวแรก (อาจเป็น generic -1) ไม่ตั้ง `ActivateDescription`; fallback line ยิง step ที่ทำแล้วซ้ำ; Maxx "C"/handtrap ใดๆ = negate → Abort | `ComboStepApprovedByExecutors` (exact-ID ก่อน, desc จริง, rollback); per-turn `_executedThisTurn` + `ApplyExecutedHistory`; `IsOpponentCardNegator` เฉพาะ negate จริง; backrow นับใน RequiredCards |
+| 33 | `CardTextSemantics` / `CardIntelligence` | "cannot be destroyed by battle" ถูกนับเป็น effect-destruction immune (−20000 ใน 502) | `RegexDestructionImmune` effect-only; `IsBattleImmune` แยก; 502 กรอง immune เมื่อตัวเลือกพอ |
+| 34 | `CardIntelligence.GetCardThreatScore` | negator/floodgate ที่ถูก disable แล้วยังได้โบนัสเต็ม | ×0.5 เมื่อ face-up + `IsDisabled()` |
+| 35 | `GameAI.ShouldExecute` / `ModernExecutor` | duplicate-handtrap guard นับการ์ดศัตรู (Imperm war); Eater ถูกมองเป็น Veiler/disruption | นับเฉพาะ `Controller == 0`; ลบ Eater ออกจาก Veiler/CountDisruptions; เพิ่ม Ash alt 14558128 |
+| 36 | `ModernExecutor.OnSelectPosition` | มอน ATK สูงตกไป DEF ใน MP1 ทั้งที่กดดันได้ | MP1 (Turn > 1), ATK ≥ 1000 & ATK ≥ DEF → ATK เมื่อศัตรูว่างหรือมีเป้า face-up ที่ตีชนะ |
+
 ## ⚠️ ข้อจำกัด / พฤติกรรมของ core ที่ยังต้องรู้
 
 | # | จุด | พฤติกรรม | สิ่งที่เด็คต้องทำ |
 |---|---|---|---|
 | 16 | `HeuristicGuard._aceCardIds` (static) | ไม่ถูกล้างระหว่างดวล/บอท | headless 2 บอทใน process เดียวแชร์รายการ Ace — ยอมรับได้ |
+| 37 | `ModernExecutor._negateNever` | ยังมี Terraforming / RotA (ขัดกับ ChainTimingAdvisor ที่นับเป็น starter) | ถ้าเด็คอยาก Ash การ์ดกลุ่มนี้ → handle ใน func เอง |
+| 38 | `DefaultExecutor` (`Util.ChainContainsCard`) | handtrap duplicate check ไม่แยก controller → Imperm ศัตรูในเชนทำให้เราไม่ตอบ Imperm | ใช้ `IsDuplicateOwnChainActivation()` / `SmartHandTrapChain()` ของ ModernExecutor |
+| 39 | `ModernExecutor.OnSelectCard` hint 551 | เลือกศัตรูเสมอ (บัฟฝั่งเราผิดเป้า) | ตั้ง `AI.SelectCard(ourCard)` ก่อน `return true` (v0.094 honour แล้ว) |
+| 40 | `HeuristicGuard.SanitizeSelection` | อาจทับ preselect ที่ตั้งใจเล็งตัวเอง (เช่น ทำลายตัวเองเพื่อ float) | ใช้ Pending-Select + ตรวจ log `[GUARD]` |
+| 41 | removal branch (`IsTargetImmune`) | กรอง target-immune แม้ prompt ไม่ได้ target (เช่น mass destroy) | ยอมรับได้ — กรณีพิเศษ override `OnSelectCard` |
+| 42 | `OnSelectAttackTarget` / battle | เลือกเป้าตีแบบ greedy (ไม่คำนวณ order ทั้ง Battle Phase) | เด็ค OTK ใช้ `OnSelectAttacker`/`OnPreBattleBetween` ช่วย |
+| 43 | `GameAI.ShouldExecute` checkpoint | rollback สมมติว่า func ใช้ `SelectNextCard` หลัง `SelectCard` เท่านั้น | ตั้ง preselect เฉพาะตอนกำลังจะ `return true` |
+| 44 | `OnSelectPendulumSummon` | hint 509 ถูก ModernExecutor route ก่อน → callback นี้แทบไม่ถูกเรียก | เด็ค Pendulum ใช้ `PickSpecialSummonTarget` / override `OnSelectCard` |
+| 45 | `PreNewTurn` / `PreNewPhase` | ถูกเรียก 2 ครั้งต่อ event (idempotent) | อย่าใส่ counter ที่ไม่ idempotent ใน callback นี้ |

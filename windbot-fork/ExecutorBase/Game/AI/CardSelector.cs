@@ -51,6 +51,56 @@ namespace WindBot.Game.AI
             _location = location;
         }
 
+        /// <summary>
+        /// [Core v0.094] True when the preselection names explicit ClientCard instances
+        /// (AI.SelectCard(card) / AI.SelectCard(cards)) instead of IDs or a location.
+        /// </summary>
+        public bool IsExplicitCardSelection => _type == SelectType.Card || _type == SelectType.Cards;
+
+        /// <summary>
+        /// [Core v0.094] Return ONLY the cards from <paramref name="cards"/> that genuinely match this
+        /// preselection — no padding, no trimming. Used by ModernExecutor to decide whether a queued
+        /// AI.SelectCard(...) belongs to the current prompt before consuming it.
+        /// </summary>
+        public IList<ClientCard> Match(IList<ClientCard> cards)
+        {
+            var result = new List<ClientCard>();
+            if (cards == null) return result;
+
+            switch (_type)
+            {
+                case SelectType.Card:
+                    if (_card != null && cards.Contains(_card))
+                        result.Add(_card);
+                    break;
+                case SelectType.Cards:
+                    if (_cards != null)
+                        foreach (ClientCard card in _cards)
+                            if (card != null && cards.Contains(card) && !result.Contains(card))
+                                result.Add(card);
+                    break;
+                case SelectType.Id:
+                    foreach (ClientCard card in cards)
+                        if (card != null && card.IsCode(_id))
+                            result.Add(card);
+                    break;
+                case SelectType.Ids:
+                    if (_ids != null)
+                        foreach (int id in _ids)
+                            foreach (ClientCard card in cards)
+                                if (card != null && card.IsCode(id) && !result.Contains(card))
+                                    result.Add(card);
+                    break;
+                case SelectType.Location:
+                    foreach (ClientCard card in cards)
+                        if (card != null && card.Location == _location)
+                            result.Add(card);
+                    break;
+            }
+
+            return result;
+        }
+
         public IList<ClientCard> Select(IList<ClientCard> cards, int min, int max)
         {
             IList<ClientCard> result = new List<ClientCard>();

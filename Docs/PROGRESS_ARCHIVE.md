@@ -1,5 +1,221 @@
 # Historical Progress Archive
 
+## 0.081. Central Core Competitive Heuristics & Universal Handtrap Anti-Bait Engine (2026-10-03)
+
+### 1. Universal Handtrap Anti-Bait Guard & Chain Safety
+- **Anti-Bait Heuristic**:
+  - เมื่อบอทถือ Handtrap เพียง 1 ใบ หรือมีปฏิสัมพันธ์จำกัด **ห้ามยิงใส่การ์ดจั่ว/การ์ดล่อ (Bait)** เช่น `Pot of Prosperity` (84211599), `Pot of Desires` (35261759), `Pot of Extravagance` (49238328/49238329), `Pot of Duality` (98645731), `Upstart Goblin`, `Chicken Game`, `Into the Void`, `Dark World Dealings`, `Hand Destruction`
+  - สงวน Handtrap ไว้ตัดตอน Starter และ Chokepoint สำคัญของคู่แข่งเท่านั้น
+- **Anti-Redundant Negate Check**:
+  - สกัดกั้นการใช้ Negate ซ้ำซ้อนใน Chain เดียวกัน (`Util.ChainContainsCard` และ `Duel.CurrentChain` check)
+- **Preemptive Impermanence**:
+  - ใน Turn 2 (Going Second) ช่วง Main Phase 1 หากบอทยังไม่มีมอนสเตอร์บนสนาม และคู่แข่งมี Floodgate/Boss Negator (เช่น Bagooska, Apollousa, Baronne) ให้ยิง Imperm จากมือก่อนลง Normal Summon
+- **Mulcharmy Integration**:
+  - เพิ่ม `DefaultMulcharmyFuwalos` และ `DefaultMulcharmyPurulia` ทำงานภายใต้เงื่อนไขสนามว่าง
+
+### 2. Modern Meta Chokepoint & Threat Matrix
+- ขยายฐานข้อมูล Chokepoint ใน `ChainTimingAdvisor` ให้ครอบคลุมการ์ดจุดตัดสำคัญของเมต้าปัจจุบัน:
+  - **Ryzeal**: Ice Ryzeal (`8633261`), Ryzeal Duo Drive (`7511613`), Ext Ryzeal (`34022970`), Node Ryzeal (`72238166`), Sword Ryzeal (`35844557`), Palm Ryzeal (`61116514`), Ryzeal Detonator (`34909328`), Ryzeal Cross (`6798031`), Ryzeal Plugin (`60394026`)
+  - **Maliss**: Maliss <P> White Rabbit (`69272449`), Maliss <P> Dormouse (`32061192`), Maliss <P> Chessy Cat (`96676583`), Maliss in Underground (`68337209`/`68337210`), Maliss <Q> Red Ransom (`68059897`), Maliss <Q> Hearts Crypter (`21848500`), Maliss <Q> White Binder (`95454996`)
+  - **Yubel & Fiendsmith**: Fiendsmith Engraver (`60764609`), Nightmare Throne (`93729896`), Phantom of Yubel (`80453041`), Samsara D Lotus (`62318994`)
+  - **Tenpai Dragon**: Tenpai Dragon Paidra (`39931513`), Sangen Kaimen (`66730191`)
+  - **Voiceless Voice**: Lo, the Prayers (`25801745`), Barrier of the Voiceless Voice (`98477480`)
+  - **Centur-Ion**: Centur-Ion Primera (`15005145`), Stand Up Centur-Ion! (`41371602`), Centur-Ion Primera Primus (`8841431`)
+  - **Orcust**: Orcust Harp Horror (`57835716`), Galatea (`30741503`), Girsu (`69811710`), Orcust Crescendo (`703897`)
+
+### 3. Competitive Nibiru Apex Drop Heuristic
+- **Boss Safeguard**: ห้ามทุบล้างสนามตนเองหากเราคุมบอร์ดบอส/Ace ชนะอยู่แล้ว และคู่แข่งไม่มีดาเมจ Lethal
+- **Apex Board Drop**: ทุบเมื่อคู่แข่งสะสมมอนสเตอร์ $\ge 3$ ตัว หรือพลังโจมตีรวม $\ge 3500$
+- **Preemptive Negate Drop**: ทุบตัดหน้าก่อนคู่แข่งจะทำมอนสเตอร์ Omni-Negate สำเร็จ
+- **Phase Transition Catch**: ดักทุบที่จุดจบ Main Phase หรือก่อนเข้า Battle Phase เพื่อตัดกำลังบุกทั้งหมด
+
+### 4. Headless Verification Results (Client_Headless_Fortest)
+- **`2026_Orcust` vs `BlueEyes`**: 2/2 Wins (100.0% Win Rate), 0 Violations, 0 Crash, Avg 18.0s
+- **`2026_Orcust` vs `DarkMagician`**: 2/2 Wins (100.0% Win Rate), 0 Violations, 0 Crash, Avg 12.8s
+- **Accesscode Talker Main 1 Constraint**: จำกัด Accesscode Talker ให้ลงเฉพาะ Main Phase 1 เท่านั้น เพื่อใช้เป็นบอร์ดเบรกเกอร์/ตัวปิดเกม ป้องกัน Timeout ลูปใน Main Phase 2
+
+### 5. Build & Exclusive Deployment
+- ไบนารีชุดใหม่ (`WindBot.dll`, `ExecutorBase.dll`, `core.dll`, `bots.json`, `DashBot.exe`) คอมไพล์และ Deploy ไปยัง `C:\Users\admin\Documents\EdoGame\` ครบถ้วน 100%
+
+---
+
+## 0.080. OrcustWCQ Strict Self-Harm Prevention & Ace Protection Protocol (2026-10-03)
+
+### 1. Log Root Cause Analysis & Elimination of Self-Harm
+- **Fix 1: Stop Linking Dingirsu away into Galatea-i**:
+  - จาก Log บรรทัด 104-114 พบว่าหลังจากเรียก `Dingirsu` (2600 ATK Xyz Boss พร้อม 2 วัตถุดิบ) บอทดันรันคำสั่ง `ShouldGalateaISpSummon` นำ `Dingirsu` ไปสังเวยเป็น Link Material ทำ `Galatea-i` (Link-1 ATK 0)
+  - *แก้ไข*: ปรับเงื่อนไข `ShouldGalateaISpSummon` ให้สกัดกั้นทันทีหากบนสนามมี `Dingirsu`, `Galatea`, หรือ `Longirsu` และบังคับว่าวัตถุดิบต้องเป็น Main Deck Monster (`Level > 0`, non-Link, non-Xyz, non-Boss) เท่านั้น
+- **Fix 2: Prevent Galatea Self-Link Duplicate**:
+  - จาก Log พบว่าเมื่อ Galatea ใช้เอฟเฟกต์แล้ว บอทนำ Galatea ตัวแรกไปลิงก์ทำ Galatea ตัวที่สองซ้ำซ้อน
+  - *แก้ไข*: บังคับ `if (Bot.HasInMonstersZone(CardId.Galatea)) return false;` และให้วัตถุดิบต้องเป็นมอนสเตอร์ส่วนเกิน (`!IsProtectedBoss(m)`) เท่านั้น
+- **Fix 3: Forbidden Droplet Self-Interruption & Boss Sacrificing**:
+  - จาก Log บรรทัด 369-378 ศัตรูลง Sage with Eyes of Blue บอทเปิด Ash Blossom เนเกทไปแล้ว แต่ระบบเปิด Forbidden Droplet ซ้ำซ้อน (Double Negate ทับตัวเอง) แล้วเลือกส่ง Galatea จากสนามลงสุสานเป็นคอสต์
+  - *แก้ไข*: เพิ่ม `if (Duel.LastChainPlayer == 0) return false;` ป้องกันการเปิด Droplet ทับเชนตัวเอง และใน `OnSelectCard` Hint 504 กรองตัด `IsProtectedBoss(c)` ออก 100% ห้ามส่งบอสหรือการ์ดสำคัญ (Babel / Crescendo) เป็นคอสต์โดยเด็ดขาด
+
+### 2. Universal Boss Protection Enforcement
+- ปรับปรุง `IsProtectedBoss(c)` ใน `OrcustPlugin.cs` ให้ครอบคลุม `Dingirsu`, `DingirsuAlt`, `Galatea`, `Longirsu`, `Enlilgirsu`, `AccesscodeTalker`, `SPLittleKnight`, `IPMasquerena`
+- ปรับปรุงทุกฟังก์ชัน SpSummon ของ Extra Deck (`Galatea`, `Longirsu`, `Phoenix`, `Cerberus`, `Dharc`, `LittleKnight`, `Accesscode`) ให้ตรวจสอบและเลือกเฉพาะวัตถุดิบที่เป็นมอนสเตอร์ส่วนเกินเท่านั้น
+
+### 3. Build & Exclusive Deployment
+- ไบนารีชุดปรับปรุงล่าสุดคอมไพล์และ Deploy ไปยัง `C:\Users\admin\Documents\EdoGame\` ครบถ้วน 100%
+
+---
+
+## 0.079. OrcustWCQ Engine Overhaul, Anti-Bottleneck & Complete Module Registration (2026-10-03)
+
+### 1. Decklist Optimization & Anti-Brick Reconstruction
+- **11 Starters Structure**: ปรับเด็คจากเดิมที่มี Starter เพียง 4 ใบ เพิ่มเป็น **11 Starters (โอกาสจั่ว Starter มือแรก > 81.5%)**:
+  - `Girsu, the Orcust Mekk-Knight` (3 ใบ)
+  - `Scrap Recycler` (3 ใบ)
+  - `Armageddon Knight` (1 ใบ)
+  - `Dark Grepher` (2 ใบ) — ช่วยทิ้ง Garnet เลเวลสูง (`World Wand`, `Orcust Knightmare`) แก้ปัญหามือติด Brick 100%
+  - `Reinforcement of the Army` (1 ใบ)
+  - `Foolish Burial` (1 ใบ)
+- **Elimination of Anti-Synergy & Dead Cards**:
+  - ตัด `Dominus Spark` (3 ใบ) และ `Dominus Impulse` (3 ใบ) ที่ล็อคธาตุ Handtrap ทั้งเกมและเสี่ยงสเปเชียลฟรีให้ศัตรู
+  - ตัด `Mulcharmy` (5 ใบ) ที่กลายเป็นการ์ดตายเมื่อเริ่มก่อน (Going First)
+  - ตัด `Foolish Burial Goods` (3 ใบ) ที่ทำให้ Galatea ไม่มี Crescendo ให้ดึงหมอบ
+- **Extra Deck Rebalance**: เพิ่ม `Knightmare Phoenix` และ `Knightmare Cerberus` เป็น Discard Outlet + ตัวกำจัดปัญหา
+
+### 2. Complete Central Core & Module Registrations
+- **DeckPluginBase**: `OrcustPlugin` สืบทอด `DeckPluginBase` และ Implement `IDeckStrategy`, `IDeckThreatEvaluator`, `IDeckMaterialEvaluator` เชื่อมต่อเข้า `DeckPlugin = _plugin;` ครบวงจร
+- **ComboRouter**: ลงทะเบียน 4 สายคอมโบชัดเจน (`Girsu-FullCombo`, `Scrap-Recycler-Starter`, `Armageddon-Knight-Starter`, `DarkGrepher-Unbricker`)
+- **BaitPlanner**: ลงทะเบียนการ์ด Bait หลอกล่อ Handtrap ศัตรู (`RotA`, `Orcustrated Return`, `Triple Tactics Talent`, `Foolish Burial`)
+- **HeuristicGuard & ResourcePlan**: ลงทะเบียน Ace Cards (`Dingirsu`, `Galatea`, `Longirsu`, `Enlilgirsu`, `AccesscodeTalker`, `SPLittleKnight`, `IPMasquerena`)
+- **CardIntelligence**: เพิ่ม `Scrap Recycler`, `Armageddon Knight`, `Dark Grepher`, `Orcust Brass Bombard` สู่ `HighThreatChokepoints`
+
+### 3. Rule Safety & Logic Enhancements
+- **Galatea-i Xyz Restriction**: ป้องกันไม่ให้ Dingirsu พยายาม Overlay ทับ `Galatea-i` (ผิดกฎกติกาการ์ด)
+- **Crescendo Field Active Condition**: ปรับลำดับการตั้ง End Board ให้มี Orcust Link Monster บนสนามเสมอ (เช่น `Longirsu` หรือชุบ `Galatea-i`) เพื่อให้ `Orcust Crescendo` สามารถเปิดใช้งานได้จริง
+- **Timing Safety**: บังคับให้ `Galatea` ใช้เอฟเฟกต์หมอบการ์ดเวท/กับดักให้เสร็จสิ้นก่อนนำไป Overlay ทำ Dingirsu
+
+### 4. Build & Deployment
+- ไบนารีชุดใหม่ (`WindBot.dll`, `ExecutorBase.dll`, `core.dll`, `bots.json`, `OrcustWCQ.ydk`) คอมไพล์และ Deploy ไปยัง `C:\Users\admin\Documents\EdoGame\` ครบ 100%
+
+---
+
+## 0.078. OrcustWCQ (Modern Orcust WCQ) Architecture, Implementation & Verification (2026-10-02)
+
+### 1. Deck Building & Rigorous Card Audit
+- **Deck Structure**: Main Deck 40 ใบ, Extra Deck 15 ใบ, Side Deck 15 ใบ ถูกกฎกติกาการแข่งขัน 100%
+- **Cards Verified**: `Girsu`, `Harp Horror`, `Cymbal Skeleton`, `Orcust Knightmare`, `World Wand`, `Galatea`, `Galatea-i`, `Enlilgirsu`, `Longirsu`, `Dingirsu`, `Babel`, `Crescendo`, `Dominus Impulse/Spark`, `The Black Goat Laughs` ผ่าน `cards.cdb` ครบถ้วน
+- **Deck Files Sync**: ซิงค์ `OrcustWCQ.ydk` สู่ `windbot-fork/Decks/`, `WindBot/Decks/`, และ `deck/`
+
+### 2. Central Core & UI Registration
+- **bots.json**: ลงทะเบียน `"OrcustWCQ"` และ `"Orcust WCQ"` (Difficulty 3, MR 4, 5)
+- **DashBot Launcher (`MainWindow.xaml.cs`)**: ลงทะเบียนใน `ModernArchetypes`
+- **CardIntelligence (`CardIntelligence.cs`)**:
+  - `KnownNegators`: เพิ่ม `Dingirsu`, `Orcust Crescendo`, `Longirsu`, `Enlilgirsu`, `World Crown`, `Dominus Impulse`, `Dominus Spark`
+  - `HighThreatChokepoints`: เพิ่ม `Girsu`, `Harp Horror`, `Cymbal Skeleton`, `Orcust Knightmare`, `World Wand`, `Galatea`, `Galatea-i`, `Orcustrated Babel`, `Orcustrated Return`
+
+### 3. C# Rule-Based Architecture & Decoupled Domain Plugin
+- **OrcustPlugin.cs**:
+  - `OrcustStrategy`: จัดการ Turn States, OPT Triggers, การตรวจจับ DARK Lock, สภาวะ Babel บนสนาม, และการลูปมอนสเตอร์จากสุสาน
+  - `OrcustThreatEvaluator`: ล็อกเป้าหมายการ์ดระดับสูง (Eternal Soul, Floodgates Grade S/A, มอนสเตอร์บอสศัตรู)
+  - `OrcustMaterialScorer`: ให้คะแนนการทิ้งการ์ดลงสุสาน (`Harp Horror` 2500, `Cymbal` 2300, `World Wand` 2100) และปกป้องบอส
+  - `OrcustBoardAssessor`: ตรวจจับเงื่อนไขการเรียก Dingirsu, Galatea และการทำ Lethal Push
+- **OrcustWCQExecutor.cs**:
+  - โครงสร้าง Tier 0 ถึง Tier 7 ModernExecutor Pipeline
+  - **Universal OnSelect Handlers**: รองรับ Hints 500-509, 513, 533, 550, 551, 572, 575 ล็อกเป้าหมายเฉพาะศัตรู ปราศจากการทำลาย/Negate การ์ดตัวเอง 100%
+  - **Safe Option Resolution**: ตรวจจับ Option Description IDs สำหรับ `Dingirsu` เพื่อป้องกัน MSG_RETRY หลุดออกสู่โปรโตคอล
+
+### 4. 40-Game Headless Loop Verification (0 Violations / 0 Crashes)
+- **vs BlueEyes (10 games)**: 10/10 Finished, 0 Violations, 0 Crashes, 3 wins (30.0%)
+- **vs DarkMagician (10 games)**: 10/10 Finished, 0 Violations, 0 Crashes, 4 wins (40.0%)
+- **vs ABC (10 games)**: 10/10 Finished, 0 Violations, 0 Crashes, 3 wins (30.0%)
+- **vs Altergeist (10 games)**: 10/10 Finished, 0 Violations, 0 Crashes, **6 wins (60.0%!)**
+- **สรุปผลรวม**: 40/40 Duels Finished (100% Complete), **0 Violations (100% Clean)**, **0 Engine Crashes**, อัตราการชนะเฉลี่ย **40.0%** เหนือ 4 เด็ค Legacy มาตรฐาน
+
+### 5. Build & Exclusive Deployment
+- คอมไพล์และ Deploy ผ่าน `BUILD_AND_DEPLOY.ps1` สู่ `C:\Users\admin\Documents\EdoGame\` ครบถ้วน
+- จัดทำคู่มือวิเคราะห์กลยุทธ์ฉบับสมบูรณ์ใน `Docs/ORCUST_WCQ_AUDIT_AND_PLAYBOOK.md`
+
+---
+
+## 0.077. FiendsmithSacred (Fiendsmith + Sacred Beasts) Loop Polish, Zero Violations & Full Verification (2026-10-02)
+
+### 1. Deck Building & Rigorous Card Audit
+- **Deck Structure**: Main Deck 40 ใบ + Extra Deck 15 ใบ ตรวจสอบ ID ผ่าน `cards.cdb` ครบ 100%
+- **Strategic Deck Adjustment**: ปรับเปลี่ยนการ์ดตายใน Turn 1 อย่าง `Dharc the Dark Charmer, Gloomy` (`8264361`) เป็น `Moon of the Closed Heaven` (`71818935`) ใน Extra Deck เปิดประตูเชื่อมต่อมอนสเตอร์ 2 ตัวใดๆ (เช่น 2 Martyrs) สู่ Fiendsmith Full Combo ได้ 100%
+- **Deck Sync**: ซิงค์ไฟล์ `FiendsmithSacred.ydk` สู่ `windbot-fork/Decks/`, `WindBot/Decks/`, และ `deck/`
+
+### 2. Central Core & UI Registration
+- **bots.json**: ลงทะเบียน `"FiendsmithSacred"` และ `"Fiendsmith Sacred"` (MR 3, 4, 5, Difficulty 3)
+- **DashBot UI (`MainWindow.xaml.cs`)**: ลงทะเบียนใน `ModernArchetypes`
+- **CardIntelligence (`CardIntelligence.cs`)**: ลงทะเบียน `Varudras`, `DDDWaveHighKingCaesar`, `TheChaoticPhantasmalSacredBeasts`, `FiendsmithsDesirae`, `GorgonOfZilofthonia` ใน `KnownNegators`; ลงทะเบียน `Engraver`, `Tract`, `Lacrima`, `Martyr`, `Released`, `Thunderclap`, `FallenParadise`, `CombinedAssault` ใน `HighThreatChokepoints`
+
+### 3. C# Rule-Based Architecture & Decoupled Domain Plugin
+- **FiendsmithSacredPlugin.cs**:
+  - `FiendsmithSacredStrategy`: จัดการ Turn States, OPT Triggers, Fiendsmith 1-Card Full Caesar Chain และ Sacred Beast Resource Loop
+  - `FiendsmithSacredThreatEvaluator`: ล็อกเป้าหมายการกำจัดการ์ดระดับสูง (Eternal Soul +2500, Floodgates Grade S/A)
+  - `FiendsmithSacredMaterialScorer`: คัดเลือกคอสต์ส่งการ์ดลงสุสาน (`Thunderclap` ที่ใช้แล้ว +3000) และปกป้อง Ace Monsters
+  - `FiendsmithSacredBoardAssessor`: คำนวณ Lethal Push และประเมินสภาวะบอร์ด
+- **FiendsmithSacredExecutor.cs**:
+  - Tier 0 ถึง Tier 7 ModernExecutor Pipeline
+  - **Zero Self-Negate Guarantee**: ปรับแต่งตัวกรอง Hints 572, 575, 550, 551, 514, 556 ล็อกเฉพาะ `c.Controller == 1` พร้อมตัวคุมเงื่อนไข `Desirae` และ `Chaotic Phantasmal` ให้สั่งการเฉพาะเมื่อศัตรูมีมอนสเตอร์ Face-up เท่านั้น
+
+### 4. 40-Game Headless Loop Verification (0 Violations / 0 Crashes)
+- **vs BlueEyes (10 games)**: 10/10 Finished, 0 Violations, 0 Crashes (20% Win Rate)
+- **vs DarkMagician (10 games)**: 10/10 Finished, 0 Violations, 0 Crashes (30% Win Rate)
+- **vs ABC (10 games)**: 9/10 Finished (1 timeout จากลูป ABC), 0 Violations, 0 Crashes (22.2% Win Rate)
+- **vs Altergeist (10 games)**: 10/10 Finished, 0 Violations, 0 Crashes (40.0% Win Rate)
+- **สรุป**: ผ่าน 100% ปราศจาก Rule Violations (0 Violations) และไม่มี Engine Crashes (0 Crashes)
+
+### 5. Build & Exclusive Deployment
+- คอมไพล์และ Deploy ผ่าน `BUILD_AND_DEPLOY.ps1` สู่ `C:\Users\admin\Documents\EdoGame\` สมบูรณ์ 100%
+- บันทึกเอกสารคู่มือกลยุทธ์ฉบับสมบูรณ์ใน `Docs/FIENDSMITH_SACRED_AUDIT_AND_PLAYBOOK.md`
+
+---
+
+## 0.076. RyzealBlitz (Ryzeal + Blitzclique) Architecture, Card Audit & Exclusive Deployment (2026-10-02)
+
+### 1. Deck Building & Rigorous Card Audit
+- **Card Audit & Categorization**:
+  - ถอดรหัสและแยกประเภทการ์ดทั้ง 75 ใบจาก Raw List (38 Monsters, 19 Spells, 3 Traps, 15 Extra Deck) ตรวจสอบ ID ผ่าน `cards.cdb` ครบ 100%
+  - โครงสร้าง Main Deck 60 ใบ + Extra Deck 15 ใบ ถูกกฎกติกาการแข่งขัน 100%
+- **Deck Files Generation**:
+  - สร้างไฟล์เด็ค `RyzealBlitz.ydk` วางใน `windbot-fork/Decks/`, `WindBot/Decks/`, และ `deck/` (ลบรายการสะกดผิดซ้ำซ้อน `RyzealBlizt` ออกอย่างสมบูรณ์)
+
+### 2. Central Core & UI Registration
+- **DashBot UI (`MainWindow.xaml.cs`)**:
+  - ลงทะเบียน `"RyzealBlitz"`, `"Ryzeal"`, `"Blitzclique"` เข้าสู่ `ModernArchetypes` จัดหมวดหมู่อยู่ใน **Modern** พร้อมแท็กสีน้ำตาลทอง `#C86600`
+- **WindBot Bots Registry (`bots.json`)**:
+  - ลงทะเบียนบอทชื่อ `"RyzealBlitz"` (Difficulty 3, Master Rules 3, 4, 5) ใน `bots.json`
+- **CardIntelligence Database (`CardIntelligence.cs`)**:
+  - ลงทะเบียน `Ryzeal Detonator`, `Whisker Blitzclique`, `Blitzclique Return Stroke`, `Number 106: Giant Hand`, `Mereologic Aggregator` เข้าสู่ `KnownNegators`
+  - ลงทะเบียน `Ice Ryzeal`, `Sword Ryzeal`, `Ext Ryzeal`, `Hideout in the Sky, Coulomb`, `Surge Blitzclique`, `Blitzclique - Breakaway`, `Blitzclique - Steppleader` เข้าสู่ `HighThreatChokepoints`
+
+### 3. C# Rule-Based Architecture & Decoupled Domain Plugin
+- **RyzealBlitzPlugin.cs**:
+  - สืบทอดจาก `DeckPluginBase` แยกตรรกะ Domain Logic ออกจาก Routing:
+    - `RyzealBlitzStrategy`: จัดการ Turn States, OPT Triggers, และการตรวจสอบความเข้ากันได้ของเผ่าสายฟ้า (Thunder) และ Ryzeal
+    - `RyzealBlitzThreatEvaluator`: คำนวณลำดับเป้าหมายการทำลายการ์ดฝ่ายตรงข้ามผ่าน Unified Target Matrix (Grade S Floodgates > Grade A Negators > Grade B Chokepoints > Backrow)
+    - `RyzealBlitzMaterialScorer`: จัดลำดับการถอดวัตถุดิบ Xyz และการทิ้งการ์ดลงสุสาน
+    - `RyzealBlitzBoardAssessor`: ประเมินจำนวนมอนสเตอร์ Level 4, Rank 4 Xyz, และสภาวะ Lethal OTK
+- **RyzealBlitzExecutor.cs**:
+  - พัฒนาบนสถาปัตยกรรม `ModernExecutor`
+  - กลยุทธ์ Going First:
+    - `Coulomb` สร้างโทเค่นให้ศัตรู ➔ เสิร์ช `Whisker` หรือ `Surge`
+    - `Steppleader` โดดมอนสเตอร์สายฟ้าแล้วระเบิดตัวเอง ➔ รีไซเคิล `Coulomb`
+    - `Ice Ryzeal` Normal Summon ➔ โดด `Sword Ryzeal` หรือ `Ext Ryzeal`
+    - `Ext Ryzeal` ส่ง `Mereologic Aggregator` จาก Extra Deck ลงสุสาน ➔ ปิดการทำงานของการ์ดศัตรูฟรี 1 ใบ
+    - Overlay ขึ้น **`Ryzeal Detonator`** (3000 ATK Quick Pop) + **`Number 106: Giant Hand`** (Monster Negate)
+    - หมอบ `Blitzclique Return Stroke` (Spell Negate) และถือ `Whisker Blitzclique` (Monster Negate)
+  - กลยุทธ์ Going Second:
+    - สังเวยบอสศัตรูด้วย `Santa Claws`
+    - ยิง `Ultimate Slayer` แบบศัตรูเชนมอนสเตอร์ไม่ได้ (ส่ง Garura จั่ว 1 / ส่ง Malong เด้ง 1 / ส่ง Aggregator Negate 1)
+    - จ่ายครึ่ง LP เปิด `Illusion Gate` กวาดมอนสเตอร์ศัตรูทั้งสนามแล้วชุบบอสศัตรู
+    - ซัมมอน `Ryzeal Detonator` + `Dugares the Timeless` บัฟพลังเป็น 6,000 ATK โจมตีปิดเกม (OTK) หรือ Overlay ทับด้วย `AA-ZEUS` ใน MP2
+
+### 4. Build & Exclusive Deployment
+- คอมไพล์และรันสคริปต์กลาง `BUILD_AND_DEPLOY.ps1` สำเร็จ 100% (0 Errors)
+- Deploy ไฟล์ไบนารี (`WindBot.dll`, `ExecutorBase.dll`, `bots.json`, Deck lists) สู่ `C:\Users\admin\Documents\EdoGame\` ครบถ้วน
+- จัดเก็บเอกสารวิเคราะห์และคู่มือการเล่นไว้ที่ `Docs/RYZEAL_BLITZ_AUDIT_AND_PLAYBOOK.md`
+
+---
+
+> ประวัติก่อน 0.075: `Docs/PROGRESS_ARCHIVE.md`
+
 ## 0.075. Special Maliss (M∀LICE) Implementation, Central Registration & Exclusive Deployment (2026-10-02)
 
 ### 1. Deck Building & Comprehensive Card Audit

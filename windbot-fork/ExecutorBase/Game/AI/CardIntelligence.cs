@@ -444,6 +444,17 @@ namespace WindBot.Game.AI
             return CardTextSemantics.GetProfile(card)?.IsDestructionImmune ?? false;
         }
 
+        /// <summary>
+        /// [Core v0.094] Cannot be destroyed by battle (generated list OR card text). Negated cards are not immune.
+        /// </summary>
+        public static bool IsBattleImmune(ClientCard card)
+        {
+            if (card == null) return false;
+            if (card.IsDisabled()) return false;
+            if (GeneratedBattleImmuneCards.Contains(card.Id)) return true;
+            return CardTextSemantics.GetProfile(card)?.IsBattleImmune ?? false;
+        }
+
         public static bool IsEngineGenerator(ClientCard card)
         {
             if (card == null) return false;
@@ -464,10 +475,16 @@ namespace WindBot.Game.AI
             int nonAltId = card.GetNonAltartCode();
 
             // 1. O(1) Central Intelligence Checks (Staples / Known Bosses)
-            if (KnownNegators.Contains(id) || KnownNegators.Contains(nonAltId)) score += 10000;
-            if (FloodgateMonsters.Contains(id) || FloodgateMonsters.Contains(nonAltId)) score += 9500;
-            if (FloodgateSpellsTraps.Contains(id)) score += 9500;
-            if (HighThreatChokepoints.Contains(id) || HighThreatChokepoints.Contains(nonAltId)) score += 8000;
+            // [Core v0.094] A face-up card that is currently negated (Imperm/Veiler/Skill Drain…) keeps only
+            // half of its static "engine/negator" bonus — removal should prefer the live threat this turn,
+            // while still respecting that the negated boss comes back online next turn.
+            int staticBonus = 0;
+            if (KnownNegators.Contains(id) || KnownNegators.Contains(nonAltId)) staticBonus += 10000;
+            if (FloodgateMonsters.Contains(id) || FloodgateMonsters.Contains(nonAltId)) staticBonus += 9500;
+            if (FloodgateSpellsTraps.Contains(id)) staticBonus += 9500;
+            if (HighThreatChokepoints.Contains(id) || HighThreatChokepoints.Contains(nonAltId)) staticBonus += 8000;
+            if (staticBonus > 0 && card.IsFaceup() && card.IsDisabled()) staticBonus /= 2;
+            score += staticBonus;
 
             // 2. Dynamic Card Text Semantics (Counter engines, searchers, decoys, immunities)
             score += CardTextSemantics.EvaluateCardThreat(card, hint);

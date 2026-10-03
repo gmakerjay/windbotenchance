@@ -92,7 +92,6 @@ namespace WindBot.Game.AI
                 23434538,          // Maxx "C"
                 94145021,          // Droll & Lock Bird
                 97268402,          // Effect Veiler
-                63845230,          // Eater of Millions
                 59438930,          // Ghost Ogre
                 73642296,          // Ghost Belle
                 10045474,          // Infinite Impermanence
@@ -161,7 +160,7 @@ namespace WindBot.Game.AI
                 12524259, // Unauthorized Reactivation
                 // Altergeist
                 42790071, // Altergeist Multifaker
-                53143898, // Altergeist Meluseek
+                25533642, // Altergeist Meluseek
                 53143898, // Altergeist Marionetter
                 // Dark Magician
                 47222536, // Dark Magical Circle
@@ -399,14 +398,24 @@ namespace WindBot.Game.AI
                 {
                     score += 8;
                 }
+                // [Core v0.094] Read the card text: search / SS from Deck-Extra-GY / draw = engine piece.
+                // This is the generic signal that lets the bot Ash/Veiler unknown starters like a human would.
+                try
+                {
+                    if (CardTextSemantics.IsEngineEffect(targetCard))
+                        score += 15;
+                }
+                catch { }
             }
 
             // ── 2. Combo Stage (opponent summon count heuristic) ──
+            // [Core v0.094] The first engine activation of a turn is usually THE starter — holding against it
+            // (old -10 for every non-critical target) let unknown decks combo freely. Only non-engine,
+            // low-value activations get a small early hesitation now.
             if (opponentSummonCount <= 1)
             {
-                // Early combo — might have follow-ups. But starters are still critical.
-                if (score < 70)
-                    score -= 10;
+                if (score < 60)
+                    score -= 5;
             }
             else if (opponentSummonCount >= 2 && opponentSummonCount <= 3)
             {
@@ -499,7 +508,8 @@ namespace WindBot.Game.AI
             foreach (var c in bot.Hand)
             {
                 if (c == null) continue;
-                if (_handTrapIds.Contains(c.Id))
+                if (_handTrapIds.Contains(c.Id) || _handTrapIds.Contains(c.GetNonAltartCode())
+                    || CardIntelligence.IsHandtrap(c.Id) || CardIntelligence.IsHandtrap(c.GetNonAltartCode()))
                     count++;
             }
 

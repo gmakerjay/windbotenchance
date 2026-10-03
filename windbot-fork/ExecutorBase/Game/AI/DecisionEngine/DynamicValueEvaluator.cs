@@ -19,9 +19,9 @@ namespace WindBot.Game.AI.DecisionEngine
         private static readonly Dictionary<int, double> IntrinsicValues = new Dictionary<int, double>
         {
             { 14558127, 70 },  // Ash Blossom
+            { 14558128, 70 },  // Ash Blossom (alt art)
             { 23434538, 85 },  // Maxx "C"
             { 97268402, 60 },  // Effect Veiler
-            { 63845230, 60 },  // Eater of Millions
             { 10045474, 68 },  // Infinite Impermanence
             { 25311006, 75 },  // Triple Tactics Talent
             { 84211599, 70 },  // Pot of Prosperity
@@ -143,7 +143,7 @@ namespace WindBot.Game.AI.DecisionEngine
 
             // Called by the Grave risk: if we activate a hand trap that goes to GY (Ash/Veiler),
             // check if opponent has set cards or known Called by the Grave.
-            if ((card.Id == 14558127 || card.Id == 97268402 || card.Id == 63845230) && isOpponentTurn)
+            if ((card.Id == 14558127 || card.Id == 14558128 || card.Id == 97268402) && isOpponentTurn)
             {
                 // Check if opponent has set cards (risk of getting Called by / crossout-ed)
                 risk += 12.0;
@@ -155,14 +155,14 @@ namespace WindBot.Game.AI.DecisionEngine
         private bool IsNegator(ClientCard card)
         {
             if (card == null) return false;
-            int[] negators = { 14558127, 97268402, 63845230, 10045474 }; // Ash, Veiler, Imperm
+            int[] negators = { 14558127, 14558128, 97268402, 10045474 }; // Ash, Veiler, Imperm
             return negators.Contains(card.Id) || CardIntelligence.IsKnownNegator(card.Id);
         }
 
         private bool IsHandTrap(ClientCard card)
         {
             if (card == null) return false;
-            int[] handTraps = { 14558127, 23434538, 97268402, 63845230, 10045474 };
+            int[] handTraps = { 14558127, 14558128, 23434538, 97268402, 10045474 };
             return handTraps.Contains(card.Id) || CardIntelligence.IsHandtrap(card.Id);
         }
     }

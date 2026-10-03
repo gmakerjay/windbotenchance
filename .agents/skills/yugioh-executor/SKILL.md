@@ -140,7 +140,7 @@ DECK PLUGIN      Strategy · MaterialEvaluator · ThreatEvaluator (+ ResourceEva
 
 | โมดูล | Core ทำให้อัตโนมัติ | เด็ค **ต้อง** ทำ |
 |---|---|---|
-| `DeckPlugin` 🔒 | route hint 500/501/504(cost)/507(เรา) → `PickDiscardTarget`; 506/505(เรา)/504(Deck→GY) → `PickSearchTarget`; 509 → `PickSpecialSummonTarget`; 502/503/504/507/520/575 ศัตรู → ThreatScore; materials 511/513/533 + counter | `DeckPlugin = new XPlugin(this)` + Strategy/Material/Threat |
+| `DeckPlugin` 🔒 | preselect ที่ match ก่อน (v0.094) → route hint 500/501/504(cost)/507(เรา) → `PickDiscardTarget`; 506/505(เรา)/504(Deck→GY) → `PickSearchTarget`; 509 → `PickSpecialSummonTarget`; 502/503/504/507/520/575 ศัตรู → ThreatScore; materials 511/512/513/533 + counter; pick เดียวแต่ min>1 → `CompleteSelection` | `DeckPlugin = new XPlugin(this)` + Strategy/Material/Threat |
 | Ace registry 🔒 | — | `override IsAceCard` + `ResourcePlan.RegisterAceCards` + `HeuristicGuard.RegisterAceCards` (ชุดเดียวกัน) |
 | `BaitPlanner` 🎯 | reset/feed ทุกเทิร์น | `RegisterComboStarters/BaitCards/NeverBait` **และ** เรียก `GetBaitIfNeeded(Card)` ใน func ของ starter; bait executor อยู่ก่อน starter |
 | `ChainAdvisor` 🎯 | ใช้ใน `SmartHandTrapChain()` (+ duplicate guard ในตัว) | `RegisterHighValueTargets(ศัตรู)`; handtrap func ใช้ `SmartHandTrapChain()` + neutralized check |
@@ -156,12 +156,12 @@ DECK PLUGIN      Strategy · MaterialEvaluator · ThreatEvaluator (+ ResourceEva
 1. 🔒 **ลำดับ `AddExecutor` = Priority** — GameAI วน executor ตามลำดับที่ add; `ModernExecutor` ctor add `GoToEndPhase(ShouldPassTurn)` ไว้ **ตัวแรก**
 2. 🔒 **Global guard ก่อน func** — `ShouldAllowActivate/Summon/SpSummon/SpellSet/MonsterSet/Repos` บล็อกได้ (Rush/Attack-first/Stop-extending/S:P Little Knight/Non-QuickPlay set) — func ไม่ถูกเรียกเลย ให้ดู log `[PHASE-GUARD] BLOCKED`
 3. 🔒 **Optional trigger ใช้ func เดียวกับ activate** — `OnSelectEffectYn` เรียก func ของ `AddExecutor(Activate, id)`; func ต้องแยกเอฟเฟกต์ด้วย `ActivateDescription == Util.GetStringId(id, n)`; ทุก func คืน false = ปฏิเสธ trigger
-4. 🔒 **`AI.SelectCard` ถูกข้าม** สำหรับ hint ที่ ModernExecutor จัดการ (500–509/514/518/520/528/551/575) → ใช้ **Pending-Select** ใน deck `OnSelectCard` (template §6) · ใช้ได้กับ custom hint `Util.GetStringId(id,n)` · ยกเว้น 504 Deck→GY ที่ plugin คืน null → ตกไป `AI.SelectCard`/Fallback
+4. ✅ **`AI.SelectCard` ใช้ได้แล้ว (v0.094)** — `ModernExecutor.OnSelectCard` step 0 ใช้ preselect เมื่อ match pool (ไม่ match = ไม่ pop); cost hint (500/501/504 เรา/507 เรา) รับเฉพาะ `SelectCard(ClientCard)`; func คืน false → rollback; ล้างทุก idle prompt · ต้องการบังคับเด็ดขาด (เล็งตัวเองโดยตั้งใจ / custom hint `Util.GetStringId(id,n)`) → Pending-Select ใน deck `OnSelectCard` (template §6)
 5. 🔒 **`Card`/`ActivateDescription` อาจ stale ระหว่าง resolve** → ระบุต้นทางด้วย `Duel.GetCurrentChainCard()` (ตอนเลือก cost/target) / `Duel.GetCurrentSolvingChainCard()` (ตอน resolve)
-6. 🔒 **ComboRouter step ข้าม func/guard/SetCard** และเลือก description แรกของการ์ด → ใส่เฉพาะ action ที่ปลอดภัยเสมอ
-7. 🔒 **`IsAceCard` default ผิดสำหรับเด็คส่วนใหญ่** (Extra Deck ทุกตัว = Ace) → override เสมอ
-8. 🔒 **Synchro (512) ไม่ผ่าน Plugin** → เด็ค Synchro override `OnSelectSynchroMaterial` เอง
-9. 🔒 **รู้ข้อจำกัด core** ตาม `known_core_issues.md` — บั๊กหลัก (507/504/518/552 routing, Bagooska, MP2 guard, duplicate chain, Card ID ปลอม) แก้แล้วใน v0.086; ที่เหลือ: ComboRouter bypass, `IsAceCard` default, Synchro, `IsSpecialSummonBlocked` กว้างเกิน, MP2 guard บล็อก search เมื่อบอร์ดแข็ง
+6. ✅ **ComboRouter step ผ่าน func ของเด็คแล้ว (v0.094)** — `step.Condition` → `ShouldAllow*` → `ComboStepApprovedByExecutors` (executor ID ตรงก่อน, ตั้ง `Card`/`ActivateDescription` จริง) · จำ step ที่ทำแล้วเมื่อสลับ fallback · Abort เฉพาะเมื่อโดน negate จริง → func ของการ์ดที่อยู่ใน step ต้องคืน true ได้ในสถานะนั้น ไม่งั้น step จะถูกข้าม
+7. 🔒 **`IsAceCard` default ผิดสำหรับเด็คส่วนใหญ่** → override เสมอ (ดู known issue #25)
+8. ✅ **Synchro (512) ผ่าน `MaterialEvaluator.SortMaterials` แล้ว** (v0.087) — override `OnSelectSynchroMaterial` เฉพาะกรณีพิเศษ (Tuner เจาะจง)
+9. 🔒 **รู้ข้อจำกัด core** ตาม `known_core_issues.md` — v0.094 แก้: board re-read ทุก idle, preselect, activation threat, ComboRouter continuity, battle-immune ≠ effect-immune; ที่เหลือ ⚠️: `_negateNever` (Terraforming/RotA), DefaultExecutor handtrap chain check ไม่แยกฝั่ง, hint 551 เลือกศัตรูเสมอ, HeuristicGuard อาจทับ self-target, battle targeting ยัง greedy
 10. 🎯 **OPT flags** ตั้งตอน `return true` และ reset ใน `OnNewTurn` หลัง `base.OnNewTurn()` — ห้ามเรียก `Plugin.ResetTurnState()` ซ้ำ
 11. 🎯 **Extra Deck summon ต้องมีเหตุผล** — `ShouldAvoidGenericExtraDeckSummon(n)`, `ShouldSkipLinkSummon()`, fodder ไม่ใช่ Ace; ห้าม `AddExecutor(SpSummon, id)` แบบไม่มี func
 12. 🎯 **Handtrap**: `IsChainAlreadyNeutralized()` → `SmartHandTrapChain()` (duplicate guard ในตัว) → `Default*()`
@@ -186,18 +186,33 @@ RemovalScore = ThreatValue + ZoneDenial + RecursionPrevention + ChainSafety + Bo
 
 **Stack Checklist** — ใบแรกใช้แล้ว? ใบที่สอง Resolve ได้? OPT ต่อใบ/ต่อชื่อ? เกิดผลใหม่หรือแค่กินช่อง? มีเป้าคุ้มกว่า? → ไม่มี Net Value = ไม่ใช้ซ้ำ
 
+### 7.1 Pro-Play Principles (generic — core v0.094 ทำให้แล้วบางส่วน) 🎯
+
+เป้าหมายคือบอทที่ "คนเล่นรู้สึกท้าทาย" — ตัดสินใจจาก**สถานะบอร์ด + ข้อความการ์ด** ไม่ใช่ลิสต์ ID เฉพาะเด็ค
+
+| หลัก | Core ทำให้ | เด็คควรทำ |
+|---|---|---|
+| อ่านบอร์ดสดทุก action | `Analysis.Refresh()` ทุก idle prompt, `AIContext` อัปเดต summon count ก่อนตัดสิน | อย่า cache สถานะบอร์ดข้าม action ใน field เด็ค |
+| ตัดที่ "เอฟเฟกต์" ไม่ใช่ "ตำแหน่ง" | `GetActivationThreatScore` / `CardTextSemantics.IsEngineEffect` — search/SS/draw = engine | Handtrap func ใช้ `SmartHandTrapChain()` แทนเช็ค location เอง |
+| Ash/Veiler ตัด engine ชิ้นแรก | early penalty เหลือ −5; unknown engine +15 | `RegisterHighValueTargets` เฉพาะการ์ดศัตรูที่เป็น chokepoint จริง |
+| เคารพเจตนาเด็ค | preselect ที่ match ชนะ heuristic; rollback เมื่อ func คืน false | ตั้ง `AI.SelectCard(...)` ก่อน `return true` เท่านั้น |
+| คอมโบไม่สะดุดเมื่อโดนตัด | Fallback line ต่อจาก step ที่ทำแล้ว; Abort เฉพาะ negate จริง | ออกแบบ `FallbackLineName` ที่ใช้ทรัพยากรที่เหลือ (Plan B) |
+| เลือกเป้าทำลายที่ทำลายได้จริง | 502 กรอง effect-destruction-immune เมื่อมีตัวเลือกพอ; battle-immune ≠ effect-immune | ใช้ `IsViableEffectTarget` ใน func ก่อน `return true` |
+| Tempo — ตั้ง ATK เมื่อกดดันได้ | `OnSelectPosition` MP1 (Turn>1) ATK ถ้าศัตรูว่างหรือมีเป้า face-up ที่ตีชนะ | อย่า force DEF ในเด็คโดยไม่มีเหตุผล |
+| Negate ที่ถูก disable แล้วไม่ใช่ภัยหลัก | threat bonus ×0.5 เมื่อ face-up + disabled | ใช้ removal กับตัวที่ยังทำงาน |
+
 ## 8. Hint Quick Reference (เต็ม: `references/hint_reference.md`)
 
 | ID | Constant | พฤติกรรมที่ต้องการ | Core route |
 |---|---|---|---|
 | 500 / 501 | RELEASE / DISCARD | Token/Fodder/ตัวซ้ำ/มีผลใน GY ก่อน | `PickDiscardTarget` |
-| 502 / 503 | DESTROY / REMOVE | ศัตรู ตาม RemovalScore 🔒 | ThreatScore |
+| 502 / 503 | DESTROY / REMOVE | ศัตรู ตาม RemovalScore 🔒 | ThreatScore (502 กรอง destruction-immune, v0.094) |
 | 504 | TOGRAVE | ศัตรู = removal · เรา = cost · Deck→GY = เลือกตัวที่มีผลใน GY | ศัตรู → ThreatScore · Deck ทั้งหมด → `PickSearchTarget` · อื่น → cost |
 | 505 | RTOHAND | ศัตรู = bounce · เรา = กู้ขึ้นมือ | ศัตรู → ThreatScore · เรา → `PickSearchTarget` |
 | 506 | ATOHAND | Search ตามแผน | `PickSearchTarget` |
 | 507 | TODECK | ศัตรู = spin · เรา = คืนตัวค่าต่ำ | ศัตรู → ThreatScore · เรา → `PickDiscardTarget` |
 | 509 | SPSUMMON | Boss/Extender ตามรูท | `PickSpecialSummonTarget` |
-| 511 / 512 / 513 / 533 | F / S / X / L MATERIAL | Fodder ก่อน Ace ท้ายสุด | `SortMaterials` (512 ❌) |
+| 511 / 512 / 513 / 533 | F / S / X / L MATERIAL | Fodder ก่อน Ace ท้ายสุด | `SortMaterials` (รวม 512) |
 | 518 / 519 / 520 | EQUIP / REMOVEXYZ / CONTROL | ตามบริบท / ถอด material ค่าต่ำ / ขโมยศัตรู | 518 แยก branch · 519 = cost (fallback) · 520 ศัตรู |
 | 551 | TARGET | ศัตรูถ้าเป็นผลลบ · เราถ้าเป็นบัฟ | ศัตรูเสมอ |
 | 572 | COUNTER | ตาม ResourceEvaluator | `OnSelectCounter` |
@@ -231,7 +246,7 @@ RemovalScore = ThreatValue + ZoneDenial + RecursionPrevention + ChainSafety + Bo
 - [ ] ComboRouter step ปลอดภัยทุกตัว มี `Condition`
 - [ ] Target ถูกต้อง ไม่มี Self-Harm; 504/505/507 แยกบริบท (หรือยอมรับ core route); ข้อจำกัด core ⚠️ ใน `known_core_issues.md` จัดการแล้ว
 - [ ] Activate func รองรับ optional trigger (แยก `ActivateDescription`)
-- [ ] Selection ใช้ Pending-Select / custom hint แทน `AI.SelectCard` สำหรับ hint ที่ core จัดการ
+- [ ] Selection: `AI.SelectCard` ก่อน `return true` (core v0.094 ใช้เมื่อ match pool) · Pending-Select เฉพาะ custom hint / self-target โดยตั้งใจ / cost ที่ต้องเจาะจง ID
 - [ ] OPT / Hard OPT / Once-per-Chain ถูกนับและ reset; ไม่มี Duplicate/Stack Waste
 - [ ] ไม่ใช้ Resource สำคัญเกินจำเป็น; Lethal Check ผ่าน; เหลือ Follow-up
 - [ ] bots.json + DashBot category + Build 0 Errors

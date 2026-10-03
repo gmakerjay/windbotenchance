@@ -52,6 +52,20 @@ namespace WindBot.Game.AI.DecisionEngine
         {
             if (ourCard == null) return false;
 
+            // [Core v0.094] Refresh the snapshot right before deciding. Previously State was captured only in
+            // OnNewTurn (with 0/0 summons), so hand sizes / disruption counts were stale for the whole turn.
+            try
+            {
+                int own = 0, opp = 0;
+                if (Executor is ModernExecutor modernExec && modernExec.Brain != null)
+                {
+                    own = modernExec.Brain.OwnSummons;
+                    opp = modernExec.Brain.OpponentSummonCount;
+                }
+                UpdateState(own, opp);
+            }
+            catch { }
+
             // 1. Calculate dynamic card value
             double cardValue = ValueEvaluator.Evaluate(
                 ourCard, 
@@ -65,7 +79,8 @@ namespace WindBot.Game.AI.DecisionEngine
             if (cardValue < 15.0) return false;
 
             // 2. Evaluate target threat if reacting to an opponent card
-            double targetThreat = targetCard != null ? ThreatAnalyzer.GetThreatScore(targetCard) : 0.0;
+            // [Core v0.094] Rate the target as an ACTIVATION (search/SS/draw text, Extra Deck…), not only by location.
+            double targetThreat = targetCard != null ? ThreatAnalyzer.GetActivationThreatScore(targetCard) : 0.0;
 
             // 3. Estimate probability of getting countered (using Called by/negators)
             double counterProb = 0.05;

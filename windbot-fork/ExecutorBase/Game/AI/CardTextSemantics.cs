@@ -34,8 +34,20 @@ namespace WindBot.Game.AI
         /// <summary>Continuous floodgate or lock on game actions.</summary>
         public bool IsContinuousFloodgate { get; set; }
 
-        /// <summary>Cannot be destroyed by card effects or battle.</summary>
+        /// <summary>
+        /// Cannot be destroyed by CARD EFFECTS (or is unaffected by effects).
+        /// [Core v0.094] Battle-only indestructibility no longer sets this flag — see <see cref="IsBattleImmune"/>.
+        /// </summary>
         public bool IsDestructionImmune { get; set; }
+
+        /// <summary>[Core v0.094] Cannot be destroyed by battle (text-derived).</summary>
+        public bool IsBattleImmune { get; set; }
+
+        /// <summary>
+        /// [Core v0.094] Text contains an "engine" action — search, Special Summon from Deck/Extra/GY, or draw.
+        /// These are exactly the activations that Ash/Veiler/Droll-style interaction is meant to stop.
+        /// </summary>
+        public bool IsEngineEffect => IsContinuousSearcher || IsContinuousSummoner || IsContinuousDraw;
 
         /// <summary>Cannot be targeted by card effects.</summary>
         public bool IsTargetImmune { get; set; }
@@ -89,8 +101,14 @@ namespace WindBot.Game.AI
             @"(ผู้เล่นทั้งสองไม่สามารถ|ฝ่ายตรงข้ามไม่สามารถ|ไม่สามารถอัญเชิญแบบพิเศษ|ไม่สามารถเปิดใช้งาน|ยกเลิกเอฟเฟกต์ของมอนสเตอร์|ทำให้ไร้ผล|neither player can|opponent cannot|cannot special summon|cannot activate|effects of all face-up monsters.*are negated|cannot attack)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
+        // [Core v0.094] Effect-destruction immunity only. "cannot be destroyed by battle" alone does NOT match
+        // (it used to, which made removal skip perfectly valid Raigeki/Destroy targets).
         private static readonly Regex RegexDestructionImmune = new Regex(
-            @"(ไม่สามารถถูกทำลาย|ไม่ถูกทำลาย|cannot be destroyed by|unaffected by (other|card|your opponent's)|cannot be destroyed)",
+            @"(ไม่(สามารถ)?ถูกทำลาย[^.。\n]*เอฟเฟกต์|ไม่ได้รับผล(กระทบ)?จากเอฟเฟกต์|cannot be destroyed by[^.\n]*effect|unaffected by (other|card|your opponent's|the effects|activated))",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static readonly Regex RegexBattleImmune = new Regex(
+            @"(ไม่(สามารถ)?ถูกทำลาย(จาก|ด้วย)?การต่อสู้|cannot be destroyed by battle)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex RegexTargetImmune = new Regex(
@@ -147,6 +165,7 @@ namespace WindBot.Game.AI
 
                 profile.IsContinuousFloodgate = RegexFloodgate.IsMatch(desc);
                 profile.IsDestructionImmune = RegexDestructionImmune.IsMatch(desc);
+                profile.IsBattleImmune = RegexBattleImmune.IsMatch(desc);
                 profile.IsTargetImmune = RegexTargetImmune.IsMatch(desc);
                 profile.IsFloaterOnDestruction = RegexFloater.IsMatch(desc);
 
@@ -155,10 +174,19 @@ namespace WindBot.Game.AI
                                           profile.IsContinuousSummoner || profile.IsContinuousDraw ||
                                           profile.IsQuickInterruption || profile.IsContinuousFloodgate;
 
-                profile.IsDecoyShield = (profile.IsDestructionImmune || profile.IsTargetImmune || hasStatBoost) && !generatesResources;
+                profile.IsDecoyShield = (profile.IsDestructionImmune || profile.IsBattleImmune || profile.IsTargetImmune || hasStatBoost) && !generatesResources;
 
                 return profile;
             });
+        }
+
+        /// <summary>
+        /// [Core v0.094] True if this card's text describes an engine action (search / SS from Deck-Extra-GY / draw).
+        /// Generic signal used by chain-timing and threat reading for cards that are not in any hard-coded list.
+        /// </summary>
+        public static bool IsEngineEffect(ClientCard card)
+        {
+            return GetProfile(card)?.IsEngineEffect ?? false;
         }
 
         /// <summary>

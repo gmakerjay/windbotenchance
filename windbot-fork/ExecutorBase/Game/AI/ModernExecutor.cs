@@ -411,7 +411,7 @@ namespace WindBot.Game.AI
 
             if (!SmartHandTrapChain()) return false;
 
-            ClientCard veiler = Bot.Hand.FirstOrDefault(c => c != null && (c.Id == 97268402 || c.Id == 63845230));
+            ClientCard veiler = Bot.Hand.FirstOrDefault(c => c != null && c.Id == 97268402);
             if (veiler == null) return false;
             return AIContext == null || AIContext.ShouldActivate(veiler, lastChain, "EffectVeiler");
         }
@@ -543,6 +543,9 @@ namespace WindBot.Game.AI
             if (isEternalSoulActive &&
                 (card.IsCode(DarkMagician) || card.IsCode(DarkMagicianTheDragonKnight)))
                 return true;
+
+            // [Core v0.094] Text-derived effect-destruction immunity (battle-only immunity no longer counts)
+            if (CardIntelligence.IsDestructionImmune(card)) return true;
 
             return false;
         }
@@ -694,10 +697,10 @@ namespace WindBot.Game.AI
                 switch (c.Id)
                 {
                     case 14558127:  // Ash Blossom
+                    case 14558128:  // Ash Blossom (alt art)
                     case 23434538:  // Maxx "C"
                     case 94145021:  // Droll & Lock Bird
                     case 97268402:  // Effect Veiler
-                    case 63845230:  // Eater of Millions
                     case 59438930:  // Ghost Ogre
                     case 73642296:  // Ghost Belle
                     case 10045474:  // Infinite Impermanence
@@ -1275,6 +1278,11 @@ namespace WindBot.Game.AI
 
         public override MainPhaseAction OnSelectIdleCmd(MainPhase main)
         {
+            // [Core v0.094] Re-read the board every idle prompt. Analysis was previously refreshed only at
+            // turn/phase start, so ShouldStopExtending / ShouldAttackFirst / PreferBattleBeforeSetting were
+            // computed from the PRE-combo board for the whole Main Phase.
+            try { Analysis?.Refresh(); } catch { }
+
             // ═══ Smart Flow v2: Dynamic Lethal Re-evaluation ═══
             // Check if board state changed since turn start and we now have lethal
             DynamicLethalCheck();
@@ -1329,31 +1337,22 @@ namespace WindBot.Game.AI
                             if (card != null && (card.Id == step.CardId || card.GetNonAltartCode() == step.CardId))
                             {
                                 if (!ShouldAllowActivate(card)) continue;
-                                var cardExec = Executors.FirstOrDefault(e => e.Type == ExecutorType.Activate && (e.CardId == -1 || e.CardId == step.CardId));
-                                if (cardExec?.Func != null)
-                                {
-                                    Card = card;
-                                    if (!cardExec.Func()) continue;
-                                }
-                                comboAction = new MainPhaseAction(MainPhaseAction.MainAction.Activate, card.ActionActivateIndex[main.ActivableDescs[i]]);
+                                long desc = main.ActivableDescs[i];
+                                if (!ComboStepApprovedByExecutors(card, step.CardId, _comboActivateTypes, desc)) continue;
+                                comboAction = new MainPhaseAction(MainPhaseAction.MainAction.Activate, card.ActionActivateIndex[desc]);
                                 executed = true;
                                 break;
                             }
                         }
                     }
-                    else if (step.ActionType == ExecutorType.Summon)
+                    else if (step.ActionType == ExecutorType.Summon || step.ActionType == ExecutorType.SummonOrSet)
                     {
                         foreach (var card in main.SummonableCards)
                         {
                             if (card != null && (card.Id == step.CardId || card.GetNonAltartCode() == step.CardId))
                             {
                                 if (!ShouldAllowSummon(card)) continue;
-                                var cardExec = Executors.FirstOrDefault(e => (e.Type == ExecutorType.Summon || e.Type == ExecutorType.SummonOrSet) && (e.CardId == -1 || e.CardId == step.CardId));
-                                if (cardExec?.Func != null)
-                                {
-                                    Card = card;
-                                    if (!cardExec.Func()) continue;
-                                }
+                                if (!ComboStepApprovedByExecutors(card, step.CardId, _comboSummonTypes, -1)) continue;
                                 comboAction = new MainPhaseAction(MainPhaseAction.MainAction.Summon, card.ActionIndex);
                                 executed = true;
                                 break;
@@ -1367,12 +1366,7 @@ namespace WindBot.Game.AI
                             if (card != null && (card.Id == step.CardId || card.GetNonAltartCode() == step.CardId))
                             {
                                 if (!ShouldAllowSpSummon(card) || IsSpecialSummonBlocked()) continue;
-                                var cardExec = Executors.FirstOrDefault(e => e.Type == ExecutorType.SpSummon && (e.CardId == -1 || e.CardId == step.CardId));
-                                if (cardExec?.Func != null)
-                                {
-                                    Card = card;
-                                    if (!cardExec.Func()) continue;
-                                }
+                                if (!ComboStepApprovedByExecutors(card, step.CardId, _comboSpSummonTypes, -1)) continue;
                                 comboAction = new MainPhaseAction(MainPhaseAction.MainAction.SpSummon, card.ActionIndex);
                                 executed = true;
                                 break;
@@ -1386,12 +1380,7 @@ namespace WindBot.Game.AI
                             if (card != null && (card.Id == step.CardId || card.GetNonAltartCode() == step.CardId))
                             {
                                 if (!ShouldAllowSpellSet(card)) continue;
-                                var cardExec = Executors.FirstOrDefault(e => e.Type == ExecutorType.SpellSet && (e.CardId == -1 || e.CardId == step.CardId));
-                                if (cardExec?.Func != null)
-                                {
-                                    Card = card;
-                                    if (!cardExec.Func()) continue;
-                                }
+                                if (!ComboStepApprovedByExecutors(card, step.CardId, _comboSpellSetTypes, -1)) continue;
                                 comboAction = new MainPhaseAction(MainPhaseAction.MainAction.SetSpell, card.ActionIndex);
                                 executed = true;
                                 break;
@@ -1483,6 +1472,46 @@ namespace WindBot.Game.AI
                 return new MainPhaseAction(MainPhaseAction.MainAction.ToBattlePhase);
 
             return base.OnSelectIdleCmd(main);
+        }
+
+        private static readonly ExecutorType[] _comboActivateTypes = { ExecutorType.Activate };
+        private static readonly ExecutorType[] _comboSummonTypes = { ExecutorType.Summon, ExecutorType.SummonOrSet };
+        private static readonly ExecutorType[] _comboSpSummonTypes = { ExecutorType.SpSummon };
+        private static readonly ExecutorType[] _comboSpellSetTypes = { ExecutorType.SpellSet };
+
+        /// <summary>
+        /// [Core v0.094] Ask the deck's OWN executors whether a ComboRouter step may be played right now.
+        /// - Exact-ID executors are consulted first (a generic -1 executor registered earlier no longer
+        ///   hijacks the decision); generic -1 executors are used only if no exact one exists.
+        /// - Type / Card / ActivateDescription are set exactly like GameAI does, so funcs that branch on
+        ///   ActivateDescription (hand vs GY effect, effect index) evaluate correctly.
+        /// - Approved if ANY matching func returns true; funcs that decline have their AI.SelectCard picks
+        ///   rolled back. No registered executor = allowed (unchanged behaviour).
+        /// </summary>
+        protected virtual bool ComboStepApprovedByExecutors(ClientCard card, int stepCardId, ExecutorType[] types, long desc)
+        {
+            if (card == null || types == null) return false;
+
+            var exact = Executors.Where(e => e != null && types.Contains(e.Type)
+                && (e.CardId == stepCardId || e.CardId == card.Id)).ToList();
+            var pool = exact.Count > 0
+                ? exact
+                : Executors.Where(e => e != null && types.Contains(e.Type) && e.CardId == -1).ToList();
+            if (pool.Count == 0) return true;
+
+            foreach (var exec in pool)
+            {
+                SetCard(exec.Type, card, desc);
+                if (exec.Func == null) return true;
+
+                int checkpoint = AI?.PreselectCheckpoint() ?? 0;
+                bool ok;
+                try { ok = exec.Func(); }
+                catch { ok = false; }
+                if (ok) return true;
+                AI?.RollbackPreselect(checkpoint);
+            }
+            return false;
         }
 
         protected virtual bool ShouldBattleBeforeSetting(MainPhase main)
@@ -2122,29 +2151,32 @@ namespace WindBot.Game.AI
         private bool IsOpponentCardNegator(ClientCard card)
         {
             if (card == null) return false;
+            int id = card.Id;
+            int alt = card.GetNonAltartCode();
 
-            // 1. Check known negate monsters
-            if (_negateMonsters.Contains(card.Id)) return true;
+            // 1. Known negate monsters / central negator list
+            if (_negateMonsters.Contains(id) || _negateMonsters.Contains(alt)) return true;
+            if (CardIntelligence.IsKnownNegator(id) || CardIntelligence.IsKnownNegator(alt)) return true;
 
-            // 2. Check Central CardIntelligence
-            if (CardIntelligence.IsKnownNegator(card.Id) || CardIntelligence.IsHandtrap(card.Id)) return true;
+            // 2. Counter Traps are negation by definition
+            if (card.HasType(CardType.Counter)) return true;
 
-            // 3. Check known hand traps / negates by ID
+            // 3. Known negating handtraps / spells / traps by ID.
+            // [Core v0.094] Generic handtraps (Maxx "C", Droll, Mulcharmy…) and Eater of Millions were
+            // previously counted as "negation", which aborted perfectly healthy combo lines.
             int[] negateIds = {
                 14558127, 14558128, // Ash Blossom
                 73642296,          // Ghost Belle
                 97268402,          // Effect Veiler
-                63845230,          // Eater of Millions
                 10045474,          // Infinite Impermanence
                 24224830,          // Called by the Grave
+                65681983,          // Crossout Designator
                 41420027,          // Solemn Judgment
                 40605147,          // Solemn Strike
                 84749824,          // Solemn Warning
                 23002292           // Red Reboot
             };
-            if (negateIds.Contains(card.Id)) return true;
-
-            return false;
+            return negateIds.Contains(id) || negateIds.Contains(alt);
         }
 
         public override void OnNewPhase()
@@ -2520,10 +2552,77 @@ namespace WindBot.Game.AI
             return 500;
         }
 
+        // [Core v0.094] Re-entrancy guard for preselect padding (see OnSelectCard step 0).
+        private bool _inPreselectPadding = false;
+
+        /// <summary>
+        /// [Core v0.094] Pad a single strategic pick (plugin / preselect) up to <paramref name="min"/> using
+        /// a heuristic order, instead of letting GameAI fill the remainder with arbitrary cards.
+        /// </summary>
+        protected static IList<ClientCard> CompleteSelection(ClientCard primary, IEnumerable<ClientCard> orderedPool, int min)
+        {
+            var result = new List<ClientCard>();
+            if (primary != null) result.Add(primary);
+            if (orderedPool != null)
+            {
+                foreach (var c in orderedPool)
+                {
+                    if (result.Count >= min) break;
+                    if (c != null && !result.Contains(c)) result.Add(c);
+                }
+            }
+            return result;
+        }
+
+        private static bool IsMaterialSelectHint(long hint)
+        {
+            return hint == 511 || hint == 512 || hint == 513 || hint == 533;
+        }
+
         public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
         {
             if (cards == null || cards.Count == 0)
                 return base.OnSelectCard(cards, min, max, hint, cancelable);
+
+            // ── 0. [Core v0.094] Honour the deck's own AI.SelectCard / SelectNextCard picks ──
+            // Previously every routed hint ignored the preselection queue (CL3 Called by the Grave,
+            // DefaultPreemptiveImpermanence, deck-chosen targets…) and the stale pick then hijacked a later
+            // prompt. Now: if the next queued pick matches this pool it is used (deck intent wins).
+            // Cost prompts (tribute / discard / our-side send-to-GY / our-side to-deck) only honour explicit
+            // ClientCard picks, so an ID pick meant for the following search is not discarded by accident.
+            if (!_inPreselectPadding && !IsMaterialSelectHint(hint) && AI != null)
+            {
+                bool anyEnemy = cards.Any(c => c != null && c.Controller == 1);
+                bool allDeck = cards.All(c => c == null || c.Location == CardLocation.Deck);
+                bool costLike = hint == 500 || hint == 501
+                    || (hint == 504 && !anyEnemy && !allDeck)
+                    || (hint == 507 && !anyEnemy);
+
+                IList<ClientCard> pre = null;
+                try { pre = AI.TryConsumePreselectedCards(cards, max, costLike); } catch { pre = null; }
+                if (pre != null && pre.Count > 0)
+                {
+                    if (pre.Count >= min) return pre.ToList();
+
+                    // Partial match → fill the rest with the normal heuristic for this hint
+                    var combined = pre.ToList();
+                    var rest = cards.Where(c => c != null && !combined.Contains(c)).ToList();
+                    IList<ClientCard> fill = null;
+                    _inPreselectPadding = true;
+                    try { fill = OnSelectCard(rest, min - combined.Count, Math.Max(min - combined.Count, max - combined.Count), hint, cancelable); }
+                    catch { fill = null; }
+                    finally { _inPreselectPadding = false; }
+                    if (fill != null)
+                        foreach (var c in fill)
+                            if (c != null && !combined.Contains(c) && combined.Count < max) combined.Add(c);
+                    foreach (var c in rest)
+                    {
+                        if (combined.Count >= min) break;
+                        if (!combined.Contains(c)) combined.Add(c);
+                    }
+                    return combined;
+                }
+            }
 
             // S:P Little Knight override
             if (Card != null && Card.Id == 29301450)
@@ -2569,6 +2668,12 @@ namespace WindBot.Game.AI
                 if (enemyCards.Count >= min)
                 {
                     var viable = enemyCards.Where(c => !IsTargetImmune(c) && !c.IsShouldNotBeTarget()).ToList();
+                    // [Core v0.094] Destroy prompts: skip effect-destruction-immune cards when enough alternatives exist
+                    if (hint == HINTMSG_DESTROY)
+                    {
+                        var destroyable = viable.Where(c => !IsDestructionImmune(c)).ToList();
+                        if (destroyable.Count >= min) viable = destroyable;
+                    }
                     var candidatePool = viable.Count >= min ? viable : enemyCards;
                     var sorted = candidatePool.OrderByDescending(c => GetCardThreatScore(c, hint)).ToList();
                     return sorted.Take(Math.Min(max, sorted.Count)).ToList();
@@ -2581,7 +2686,8 @@ namespace WindBot.Game.AI
                 if (DeckPlugin?.MaterialEvaluator != null)
                 {
                     var popSub = DeckPlugin.MaterialEvaluator.PickDestructionSubstitute(ourCards, min);
-                    if (popSub != null) return new List<ClientCard> { popSub };
+                    if (popSub != null)
+                        return CompleteSelection(popSub, ourCards.OrderBy(c => GetCardDiscardSacrificeCost(c)), min);
                 }
             }
 
@@ -2593,14 +2699,14 @@ namespace WindBot.Game.AI
             if (hint == HINTMSG_TOGRAVE && enemyCards.Count == 0 && ourCards.Count >= min &&
                 ourCards.All(c => c.Location == CardLocation.Deck))
             {
-                if (AI != null && AI.HasPreselectedCard())
-                    return base.OnSelectCard(cards, min, max, hint, cancelable);
+                // [Core v0.094] A preselection that matched this pool was already honoured in step 0.
+                // A still-queued one does not match any card here, so continue with plugin routing.
 
                 var foolishTarget = DeckPlugin?.Strategy?.PickFoolishGraveTarget(ourCards, Card);
-                if (foolishTarget != null) return new List<ClientCard> { foolishTarget };
+                if (foolishTarget != null) return CompleteSelection(foolishTarget, ourCards, min);
 
                 var pluginTarget = DeckPlugin?.Strategy?.PickSearchTarget(ourCards, Card);
-                if (pluginTarget != null) return new List<ClientCard> { pluginTarget };
+                if (pluginTarget != null) return CompleteSelection(pluginTarget, ourCards, min);
 
                 return base.OnSelectCard(cards, min, max, hint, cancelable);
             }
@@ -2638,11 +2744,6 @@ namespace WindBot.Game.AI
             {
                 if (ourCards.Count >= min)
                 {
-                    if (DeckPlugin?.Strategy != null)
-                    {
-                        var pluginTarget = DeckPlugin.Strategy.PickSpecialSummonTarget(ourCards);
-                        if (pluginTarget != null) return new List<ClientCard> { pluginTarget };
-                    }
                     var sorted = ourCards.OrderByDescending(c => {
                         int score = 0;
                         if (IsAceCard(c)) score += 10000;
@@ -2651,6 +2752,11 @@ namespace WindBot.Game.AI
                         score += c.Attack;
                         return score;
                     }).ToList();
+                    if (DeckPlugin?.Strategy != null)
+                    {
+                        var pluginTarget = DeckPlugin.Strategy.PickSpecialSummonTarget(ourCards);
+                        if (pluginTarget != null) return CompleteSelection(pluginTarget, sorted, min);
+                    }
                     return sorted.Take(Math.Min(max, sorted.Count)).ToList();
                 }
             }
@@ -2658,11 +2764,6 @@ namespace WindBot.Game.AI
             // ── 4. Add to Hand / Search (Deck to Hand 506, or GY bounce 505) ──
             if ((hint == HINTMSG_ATOHAND || (hint == HINTMSG_RTOHAND && enemyCards.Count == 0)) && ourCards.Count >= min)
             {
-                if (DeckPlugin?.Strategy != null)
-                {
-                    var pluginTarget = DeckPlugin.Strategy.PickSearchTarget(ourCards, Card);
-                    if (pluginTarget != null) return new List<ClientCard> { pluginTarget };
-                }
                 var sorted = ourCards.OrderByDescending(c => {
                     int score = 0;
                     if (IsAceCard(c)) score += 8000;
@@ -2673,6 +2774,11 @@ namespace WindBot.Game.AI
                     if (c.HasType(CardType.Spell)) score += 2000;
                     return score;
                 }).ToList();
+                if (DeckPlugin?.Strategy != null)
+                {
+                    var pluginTarget = DeckPlugin.Strategy.PickSearchTarget(ourCards, Card);
+                    if (pluginTarget != null) return CompleteSelection(pluginTarget, sorted, min);
+                }
                 return sorted.Take(Math.Min(max, sorted.Count)).ToList();
             }
 
@@ -2817,6 +2923,23 @@ namespace WindBot.Game.AI
                 if (positions.Contains(CardPosition.FaceUpAttack))
                     return CardPosition.FaceUpAttack;
             }
+
+            // [Core v0.094] Board-aware tempo: on OUR battle-capable Main Phase 1, a mid-ATK monster that can
+            // attack something profitably (or hit an open field) is summoned in ATK instead of DEF.
+            try
+            {
+                if (Duel.Player == 0 && Duel.Turn > 1 && Duel.Phase == DuelPhase.Main1
+                    && atk >= 1000 && atk >= def && positions.Contains(CardPosition.FaceUpAttack))
+                {
+                    var enemyMonsters = Enemy.GetMonsters().Where(m => m != null).ToList();
+                    bool openField = enemyMonsters.Count == 0;
+                    bool hasProfitableTarget = enemyMonsters.Any(m => m.IsFaceup()
+                        && (m.IsAttack() ? m.Attack < atk : m.Defense < atk));
+                    if (openField || hasProfitableTarget)
+                        return CardPosition.FaceUpAttack;
+                }
+            }
+            catch { }
 
             // Low ATK / hand traps / combo enablers / 0 ATK → DEF position
             if (def >= 0 && positions.Contains(CardPosition.FaceUpDefence))

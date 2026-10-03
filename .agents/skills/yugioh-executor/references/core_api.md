@@ -1,4 +1,4 @@
-# Core Module API & Registration Map (ตรวจกับ source เมื่อ 2026-10-03)
+# Core Module API & Registration Map (ตรวจกับ source เมื่อ 2026-10-04, v0.094)
 
 > Path หลัก: `windbot-fork/ExecutorBase/` · ทุก module ด้านล่างถูกสร้างอัตโนมัติใน `ModernExecutor` constructor
 > คอลัมน์ **Auto** = core เรียกให้เองไหม · **ต้องทำ** = สิ่งที่ deck ต้อง register/เรียกเอง ถึงจะได้ผล
@@ -6,12 +6,14 @@
 ## 0. ภาพรวมการเชื่อมต่อ
 
 ```text
-GameAI ──► Executor.OnSelectIdleCmd (ModernExecutor)
+GameAI ──► InternalOnSelectIdleCmd (ล้าง preselect ค้างทุก idle prompt)
+         └► Executor.OnSelectIdleCmd (ModernExecutor)
+             ├─ Analysis.Refresh()  (อ่านบอร์ดใหม่ทุก idle prompt — v0.094)
              ├─ DynamicLethalCheck()
-             ├─ ComboRouter.ActivateBestLine → execute step ตรงๆ (⚠️ ข้าม executor func)
+             ├─ ComboRouter.ActivateBestLine → step ต้องผ่าน step.Condition + ShouldAllow* + ComboStepApprovedByExecutors (func ของเด็ค พร้อม ActivateDescription จริง)
              ├─ ShouldAttackBeforeCombo / ShouldRushAttack / ShouldStopExtending / ShouldBattleBeforeSetting
              └─ null → GameAI วน AddExecutor ตามลำดับ (ShouldAllow* guard → func)
-GameAI ──► OnSelectCard → deck override → ModernExecutor (hint routing → DeckPlugin) → selector → Fallback → HeuristicGuard
+GameAI ──► OnSelectCard → deck override → ModernExecutor (step 0: preselect ที่ match pool → hint routing → DeckPlugin + CompleteSelection) → selector → Fallback → HeuristicGuard
 OnNewTurn → ComboRouter/BaitPlanner OnNewTurn + DeckPlugin.ResetTurnState()
 OnChaining(opp) → OpponentProfile.OnOpponentActivate + BaitPlanner.OnOpponentChainResponse + combo-negate detect
 ```
@@ -40,7 +42,9 @@ OnChaining(opp) → OpponentProfile.OnOpponentActivate + BaitPlanner.OnOpponentC
 - `ComboStep { CardId, ActionType, Description, Optional, Condition }` — ActionType ที่ทำงานจริง: **Activate / Summon / SpSummon / SpellSet** เท่านั้น
 - Auto: MP1 เลือกเส้นที่ `RequiredCards` อยู่ใน **มือ+สนาม+สุสาน** ครบ และ `Condition()` ผ่าน → เรียง EndBoardScore ↓, Priority ↑ (ถ้าศัตรูมี disruption: IsBaitLine ก่อน, RequiresSafeBoard ท้าย)
 - Step ไม่พร้อม → Optional = ข้าม / ไม่ Optional → `FallbackLineName` → ถ้าไม่ได้ Abort
-- 🔒 **การตรวจสอบความปลอดภัยของ Step ใน `OnSelectIdleCmd`**: ตรวจสอบ `step.Condition`, Phase Guards (`ShouldAllowActivate`, `ShouldAllowSummon`, `ShouldAllowSpSummon`, `ShouldAllowSpellSet`), และฟังก์ชัน `CardExecutor.Func` ที่ตรงกันก่อนส่งคำสั่ง เพื่อไม่ให้ ComboRouter ข้าม guard และเงื่อนไขเฉพาะของเด็ค
+- ✅ (v0.094) จำ action ที่ทำไปแล้วต่อเทิร์น (`RecordExecutedAction` / `GetExecutedCount`, SummonOrSet≡Summon) → สลับไป Fallback line จะ auto-complete step ที่ทำแล้ว ไม่ยิงซ้ำ; `RequiredCards` นับ spell/backrow บนสนามด้วย; `TrySwitchToFallback(bot, hasEnemyDisruption)` overload ใหม่
+- ✅ (v0.094) `NotifyStepNegated` นับเฉพาะ negate จริง (`IsOpponentCardNegator`: monster negate / KnownNegator / Counter trap / Ash, Ghost Belle, Veiler, Imperm, Called by, Crossout, Solemn, Red Reboot) — Maxx "C"/handtrap ที่ไม่ negate ไม่ทำให้ Abort
+- 🔒 **การตรวจสอบความปลอดภัยของ Step ใน `OnSelectIdleCmd`**: ตรวจสอบ `step.Condition`, Phase Guards (`ShouldAllowActivate`, `ShouldAllowSummon`, `ShouldAllowSpSummon`, `ShouldAllowSpellSet`), และ `ComboStepApprovedByExecutors(card, stepCardId, types, desc)` (protected virtual) — ลอง executor ที่ ID ตรงก่อน ถ้าไม่มีจึงใช้ generic (-1), ตั้ง `Card`/`Type`/`ActivateDescription` จริงก่อนเรียก func, true ตัวใดตัวหนึ่ง = อนุมัติ, false → rollback preselect, ไม่มี executor = อนุญาต
 - 🔒 ใส่ใน Step เฉพาะ action ที่ "ทำทันทีได้เสมอเมื่อการ์ดพร้อม" (เช่น Normal Summon starter, การ์ดเอฟเฟกต์เดียว) และใช้ `Condition` กรองสถานะ; ที่เหลือปล่อยให้ AddExecutor
 - ปิดทั้งระบบได้: `ComboRouter.Enabled = false;`
 - อื่นๆ: `IsNextStep(id)`, `IsPartOfActiveCombo(id)`, `GetComboOrder(id)`, `AbortCombo(reason)`, `HasActiveCombo`, `ActiveComboName`
@@ -64,6 +68,7 @@ OnChaining(opp) → OpponentProfile.OnOpponentActivate + BaitPlanner.OnOpponentC
 - ✅ ทั้ง 2 overload เรียก `IsDuplicateOwnChainActivation()` (protected) เป็นอันดับแรก — การ์ดชื่อเดียวกันของเราอยู่ในเชนแล้ว → false (ใช้เรียกเองใน func ที่ไม่ผ่าน `SmartHandTrapChain` ได้)
 - Config `configs/chain_targets.json` (ComboStarters/Extenders/LowValueTargets/HandTraps/ChainThreshold) — deploy → `EdoGame\WindBot\configs\` โดย `BUILD_AND_DEPLOY.ps1`; ID ตรวจกับ cdb แล้ว; `LoadConfig` merge แบบ UnionWith (เพิ่มอย่างเดียว)
 - อื่นๆ: `EvaluateChainValue(...)` (0–100), `ShouldHoldResponseWithProfile(..., OpponentProfile, ...)`, `CountInteractiveCards(Bot)`
+- ✅ (v0.094) การ์ดศัตรูที่ไม่รู้จัก แต่ข้อความเป็น engine (search / Special Summon / draw → `CardTextSemantics.IsEngineEffect`) ได้ +15; early-combo penalty เหลือ −5 (เฉพาะ score < 60) → Ash/Veiler ตัด starter ตัวแรกได้จริง; handtrap list ไม่มี Eater of Millions, Meluseek = 25533642
 
 ### 2.4 `ResourcePlan` : `ResourcePlanner` (protected) — Nibiru / Overextend / Ace usage
 - Register: `RegisterAceCards(params int[])`; ปรับ `NibiruThreshold`, `NibiruHandThreshold`, `OverextensionMonsterThreshold`
@@ -77,13 +82,15 @@ OnChaining(opp) → OpponentProfile.OnOpponentActivate + BaitPlanner.OnOpponentC
 
 ### 2.6 `AIContext` : `DecisionContext` (protected) — Decision Engine
 - ใช้ใน `DefaultAshBlossomAndJoyousSpring` / `DefaultEffectVeiler` / `DefaultBossNegate` ผ่าน `AIContext.ShouldActivate(card, lastChain, tag)`
+- ✅ (v0.094) `ShouldActivate` เรียก `UpdateState(Brain.OwnSummons, Brain.OpponentSummonCount)` ก่อนเสมอ และใช้ `ThreatAnalyzer.GetActivationThreatScore(card)` (อ่าน "เอฟเฟกต์ที่กำลังเปิด": base 40, +30 engine text, +10 Extra Deck, +5 spell ครั้งเดียว, ×0.5 ถ้า disabled, max กับ board threat) แทนการให้คะแนนตาม location
 - ไฟล์: `Game/AI/DecisionEngine/` (BeliefState, ThreatAnalyzer, DynamicValueEvaluator, ActionHistory, CounterfactualSimulator)
 
 ## 3. Static Services
 
 | Class | API หลัก | ต้องทำ |
 |---|---|---|
-| `CardIntelligence` (static partial) | `IsFloodgate/IsFloodgateMonster/IsFloodgateSpellTrap/IsDrawStandbyFloodgate`, `IsKnownNegator`, `IsHighThreatChokepoint`, `IsHandtrap`, `IsTargetImmune`, `IsDestructionImmune`, `IsEngineGenerator`, `GetCardThreatScore(card, hint)`, `IsSpecialSummonBlocked(enemy, bot)`, `OpponentHasActiveNegator(enemy)` | การ์ดใหม่ที่เป็น floodgate/negator/handtrap/chokepoint → เพิ่มใน HashSet ใน `CardIntelligence.cs` (คอมเมนต์ชื่อการ์ดทุก ID → รัน `python tools/audit_card_ids.py` ตรวจ MISMATCH); immunity/battle → รัน `tools/scan_card_intelligence.py` (สร้าง `.Generated.cs`) |
+| `CardIntelligence` (static partial) | `IsFloodgate/IsFloodgateMonster/IsFloodgateSpellTrap/IsDrawStandbyFloodgate`, `IsKnownNegator`, `IsHighThreatChokepoint`, `IsHandtrap`, `IsTargetImmune`, `IsDestructionImmune` (effect เท่านั้น), `IsBattleImmune` (v0.094), `IsEngineGenerator`, `GetCardThreatScore(card, hint)`, `IsSpecialSummonBlocked(enemy, bot)`, `OpponentHasActiveNegator(enemy)` | การ์ดใหม่ที่เป็น floodgate/negator/handtrap/chokepoint → เพิ่มใน HashSet ใน `CardIntelligence.cs` (คอมเมนต์ชื่อการ์ดทุก ID → รัน `python tools/audit_card_ids.py` ตรวจ MISMATCH); immunity/battle → รัน `tools/scan_card_intelligence.py` (สร้าง `.Generated.cs`) |
+| `CardTextSemantics` | `Analyze(card)` → profile (`IsDestructionImmune` = effect-only, `IsBattleImmune`, `IsEngineEffect` …), static `IsEngineEffect(ClientCard)` | ไม่ต้องลงทะเบียน — อ่านจาก card text (TH/EN) |
 | `HeuristicGuard` (static, ns `WindBot`) | `RegisterAceCards(params int[])`, `SanitizeSelection`, `ValidateSelection`, `ViolationCount`, `GetSessionSummary()` | register Ace ใน ctor; Sanitize ทำงานอัตโนมัติทุก OnSelectCard (ด่านสุดท้าย) |
 | `DecisionTracer` (static, ns `WindBot`) | `Trace(fn,msg)`, `TraceSelect(fn,label,card)`, `TraceSkip(fn,reason)`, `TraceActivate(fn,reason)` | ใส่ใน func สำคัญ เพื่อ debug Text Duel |
 | `AntiFloodgateHelper` (static) | `IsSpecialSummonBlocked(bot,enemy)`, `AreSpellsNegatedOrDisabled(...)`, `EnemyHasKnownNegate`, `EnemyHasOncePerTurnSpellNegator`, `GetPreemptiveImpermTarget`, `IsSafeToAttack(attacker, enemy, extraThreatIds)`, `IsSafeToDefend`, `IsEnemyCardAThreat`, `FilterAceCards`, `SelectPreferred(cards,min,max,preferredIds)` | ใช้ตามต้องการ |
@@ -101,6 +108,7 @@ OnChaining(opp) → OpponentProfile.OnOpponentActivate + BaitPlanner.OnOpponentC
 | Position helpers | `IsBagooska(card)` (protected static, 90590303/90590304) — core ตั้ง DEF ใน `OnSelectPosition` + กัน repos ใน `ShouldAllowRepos`/SmartRepos |
 | Targeting | `GetBestRemovalTarget(onlyFaceup, canBeTarget)`, `GetBestMonsterRemovalTarget(...)`, `GetBestSpellRemovalTarget(canBeTarget)`, `GetCardThreatScore(c, hint)`, `GetCardDiscardSacrificeCost(c)`, `GetMaterialSacrificePriority(c)` |
 | Bait | `GetBaitIfNeeded(intendedCard)` |
+| Combo/Selection (v0.094) | `ComboStepApprovedByExecutors(card, stepCardId, types, desc)` (virtual), `CompleteSelection(primary, orderedPool, min)` (protected static — เติม pick ของ plugin ให้ครบ `min` ตามลำดับ heuristic แทน padding สุ่ม) |
 | Yes/No guard | `RegisterOptionalFieldRemovalCards(params int[])` → `OnSelectYesNo` ปฏิเสธ optional removal เมื่อสนามศัตรูว่าง |
 | Ace | `IsAceCard(card)` (public virtual ใน `Executor`) — **ค่าเริ่มต้น: ATK ≥ 2500 หรือ Fusion/Synchro/Xyz/Link ทุกตัว** → ต้อง override |
 | Global guards (public override) | `ShouldAllowActivate/Summon/SpSummon/SpellSet/MonsterSet/Repos(card)` — เช็คก่อน func ของเด็คทุกครั้ง (log `[PHASE-GUARD] BLOCKED`) |
@@ -124,7 +132,8 @@ Fields: `_isGoingSecond` (set ครั้งเดียว), `LastChainCard`, 
 
 `SelectCard(...)`, `SelectNextCard(...)`, `SelectThirdCard(...)`, `SelectMaterials(...)`, `SelectPosition(pos)`, `SelectPlace(zones)`,
 `SelectOption(i)`, `SelectNumber(n)`, `SelectAttribute(s)`, `SelectRace(s)`, `SelectAnnounceID(id)`, `SelectYesNo(bool)`
-→ ⚠️ `SelectCard`/`SelectNextCard` ถูกข้ามเมื่อ `OnSelectCard` คืนค่าไม่ null (ดู `hint_reference.md` §3)
+→ ✅ (v0.094) `ModernExecutor.OnSelectCard` step 0 ใช้ preselect **เมื่อ match กับ pool จริง** (pop เฉพาะเมื่อ match ≥1, ขาดเติมด้วย heuristic); hint แบบ cost (500/501/504 ฝั่งเราไม่ใช่ Deck/507 ฝั่งเรา) ใช้เฉพาะ preselect แบบระบุการ์ด (`SelectCard(ClientCard)`/`IList<ClientCard>`) · func คืน false → rollback preselect อัตโนมัติ · preselect ค้างถูกล้างทุก idle prompt
+→ ⚠️ deck override `OnSelectCard` ที่คืนค่าไม่ null ยังข้าม preselect ได้ (ดู `hint_reference.md` §3)
 
 ## 7. Utility ที่ใช้บ่อย
 
