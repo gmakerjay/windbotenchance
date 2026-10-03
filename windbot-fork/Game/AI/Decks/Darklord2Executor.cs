@@ -37,6 +37,7 @@ using YGOSharp.OCGWrapper.Enums;
 namespace WindBot.Game.AI.Decks
 {
     [Deck("Darklord 2", "Darklord 2")]
+    [Deck("Darklord2", "Darklord 2")]
     public class Darklord2Executor : ModernExecutor
     {
         public class CardId
@@ -251,7 +252,7 @@ namespace WindBot.Game.AI.Decks
         {
             if (IsChainAlreadyNeutralized()) return false;
             ClientCard lastCard = LastChainCard;
-            if (lastCard != null && lastCard.Controller == 1)
+            if (lastCard != null && lastCard.Controller == 1 && lastCard.IsMonster())
             {
                 // Discard self + 1 Fairy (every Darklord is Fairy!)
                 var fairyFodder = Bot.Hand.Where(c => c != Card && c.HasRace(CardRace.Fairy)).ToList();
@@ -392,7 +393,11 @@ namespace WindBot.Game.AI.Decks
 
         private bool TerminusActivate()
         {
-            return true;
+            // Terminus prevents attacks except Power Patron monsters this turn.
+            // On Turn 1 (Going First), it is pure advantage!
+            if (IsGoingFirstTurn() || Duel.Turn == 1) return true;
+            // On subsequent turns, only use if in Main Phase 2 or if we cannot declare lethal attack
+            return Duel.Phase == DuelPhase.Main2 || Bot.GetMonsters().Count(m => m.IsFaceup() && m.Attack >= 2500) == 0;
         }
 
         private bool FallenAngelActivate()
@@ -413,7 +418,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool DarklordDanceActivate()
         {
-            // Banish materials from hand/field to Fusion summon DARK Fairy Fusion
+            // Banish materials from hand/field/GY to Fusion summon DARK Fairy Fusion
             // Prioritize The First Darklord > Darklord Eveningstar
             AI.SelectCard(CardId.TheFirstDarklord, CardId.DarklordEveningstar, CardId.PredaplantDragostapelia);
             return true;
@@ -422,12 +427,13 @@ namespace WindBot.Game.AI.Decks
         private bool ApexPolymerizationActivate()
         {
             if (Bot.LifePoints <= 2000) return false;
-            return Bot.GetMonsters().Count(m => m.IsFaceup()) >= 2;
+            // Apex Poly targets 1 face-up Effect monster on field to fuse with an Extra Deck summon
+            return Bot.GetMonsters().Any(m => m.IsFaceup() && m.HasType(CardType.Effect) && m.Level > 0);
         }
 
         private bool DarklordContactActivate()
         {
-            ClientCard revTarget = Bot.Graveyard.Where(c => c.IsMonster() && (c.Id == CardId.TheFirstDarklord || c.Id == CardId.DarklordEveningstar || c.Id == CardId.DarklordMorningstar || c.Id == CardId.DarklordIxchel))
+            ClientCard revTarget = Bot.Graveyard.Where(c => c.IsMonster() && c.HasRace(CardRace.Fairy))
                 .OrderByDescending(c => c.Attack)
                 .FirstOrDefault();
 
@@ -559,12 +565,14 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location == CardLocation.MonsterZone)
             {
-                // On Fusion summon: Set 1 DL Spell + 1 DL Trap from Deck!
+                // On Fusion summon: Set 1 DL Spell + 1 DL Trap simultaneously from Deck!
                 if (!_eveningstarSetUsed)
                 {
                     _eveningstarSetUsed = true;
-                    AI.SelectCard(CardId.DarklordRebellion);
-                    AI.SelectNextCard(CardId.TheSanctifiedDarklord);
+                    // First pick Spell (Banishment, Contact, Dance)
+                    AI.SelectCard(CardId.BanishmentOfTheDarklords, CardId.DarklordContact, CardId.DarklordDance);
+                    // Second pick Trap (Sanctified, Rebellion)
+                    AI.SelectNextCard(CardId.TheSanctifiedDarklord, CardId.DarklordRebellion);
                     return true;
                 }
 
@@ -646,7 +654,7 @@ namespace WindBot.Game.AI.Decks
             ClientCard contactInGy = Bot.Graveyard.FirstOrDefault(c => c.Id == CardId.DarklordContact);
             if (contactInGy != null && Bot.GetMonsterCount() < 5)
             {
-                ClientCard revTarget = Bot.Graveyard.Where(c => c.IsMonster() && (c.Id == CardId.DarklordMorningstar || c.Id == CardId.TheFirstDarklord || c.Id == CardId.DarklordIxchel))
+                ClientCard revTarget = Bot.Graveyard.Where(c => c.IsMonster() && c.HasRace(CardRace.Fairy) && c != Card)
                     .OrderByDescending(c => c.Attack)
                     .FirstOrDefault();
                 if (revTarget != null)

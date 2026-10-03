@@ -107,32 +107,41 @@ namespace WindBot.Game.AI.Plugins
             // 1. Banishment of the Darklords (Search any Darklord card)
             if (context != null && context.Id == Darklord2Executor.CardId.BanishmentOfTheDarklords)
             {
-                // If we don't have a Fusion Spell and have materials -> search Darklord Dance
-                if (!_exec.Bot.HasInHand(Darklord2Executor.CardId.DarklordDance) && !_exec.Bot.HasInHand(Darklord2Executor.CardId.ApexPolymerization))
-                {
-                    var dance = candidates.FirstOrDefault(c => c.Id == Darklord2Executor.CardId.DarklordDance);
-                    if (dance != null) return dance;
-                }
-
-                // If no Djehuty, search Djehuty (Starter: SS from deck!)
+                // Priority 1: Primary starter Djehuty if not on field or hand (NS Djehuty -> SS Gulgolet -> 2 Tokens!)
                 if (!_exec.Bot.HasInHand(Darklord2Executor.CardId.DarklordDjehuty) && !_exec.Bot.HasInMonstersZone(Darklord2Executor.CardId.DarklordDjehuty))
                 {
                     var djehuty = candidates.FirstOrDefault(c => c.Id == Darklord2Executor.CardId.DarklordDjehuty);
                     if (djehuty != null) return djehuty;
                 }
 
-                // If no Ixchel, search Ixchel (Draw 2!)
+                // Priority 2: Fusion spell if we have enough Dark Fairy materials (>= 2 in Hand/Field/GY)
+                int fairyMatCount = _exec.Bot.Hand.Concat(_exec.Bot.GetMonsters()).Concat(_exec.Bot.Graveyard)
+                    .Count(c => c.IsMonster() && c.HasRace(CardRace.Fairy) && c.HasAttribute(CardAttribute.Dark));
+                if (fairyMatCount >= 2 && !_exec.Bot.HasInHand(Darklord2Executor.CardId.DarklordDance) && !_exec.Bot.HasInHand(Darklord2Executor.CardId.ApexPolymerization))
+                {
+                    var dance = candidates.FirstOrDefault(c => c.Id == Darklord2Executor.CardId.DarklordDance);
+                    if (dance != null) return dance;
+                }
+
+                // Priority 3: Morningstar if we have Dance/Apex to enable The First Darklord field wipe!
+                if ((_exec.Bot.HasInHand(Darklord2Executor.CardId.DarklordDance) || _exec.Bot.HasInHand(Darklord2Executor.CardId.ApexPolymerization)) 
+                    && !_exec.Bot.HasInHand(Darklord2Executor.CardId.DarklordMorningstar) && !_exec.Bot.HasInGraveyard(Darklord2Executor.CardId.DarklordMorningstar))
+                {
+                    var morningstar = candidates.FirstOrDefault(c => c.Id == Darklord2Executor.CardId.DarklordMorningstar);
+                    if (morningstar != null) return morningstar;
+                }
+
+                // Priority 4: Ixchel (Draw 2!)
                 if (!_exec.Bot.HasInHand(Darklord2Executor.CardId.DarklordIxchel))
                 {
                     var ixchel = candidates.FirstOrDefault(c => c.Id == Darklord2Executor.CardId.DarklordIxchel);
                     if (ixchel != null) return ixchel;
                 }
 
-                // Search Morningstar (Fusion material for full field wipe on The First Darklord!)
-                var morningstar = candidates.FirstOrDefault(c => c.Id == Darklord2Executor.CardId.DarklordMorningstar && !_exec.Bot.HasInHand(Darklord2Executor.CardId.DarklordMorningstar));
-                if (morningstar != null) return morningstar;
+                // Priority 5: Contact / The Sanctified Darklord / Darklord Rebellion
+                var contact = candidates.FirstOrDefault(c => c.Id == Darklord2Executor.CardId.DarklordContact && !_exec.Bot.HasInHand(Darklord2Executor.CardId.DarklordContact));
+                if (contact != null) return contact;
 
-                // Search The Sanctified Darklord or Darklord Rebellion
                 var sanctified = candidates.FirstOrDefault(c => c.Id == Darklord2Executor.CardId.TheSanctifiedDarklord);
                 if (sanctified != null) return sanctified;
             }

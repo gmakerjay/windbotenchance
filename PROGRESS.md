@@ -1,5 +1,48 @@
 # Progress Log: Central Core Architecture & Universal Heuristics Overhaul
 
+## 0.084. Watenpai & Darklord 2 Deep Code Audit, Logic Optimization & Simulation Verification (2026-10-03)
+
+### 1. Root Cause Analysis & Card Database (CDB) Verification
+- **Card ID & Effect Alignment**:
+  - `Darklord Eveningstar` (10136446): ตรวจสอบสเตตัสและการทำงานจริงจาก `cards.cdb` พบว่าเอฟเฟกต์ไม่ใช่การมิลการ์ดตามมอนสเตอร์ศัตรู แต่เป็นเอฟเฟกต์ **เมื่อ Special Summon ด้วยเอฟเฟกต์ Darklord จะได้เซ็ต 1 Darklord Spell + 1 Darklord Trap จากเด็คลงสนามทันที**, มีออร่าคุ้มกันมอนสเตอร์แฟรี่ไม่ให้ตกเป็นเป้าหมายเอฟเฟกต์ศัตรู และมี Quick Copy ในสุสาน
+  - แก้ไข Card ID ที่บันทึกคลาดเคลื่อนในเอกสารและคอมเมนต์:
+    - `The First Darklord`: 4167084 (เดิมระบุ 80004149)
+    - `Darklord Morningstar`: 25451652 (เดิมระบุ 82134632)
+    - `Darklord Ixchel`: 52840267 (เดิมระบุ 44203504)
+    - `Darklord Tezcatlipoca`: 88234365 (เดิมระบุ 39185152)
+    - `Condemned Darklord`: 35306215 (เดิมระบุ 33883834)
+    - `Trident Dragion`: 39402797 (เดิมระบุ 39823901)
+    - `Sangenpai Transcendent Dragion`: 18969888 (เดิมระบุ 2992036)
+    - `Wattkyuki` / `Watthydra`: 67752972 / 29765339 (เดิมระบุ 78586116 / 9888196)
+    - `Sangen Summoning`: 30336082 (เดิมระบุ 15848542)
+
+### 2. Logic Optimization & Bug Fixes
+- **Darklord 2 (`Darklord2Executor.cs` & `Darklord2Plugin.cs`)**:
+  - เพิ่ม Deck Alias Attribute: `[Deck("Darklord2", "Darklord 2")]` รองรับการเรียกชื่อทั้งแบบมีและไม่มีช่องว่าง
+  - แก้ไข `HeraldOfOrangeLightActivate`: เพิ่ม `lastCard.IsMonster()` ป้องกันการเผลอปาขัดเวทมนตร์หรือกับดัก
+  - แก้ไข `Darklord Eveningstar Set Effect`: เดิมเลือก Trap 2 ใบพร้อมกัน (`Rebellion` + `Sanctified`) ทำให้ Engine ล็อก แก้เป็นเลือก **1 Spell (`Banishment`/`Contact`/`Dance`) + 1 Trap (`Sanctified`/`Rebellion`)** ตรงตามข้อกำหนดของการ์ด
+  - แก้ไข `Darklord Contact` target ใน `ExecuteDarklordGyCopy` และการเปิดใช้งาน: ปรับจากรายการฮาร์ดโค้ดที่ตกหล่น `Tezcatlipoca` (2800 ATK) เป็น `c.IsMonster() && c.HasRace(CardRace.Fairy)` ครอบคลุมแฟรี่ทุกตัวในสุสาน
+  - แก้ไข `ApexPolymerizationActivate`: ปรับเงื่อนไขจากเดิมที่ต้องการมอนสเตอร์ 2 ตัว เป็นมอนสเตอร์หงายหน้า 1 ตัวที่มีเลเวล
+  - ปรับปรุง `Darklord2Plugin.cs`: ลำดับความสำคัญในการเสิร์ชให้เลือก `Djehuty` (Starter) ก่อนหากยังไม่มีบนมือ/สนาม และตรวจสอบวัตถุดิบ DARK Fairy $\ge 2$ ตัวก่อนเสิร์ช `DarklordDance`
+- **Watenpai (`WatenpaiExecutor.cs` & `WatenpaiPlugin.cs`)**:
+  - กำหนด `_isGoingSecond = true`: เด็คนี้ออกแบบเป็น Going-Second Breaker เต็มตัว (ใส่ Slumber x3, Raigeki x3, Dark Hole x3) เดิมเมื่อชนะทอยเหรียญจะเลือกเดินก่อนและตั้งรับไม่ทัน
+  - แก้ไข `SangenKaimenActivate`: ปิดกั้นการเปิดใน Draw/Standby Phase และชะลอการเปิดหากมี `Interrupted Kaiju Slumber` บนมือ เพื่อป้องกัน Dragon Lock ก่อนการลง Kaiju / Watt
+  - แก้ไข `OnSelectPosition`: ป้องกันการนำมอนสเตอร์พลังโจมตี 0 (`Dora Dora`, `TenpaiDragonGenroku`, `Wattdragonfly`) ลงในสภาพโจมตี
+  - แก้ไข Priority และ Allocation ของ `Interrupted Kaiju Slumber`:
+    - สลับลำดับให้ Slumber มีความสำคัญสูงกว่า Raigeki/Dark Hole เพื่อไม่ให้บอร์ดโล่งจน Slumber ใช้งานไม่ได้
+    - ใน `OnSelectCard`: บังคับบอทเลือกรับ `Thunder King Kaiju` (3300 ATK) มาไว้บนสนามตนเอง และมอบ `Kumongous Kaiju` (2400 ATK) หรือ `Radian` ให้คู่แข่ง
+  - ปรับปรุง `WatenpaiPlugin.cs`: เพิ่ม Search Handler สำหรับ `SangenKaimen` (66730191) ให้ค้นหา `TenpaiDragonGenroku` เพื่อโดดพิเศษลงสนามฟรีโดยไม่เสีย Normal Summon
+
+### 3. Verification & Matchup Simulation Results
+- **Headless Text Duel Simulator (`Client_Headless_Fortest`) เทียบกับเด็ค `BlueEyes`**:
+  - **Watenpai vs BlueEyes**: 5 เกมเต็ม ชนะ 2 แพ้ 3 (Win Rate 40.0%), **0 Violations / 0 Crashes**, ทำ OTK ในเทิร์น 4 ได้อย่างหมดจด
+  - **Darklord 2 vs BlueEyes**: 5 เกมเต็ม ชนะ 2 แพ้ 3 (Win Rate 40.0%), **0 Violations / 0 Crashes**, เรียก `The First Darklord` และคุมบอร์ดจนชนะในเทิร์น 7 และเทิร์น 10
+- **Build & Exclusive Deployment**:
+  - รัน `BUILD_AND_DEPLOY.ps1` อัปเดตไบนารีและดาต้าเบสทั้งหมดมาที่ `C:\Users\admin\Documents\EdoGame\` โดยตรง (100% สำเร็จ)
+  - ซิงค์คู่มือวิเคราะห์และ Playbook สู่ `C:\Users\admin\Documents\EdoGame\Docs\Watenpai_And_Darklord2_Analysis_And_Playbook.md`
+
+---
+
 ## 0.083. Watenpai (Watt x Tenpai) & Darklord 2 Modern Architecture, Decoupled Plugins & Full Deployment (2026-10-03)
 
 ### 1. Archetype Optimization & Human vs. Bot Dimension Analysis

@@ -63,14 +63,14 @@ namespace WindBot.Game.AI.Plugins
             if (candidates == null || candidates.Count == 0) return null;
 
             // 1. Interrupted Kaiju Slumber:
-            // Opponent field: give WEAKEST Kaiju (Kumongous 2400 or Radian 2800)
-            // Bot field: give STRONGEST Kaiju (Thunder King 3300)
-            if (candidates.Any(c => c.Id == WatenpaiExecutor.CardId.ThunderKingKaiju || c.Id == WatenpaiExecutor.CardId.KumongousKaiju))
+            // The 1st selection goes to Bot's field: give STRONGEST Kaiju (Thunder King 3300)
+            // The 2nd selection goes to Opponent's field: give WEAKEST Kaiju (Kumongous 2400 or Radian 2800)
+            if (candidates.Any(c => c.Id == WatenpaiExecutor.CardId.ThunderKingKaiju || c.Id == WatenpaiExecutor.CardId.KumongousKaiju || c.Id == WatenpaiExecutor.CardId.RadianKaiju))
             {
-                if (_exec.Duel.LastChainPlayer == 0)
+                var thunderKing = candidates.FirstOrDefault(c => c.Id == WatenpaiExecutor.CardId.ThunderKingKaiju);
+                if (thunderKing != null && !_exec.Bot.HasInMonstersZone(WatenpaiExecutor.CardId.ThunderKingKaiju))
                 {
-                    var thunderKing = candidates.FirstOrDefault(c => c.Id == WatenpaiExecutor.CardId.ThunderKingKaiju);
-                    if (thunderKing != null) return thunderKing;
+                    return thunderKing;
                 }
                 var weakKaiju = candidates.OrderBy(c => c.Attack).FirstOrDefault();
                 if (weakKaiju != null) return weakKaiju;
@@ -175,6 +175,30 @@ namespace WindBot.Game.AI.Plugins
 
                 var genroku = candidates.FirstOrDefault(c => c.Id == WatenpaiExecutor.CardId.TenpaiDragonGenroku);
                 if (genroku != null) return genroku;
+            }
+
+            // 6. Sangen Kaimen search: Add Level 4 or lower FIRE Dragon
+            if (context != null && context.Id == WatenpaiExecutor.CardId.SangenKaimen)
+            {
+                // If no Genroku in hand, search Genroku! (Genroku triggers upon being added to hand!)
+                if (!_exec.Bot.HasInHand(WatenpaiExecutor.CardId.TenpaiDragonGenroku))
+                {
+                    var genroku = candidates.FirstOrDefault(c => c.Id == WatenpaiExecutor.CardId.TenpaiDragonGenroku);
+                    if (genroku != null) return genroku;
+                }
+
+                // If no Paidra, search Paidra (searches Sangen Summoning!)
+                if (!_exec.Bot.HasInHand(WatenpaiExecutor.CardId.TenpaiDragonPaidra) && !_exec.Bot.HasInMonstersZone(WatenpaiExecutor.CardId.TenpaiDragonPaidra))
+                {
+                    var paidra = candidates.FirstOrDefault(c => c.Id == WatenpaiExecutor.CardId.TenpaiDragonPaidra);
+                    if (paidra != null) return paidra;
+                }
+
+                var chundra = candidates.FirstOrDefault(c => c.Id == WatenpaiExecutor.CardId.TenpaiDragonChundra);
+                if (chundra != null) return chundra;
+
+                var fadra = candidates.FirstOrDefault(c => c.Id == WatenpaiExecutor.CardId.TenpaiDragonFadra);
+                if (fadra != null) return fadra;
             }
 
             return candidates.FirstOrDefault();

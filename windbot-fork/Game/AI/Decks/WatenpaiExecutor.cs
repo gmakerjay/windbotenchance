@@ -96,6 +96,7 @@ namespace WindBot.Game.AI.Decks
         public WatenpaiExecutor(GameAI ai, Duel duel)
             : base(ai, duel)
         {
+            _isGoingSecond = true;
             Plugin = new WatenpaiPlugin(this);
             DeckPlugin = Plugin;
 
@@ -162,11 +163,11 @@ namespace WindBot.Game.AI.Decks
             // ═══════════════════════════════════════════════════════════════
             //  TIER 1: BOARD BREAKERS (MAIN PHASE 1)
             // ═══════════════════════════════════════════════════════════════
+            AddExecutor(ExecutorType.Activate, CardId.InterruptedKaijuSlumber, SlumberActivate);
             AddExecutor(ExecutorType.Activate, CardId.HeyTrunade, HeyTrunadeActivate);
             AddExecutor(ExecutorType.Activate, CardId.TwinTwisters, TwinTwistersActivate);
             AddExecutor(ExecutorType.Activate, CardId.Raigeki, RaigekiActivate);
             AddExecutor(ExecutorType.Activate, CardId.DarkHole, DarkHoleActivate);
-            AddExecutor(ExecutorType.Activate, CardId.InterruptedKaijuSlumber, SlumberActivate);
 
             // ═══════════════════════════════════════════════════════════════
             //  TIER 2: FIELD SPELLS & SEARCHERS
@@ -302,11 +303,15 @@ namespace WindBot.Game.AI.Decks
 
         private bool RaigekiActivate()
         {
+            // If we have Slumber, let Slumber wipe the board and summon Kaijus!
+            if (Bot.HasInHand(CardId.InterruptedKaijuSlumber)) return false;
             return Enemy.GetMonsterCount() >= 1;
         }
 
         private bool DarkHoleActivate()
         {
+            // If we have Slumber, let Slumber wipe the board and summon Kaijus!
+            if (Bot.HasInHand(CardId.InterruptedKaijuSlumber)) return false;
             if (Bot.GetMonsterCount() == 0 && Enemy.GetMonsterCount() >= 1) return true;
             return Enemy.GetMonsterCount() >= 2 && Enemy.GetMonsterCount() > Bot.GetMonsterCount();
         }
@@ -348,7 +353,19 @@ namespace WindBot.Game.AI.Decks
 
         private bool SangenKaimenActivate()
         {
+            // Do NOT activate during Draw or Standby Phase!
+            if (Duel.Phase == DuelPhase.Draw || Duel.Phase == DuelPhase.Standby) return false;
+
+            // In Battle Phase, Sangen Kaimen can activate freely!
             if (Duel.Phase == DuelPhase.Battle) return true;
+
+            // In Main Phase 1:
+            // If Kaiju Slumber is in hand and enemy has monsters, wait for Slumber to clear first (Slumber summons non-Dragons)!
+            if (Bot.HasInHand(CardId.InterruptedKaijuSlumber) && Enemy.GetMonsterCount() > 0) return false;
+
+            // If we have Watt direct attackers and want to run Watt engine, don't lock into Dragon early!
+            if (Bot.HasInHand(CardId.Wattcobra) && Bot.GetMonsterCount() == 0 && Enemy.GetMonsterCount() == 0) return false;
+
             AI.SelectOption(0);
             return true;
         }
@@ -677,7 +694,8 @@ namespace WindBot.Game.AI.Decks
 
         public override CardPosition OnSelectPosition(int cardId, IList<CardPosition> positions)
         {
-            if (cardId == CardId.Wattdragonfly && positions.Contains(CardPosition.FaceUpDefence))
+            if ((cardId == CardId.Wattdragonfly || cardId == CardId.DoraDora || cardId == CardId.TenpaiDragonGenroku) 
+                && positions.Contains(CardPosition.FaceUpDefence))
             {
                 return CardPosition.FaceUpDefence;
             }
@@ -711,6 +729,20 @@ namespace WindBot.Game.AI.Decks
         {
             if (cards != null && cards.Count > 0)
             {
+                // Kaiju selection (Interrupted Kaiju Slumber):
+                // 1st selection (Bot field): ALWAYS GIVE THUNDER KING (3300 ATK) TO BOT!
+                // 2nd selection (Opponent field): ALWAYS GIVE WEAKEST KAIJU (Kumongous 2400) TO OPPONENT!
+                if (cards.Any(c => c.Id == CardId.ThunderKingKaiju || c.Id == CardId.KumongousKaiju || c.Id == CardId.RadianKaiju))
+                {
+                    if (!Bot.HasInMonstersZone(CardId.ThunderKingKaiju))
+                    {
+                        var thunderKing = cards.FirstOrDefault(c => c.Id == CardId.ThunderKingKaiju);
+                        if (thunderKing != null) return new List<ClientCard> { thunderKing };
+                    }
+                    var weakKaiju = cards.OrderBy(c => c.Attack).FirstOrDefault();
+                    if (weakKaiju != null) return new List<ClientCard> { weakKaiju };
+                }
+
                 // Deck search
                 if (hint == 506 || cards.All(c => c.Location == CardLocation.Deck))
                 {
