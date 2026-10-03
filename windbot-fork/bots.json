@@ -1,5 +1,89 @@
 [
   {
+    "name": "Watenpai",
+    "deck": "Watenpai",
+    "difficulty": 3,
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ],
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Darklord 2",
+    "deck": "Darklord 2",
+    "difficulty": 3,
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ],
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Darklord2",
+    "deck": "Darklord 2",
+    "difficulty": 3,
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ],
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Tenpai",
+    "deck": "Tenpai",
+    "difficulty": 3,
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ],
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
+    "name": "Tenpai Dragon",
+    "deck": "Tenpai",
+    "difficulty": 3,
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ],
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
+    "name": "TenpaiDragon",
+    "deck": "Tenpai",
+    "difficulty": 3,
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ],
+    "masterRules": [
+      4,
+      5
+    ]
+  },
+  {
     "name": "OrcustWCQ",
     "deck": "OrcustWCQ",
     "difficulty": 3,

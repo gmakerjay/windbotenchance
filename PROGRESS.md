@@ -1,5 +1,117 @@
 # Progress Log: Central Core Architecture & Universal Heuristics Overhaul
 
+## 0.083. Watenpai (Watt x Tenpai) & Darklord 2 Modern Architecture, Decoupled Plugins & Full Deployment (2026-10-03)
+
+### 1. Archetype Optimization & Human vs. Bot Dimension Analysis
+- **Watenpai Deck (`Watenpai.ydk`)**:
+  - **Human vs. Bot Analysis**:
+    - มนุษย์เล่นการ์ดสุ่มอย่าง `Magical Mallet` หรือ `Lightning Vortex` ด้วยความรู้สึก (intuition) เพื่อลุ้นดวงหรือทิ้งการ์ดตามสัญชาตญาณ แต่สำหรับ Rule-Based Bot การ์ดเหล่านี้เป็น **Inherent -1 Trap** ที่บอทประเมินมูลค่าทรัพยากรผิดพลาดจนมือขาด
+    - มนุษย์ทิ้งการ์ดเพื่อหวังผลหน้างาน แต่บอทต้องการ **Deterministic Board States & Consistent Combo Bridges**
+  - **Deck Refactoring (Main 40 / Extra 15)**:
+    - ตัด: 3x `Magical Mallet` (ขาดทุนการ์ดบนมือ), 3x `Lightning Vortex` (เปลืองการ์ดทิ้ง)
+    - เพิ่ม: 2x `Tenpai Dragon Paidra` + 1x `Sangen Summoning` + 1x `Sangen Kaimen` (เพื่อเสริมความเสถียรของเครื่องยนต์ Tenpai ให้ขึ้นมือบ่อย), 1x `Wattuna` (Tuner หัวใจหลักของสาย Watt), 1x `Called by the Grave`
+    - ขยาย Extra Deck จาก 6 ใบเป็น 15 ใบสมบูรณ์แบบ: `Wattkyuki` (L8) x2, `Watthydra` (L7) x2, `Bident Dragion` (L7) x2, `Trident Dragion` (L10) x1, `Sangenpai Transcendent Dragion` (L10) x1, `Black Rose Dragon` x1, `Kuibelt the Blade Dragon` x1, `Hieratic Seal of the Heavenly Spheres` x1, `Super Starslayer TY-PHON` x1, `Garura` x1, `Mudragon` x1, `S:P Little Knight` x1
+- **Darklord 2 Deck (`Darklord 2.ydk`)**:
+  - **Human vs. Bot Analysis**:
+    - มนุษย์เล่น Darklord มักจะเดาจังหวะเพื่อกัก `Herald of Orange Light` / `Herald of Green Light` หรือตัดสินใจชุบตัวไหนตามอารมณ์เกม
+    - บอทต้องการ O(1) Rule-based Evaluation ในการเลือกจ่าย 1,000 LP ก๊อบปี้เวท/กับดัก Darklord จากสุสาน **โดยไม่ต้องจ่าย Monster Cost ดั้งเดิมของการ์ด** (Free Resource Cheat)
+  - **Deck Refactoring (Main 40 / Extra 15)**:
+    - ปรับ Main Deck ให้เป็น 40 ใบพอดี ตัดการ์ดล้นมือ
+    - Extra Deck ขยายเป็น 15 ใบ โดยเพิ่ม `Condemned Darklord` (Link-2) ช่วยสละมอนสเตอร์ในสุสานแทนเครื่องเซ่น Advance Summon และเสิร์ช Darklord เข้ามือ
+
+### 2. Strategy & Ace Monster Tactics (Going 1st vs Going 2nd)
+- **Watenpai**:
+  - **Ace Monsters**:
+    - **Finisher Ace 1 (`Trident Dragion`)**: 6,000 ATK x 3 Attacks = 18,000 Damage OTK ผ่าน Tenpai Engine
+    - **Direct Burst Ace 2 (`Wattkyuki` & `Watthydra`)**: คอมโบตีตรงต่อเนื่อง Wattcobra (1000) -> โดด Wattuna (800) ตีตรง -> แท็ก Wattkyuki (1600) ตีตรง -> แท็ก Watthydra (1500) ตีตรง = 4,900+ Direct Damage ข้ามมอนสเตอร์ศัตรูทั้งหมด
+    - **Board Wipe Ace (`Interrupted Kaiju Slumber`)**: เคลียร์บอร์ดศัตรู แจก Kumongous (2400) ให้ศัตรู และบอทได้ Jizukiru (3300) ทุบซ้ำ
+    - **Going 1st Ace (`Hieratic Seal` / `Sangenpai Transcendent Dragion`)**: ยืนบอร์ดขัดขวางและข้าม MP1 ด้วย `Sangen Kaiho`
+  - **Turn 1 (Going First)**:
+    - ตั้ง `Hieratic Seal` หรือ `Transcendent Dragion` (3000 DEF) เซ็ต `Sangen Kaiho` / Handtraps
+  - **Turn 2 (Going Second OTK)**:
+    - Kaiju Slumber ล้างสนาม -> กาง `Sangen Summoning` ป้องกันมังกรไฟ -> ตีตรงด้วยสาย Watt หรือทำ Synchro Ladder ขึ้น Trident 6000 ATK ปิดเกม
+- **Darklord 2**:
+  - **Ace Monsters**:
+    - **Ultimate Fusion Ace (`The First Darklord` - 4000/4000)**: ทำลายการ์ดบนสนามศัตรูทั้งหมดหากใช้ Morningstar ฟิวชั่น, ป้องกันมอนสเตอร์เผ่าแฟรี่บนสนามเราไม่ให้ตกเป็นเป้าหมายเอฟเฟกต์ (Targeting Immunity), และ Quick Effect ชุบแฟรี่ในสุสานลงมาในสภาพตั้งรับ
+    - **Disruption Copier Aces (`Darklord Ixchel`, `Darklord Tezcatlipoca`, `Darklord Nasten`, `Darklord Eveningstar`)**: จ่าย 1,000 LP ก๊อบปี้ `Darklord Rebellion` (ทำลายการ์ดศัตรู) หรือ `The Sanctified Darklord` (ลบล้างเอฟเฟกต์มอนสเตอร์ + เพิ่ม LP เท่า ATK) จากสุสานได้ฟรีในเทิร์นของใครก็ได้
+    - **Handtrap Fairy Engines (`Herald of Orange Light` / `Herald of Green Light`)**: ทิ้งตัวเอง + ดาร์กลอร์ดบนมือ ขัดขวางมอนสเตอร์และเวทมนตร์ของศัตรู
+  - **Turn 1 (Going First)**:
+    - ใช้ `Darklord Ixchel` / `Banishment of the Darklords` จั่วและทิ้ง `Darklord Rebellion` / `The Sanctified Darklord` ลงสุสาน
+    - ฟิวชั่นเรียก `The First Darklord` หรือชุบ `Darklord Eveningstar` / `Darklord Tezcatlipoca` ยืนบอร์ดพร้อมเปิดก๊อบปี้ Trap ขัดขวาง 2-3 จังหวะ
+  - **Turn 2 (Going Second)**:
+    - ใช้ Herald ขัดขวางเทิร์นแรกของศัตรู -> ฟิวชั่น `The First Darklord` ล้างสนามทั้งหมด -> โจมตี 4,000+ ATK ปิดเกม
+
+### 3. Decoupled Plugins & Executors Created
+- **Watenpai**:
+  - `WatenpaiPlugin.cs`: จัดการลำดับการทิ้งการ์ด, คำนวณ Watt direct damage, ลำดับการเรียก Wattuna/Wattkyuki/Watthydra
+  - `WatenpaiExecutor.cs`: Subclass `ModernExecutor`, `[Deck("Watenpai", "Watenpai")]`, จัดการ Battle Phase Chain Synchro และการกาง Field Spell
+- **Darklord 2**:
+  - `Darklord2Plugin.cs`: จัดการ Fairy discard engine, ลำดับการเลือกเป้าหมายชุบชีวิต, จัดการ GY copy spell/trap
+  - `Darklord2Executor.cs`: Subclass `ModernExecutor`, `[Deck("Darklord 2", "Darklord 2")]`, จัดการ Quick Effect GY copy (Rebellion & Sanctified), Contact, Banishment, Greater Polymerization, Morningstar / First Darklord
+
+### 4. Registration & Build/Deploy
+- **`bots.json`**: ลงทะเบียน `"Watenpai"`, `"Darklord 2"`, และ `"Darklord2"` (Difficulty 3, Master Rules 4, 5, Flags: OCG/TCG)
+- **Deployment Target**:
+  - `C:\Users\admin\Documents\EdoGame\WindBot\WindBot.dll`
+  - `C:\Users\admin\Documents\EdoGame\WindBot\ExecutorBase.dll`
+  - `C:\Users\admin\Documents\EdoGame\WindBot\core.dll`
+  - `C:\Users\admin\Documents\EdoGame\WindBot\bots.json`
+  - `C:\Users\admin\Documents\EdoGame\deck\Watenpai.ydk`
+  - `C:\Users\admin\Documents\EdoGame\deck\Darklord 2.ydk`
+  - `C:\Users\admin\Documents\EdoGame\WindBot\Decks\Watenpai.ydk`
+  - `C:\Users\admin\Documents\EdoGame\WindBot\Decks\Darklord 2.ydk`
+  - `C:\Users\admin\Documents\EdoGame\DashBot.exe`
+
+---
+
+## 0.082. Tenpai Dragon Complete Architecture Refactor, Decoupled Plugin & OTK Optimization (2026-10-03)
+
+### 1. Archetype Audit & Correct Mathematical Calibration
+- **Card Level & Math Verification**:
+  - แก้ไขความเข้าใจผิดดั้งเดิมที่คิดว่า Paidra และ Fadra เป็น Level 4: ตรวจสอบจาก `cards.cdb` ยืนยันว่า **Paidra (Level 3)**, **Fadra (Level 3)**, **Genroku (Level 3)**, และ **Chundra (Level 4 Tuner)**
+  - แก้ไขบันไดการจูน Synchro ที่แท้จริง:
+    - **Step 1 (Level 7 Tuner)**: Chundra (4 Tuner) + Paidra/Fadra (3 non-Tuner) = `Sangenpai Bident Dragion` (Level 7 FIRE Dragon Tuner, 2600 ATK)
+    - **Step 2 (Level 10 Boss)**: Bident Dragion (7 Tuner) + Paidra/Fadra (3 non-Tuner ที่ Bident ชุบขึ้นมาจากสุสาน) = `Trident Dragion` (Level 10, 3000 ATK) หรือ `Sangenpai Transcendent Dragion` (Level 10, 3000 ATK/3000 DEF)
+- **Extra Deck Modernization**:
+  - ถอด `Hi-Speedroid Chanbara` (Level 5 Machine ซึ่งเด็คนี้ไม่มีตัวจูน Level 1/2 และติด Dragon Lock) ออก
+  - ใส่ **`Black Rose Dragon` (73580471)**: Level 7 FIRE Dragon Synchro สำหรับกวาดล้างสนามฉุกเฉินเมื่อเดินหลัง
+  - ใส่ **`Hieratic Seal of the Heavenly Spheres` (24361622)**: Link-2 Dragon (0 ATK) มอนสเตอร์ขัดขวางหัวใจหลักเมื่อถูกบังคับเดินก่อน (Going First)
+
+### 2. Strategy & Ace Monster Tactics (Going 1st vs Going 2nd)
+- **Ace Monster Roles**:
+  - **Finisher Ace (`Trident Dragion`)**:
+    - สั่งระเบิด `Sangen Summoning` (Field Spell) + การ์ดส่วนเกิน 1 ใบ -> Trident ได้สิทธิ์ตี 3 ครั้ง
+    - เอฟเฟกต์สุสานของ `Sangen Summoning` ทำงานเมื่อถูกทำลายใน Battle Phase -> เพิ่ม ATK ของ Trident Dragion เป็น **2 เท่า กลายเป็น 6,000 ATK**!
+    - โจมตี 3 ครั้งที่ 6,000 ATK = **18,000 Damage OTK ทันที**!
+    - ห้ามอัญเชิญ Trident Dragion ใน Turn 1 (Going First) เด็ดขาด
+  - **Lockdown Ace (`Sangenpai Transcendent Dragion`)**:
+    - เมื่อลงสนาม เปลี่ยนมอนสเตอร์ทุกตัวเป็นหงายหน้าโจมตี บังคับศัตรูต้องสั่งตี และที่สำคัญที่สุด: **ศัตรูไม่สามารถเปิดเอฟเฟกต์การ์ดใดๆ ใน Battle Phase ได้เลย (Opponent Silent in BP)**
+  - **Bridge Ace (`Sangenpai Bident Dragion`)**:
+    - เมื่อ Synchro ชุบ Paidra/Fadra (Level 3) ขึ้นมาเพื่อต่อยอดเป็น Level 10 ทันที
+    - ในสุสาน หากมีการประกาศโจมตีครบ $\ge 3$ ครั้ง สามารถโดดตัวเองกลับมาสนามและทำลายเวท/กับดักศัตรู 1 ใบ
+- **Going First (Turn 1 Strategy)**:
+  - วางบอร์ดเพื่อเอาชีวิตรอดและสะสมทรัพยากร: ลง Paidra หา `Sangen Kaiho` (Trap) หรือ `Sangen Kaimen`
+  - ทำ Link-2 `Hieratic Seal of the Heavenly Spheres` หรือทำ `Sangenpai Transcendent Dragion` (3000 DEF)
+  - เซ็ต `Sangen Kaiho` (เมื่อศัตรูมีมอนสเตอร์มากกว่า ข้าม Main Phase 1 ของศัตรูตรงเข้า Battle Phase ทันที) ร่วมกับ Super Poly / Droplet / Impermanence
+- **Going Second (Turn 2+ OTK Strategy)**:
+  - Main Phase 1: เคลียร์บอร์ดด้วย Dark Ruler No More, Lightning Storm, Super Poly, Droplet
+  - เปิด `Sangen Summoning` รับ Blanket Protection: มอนสเตอร์มังกรไฟทั้งหมดไม่รับผลการ์ดที่ถูกเปิดใช้งานของศัตรูใน MP1
+  - กาง Paidra + Chundra แล้วเข้า Battle Phase เพื่อรัน OTK Synchro Ladder อย่างปลอดภัย
+
+### 3. Decoupled Domain Plugin Architecture (`TenpaiPlugin`)
+- สร้าง `TenpaiPlugin : DeckPluginBase` รองรับ:
+  - `TenpaiStrategy : IDeckStrategy`: เลือกเป้าหมายเสิร์ชและชุบชีวิตตามบริบทเกม
+  - `TenpaiMaterialEvaluator : IDeckMaterialEvaluator`: จัดลำดับการทิ้งการ์ดและเลือกระเบิด Sangen Summoning สำหรับ Trident
+  - `TenpaiThreatEvaluator : IDeckThreatEvaluator`: ประเมินภัยคุกคามของการ์ดคู่แข่ง
+  - `TenpaiBattleOTKPlanner`: คำนวณพลังโจมตีและตรวจสอบ Lethal Damage
+- เชื่อมต่อ `DeckPlugin = Plugin;` เข้าสู่ Central Core
+
+### 4. Registration & Exclusive Deployment
+- **`bots.json`**: ลงทะเบียน `"Tenpai"`, `"Tenpai Dragon"`, `"TenpaiDragon"` (Difficulty 3, Master Rules 4, 5, Flags: OCG/TCG) ครบถ้วน
+- **Deploy**: คอมไพล์และติดตั้งไบนารี (`WindBot.dll`, `ExecutorBase.dll`, `core.dll`, `bots.json`, `Tenpai.ydk`, `DashBot.exe`) สู่ `C:\Users\admin\Documents\EdoGame\` ผ่าน `BUILD_AND_DEPLOY.ps1` สมบูรณ์ 100%
+
+---
+
 ## 0.081. Central Core Competitive Heuristics & Universal Handtrap Anti-Bait Engine (2026-10-03)
 
 ### 1. Universal Handtrap Anti-Bait Guard & Chain Safety
