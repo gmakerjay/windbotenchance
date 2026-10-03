@@ -11,45 +11,58 @@ using YGOSharp.OCGWrapper.Enums;
 namespace WindBot.Game.AI.Plugins
 {
     // ═══════════════════════════════════════════════════════════════
-    //  MASTER DECK PLUGIN: OrcustPlugin
+    //  MASTER DECK PLUGIN: OrcustPlugin (Layer 3 Decoupled Plugin)
     // ═══════════════════════════════════════════════════════════════
-    internal class OrcustPlugin
+    public class OrcustPlugin : DeckPluginBase
     {
+        public override string DeckName => "OrcustWCQ";
+
         public OrcustWCQExecutor Executor { get; }
-        public OrcustStrategy Strategy { get; }
-        public OrcustThreatEvaluator ThreatEvaluator { get; }
-        public OrcustMaterialScorer MaterialScorer { get; }
+        public OrcustStrategy OrcustStrat { get; }
+        public OrcustThreatEvaluator OrcustThreat { get; }
+        public OrcustMaterialScorer OrcustMat { get; }
         public OrcustBoardAssessor BoardAssessor { get; }
+
+        public override IDeckStrategy Strategy => OrcustStrat;
+        public override IDeckThreatEvaluator ThreatEvaluator => OrcustThreat;
+        public override IDeckMaterialEvaluator MaterialEvaluator => OrcustMat;
 
         public OrcustPlugin(OrcustWCQExecutor executor)
         {
             Executor = executor;
-            Strategy = new OrcustStrategy(executor);
-            ThreatEvaluator = new OrcustThreatEvaluator(executor);
-            MaterialScorer = new OrcustMaterialScorer(executor);
-            BoardAssessor = new OrcustBoardAssessor(executor, Strategy, MaterialScorer);
+            OrcustStrat = new OrcustStrategy(executor);
+            OrcustThreat = new OrcustThreatEvaluator(executor);
+            OrcustMat = new OrcustMaterialScorer(executor);
+            BoardAssessor = new OrcustBoardAssessor(executor, OrcustStrat, OrcustMat);
         }
 
-        public void ResetTurnState()
+        public override void ResetTurnState()
         {
-            Strategy.Reset();
+            base.ResetTurnState();
+            OrcustStrat.Reset();
         }
     }
 
     // ═══════════════════════════════════════════════════════════════
     //  DOMAIN SUB-HELPER 1: OrcustStrategy
     // ═══════════════════════════════════════════════════════════════
-    internal class OrcustStrategy
+    public class OrcustStrategy : IDeckStrategy
     {
         private readonly OrcustWCQExecutor _exec;
 
         // Once-Per-Turn Triggers
         public bool GirsuSummonUsed { get; set; }
         public bool GirsuTokenUsed { get; set; }
+        public bool ScrapRecyclerUsed { get; set; }
+        public bool ArmageddonKnightUsed { get; set; }
+        public bool DarkGrepherSpSummonUsed { get; set; }
+        public bool DarkGrepherDumpUsed { get; set; }
+        public bool RotAUsed { get; set; }
         public bool HarpHorrorUsed { get; set; }
         public bool CymbalSkeletonUsed { get; set; }
         public bool OrcustKnightmareUsed { get; set; }
         public bool WorldWandUsed { get; set; }
+        public bool BrassBombardUsed { get; set; }
         public bool GalateaUsed { get; set; }
         public bool GalateaISearchUsed { get; set; }
         public bool GalateaIGYUsed { get; set; }
@@ -59,7 +72,7 @@ namespace WindBot.Game.AI.Plugins
         public bool EnlilgirsuGYUsed { get; set; }
         public bool OrcustratedReturnUsed { get; set; }
         public bool CrescendoGYUsed { get; set; }
-        public bool BabelActivatedThisTurn { get; set; }
+        public bool TripleTacticsTalentUsed { get; set; }
         public bool IsDarkLockedThisTurn { get; set; }
 
         public OrcustStrategy(OrcustWCQExecutor executor)
@@ -71,10 +84,16 @@ namespace WindBot.Game.AI.Plugins
         {
             GirsuSummonUsed = false;
             GirsuTokenUsed = false;
+            ScrapRecyclerUsed = false;
+            ArmageddonKnightUsed = false;
+            DarkGrepherSpSummonUsed = false;
+            DarkGrepherDumpUsed = false;
+            RotAUsed = false;
             HarpHorrorUsed = false;
             CymbalSkeletonUsed = false;
             OrcustKnightmareUsed = false;
             WorldWandUsed = false;
+            BrassBombardUsed = false;
             GalateaUsed = false;
             GalateaISearchUsed = false;
             GalateaIGYUsed = false;
@@ -84,7 +103,7 @@ namespace WindBot.Game.AI.Plugins
             EnlilgirsuGYUsed = false;
             OrcustratedReturnUsed = false;
             CrescendoGYUsed = false;
-            BabelActivatedThisTurn = false;
+            TripleTacticsTalentUsed = false;
             IsDarkLockedThisTurn = false;
         }
 
@@ -95,7 +114,7 @@ namespace WindBot.Game.AI.Plugins
 
         public bool HasDingirsuInGY()
         {
-            return _exec.Bot.Graveyard.Any(c => c.Id == OrcustWCQExecutor.CardId.Dingirsu);
+            return _exec.Bot.Graveyard.Any(c => c.Id == OrcustWCQExecutor.CardId.Dingirsu || c.Id == OrcustWCQExecutor.CardId.DingirsuAlt);
         }
 
         public bool HasCymbalInGY()
@@ -113,6 +132,11 @@ namespace WindBot.Game.AI.Plugins
             return _exec.Bot.Graveyard.Any(c => c.Id == OrcustWCQExecutor.CardId.OrcustKnightmare);
         }
 
+        public bool HasOrcustLinkOnField()
+        {
+            return _exec.Bot.GetMonsters().Any(m => m != null && m.IsFaceup() && m.HasType(CardType.Link) && IsOrcustCard(m));
+        }
+
         public static bool IsOrcustCard(ClientCard c)
         {
             if (c == null) return false;
@@ -126,6 +150,7 @@ namespace WindBot.Game.AI.Plugins
                    c.Id == OrcustWCQExecutor.CardId.Longirsu ||
                    c.Id == OrcustWCQExecutor.CardId.Enlilgirsu ||
                    c.Id == OrcustWCQExecutor.CardId.Dingirsu ||
+                   c.Id == OrcustWCQExecutor.CardId.DingirsuAlt ||
                    c.Id == OrcustWCQExecutor.CardId.OrcustratedBabel ||
                    c.Id == OrcustWCQExecutor.CardId.OrcustratedReturn ||
                    c.Id == OrcustWCQExecutor.CardId.OrcustCrescendo;
@@ -143,7 +168,8 @@ namespace WindBot.Game.AI.Plugins
                    c.Id == OrcustWCQExecutor.CardId.GalateaI ||
                    c.Id == OrcustWCQExecutor.CardId.Longirsu ||
                    c.Id == OrcustWCQExecutor.CardId.Enlilgirsu ||
-                   c.Id == OrcustWCQExecutor.CardId.Dingirsu;
+                   c.Id == OrcustWCQExecutor.CardId.Dingirsu ||
+                   c.Id == OrcustWCQExecutor.CardId.DingirsuAlt;
         }
 
         public static bool IsWorldLegacyCard(ClientCard c)
@@ -158,12 +184,55 @@ namespace WindBot.Game.AI.Plugins
             if (c == null) return false;
             return (c.Race & (int)CardRace.Machine) != 0 && (c.Attribute & (int)CardAttribute.Dark) != 0;
         }
+
+        // IDeckStrategy implementation
+        public ClientCard PickSpecialSummonTarget(IList<ClientCard> candidates)
+        {
+            if (candidates == null || candidates.Count == 0) return null;
+
+            // Prioritize Dingirsu if available
+            var dingirsu = candidates.FirstOrDefault(c => c.Id == OrcustWCQExecutor.CardId.Dingirsu || c.Id == OrcustWCQExecutor.CardId.DingirsuAlt);
+            if (dingirsu != null) return dingirsu;
+
+            var galatea = candidates.FirstOrDefault(c => c.Id == OrcustWCQExecutor.CardId.Galatea);
+            if (galatea != null) return galatea;
+
+            var girsu = candidates.FirstOrDefault(c => c.Id == OrcustWCQExecutor.CardId.Girsu);
+            if (girsu != null) return girsu;
+
+            var cymbal = candidates.FirstOrDefault(c => c.Id == OrcustWCQExecutor.CardId.OrcustCymbalSkeleton);
+            if (cymbal != null) return cymbal;
+
+            return candidates.FirstOrDefault();
+        }
+
+        public ClientCard PickSearchTarget(IList<ClientCard> candidates, ClientCard context)
+        {
+            if (candidates == null || candidates.Count == 0) return null;
+
+            if (!HasBabelOnField() && !_exec.Bot.HasInHand(OrcustWCQExecutor.CardId.OrcustratedBabel))
+            {
+                var babel = candidates.FirstOrDefault(c => c.Id == OrcustWCQExecutor.CardId.OrcustratedBabel);
+                if (babel != null) return babel;
+            }
+
+            var crescendo = candidates.FirstOrDefault(c => c.Id == OrcustWCQExecutor.CardId.OrcustCrescendo);
+            if (crescendo != null) return crescendo;
+
+            var arma = candidates.FirstOrDefault(c => c.Id == OrcustWCQExecutor.CardId.ArmageddonKnight);
+            if (arma != null) return arma;
+
+            var girsu = candidates.FirstOrDefault(c => c.Id == OrcustWCQExecutor.CardId.Girsu);
+            if (girsu != null) return girsu;
+
+            return candidates.FirstOrDefault();
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════
     //  DOMAIN SUB-HELPER 2: OrcustThreatEvaluator
     // ═══════════════════════════════════════════════════════════════
-    internal class OrcustThreatEvaluator
+    public class OrcustThreatEvaluator : IDeckThreatEvaluator
     {
         private readonly OrcustWCQExecutor _exec;
 
@@ -175,7 +244,7 @@ namespace WindBot.Game.AI.Plugins
         public int EvaluateTargetPriority(ClientCard card)
         {
             if (card == null) return -9999;
-            if (card.Controller == 0) return -10000; // Never target own cards for enemy removal
+            if (card.Controller == 0) return -10000;
 
             int score = 0;
 
@@ -215,6 +284,17 @@ namespace WindBot.Game.AI.Plugins
             return score;
         }
 
+        public int EvaluateThreatScore(ClientCard card)
+        {
+            return EvaluateTargetPriority(card);
+        }
+
+        public bool IsEmergencyThreat(ClientCard card)
+        {
+            if (card == null) return false;
+            return card.Attack >= 3000 || card.Id == 82828051 || card.Id == 48680970;
+        }
+
         public ClientCard GetBestRemovalTarget()
         {
             var enemies = _exec.Enemy.GetMonsters().Concat(_exec.Enemy.GetSpells())
@@ -237,7 +317,7 @@ namespace WindBot.Game.AI.Plugins
     // ═══════════════════════════════════════════════════════════════
     //  DOMAIN SUB-HELPER 3: OrcustMaterialScorer
     // ═══════════════════════════════════════════════════════════════
-    internal class OrcustMaterialScorer
+    public class OrcustMaterialScorer : IDeckMaterialEvaluator
     {
         private readonly OrcustWCQExecutor _exec;
 
@@ -253,11 +333,11 @@ namespace WindBot.Game.AI.Plugins
 
             // Cards that thrive in GY
             if (card.Id == OrcustWCQExecutor.CardId.OrcustHarpHorror) return 2500;
-            if (card.Id == OrcustWCQExecutor.CardId.OrcustCymbalSkeleton) return 2300;
-            if (card.Id == OrcustWCQExecutor.CardId.WorldWand) return 2100;
-            if (card.Id == OrcustWCQExecutor.CardId.OrcustKnightmare) return 2000;
+            if (card.Id == OrcustWCQExecutor.CardId.OrcustCymbalSkeleton) return 2400;
+            if (card.Id == OrcustWCQExecutor.CardId.WorldWand) return 2300;
+            if (card.Id == OrcustWCQExecutor.CardId.OrcustKnightmare) return 2200;
+            if (card.Id == OrcustWCQExecutor.CardId.OrcustBrassBombard) return 2100;
             if (card.Id == OrcustWCQExecutor.CardId.OrcustCrescendo) return 1800;
-            if (card.Id == OrcustWCQExecutor.CardId.TheBlackGoatLaughs) return 1700;
             if (card.Id == OrcustWCQExecutor.CardId.GalateaI) return 1600;
 
             // Extra duplicate copies
@@ -267,7 +347,7 @@ namespace WindBot.Game.AI.Plugins
             if (card.IsSpell() && card.Id != OrcustWCQExecutor.CardId.OrcustratedBabel && card.Id != OrcustWCQExecutor.CardId.FoolishBurial) return 800;
 
             // Handtraps: save for interruption
-            if (card.Id == OrcustWCQExecutor.CardId.AshBlossom || card.Id == OrcustWCQExecutor.CardId.DrollAndLockBird) return 100;
+            if (card.Id == OrcustWCQExecutor.CardId.AshBlossom || card.Id == OrcustWCQExecutor.CardId.InfiniteImpermanence) return 100;
 
             return 50;
         }
@@ -279,6 +359,9 @@ namespace WindBot.Game.AI.Plugins
 
             // Tokens or expendable materials
             if (card.HasType(CardType.Token)) return 3000;
+            if (card.Id == OrcustWCQExecutor.CardId.ScrapRecycler && card.Location == CardLocation.MonsterZone) return 1900;
+            if (card.Id == OrcustWCQExecutor.CardId.ArmageddonKnight && card.Location == CardLocation.MonsterZone) return 1900;
+            if (card.Id == OrcustWCQExecutor.CardId.DarkGrepher && card.Location == CardLocation.MonsterZone) return 1800;
             if (card.Id == OrcustWCQExecutor.CardId.Girsu && card.Location == CardLocation.MonsterZone) return 1500;
             if (card.Id == OrcustWCQExecutor.CardId.OrcustHarpHorror && card.Location == CardLocation.MonsterZone) return 1600;
             if (card.Id == OrcustWCQExecutor.CardId.OrcustCymbalSkeleton && card.Location == CardLocation.MonsterZone) return 1600;
@@ -291,17 +374,49 @@ namespace WindBot.Game.AI.Plugins
         {
             if (card == null) return false;
             return card.Id == OrcustWCQExecutor.CardId.Dingirsu ||
+                   card.Id == OrcustWCQExecutor.CardId.DingirsuAlt ||
+                   card.Id == OrcustWCQExecutor.CardId.Galatea ||
+                   card.Id == OrcustWCQExecutor.CardId.Longirsu ||
+                   card.Id == OrcustWCQExecutor.CardId.Enlilgirsu ||
                    card.Id == OrcustWCQExecutor.CardId.AccesscodeTalker ||
                    card.Id == OrcustWCQExecutor.CardId.SPLittleKnight ||
-                   card.Id == OrcustWCQExecutor.CardId.IPMasquerena ||
-                   card.Id == OrcustWCQExecutor.CardId.Enlilgirsu;
+                   card.Id == OrcustWCQExecutor.CardId.IPMasquerena;
+        }
+
+        // IDeckMaterialEvaluator implementation
+        public int GetMaterialCost(ClientCard card)
+        {
+            if (card == null) return 9999;
+            if (IsProtectedBoss(card)) return 9999;
+            return 1000 - ScoreTributeOrCostMaterial(card);
+        }
+
+        public IList<ClientCard> SortMaterials(IList<ClientCard> candidates, int min = 1)
+        {
+            if (candidates == null) return new List<ClientCard>();
+            return candidates.OrderByDescending(ScoreTributeOrCostMaterial).Take(min).ToList();
+        }
+
+        public ClientCard PickDiscardTarget(IList<ClientCard> candidates, int min = 1)
+        {
+            if (candidates == null || candidates.Count == 0) return null;
+            return candidates.OrderByDescending(ScoreDiscardMaterial).FirstOrDefault();
+        }
+
+        public ClientCard PickDestructionSubstitute(IList<ClientCard> candidates, int min = 1)
+        {
+            if (candidates == null || candidates.Count == 0) return null;
+            // Dingirsu detach protection or token destroy
+            var token = candidates.FirstOrDefault(c => c.HasType(CardType.Token));
+            if (token != null) return token;
+            return candidates.OrderByDescending(ScoreTributeOrCostMaterial).FirstOrDefault();
         }
     }
 
     // ═══════════════════════════════════════════════════════════════
     //  DOMAIN SUB-HELPER 4: OrcustBoardAssessor
     // ═══════════════════════════════════════════════════════════════
-    internal class OrcustBoardAssessor
+    public class OrcustBoardAssessor
     {
         private readonly OrcustWCQExecutor _exec;
         private readonly OrcustStrategy _strategy;
@@ -322,12 +437,11 @@ namespace WindBot.Game.AI.Plugins
 
         public bool CanMakeDingirsu()
         {
-            if (_exec.Bot.HasInMonstersZone(OrcustWCQExecutor.CardId.Dingirsu)) return false;
             if (_strategy.DingirsuSummonedThisTurn) return false;
 
-            // Overlay 1 Orcust Link monster
+            // Overlay 1 Orcust Link monster (Galatea, Longirsu, Enlilgirsu — NEVER Galatea-i!)
             return _exec.Bot.GetMonsters().Any(m => m != null && m.IsFaceup() &&
-                (m.Id == OrcustWCQExecutor.CardId.Galatea || m.Id == OrcustWCQExecutor.CardId.GalateaI || m.Id == OrcustWCQExecutor.CardId.Longirsu));
+                (m.Id == OrcustWCQExecutor.CardId.Galatea || m.Id == OrcustWCQExecutor.CardId.Longirsu || m.Id == OrcustWCQExecutor.CardId.Enlilgirsu));
         }
 
         public bool CanMakeGalatea()

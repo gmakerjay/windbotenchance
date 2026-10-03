@@ -1,5 +1,60 @@
 # Progress Log: Central Core Architecture & Universal Heuristics Overhaul
 
+## 0.080. OrcustWCQ Strict Self-Harm Prevention & Ace Protection Protocol (2026-10-03)
+
+### 1. Log Root Cause Analysis & Elimination of Self-Harm
+- **Fix 1: Stop Linking Dingirsu away into Galatea-i**:
+  - จาก Log บรรทัด 104-114 พบว่าหลังจากเรียก `Dingirsu` (2600 ATK Xyz Boss พร้อม 2 วัตถุดิบ) บอทดันรันคำสั่ง `ShouldGalateaISpSummon` นำ `Dingirsu` ไปสังเวยเป็น Link Material ทำ `Galatea-i` (Link-1 ATK 0)
+  - *แก้ไข*: ปรับเงื่อนไข `ShouldGalateaISpSummon` ให้สกัดกั้นทันทีหากบนสนามมี `Dingirsu`, `Galatea`, หรือ `Longirsu` และบังคับว่าวัตถุดิบต้องเป็น Main Deck Monster (`Level > 0`, non-Link, non-Xyz, non-Boss) เท่านั้น
+- **Fix 2: Prevent Galatea Self-Link Duplicate**:
+  - จาก Log พบว่าเมื่อ Galatea ใช้เอฟเฟกต์แล้ว บอทนำ Galatea ตัวแรกไปลิงก์ทำ Galatea ตัวที่สองซ้ำซ้อน
+  - *แก้ไข*: บังคับ `if (Bot.HasInMonstersZone(CardId.Galatea)) return false;` และให้วัตถุดิบต้องเป็นมอนสเตอร์ส่วนเกิน (`!IsProtectedBoss(m)`) เท่านั้น
+- **Fix 3: Forbidden Droplet Self-Interruption & Boss Sacrificing**:
+  - จาก Log บรรทัด 369-378 ศัตรูลง Sage with Eyes of Blue บอทเปิด Ash Blossom เนเกทไปแล้ว แต่ระบบเปิด Forbidden Droplet ซ้ำซ้อน (Double Negate ทับตัวเอง) แล้วเลือกส่ง Galatea จากสนามลงสุสานเป็นคอสต์
+  - *แก้ไข*: เพิ่ม `if (Duel.LastChainPlayer == 0) return false;` ป้องกันการเปิด Droplet ทับเชนตัวเอง และใน `OnSelectCard` Hint 504 กรองตัด `IsProtectedBoss(c)` ออก 100% ห้ามส่งบอสหรือการ์ดสำคัญ (Babel / Crescendo) เป็นคอสต์โดยเด็ดขาด
+
+### 2. Universal Boss Protection Enforcement
+- ปรับปรุง `IsProtectedBoss(c)` ใน `OrcustPlugin.cs` ให้ครอบคลุม `Dingirsu`, `DingirsuAlt`, `Galatea`, `Longirsu`, `Enlilgirsu`, `AccesscodeTalker`, `SPLittleKnight`, `IPMasquerena`
+- ปรับปรุงทุกฟังก์ชัน SpSummon ของ Extra Deck (`Galatea`, `Longirsu`, `Phoenix`, `Cerberus`, `Dharc`, `LittleKnight`, `Accesscode`) ให้ตรวจสอบและเลือกเฉพาะวัตถุดิบที่เป็นมอนสเตอร์ส่วนเกินเท่านั้น
+
+### 3. Build & Exclusive Deployment
+- ไบนารีชุดปรับปรุงล่าสุดคอมไพล์และ Deploy ไปยัง `C:\Users\admin\Documents\EdoGame\` ครบถ้วน 100%
+
+---
+
+## 0.079. OrcustWCQ Engine Overhaul, Anti-Bottleneck & Complete Module Registration (2026-10-03)
+
+### 1. Decklist Optimization & Anti-Brick Reconstruction
+- **11 Starters Structure**: ปรับเด็คจากเดิมที่มี Starter เพียง 4 ใบ เพิ่มเป็น **11 Starters (โอกาสจั่ว Starter มือแรก > 81.5%)**:
+  - `Girsu, the Orcust Mekk-Knight` (3 ใบ)
+  - `Scrap Recycler` (3 ใบ)
+  - `Armageddon Knight` (1 ใบ)
+  - `Dark Grepher` (2 ใบ) — ช่วยทิ้ง Garnet เลเวลสูง (`World Wand`, `Orcust Knightmare`) แก้ปัญหามือติด Brick 100%
+  - `Reinforcement of the Army` (1 ใบ)
+  - `Foolish Burial` (1 ใบ)
+- **Elimination of Anti-Synergy & Dead Cards**:
+  - ตัด `Dominus Spark` (3 ใบ) และ `Dominus Impulse` (3 ใบ) ที่ล็อคธาตุ Handtrap ทั้งเกมและเสี่ยงสเปเชียลฟรีให้ศัตรู
+  - ตัด `Mulcharmy` (5 ใบ) ที่กลายเป็นการ์ดตายเมื่อเริ่มก่อน (Going First)
+  - ตัด `Foolish Burial Goods` (3 ใบ) ที่ทำให้ Galatea ไม่มี Crescendo ให้ดึงหมอบ
+- **Extra Deck Rebalance**: เพิ่ม `Knightmare Phoenix` และ `Knightmare Cerberus` เป็น Discard Outlet + ตัวกำจัดปัญหา
+
+### 2. Complete Central Core & Module Registrations
+- **DeckPluginBase**: `OrcustPlugin` สืบทอด `DeckPluginBase` และ Implement `IDeckStrategy`, `IDeckThreatEvaluator`, `IDeckMaterialEvaluator` เชื่อมต่อเข้า `DeckPlugin = _plugin;` ครบวงจร
+- **ComboRouter**: ลงทะเบียน 4 สายคอมโบชัดเจน (`Girsu-FullCombo`, `Scrap-Recycler-Starter`, `Armageddon-Knight-Starter`, `DarkGrepher-Unbricker`)
+- **BaitPlanner**: ลงทะเบียนการ์ด Bait หลอกล่อ Handtrap ศัตรู (`RotA`, `Orcustrated Return`, `Triple Tactics Talent`, `Foolish Burial`)
+- **HeuristicGuard & ResourcePlan**: ลงทะเบียน Ace Cards (`Dingirsu`, `Galatea`, `Longirsu`, `Enlilgirsu`, `AccesscodeTalker`, `SPLittleKnight`, `IPMasquerena`)
+- **CardIntelligence**: เพิ่ม `Scrap Recycler`, `Armageddon Knight`, `Dark Grepher`, `Orcust Brass Bombard` สู่ `HighThreatChokepoints`
+
+### 3. Rule Safety & Logic Enhancements
+- **Galatea-i Xyz Restriction**: ป้องกันไม่ให้ Dingirsu พยายาม Overlay ทับ `Galatea-i` (ผิดกฎกติกาการ์ด)
+- **Crescendo Field Active Condition**: ปรับลำดับการตั้ง End Board ให้มี Orcust Link Monster บนสนามเสมอ (เช่น `Longirsu` หรือชุบ `Galatea-i`) เพื่อให้ `Orcust Crescendo` สามารถเปิดใช้งานได้จริง
+- **Timing Safety**: บังคับให้ `Galatea` ใช้เอฟเฟกต์หมอบการ์ดเวท/กับดักให้เสร็จสิ้นก่อนนำไป Overlay ทำ Dingirsu
+
+### 4. Build & Deployment
+- ไบนารีชุดใหม่ (`WindBot.dll`, `ExecutorBase.dll`, `core.dll`, `bots.json`, `OrcustWCQ.ydk`) คอมไพล์และ Deploy ไปยัง `C:\Users\admin\Documents\EdoGame\` ครบ 100%
+
+---
+
 ## 0.078. OrcustWCQ (Modern Orcust WCQ) Architecture, Implementation & Verification (2026-10-02)
 
 ### 1. Deck Building & Rigorous Card Audit

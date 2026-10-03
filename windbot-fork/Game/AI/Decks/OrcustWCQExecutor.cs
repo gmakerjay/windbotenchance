@@ -26,108 +26,116 @@ namespace WindBot.Game.AI.Decks
             public const int WorldCrown = 27918365;
             public const int OrcustBrassBombard = 94046012;
 
+            // Starters & Extenders
+            public const int ScrapRecycler = 4334811;
+            public const int ArmageddonKnight = 28985331;
+            public const int DarkGrepher = 14536035;
+            public const int ReinforcementOfTheArmy = 32807846;
+            public const int FoolishBurial = 81439174;
+
             // Spells & Traps
             public const int OrcustratedBabel = 90351981;
             public const int OrcustratedReturn = 26845680;
-            public const int ForbiddenDroplet = 24299458;
-            public const int FoolishBurialGoods = 35726888;
-            public const int PotOfProsperity = 84211599;
-            public const int FoolishBurial = 81439174;
-            public const int DominusImpulse = 40366667;
-            public const int DominusSpark = 6325660;
-            public const int TheBlackGoatLaughs = 49299410;
             public const int OrcustCrescendo = 703897;
+            public const int ForbiddenDroplet = 24299458;
             public const int CalledByTheGrave = 24224830;
+            public const int CrossoutDesignator = 65681983;
+            public const int TripleTacticsTalent = 25311006;
             public const int InfiniteImpermanence = 10045474;
 
             // Handtraps
-            public const int MulcharmyFuwalos = 42141493;
-            public const int MulcharmyPurulia = 84192580;
             public const int AshBlossom = 14558128;
             public const int AshBlossomAlt = 14558127;
-            public const int DrollAndLockBird = 94145021;
+            public const int GhostBelle = 73642296;
 
             // Extra Deck
             public const int Galatea = 30741503;
             public const int GalateaI = 48835607;
             public const int Dingirsu = 93854893;
+            public const int DingirsuAlt = 93854894;
             public const int Longirsu = 76145142;
             public const int Enlilgirsu = 74820316;
-            public const int BarricadeborgBlocker = 13117073;
-            public const int AccesscodeTalker = 86066372;
-            public const int ZennasDeceivingDollMaidens = 7594154;
-            public const int DharcTheDarkCharmer = 8264361;
-            public const int WPFancyBall = 4993187;
             public const int IPMasquerena = 65741786;
             public const int SPLittleKnight = 29301450;
+            public const int AccesscodeTalker = 86066372;
+            public const int KnightmarePhoenix = 2857636;
+            public const int KnightmareCerberus = 75452921;
+            public const int DharcTheDarkCharmer = 8264361;
             public const int TYPHON = 93039339;
+            public const int BarricadeborgBlocker = 13117073;
         }
+
+        private static readonly int[] AceCardIds = new[]
+        {
+            CardId.Dingirsu,
+            CardId.DingirsuAlt,
+            CardId.Galatea,
+            CardId.Longirsu,
+            CardId.Enlilgirsu,
+            CardId.AccesscodeTalker,
+            CardId.SPLittleKnight,
+            CardId.IPMasquerena
+        };
 
         private readonly OrcustPlugin _plugin;
         internal OrcustPlugin Plugin => _plugin;
-        internal OrcustStrategy Strategy => _plugin.Strategy;
-        internal OrcustThreatEvaluator ThreatEvaluator => _plugin.ThreatEvaluator;
-        internal OrcustMaterialScorer MaterialScorer => _plugin.MaterialScorer;
+        internal OrcustStrategy Strategy => _plugin.OrcustStrat;
+        internal OrcustThreatEvaluator ThreatEvaluator => _plugin.OrcustThreat;
+        internal OrcustMaterialScorer MaterialScorer => _plugin.OrcustMat;
         internal OrcustBoardAssessor BoardAssessor => _plugin.BoardAssessor;
 
         public OrcustWCQExecutor(GameAI ai, Duel duel)
             : base(ai, duel)
         {
             _plugin = new OrcustPlugin(this);
+            DeckPlugin = _plugin;
 
-            // Register Ace Cards in ResourcePlanner
-            ResourcePlan.RegisterAceCards(
-                CardId.Dingirsu,
-                CardId.Galatea,
-                CardId.GalateaI,
-                CardId.Enlilgirsu,
-                CardId.Longirsu,
-                CardId.AccesscodeTalker,
-                CardId.SPLittleKnight,
-                CardId.IPMasquerena
+            // ═══════════════════════════════════════════════════════════════
+            //  AI ENHANCEMENT MODULE REGISTRATIONS (2026+)
+            // ═══════════════════════════════════════════════════════════════
+            // 1. HeuristicGuard & ResourcePlan Ace Protection
+            HeuristicGuard.RegisterAceCards(AceCardIds);
+            ResourcePlan.RegisterAceCards(AceCardIds);
+
+            // 2. BaitPlanner: Register safe bait cards to draw out opponent handtraps
+            BaitPlanner.RegisterBaitCards(
+                CardId.ReinforcementOfTheArmy,
+                CardId.OrcustratedReturn,
+                CardId.TripleTacticsTalent,
+                CardId.FoolishBurial
             );
 
-            // Turn lifecycle reset hook
-            AddExecutor(ExecutorType.Activate, ResetTurnStateCheck);
+            // 3. ComboRouter: Register authentic Orcust play lines
+            RegisterComboRoutes();
 
             // ═══════════════════════════════════════════════════════════════
             //  TIER 0: QUICK NEGATES, INTERRUPTIONS & COUNTER TRAPS
             // ═══════════════════════════════════════════════════════════════
-            // Orcust Crescendo: Counter Trap Omni-Negate & Banish
+            // Orcust Crescendo: Counter Trap Omni-Negate & Banish (Requires Orcust Link on field)
             AddExecutor(ExecutorType.Activate, CardId.OrcustCrescendo, ShouldCrescendoActivate);
 
-            // Dingirsu: Send 1 opp card to GY OR attach banished Machine / Detach to protect field
+            // Dingirsu: Continuous / Trigger detach protection
             AddExecutor(ExecutorType.Activate, CardId.Dingirsu, ShouldDingirsuActivate);
+            AddExecutor(ExecutorType.Activate, CardId.DingirsuAlt, ShouldDingirsuActivate);
 
-            // World Crown: Quick Tribute to negate Extra Deck Special Summoned monster effect
-            AddExecutor(ExecutorType.Activate, CardId.WorldCrown, ShouldWorldCrownActivate);
-
-            // Dominus Impulse & Spark
-            AddExecutor(ExecutorType.Activate, CardId.DominusImpulse, ShouldDominusImpulseActivate);
-            AddExecutor(ExecutorType.Activate, CardId.DominusSpark, ShouldDominusSparkActivate);
-
-            // S:P Little Knight: Quick Banish 2 face-up monsters until EP
+            // S:P Little Knight: Quick Banish 2 monsters until EP
             AddExecutor(ExecutorType.Activate, CardId.SPLittleKnight, ShouldSPLittleKnightActivate);
 
-            // I:P Masquerena: Quick Link into S:P Little Knight on opponent's turn
+            // I:P Masquerena: Quick Link on opponent turn
             AddExecutor(ExecutorType.Activate, CardId.IPMasquerena, ShouldIPMasquerenaActivate);
 
-            // Longirsu: Quick Send 1 linked monster to GY (with Babel)
+            // Longirsu: Quick Send 1 linked monster to GY
             AddExecutor(ExecutorType.Activate, CardId.Longirsu, ShouldLongirsuActivate);
 
             // Enlilgirsu: Quick take control / GY send
             AddExecutor(ExecutorType.Activate, CardId.Enlilgirsu, ShouldEnlilgirsuActivate);
 
-            // The Black Goat Laughs
-            AddExecutor(ExecutorType.Activate, CardId.TheBlackGoatLaughs, ShouldBlackGoatActivate);
-
-            // Handtraps
-            AddExecutor(ExecutorType.Activate, CardId.MulcharmyFuwalos, ShouldMulcharmyActivate);
-            AddExecutor(ExecutorType.Activate, CardId.MulcharmyPurulia, ShouldMulcharmyActivate);
+            // Handtraps & Quick Defenses
             AddExecutor(ExecutorType.Activate, CardId.AshBlossom, DefaultAshBlossomAndJoyousSpring);
             AddExecutor(ExecutorType.Activate, CardId.AshBlossomAlt, DefaultAshBlossomAndJoyousSpring);
-            AddExecutor(ExecutorType.Activate, CardId.DrollAndLockBird, DefaultDrollAndLockBird);
+            AddExecutor(ExecutorType.Activate, CardId.GhostBelle, DefaultGhostBelleAndHauntedMansion);
             AddExecutor(ExecutorType.Activate, CardId.CalledByTheGrave, DefaultCalledByTheGrave);
+            AddExecutor(ExecutorType.Activate, CardId.CrossoutDesignator, ShouldCrossoutActivate);
             AddExecutor(ExecutorType.Activate, CardId.InfiniteImpermanence, DefaultInfiniteImpermanence);
 
             // ═══════════════════════════════════════════════════════════════
@@ -136,9 +144,16 @@ namespace WindBot.Game.AI.Decks
             // Forbidden Droplet: Send expendables to negate enemy monsters
             AddExecutor(ExecutorType.Activate, CardId.ForbiddenDroplet, ShouldForbiddenDropletActivate);
 
-            // TY-PHON Sky Crisis: Summon if opp summoned 2+ monsters from Extra Deck
+            // Triple Tactics Talent
+            AddExecutor(ExecutorType.Activate, CardId.TripleTacticsTalent, ShouldTTTActivate);
+
+            // TY-PHON Sky Crisis
             AddExecutor(ExecutorType.SpSummon, CardId.TYPHON, ShouldTYPHONSpSummon);
             AddExecutor(ExecutorType.Activate, CardId.TYPHON, ShouldTYPHONActivate);
+
+            // Knightmare Phoenix & Cerberus
+            AddExecutor(ExecutorType.Activate, CardId.KnightmarePhoenix, ShouldKnightmarePhoenixActivate);
+            AddExecutor(ExecutorType.Activate, CardId.KnightmareCerberus, ShouldKnightmareCerberusActivate);
 
             // Accesscode Talker: Pop enemy cards
             AddExecutor(ExecutorType.Activate, CardId.AccesscodeTalker, ShouldAccesscodeActivate);
@@ -146,44 +161,56 @@ namespace WindBot.Game.AI.Decks
             // ═══════════════════════════════════════════════════════════════
             //  TIER 2: SEARCHERS & SPELL STARTERS
             // ═══════════════════════════════════════════════════════════════
-            // Foolish Burial: Dump Harp Horror > Knightmare > Wand > Cymbal
+            // Reinforcement of the Army
+            AddExecutor(ExecutorType.Activate, CardId.ReinforcementOfTheArmy, ShouldRotAActivate);
+
+            // Foolish Burial
             AddExecutor(ExecutorType.Activate, CardId.FoolishBurial, ShouldFoolishBurialActivate);
 
-            // Foolish Burial Goods: Dump Crescendo (to add DARK Machine) or Black Goat
-            AddExecutor(ExecutorType.Activate, CardId.FoolishBurialGoods, ShouldFoolishBurialGoodsActivate);
-
-            // Pot of Prosperity
-            AddExecutor(ExecutorType.Activate, CardId.PotOfProsperity, ShouldPotOfProsperityActivate);
-
-            // Orcustrated Return: Send Orcust to draw 2
+            // Orcustrated Return: Send Orcust from hand/field to draw 2
             AddExecutor(ExecutorType.Activate, CardId.OrcustratedReturn, ShouldOrcustratedReturnActivate);
 
-            // ═══════════════════════════════════════════════════════════════
-            //  TIER 3: FIELD SPELL (Orcustrated Babel)
-            // ═══════════════════════════════════════════════════════════════
+            // Field Spell: Orcustrated Babel
             AddExecutor(ExecutorType.Activate, CardId.OrcustratedBabel, ShouldBabelActivate);
 
             // ═══════════════════════════════════════════════════════════════
-            //  TIER 4: NORMAL SUMMONS
+            //  TIER 3: SPECIAL SUMMONS FROM HAND (EXTENDERS)
             // ═══════════════════════════════════════════════════════════════
-            // 1. Girsu: Foolish Orcust + Spawn Token
+            // Dark Grepher: Discard Lv5+ DARK (WorldWand / Knightmare) to SS
+            AddExecutor(ExecutorType.SpSummon, CardId.DarkGrepher, ShouldDarkGrepherSpSummon);
+
+            // World Crown: SS to a zone a Link Monster points to
+            AddExecutor(ExecutorType.SpSummon, CardId.WorldCrown, ShouldWorldCrownSpSummon);
+
+            // ═══════════════════════════════════════════════════════════════
+            //  TIER 4: NORMAL SUMMONS (STARTERS)
+            // ═══════════════════════════════════════════════════════════════
+            // 1. Girsu (Top starter: dumps Harp + makes Token)
             AddExecutor(ExecutorType.Summon, CardId.Girsu, ShouldGirsuSummon);
             AddExecutor(ExecutorType.Activate, CardId.Girsu, ShouldGirsuActivate);
 
-            // 2. Harp Horror (Normal summon fallback to link into Galatea-i)
+            // 2. Scrap Recycler (1-card starter: dumps Machine)
+            AddExecutor(ExecutorType.Summon, CardId.ScrapRecycler, ShouldScrapRecyclerSummon);
+            AddExecutor(ExecutorType.Activate, CardId.ScrapRecycler, ShouldScrapRecyclerActivate);
+
+            // 3. Armageddon Knight (1-card starter: dumps DARK)
+            AddExecutor(ExecutorType.Summon, CardId.ArmageddonKnight, ShouldArmageddonKnightSummon);
+            AddExecutor(ExecutorType.Activate, CardId.ArmageddonKnight, ShouldArmageddonKnightActivate);
+
+            // 4. Dark Grepher (Normal summon fallback)
+            AddExecutor(ExecutorType.Summon, CardId.DarkGrepher, ShouldDarkGrepherSummon);
+            AddExecutor(ExecutorType.Activate, CardId.DarkGrepher, ShouldDarkGrepherActivate);
+
+            // 5. Fallback Orcust Normal Summons (to make Galatea-i Link-1 bridge)
             AddExecutor(ExecutorType.Summon, CardId.OrcustHarpHorror, ShouldHarpHorrorSummon);
-
-            // 3. Cymbal Skeleton (Normal summon fallback)
             AddExecutor(ExecutorType.Summon, CardId.OrcustCymbalSkeleton, ShouldCymbalSkeletonSummon);
-
-            // 4. Orcust Knightmare (Normal summon if desperate)
-            AddExecutor(ExecutorType.Summon, CardId.OrcustKnightmare, ShouldKnightmareSummon);
+            AddExecutor(ExecutorType.Summon, CardId.OrcustBrassBombard, ShouldBrassBombardSummon);
 
             // ═══════════════════════════════════════════════════════════════
             //  TIER 5: GY TRIGGERS & EXTENDERS
             // ═══════════════════════════════════════════════════════════════
-            // World Crown: Hand Special Summon to a zone a Link Monster points to
-            AddExecutor(ExecutorType.SpSummon, CardId.WorldCrown, ShouldWorldCrownSpSummon);
+            // Galatea: MUST ACTIVATE BEFORE DINGIRSU OVERLAY!
+            AddExecutor(ExecutorType.Activate, CardId.Galatea, ShouldGalateaActivate);
 
             // Orcust Harp Horror: Banish from GY -> Special Summon from Deck
             AddExecutor(ExecutorType.Activate, CardId.OrcustHarpHorror, ShouldHarpHorrorGYActivate);
@@ -194,56 +221,128 @@ namespace WindBot.Game.AI.Decks
             // World Wand: Banish from GY -> Special Summon banished Orcust
             AddExecutor(ExecutorType.Activate, CardId.WorldWand, ShouldWorldWandGYActivate);
 
-            // Orcust Cymbal Skeleton: Banish from GY -> Special Summon Orcust from GY (Dingirsu!)
-            AddExecutor(ExecutorType.Activate, CardId.OrcustCymbalSkeleton, ShouldCymbalSkeletonGYActivate);
+            // Orcust Brass Bombard: Banish from GY -> Special Summon Orcust from hand
+            AddExecutor(ExecutorType.Activate, CardId.OrcustBrassBombard, ShouldBrassBombardGYActivate);
 
-            // Galatea-i: Discard 1 -> Search Babel or World Legacy / GY Banish Orcust to SS self
+            // Galatea-i: Field search / GY revive
             AddExecutor(ExecutorType.Activate, CardId.GalateaI, ShouldGalateaIActivate);
 
-            // Galatea: Target 1 banished Machine -> Shuffle into Deck -> Set Orcust S/T
-            AddExecutor(ExecutorType.Activate, CardId.Galatea, ShouldGalateaActivate);
-
-            // Crescendo in GY: Banish self to search DARK Machine
-            AddExecutor(ExecutorType.Activate, CardId.OrcustCrescendo, ShouldCrescendoGYActivate);
+            // Orcust Cymbal Skeleton: Banish from GY -> Special Summon Dingirsu!
+            AddExecutor(ExecutorType.Activate, CardId.OrcustCymbalSkeleton, ShouldCymbalSkeletonGYActivate);
 
             // ═══════════════════════════════════════════════════════════════
             //  TIER 6: EXTRA DECK SUMMONS
             // ═══════════════════════════════════════════════════════════════
-            // 1. Galatea-i (Link-1 using 1 Orcust or World Legacy monster)
+            // 1. Galatea-i (Link-1): ONLY if we have exactly 1 non-link Orcust on field needing GY bridge
             AddExecutor(ExecutorType.SpSummon, CardId.GalateaI, ShouldGalateaISpSummon);
 
-            // 2. Galatea (Link-2 using 2 effect monsters including 1 Orcust)
+            // 2. Galatea (Link-2): Primary combo engine
             AddExecutor(ExecutorType.SpSummon, CardId.Galatea, ShouldGalateaSpSummon);
 
-            // 3. Dingirsu (Overlay onto Galatea or Longirsu!)
+            // 3. Dingirsu (Rank 8): Overlay onto Galatea or Longirsu (NEVER Galatea-i!)
             AddExecutor(ExecutorType.SpSummon, CardId.Dingirsu, ShouldDingirsuSpSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.DingirsuAlt, ShouldDingirsuSpSummon);
 
-            // 4. I:P Masquerena (Link-2 for opponent turn disruption)
-            AddExecutor(ExecutorType.SpSummon, CardId.IPMasquerena, ShouldIPMasquerenaSpSummon);
-
-            // 5. S:P Little Knight
-            AddExecutor(ExecutorType.SpSummon, CardId.SPLittleKnight, ShouldSPLittleKnightSpSummon);
-
-            // 6. Longirsu (Link-3)
+            // 4. Longirsu (Link-3): Use Dingirsu + Cymbal to send Dingirsu to GY & hold Orcust Link for Crescendo!
             AddExecutor(ExecutorType.SpSummon, CardId.Longirsu, ShouldLongirsuSpSummon);
 
-            // 7. Enlilgirsu (Link-4)
+            // 5. I:P Masquerena: Link-2 for opponent turn disruption
+            AddExecutor(ExecutorType.SpSummon, CardId.IPMasquerena, ShouldIPMasquerenaSpSummon);
+
+            // 6. Knightmare Phoenix & Cerberus: Problem removals / Discard outlets
+            AddExecutor(ExecutorType.SpSummon, CardId.KnightmarePhoenix, ShouldKnightmarePhoenixSpSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.KnightmareCerberus, ShouldKnightmareCerberusSpSummon);
+
+            // 7. Dharc the Dark Charmer
+            AddExecutor(ExecutorType.SpSummon, CardId.DharcTheDarkCharmer, ShouldDharcSpSummon);
+
+            // 8. S:P Little Knight
+            AddExecutor(ExecutorType.SpSummon, CardId.SPLittleKnight, ShouldSPLittleKnightSpSummon);
+
+            // 9. Enlilgirsu (Link-4)
             AddExecutor(ExecutorType.SpSummon, CardId.Enlilgirsu, ShouldEnlilgirsuSpSummon);
 
-            // 8. Accesscode Talker (Link-4 OTK)
+            // 10. Accesscode Talker (Link-4 OTK Finisher)
             AddExecutor(ExecutorType.SpSummon, CardId.AccesscodeTalker, ShouldAccesscodeSpSummon);
 
             // ═══════════════════════════════════════════════════════════════
             //  TIER 7: SPELL / TRAP SETS & REPOS
             // ═══════════════════════════════════════════════════════════════
             AddExecutor(ExecutorType.SpellSet, CardId.OrcustCrescendo);
-            AddExecutor(ExecutorType.SpellSet, CardId.TheBlackGoatLaughs);
-            AddExecutor(ExecutorType.SpellSet, CardId.DominusImpulse);
-            AddExecutor(ExecutorType.SpellSet, CardId.DominusSpark);
-            AddExecutor(ExecutorType.SpellSet, CardId.ForbiddenDroplet);
             AddExecutor(ExecutorType.SpellSet, CardId.InfiniteImpermanence, ShouldImpermanenceSet);
+            AddExecutor(ExecutorType.SpellSet, CardId.ForbiddenDroplet, ShouldDropletSet);
             AddExecutor(ExecutorType.SpellSet, CardId.CalledByTheGrave, ShouldCalledBySet);
+            AddExecutor(ExecutorType.SpellSet, CardId.CrossoutDesignator, ShouldCrossoutSet);
             AddExecutor(ExecutorType.Repos, DefaultMonsterRepos);
+        }
+
+        private void RegisterComboRoutes()
+        {
+            // Route 1: Girsu 1-card line
+            ComboRouter.RegisterLine(new ComboRouter.ComboLine
+            {
+                Name = "Girsu-FullCombo",
+                RequiredCards = new List<int> { CardId.Girsu },
+                Steps = new List<ComboRouter.ComboStep>
+                {
+                    new() { CardId = CardId.Girsu, ActionType = ExecutorType.Summon, Description = "Normal Summon Girsu" },
+                    new() { CardId = CardId.Girsu, ActionType = ExecutorType.Activate, Description = "Foolish Harp Horror & Spawn Token" },
+                    new() { CardId = CardId.Galatea, ActionType = ExecutorType.SpSummon, Description = "Link Summon Galatea (Link-2)" },
+                    new() { CardId = CardId.OrcustHarpHorror, ActionType = ExecutorType.Activate, Description = "Harp Horror SS Cymbal Skeleton" },
+                    new() { CardId = CardId.Galatea, ActionType = ExecutorType.Activate, Description = "Galatea recycle Harp -> Set Crescendo" },
+                    new() { CardId = CardId.Dingirsu, ActionType = ExecutorType.SpSummon, Description = "Overlay Dingirsu over Galatea" }
+                },
+                EndBoardScore = 90
+            });
+
+            // Route 2: Scrap Recycler 1-card line
+            ComboRouter.RegisterLine(new ComboRouter.ComboLine
+            {
+                Name = "Scrap-Recycler-Starter",
+                RequiredCards = new List<int> { CardId.ScrapRecycler },
+                Steps = new List<ComboRouter.ComboStep>
+                {
+                    new() { CardId = CardId.ScrapRecycler, ActionType = ExecutorType.Summon, Description = "Normal Summon Scrap Recycler" },
+                    new() { CardId = CardId.ScrapRecycler, ActionType = ExecutorType.Activate, Description = "Dump Harp Horror" },
+                    new() { CardId = CardId.OrcustHarpHorror, ActionType = ExecutorType.Activate, Description = "Harp Horror SS Girsu" },
+                    new() { CardId = CardId.Galatea, ActionType = ExecutorType.SpSummon, Description = "Link Summon Galatea" }
+                },
+                EndBoardScore = 85
+            });
+
+            // Route 3: Armageddon Knight 1-card line
+            ComboRouter.RegisterLine(new ComboRouter.ComboLine
+            {
+                Name = "Armageddon-Knight-Starter",
+                RequiredCards = new List<int> { CardId.ArmageddonKnight },
+                Steps = new List<ComboRouter.ComboStep>
+                {
+                    new() { CardId = CardId.ArmageddonKnight, ActionType = ExecutorType.Summon, Description = "Normal Summon Armageddon Knight" },
+                    new() { CardId = CardId.ArmageddonKnight, ActionType = ExecutorType.Activate, Description = "Dump Harp Horror" },
+                    new() { CardId = CardId.OrcustHarpHorror, ActionType = ExecutorType.Activate, Description = "Harp Horror SS Cymbal Skeleton" },
+                    new() { CardId = CardId.Galatea, ActionType = ExecutorType.SpSummon, Description = "Link Summon Galatea" }
+                },
+                EndBoardScore = 85
+            });
+
+            // Route 4: Dark Grepher Unbricking line
+            ComboRouter.RegisterLine(new ComboRouter.ComboLine
+            {
+                Name = "DarkGrepher-Unbricker",
+                RequiredCards = new List<int> { CardId.DarkGrepher },
+                Steps = new List<ComboRouter.ComboStep>
+                {
+                    new() { CardId = CardId.DarkGrepher, ActionType = ExecutorType.Summon, Description = "Summon Dark Grepher" },
+                    new() { CardId = CardId.DarkGrepher, ActionType = ExecutorType.Activate, Description = "Discard DARK -> Dump Harp Horror" }
+                },
+                EndBoardScore = 80
+            });
+        }
+
+        public override void OnNewTurn()
+        {
+            base.OnNewTurn();
+            _plugin.ResetTurnState();
         }
 
         private bool ResetTurnStateCheck()
@@ -266,40 +365,7 @@ namespace WindBot.Game.AI.Decks
 
         private bool ShouldDingirsuActivate()
         {
-            // Protection effect (continuous/trigger detach material to prevent destruction)
-            if (ActivateDescription == -1 || Card.Location == CardLocation.MonsterZone)
-            {
-                return true;
-            }
             return true;
-        }
-
-        private bool ShouldWorldCrownActivate()
-        {
-            if (Card.Location != CardLocation.MonsterZone) return false;
-            // Tribute to negate an Extra Deck monster effect activated on field
-            if (Duel.LastChainPlayer == 1)
-            {
-                var lastCard = Duel.LastChainPlayer == 1 ? Enemy.MonsterZone.FirstOrDefault(m => m != null && m.IsFaceup()) : null;
-                return true;
-            }
-            return false;
-        }
-
-        private bool ShouldDominusImpulseActivate()
-        {
-            // Negate an effect that includes Special Summoning
-            return Duel.LastChainPlayer == 1;
-        }
-
-        private bool ShouldDominusSparkActivate()
-        {
-            // Destroy 1 face-up card on field when opponent activates effect
-            if (Duel.LastChainPlayer == 1)
-            {
-                return Enemy.GetMonsters().Concat(Enemy.GetSpells()).Any(c => c != null && c.IsFaceup());
-            }
-            return false;
         }
 
         private bool ShouldSPLittleKnightActivate()
@@ -323,7 +389,7 @@ namespace WindBot.Game.AI.Decks
         {
             if (Duel.Player == 1 && Card.Location == CardLocation.MonsterZone)
             {
-                return Bot.ExtraDeck.Any(c => c.Id == CardId.SPLittleKnight);
+                return Bot.ExtraDeck.Any(c => c.Id == CardId.SPLittleKnight || c.Id == CardId.KnightmarePhoenix);
             }
             return false;
         }
@@ -331,13 +397,12 @@ namespace WindBot.Game.AI.Decks
         private bool ShouldLongirsuActivate()
         {
             if (Card.Location != CardLocation.MonsterZone) return false;
-            if (_plugin.Strategy.LongirsuUsed) return false;
+            if (_plugin.OrcustStrat.LongirsuUsed) return false;
 
-            // Target 2 banished Machines to shuffle, send 1 linked monster to GY
             int banishedMachines = Bot.Banished.Count(c => c != null && (c.Race & (int)CardRace.Machine) != 0);
             if (banishedMachines >= 2 && Enemy.GetMonsterCount() > 0)
             {
-                _plugin.Strategy.LongirsuUsed = true;
+                _plugin.OrcustStrat.LongirsuUsed = true;
                 return true;
             }
             return false;
@@ -345,50 +410,59 @@ namespace WindBot.Game.AI.Decks
 
         private bool ShouldEnlilgirsuActivate()
         {
-            if (Card.Location == CardLocation.MonsterZone && !_plugin.Strategy.EnlilgirsuHandUsed)
+            if (Card.Location == CardLocation.MonsterZone && !_plugin.OrcustStrat.EnlilgirsuHandUsed)
             {
                 int banishedCount = Bot.Banished.Count(c => OrcustStrategy.IsOrcustCard(c) || OrcustStrategy.IsWorldLegacyCard(c));
                 if (banishedCount >= 1 && Enemy.GetMonsterCount() > 0)
                 {
-                    _plugin.Strategy.EnlilgirsuHandUsed = true;
+                    _plugin.OrcustStrat.EnlilgirsuHandUsed = true;
                     return true;
                 }
             }
-            if (Card.Location == CardLocation.Grave && !_plugin.Strategy.EnlilgirsuGYUsed)
+            if (Card.Location == CardLocation.Grave && !_plugin.OrcustStrat.EnlilgirsuGYUsed)
             {
-                _plugin.Strategy.EnlilgirsuGYUsed = true;
+                _plugin.OrcustStrat.EnlilgirsuGYUsed = true;
                 return true;
             }
             return false;
         }
 
-        private bool ShouldBlackGoatActivate()
+        private bool ShouldCrossoutActivate()
         {
-            return Duel.LastChainPlayer == 1 || Duel.Player == 1;
-        }
-
-        private bool ShouldMulcharmyActivate()
-        {
-            return Duel.Player == 1 && Bot.GetMonsterCount() == 0;
+            return Duel.LastChainPlayer == 1;
         }
         #endregion
 
         #region Tier 1: Board Breakers
         private bool ShouldForbiddenDropletActivate()
         {
+            // NEVER activate if we already chained an interruption to this action (Double Negate / Self-Chain)
+            if (Duel.LastChainPlayer == 0) return false;
+
             if (Enemy.GetMonsterCount() == 0) return false;
             var oppEffectMonsters = Enemy.GetMonsters().Where(m => m != null && m.IsFaceup() && !m.IsDisabled()).ToList();
             if (!oppEffectMonsters.Any()) return false;
 
-            // Discard materials or tokens
-            int sendable = Bot.Hand.Count(c => c != Card) + Bot.GetMonsters().Count(m => m != null && !_plugin.MaterialScorer.IsProtectedBoss(m));
-            return sendable >= 1;
+            // Only activate if we have expendable cards to send (from Hand or expendable monsters)
+            // STRICT RULE: NEVER send Protected Bosses (Dingirsu, Galatea, etc.) or Key Backrow (Babel, Crescendo)
+            int sendableHand = Bot.Hand.Count(c => c != Card && !_plugin.OrcustMat.IsProtectedBoss(c));
+            int sendableMonsters = Bot.GetMonsters().Count(m => m != null && m.IsFaceup() && !_plugin.OrcustMat.IsProtectedBoss(m) && !m.HasType(CardType.Token));
+            int sendableSpells = Bot.GetSpells().Count(s => s != null && s != Card && s.IsFaceup() && s.Id != CardId.OrcustratedBabel && s.Id != CardId.OrcustCrescendo);
+
+            return (sendableHand + sendableMonsters + sendableSpells) >= 1;
+        }
+
+        private bool ShouldTTTActivate()
+        {
+            if (_plugin.OrcustStrat.TripleTacticsTalentUsed) return false;
+            _plugin.OrcustStrat.TripleTacticsTalentUsed = true;
+            return true;
         }
 
         private bool ShouldTYPHONSpSummon()
         {
             if (Bot.HasInMonstersZone(CardId.TYPHON)) return false;
-            return Enemy.GetMonsters().Any(m => m != null && m.Attack >= 3000);
+            return Enemy.GetMonsters().Any(m => m != null && m.Attack >= 2800);
         }
 
         private bool ShouldTYPHONActivate()
@@ -400,59 +474,84 @@ namespace WindBot.Game.AI.Decks
         {
             return Enemy.GetMonsterCount() > 0 || Enemy.GetSpellCount() > 0;
         }
+
+        private bool ShouldKnightmarePhoenixActivate()
+        {
+            return Enemy.GetSpellCount() > 0 && Bot.Hand.Any(c => c != Card);
+        }
+
+        private bool ShouldKnightmareCerberusActivate()
+        {
+            return Enemy.GetMonsters().Any(m => m != null && m.IsFaceup() && m.HasType(CardType.SpSummon)) && Bot.Hand.Any(c => c != Card);
+        }
         #endregion
 
-        #region Tier 2: Searchers & Setup
+        #region Tier 2: Searchers & Spells
+        private bool ShouldRotAActivate()
+        {
+            if (_plugin.OrcustStrat.RotAUsed) return false;
+            _plugin.OrcustStrat.RotAUsed = true;
+            return true;
+        }
+
         private bool ShouldFoolishBurialActivate()
-        {
-            return true;
-        }
-
-        private bool ShouldFoolishBurialGoodsActivate()
-        {
-            return true;
-        }
-
-        private bool ShouldPotOfProsperityActivate()
         {
             return true;
         }
 
         private bool ShouldOrcustratedReturnActivate()
         {
-            if (_plugin.Strategy.OrcustratedReturnUsed) return false;
-            bool hasTarget = Bot.Hand.Any(c => c != Card && (OrcustStrategy.IsOrcustCard(c) || OrcustStrategy.IsWorldLegacyCard(c))) ||
-                             Bot.GetMonsters().Any(m => m != null && !_plugin.MaterialScorer.IsProtectedBoss(m) && (OrcustStrategy.IsOrcustCard(m) || OrcustStrategy.IsWorldLegacyCard(m)));
+            if (_plugin.OrcustStrat.OrcustratedReturnUsed) return false;
+            // Prefer sending from hand; if sending from field, MUST be an expendable non-boss
+            bool hasHandTarget = Bot.Hand.Any(c => c != Card && (OrcustStrategy.IsOrcustCard(c) || OrcustStrategy.IsWorldLegacyCard(c)));
+            bool hasFieldTarget = Bot.GetMonsters().Any(m => m != null && m.IsFaceup() && !_plugin.OrcustMat.IsProtectedBoss(m) && (OrcustStrategy.IsOrcustCard(m) || OrcustStrategy.IsWorldLegacyCard(m)));
 
-            if (hasTarget)
+            if (hasHandTarget || hasFieldTarget)
             {
-                _plugin.Strategy.OrcustratedReturnUsed = true;
+                _plugin.OrcustStrat.OrcustratedReturnUsed = true;
                 return true;
+            }
+            return false;
+        }
+
+        private bool ShouldBabelActivate()
+        {
+            if (Card.Location == CardLocation.Hand)
+            {
+                return !_plugin.OrcustStrat.HasBabelOnField();
+            }
+            if (Card.Location == CardLocation.Grave)
+            {
+                return Bot.Hand.Count >= 2 && !_plugin.OrcustStrat.HasBabelOnField();
             }
             return false;
         }
         #endregion
 
-        #region Tier 3: Field Spell
-        private bool ShouldBabelActivate()
+        #region Tier 3: Special Summons from Hand
+        private bool ShouldDarkGrepherSpSummon()
         {
-            if (Card.Location == CardLocation.Hand)
+            if (_plugin.OrcustStrat.DarkGrepherSpSummonUsed) return false;
+            // Can discard 1 Lv5+ DARK monster (WorldWand / Knightmare)
+            bool hasLv5Dark = Bot.Hand.Any(c => c != Card && (c.Attribute & (int)CardAttribute.Dark) != 0 && c.Level >= 5);
+            if (hasLv5Dark)
             {
-                return !_plugin.Strategy.HasBabelOnField();
-            }
-            if (Card.Location == CardLocation.Grave)
-            {
-                // Send 1 card from hand to add Babel back to hand
-                return Bot.Hand.Count >= 2 && !_plugin.Strategy.HasBabelOnField();
+                _plugin.OrcustStrat.DarkGrepherSpSummonUsed = true;
+                return true;
             }
             return false;
+        }
+
+        private bool ShouldWorldCrownSpSummon()
+        {
+            return Bot.GetMonsters().Any(m => m != null && m.IsFaceup() && m.HasType(CardType.Link));
         }
         #endregion
 
         #region Tier 4: Normal Summons
         private bool ShouldGirsuSummon()
         {
-            return !_plugin.Strategy.GirsuSummonUsed;
+            return !_plugin.OrcustStrat.GirsuSummonUsed;
         }
 
         private bool ShouldGirsuActivate()
@@ -460,68 +559,115 @@ namespace WindBot.Game.AI.Decks
             // Effect 1: Dump Orcust from Deck to GY
             if (ActivateDescription == -1 || Card.Location == CardLocation.MonsterZone)
             {
-                _plugin.Strategy.GirsuSummonUsed = true;
+                _plugin.OrcustStrat.GirsuSummonUsed = true;
                 return true;
             }
             // Effect 2: Spawn Tokens to both fields
-            if (Bot.GetMonsterCount() <= 1 && !_plugin.Strategy.GirsuTokenUsed)
+            if (Bot.GetMonsterCount() <= 1 && !_plugin.OrcustStrat.GirsuTokenUsed)
             {
-                _plugin.Strategy.GirsuTokenUsed = true;
+                _plugin.OrcustStrat.GirsuTokenUsed = true;
                 return true;
             }
             return true;
         }
 
+        private bool ShouldScrapRecyclerSummon()
+        {
+            return Bot.GetMonsterCount() == 0 && !_plugin.OrcustStrat.GirsuSummonUsed;
+        }
+
+        private bool ShouldScrapRecyclerActivate()
+        {
+            _plugin.OrcustStrat.ScrapRecyclerUsed = true;
+            return true;
+        }
+
+        private bool ShouldArmageddonKnightSummon()
+        {
+            return Bot.GetMonsterCount() == 0 && !_plugin.OrcustStrat.GirsuSummonUsed && !_plugin.OrcustStrat.ScrapRecyclerUsed;
+        }
+
+        private bool ShouldArmageddonKnightActivate()
+        {
+            _plugin.OrcustStrat.ArmageddonKnightUsed = true;
+            return true;
+        }
+
+        private bool ShouldDarkGrepherSummon()
+        {
+            return Bot.GetMonsterCount() == 0 && !_plugin.OrcustStrat.GirsuSummonUsed && !_plugin.OrcustStrat.ScrapRecyclerUsed && !_plugin.OrcustStrat.ArmageddonKnightUsed;
+        }
+
+        private bool ShouldDarkGrepherActivate()
+        {
+            if (_plugin.OrcustStrat.DarkGrepherDumpUsed) return false;
+            // Ignition effect: discard 1 DARK monster to send 1 DARK from deck to GY
+            bool hasDarkInHand = Bot.Hand.Any(c => c != Card && (c.Attribute & (int)CardAttribute.Dark) != 0);
+            if (hasDarkInHand)
+            {
+                _plugin.OrcustStrat.DarkGrepherDumpUsed = true;
+                return true;
+            }
+            return false;
+        }
+
         private bool ShouldHarpHorrorSummon()
         {
-            return Bot.GetMonsterCount() == 0 && !Bot.HasInHand(CardId.Girsu);
+            return Bot.GetMonsterCount() == 0 && !Bot.HasInHand(CardId.Girsu) && !Bot.HasInHand(CardId.ScrapRecycler) && !Bot.HasInHand(CardId.ArmageddonKnight);
         }
 
         private bool ShouldCymbalSkeletonSummon()
         {
-            return Bot.GetMonsterCount() == 0 && !Bot.HasInHand(CardId.Girsu) && !Bot.HasInHand(CardId.OrcustHarpHorror);
+            return Bot.GetMonsterCount() == 0 && !Bot.HasInHand(CardId.Girsu) && !Bot.HasInHand(CardId.ScrapRecycler) && !Bot.HasInHand(CardId.ArmageddonKnight) && !Bot.HasInHand(CardId.OrcustHarpHorror);
         }
 
-        private bool ShouldKnightmareSummon()
+        private bool ShouldBrassBombardSummon()
         {
-            return Bot.GetMonsterCount() == 0 && !Bot.HasInHand(CardId.Girsu) && !Bot.HasInHand(CardId.OrcustHarpHorror) && !Bot.HasInHand(CardId.OrcustCymbalSkeleton);
+            return Bot.GetMonsterCount() == 0 && !Bot.HasInHand(CardId.Girsu) && !Bot.HasInHand(CardId.ScrapRecycler) && !Bot.HasInHand(CardId.ArmageddonKnight) && !Bot.HasInHand(CardId.OrcustHarpHorror) && !Bot.HasInHand(CardId.OrcustCymbalSkeleton);
         }
         #endregion
 
         #region Tier 5: GY Extenders & Ignition
-        private bool ShouldWorldCrownSpSummon()
+        private bool ShouldGalateaActivate()
         {
-            // Special summon to a zone a Link Monster points to
-            return Bot.GetMonsters().Any(m => m != null && m.IsFaceup() && m.HasType(CardType.Link));
+            if (Card.Location != CardLocation.MonsterZone) return false;
+            if (_plugin.OrcustStrat.GalateaUsed) return false;
+
+            // Target 1 banished Machine to shuffle into deck -> Set Orcust S/T
+            bool hasBanishedMachine = Bot.Banished.Any(c => c != null && (c.Race & (int)CardRace.Machine) != 0);
+            if (hasBanishedMachine)
+            {
+                _plugin.OrcustStrat.GalateaUsed = true;
+                return true;
+            }
+            return false;
         }
 
         private bool ShouldHarpHorrorGYActivate()
         {
             if (Card.Location != CardLocation.Grave) return false;
-            if (_plugin.Strategy.HarpHorrorUsed) return false;
+            if (_plugin.OrcustStrat.HarpHorrorUsed) return false;
 
-            // Only activate on our turn, OR on opponent turn if Babel is active
-            if (Duel.Player == 1 && !_plugin.Strategy.HasBabelOnField()) return false;
+            if (Duel.Player == 1 && !_plugin.OrcustStrat.HasBabelOnField()) return false;
 
-            _plugin.Strategy.HarpHorrorUsed = true;
-            _plugin.Strategy.IsDarkLockedThisTurn = true;
+            _plugin.OrcustStrat.HarpHorrorUsed = true;
+            _plugin.OrcustStrat.IsDarkLockedThisTurn = true;
             return true;
         }
 
         private bool ShouldKnightmareGYActivate()
         {
             if (Card.Location != CardLocation.Grave) return false;
-            if (_plugin.Strategy.OrcustKnightmareUsed) return false;
+            if (_plugin.OrcustStrat.OrcustKnightmareUsed) return false;
 
-            if (Duel.Player == 1 && !_plugin.Strategy.HasBabelOnField()) return false;
+            if (Duel.Player == 1 && !_plugin.OrcustStrat.HasBabelOnField()) return false;
 
-            // Target face-up monster on field
             var target = Bot.GetMonsters().FirstOrDefault(m => m != null && m.IsFaceup()) ?? Enemy.GetMonsters().FirstOrDefault(m => m != null && m.IsFaceup());
             if (target != null)
             {
                 AI.SelectCard(target);
-                _plugin.Strategy.OrcustKnightmareUsed = true;
-                _plugin.Strategy.IsDarkLockedThisTurn = true;
+                _plugin.OrcustStrat.OrcustKnightmareUsed = true;
+                _plugin.OrcustStrat.IsDarkLockedThisTurn = true;
                 return true;
             }
             return false;
@@ -530,39 +676,28 @@ namespace WindBot.Game.AI.Decks
         private bool ShouldWorldWandGYActivate()
         {
             if (Card.Location != CardLocation.Grave) return false;
-            if (_plugin.Strategy.WorldWandUsed) return false;
+            if (_plugin.OrcustStrat.WorldWandUsed) return false;
 
             bool hasBanishedOrcust = Bot.Banished.Any(c => OrcustStrategy.IsOrcustMonster(c));
             if (hasBanishedOrcust)
             {
-                _plugin.Strategy.WorldWandUsed = true;
-                _plugin.Strategy.IsDarkLockedThisTurn = true;
+                _plugin.OrcustStrat.WorldWandUsed = true;
+                _plugin.OrcustStrat.IsDarkLockedThisTurn = true;
                 return true;
             }
             return false;
         }
 
-        private bool ShouldCymbalSkeletonGYActivate()
+        private bool ShouldBrassBombardGYActivate()
         {
             if (Card.Location != CardLocation.Grave) return false;
-            if (_plugin.Strategy.CymbalSkeletonUsed) return false;
+            if (_plugin.OrcustStrat.BrassBombardUsed) return false;
 
-            // If opponent's turn without Babel, cannot activate
-            if (Duel.Player == 1 && !_plugin.Strategy.HasBabelOnField()) return false;
-
-            // On opponent turn with Babel: Wait for opponent to summon or commit to trigger Dingirsu non-targeting removal!
-            if (Duel.Player == 1 && _plugin.Strategy.HasBabelOnField())
+            bool hasOrcustInHand = Bot.Hand.Any(c => OrcustStrategy.IsOrcustMonster(c));
+            if (hasOrcustInHand)
             {
-                // Activate if enemy has monsters or activated card
-                bool oppThreat = Enemy.GetMonsterCount() > 0 || Duel.LastChainPlayer == 1;
-                if (!oppThreat) return false;
-            }
-
-            bool hasTarget = Bot.Graveyard.Any(c => c != Card && OrcustStrategy.IsOrcustMonster(c));
-            if (hasTarget)
-            {
-                _plugin.Strategy.CymbalSkeletonUsed = true;
-                _plugin.Strategy.IsDarkLockedThisTurn = true;
+                _plugin.OrcustStrat.BrassBombardUsed = true;
+                _plugin.OrcustStrat.IsDarkLockedThisTurn = true;
                 return true;
             }
             return false;
@@ -571,58 +706,74 @@ namespace WindBot.Game.AI.Decks
         private bool ShouldGalateaIActivate()
         {
             // Effect 1: Discard 1 -> Search Babel or World Legacy
-            if (Card.Location == CardLocation.MonsterZone && !_plugin.Strategy.GalateaISearchUsed)
+            if (Card.Location == CardLocation.MonsterZone && !_plugin.OrcustStrat.GalateaISearchUsed)
             {
-                _plugin.Strategy.GalateaISearchUsed = true;
-                return true;
+                if (Bot.Hand.Count >= 1 && !_plugin.OrcustStrat.HasBabelOnField())
+                {
+                    _plugin.OrcustStrat.GalateaISearchUsed = true;
+                    return true;
+                }
             }
 
-            // Effect 2: GY effect: Banish 1 Orcust to Special Summon self
-            if (Card.Location == CardLocation.Grave && !_plugin.Strategy.GalateaIGYUsed)
+            // Effect 2: GY effect: Banish 1 Orcust to Special Summon self (Provides Orcust Link for Crescendo!)
+            if (Card.Location == CardLocation.Grave && !_plugin.OrcustStrat.GalateaIGYUsed)
             {
-                bool canBanish = Bot.Graveyard.Any(c => c != Card && OrcustStrategy.IsOrcustCard(c) && c.Id != CardId.OrcustCymbalSkeleton);
-                if (canBanish)
+                bool canBanish = Bot.Graveyard.Any(c => c != Card && OrcustStrategy.IsOrcustCard(c) && c.Id != CardId.OrcustCymbalSkeleton && c.Id != CardId.Dingirsu && c.Id != CardId.DingirsuAlt);
+                if (canBanish && !Bot.GetMonsters().Any(m => m != null && m.IsFaceup() && m.HasType(CardType.Link) && OrcustStrategy.IsOrcustCard(m)))
                 {
-                    _plugin.Strategy.GalateaIGYUsed = true;
+                    _plugin.OrcustStrat.GalateaIGYUsed = true;
                     return true;
                 }
             }
             return false;
         }
 
-        private bool ShouldGalateaActivate()
+        private bool ShouldCymbalSkeletonGYActivate()
         {
-            if (Card.Location != CardLocation.MonsterZone) return false;
-            if (_plugin.Strategy.GalateaUsed) return false;
+            if (Card.Location != CardLocation.Grave) return false;
+            if (_plugin.OrcustStrat.CymbalSkeletonUsed) return false;
 
-            // Target 1 banished Machine to shuffle into deck -> Set Orcust S/T
-            bool hasBanishedMachine = Bot.Banished.Any(c => c != null && (c.Race & (int)CardRace.Machine) != 0);
-            if (hasBanishedMachine)
+            if (Duel.Player == 1 && !_plugin.OrcustStrat.HasBabelOnField()) return false;
+
+            // Opponent turn with Babel: Wait for opponent to commit card/summon before reviving Dingirsu to send!
+            if (Duel.Player == 1 && _plugin.OrcustStrat.HasBabelOnField())
             {
-                _plugin.Strategy.GalateaUsed = true;
+                bool oppThreat = Enemy.GetMonsterCount() > 0 || Duel.LastChainPlayer == 1;
+                if (!oppThreat) return false;
+            }
+
+            bool hasTarget = Bot.Graveyard.Any(c => c != Card && (c.Id == CardId.Dingirsu || c.Id == CardId.DingirsuAlt || OrcustStrategy.IsOrcustMonster(c)));
+            if (hasTarget)
+            {
+                _plugin.OrcustStrat.CymbalSkeletonUsed = true;
+                _plugin.OrcustStrat.IsDarkLockedThisTurn = true;
                 return true;
             }
             return false;
-        }
-
-        private bool ShouldCrescendoGYActivate()
-        {
-            if (Card.Location != CardLocation.Grave) return false;
-            if (_plugin.Strategy.CrescendoGYUsed) return false;
-
-            _plugin.Strategy.CrescendoGYUsed = true;
-            return true;
         }
         #endregion
 
         #region Tier 6: Extra Deck Summons
         private bool ShouldGalateaISpSummon()
         {
-            // Link-1: 1 Orcust or World Legacy monster
+            // NEVER summon Galatea-i if we already have an Ace Boss or Link on field!
+            if (Bot.HasInMonstersZone(CardId.Dingirsu) ||
+                Bot.HasInMonstersZone(CardId.DingirsuAlt) ||
+                Bot.HasInMonstersZone(CardId.Galatea) ||
+                Bot.HasInMonstersZone(CardId.GalateaI) ||
+                Bot.HasInMonstersZone(CardId.Longirsu))
+            {
+                return false;
+            }
+
+            // ONLY summon Galatea-i if we have exactly 1 main-deck expendable monster needing a GY bridge
+            if (Bot.GetMonsterCount() != 1) return false;
+
             var material = Bot.GetMonsters().FirstOrDefault(m => m != null && m.IsFaceup() &&
-                !m.HasType(CardType.Link) &&
+                m.Level > 0 &&
+                !m.HasType(CardType.Link | CardType.Xyz | CardType.Fusion | CardType.Synchro) &&
                 (OrcustStrategy.IsOrcustMonster(m) || OrcustStrategy.IsWorldLegacyCard(m)) &&
-                !_plugin.MaterialScorer.IsProtectedBoss(m));
+                !_plugin.OrcustMat.IsProtectedBoss(m));
 
             if (material != null)
             {
@@ -634,63 +785,162 @@ namespace WindBot.Game.AI.Decks
 
         private bool ShouldGalateaSpSummon()
         {
-            if (_plugin.Strategy.GalateaUsed) return false;
+            // STRICT RULE: Only 1 Galatea on field. NEVER link away Galatea for another Galatea!
+            if (Bot.HasInMonstersZone(CardId.Galatea)) return false;
 
-            var expendables = Bot.GetMonsters().Where(m => m != null && m.IsFaceup() && !_plugin.MaterialScorer.IsProtectedBoss(m)).ToList();
+            var expendables = Bot.GetMonsters().Where(m => m != null && m.IsFaceup() && !_plugin.OrcustMat.IsProtectedBoss(m)).ToList();
             bool hasOrcust = expendables.Any(m => OrcustStrategy.IsOrcustMonster(m));
-            return expendables.Count >= 2 && hasOrcust;
-        }
-
-        private bool ShouldDingirsuSpSummon()
-        {
-            if (_plugin.Strategy.DingirsuSummonedThisTurn) return false;
-
-            // Overlay onto Galatea, Galatea-i, or Longirsu!
-            var orcustLink = Bot.GetMonsters().FirstOrDefault(m => m != null && m.IsFaceup() && m.HasType(CardType.Link) && OrcustStrategy.IsOrcustCard(m));
-            if (orcustLink != null)
+            if (expendables.Count >= 2 && hasOrcust)
             {
-                AI.SelectCard(orcustLink);
-                _plugin.Strategy.DingirsuSummonedThisTurn = true;
+                AI.SelectCard(expendables);
                 return true;
             }
             return false;
         }
 
+        private bool ShouldDingirsuSpSummon()
+        {
+            if (_plugin.OrcustStrat.DingirsuSummonedThisTurn) return false;
+            if (Bot.HasInMonstersZone(CardId.Dingirsu) || Bot.HasInMonstersZone(CardId.DingirsuAlt)) return false;
+
+            // ONLY overlay onto Galatea, Longirsu, or Enlilgirsu — NEVER Galatea-i!
+            var orcustLink = Bot.GetMonsters().FirstOrDefault(m => m != null && m.IsFaceup() &&
+                (m.Id == CardId.Galatea || m.Id == CardId.Longirsu || m.Id == CardId.Enlilgirsu));
+
+            if (orcustLink != null)
+            {
+                // CRITICAL SAFETY: If overlaying on Galatea, ensure Galatea has already activated her effect
+                // OR we have no banished Machine to shuffle and need Dingirsu now
+                if (orcustLink.Id == CardId.Galatea && !_plugin.OrcustStrat.GalateaUsed)
+                {
+                    bool hasBanishedMachine = Bot.Banished.Any(c => c != null && (c.Race & (int)CardRace.Machine) != 0);
+                    if (hasBanishedMachine)
+                    {
+                        return false; // Let Galatea activate first!
+                    }
+                }
+
+                AI.SelectCard(orcustLink);
+                _plugin.OrcustStrat.DingirsuSummonedThisTurn = true;
+                return true;
+            }
+            return false;
+        }
+
+        private bool ShouldLongirsuSpSummon()
+        {
+            if (Bot.HasInMonstersZone(CardId.Longirsu)) return false;
+
+            // NEVER sacrifice Dingirsu or Galatea!
+            // Only summon Longirsu if we have 3+ expendable monsters on field, and one is Orcust
+            var expendables = Bot.GetMonsters().Where(m => m != null && m.IsFaceup() && !_plugin.OrcustMat.IsProtectedBoss(m)).ToList();
+            bool hasOrcust = expendables.Any(m => OrcustStrategy.IsOrcustMonster(m));
+            if (expendables.Count >= 3 && hasOrcust)
+            {
+                AI.SelectCard(expendables);
+                return true;
+            }
+
+            return false;
+        }
+
         private bool ShouldIPMasquerenaSpSummon()
         {
-            if (Duel.Turn != 1) return false;
             if (Bot.HasInMonstersZone(CardId.IPMasquerena)) return false;
 
-            var nonLinkExpendables = Bot.GetMonsters().Where(m => m != null && m.IsFaceup() && !m.HasType(CardType.Link) && !_plugin.MaterialScorer.IsProtectedBoss(m)).ToList();
-            return nonLinkExpendables.Count >= 2;
+            // Only make Masquerena on Turn 1 if we have 2+ EXPENDABLE non-link monsters
+            var expendables = Bot.GetMonsters().Where(m => m != null && m.IsFaceup() && !m.HasType(CardType.Link) && !_plugin.OrcustMat.IsProtectedBoss(m)).ToList();
+            if (expendables.Count >= 2 && Duel.Turn == 1)
+            {
+                AI.SelectCard(expendables);
+                return true;
+            }
+            return false;
+        }
+
+        private bool ShouldKnightmarePhoenixSpSummon()
+        {
+            if (Bot.HasInMonstersZone(CardId.KnightmarePhoenix)) return false;
+            var expendables = Bot.GetMonsters().Where(m => m != null && m.IsFaceup() && !_plugin.OrcustMat.IsProtectedBoss(m)).ToList();
+            if (expendables.Count >= 2 && Enemy.GetSpellCount() > 0 && Bot.Hand.Any(c => c != Card))
+            {
+                AI.SelectCard(expendables);
+                return true;
+            }
+            return false;
+        }
+
+        private bool ShouldKnightmareCerberusSpSummon()
+        {
+            if (Bot.HasInMonstersZone(CardId.KnightmareCerberus)) return false;
+            var expendables = Bot.GetMonsters().Where(m => m != null && m.IsFaceup() && !_plugin.OrcustMat.IsProtectedBoss(m)).ToList();
+            if (expendables.Count >= 2 && Enemy.GetMonsters().Any(m => m != null && m.IsFaceup() && m.HasType(CardType.SpSummon)) && Bot.Hand.Any(c => c != Card))
+            {
+                AI.SelectCard(expendables);
+                return true;
+            }
+            return false;
+        }
+
+        private bool ShouldDharcSpSummon()
+        {
+            if (Bot.HasInMonstersZone(CardId.DharcTheDarkCharmer)) return false;
+            var expendables = Bot.GetMonsters().Where(m => m != null && m.IsFaceup() && !_plugin.OrcustMat.IsProtectedBoss(m)).ToList();
+            bool enemyHasDarkInGY = Enemy.Graveyard.Any(c => (c.Attribute & (int)CardAttribute.Dark) != 0);
+            if (expendables.Count >= 2 && enemyHasDarkInGY)
+            {
+                AI.SelectCard(expendables);
+                return true;
+            }
+            return false;
         }
 
         private bool ShouldSPLittleKnightSpSummon()
         {
             if (Bot.HasInMonstersZone(CardId.SPLittleKnight)) return false;
-            var expendables = Bot.GetMonsters().Where(m => m != null && m.IsFaceup() && !_plugin.MaterialScorer.IsProtectedBoss(m)).ToList();
-            return expendables.Count >= 2 && (Enemy.GetMonsterCount() > 0 || Enemy.GetSpellCount() > 0);
-        }
-
-        private bool ShouldLongirsuSpSummon()
-        {
-            var expendables = Bot.GetMonsters().Where(m => m != null && m.IsFaceup() && !_plugin.MaterialScorer.IsProtectedBoss(m)).ToList();
-            return expendables.Count >= 3;
+            var expendables = Bot.GetMonsters().Where(m => m != null && m.IsFaceup() && !_plugin.OrcustMat.IsProtectedBoss(m)).ToList();
+            if (expendables.Count >= 2 && (Enemy.GetMonsterCount() > 0 || Enemy.GetSpellCount() > 0 || Duel.Player == 1))
+            {
+                AI.SelectCard(expendables);
+                return true;
+            }
+            return false;
         }
 
         private bool ShouldEnlilgirsuSpSummon()
         {
-            var expendables = Bot.GetMonsters().Where(m => m != null && m.IsFaceup() && !_plugin.MaterialScorer.IsProtectedBoss(m)).ToList();
+            if (Bot.HasInMonstersZone(CardId.Enlilgirsu)) return false;
+            var expendables = Bot.GetMonsters().Where(m => m != null && m.IsFaceup() && !_plugin.OrcustMat.IsProtectedBoss(m)).ToList();
             bool hasOrcustLink = expendables.Any(m => m.HasType(CardType.Link) && OrcustStrategy.IsOrcustCard(m));
-            return expendables.Count >= 3 && hasOrcustLink;
+            if (expendables.Count >= 3 && hasOrcustLink && Enemy.GetMonsterCount() > 0)
+            {
+                AI.SelectCard(expendables);
+                return true;
+            }
+            return false;
         }
 
         private bool ShouldAccesscodeSpSummon()
         {
-            // Link-4 finisher for OTK
-            var link3or2 = Bot.GetMonsters().FirstOrDefault(m => m != null && m.IsFaceup() && m.HasType(CardType.Link) && m.LinkMarker >= 2);
-            var other = Bot.GetMonsters().FirstOrDefault(m => m != null && m.IsFaceup() && m != link3or2);
-            return link3or2 != null && other != null && (Enemy.GetMonsterCount() > 0 || Enemy.LifePoints <= 5300);
+            // Accesscode Talker requires 2+ Effect Monsters
+            // NEVER use Dingirsu as material!
+            var link3or2 = Bot.GetMonsters().FirstOrDefault(m => m != null && m.IsFaceup() && m.HasType(CardType.Link) && m.LinkMarker >= 2 && !_plugin.OrcustMat.IsProtectedBoss(m));
+            // If no expendable Link-2/3, allow upgrading Longirsu or Little Knight ONLY if going for game
+            if (link3or2 == null && (Enemy.LifePoints <= 5300 || _plugin.BoardAssessor.HasLethalOnBoard()))
+            {
+                link3or2 = Bot.GetMonsters().FirstOrDefault(m => m != null && m.IsFaceup() && m.HasType(CardType.Link) && m.LinkMarker >= 2 && m.Id != CardId.Dingirsu && m.Id != CardId.DingirsuAlt);
+            }
+            if (link3or2 == null) return false;
+
+            var otherExpendables = Bot.GetMonsters().Where(m => m != null && m.IsFaceup() && m != link3or2 && !_plugin.OrcustMat.IsProtectedBoss(m)).ToList();
+            if (!otherExpendables.Any()) return false;
+
+            if (Enemy.GetMonsterCount() > 0 || Enemy.LifePoints <= 5300)
+            {
+                AI.SelectCard(new[] { link3or2, otherExpendables[0] });
+                return true;
+            }
+            return false;
         }
         #endregion
 
@@ -700,7 +950,17 @@ namespace WindBot.Game.AI.Decks
             return Duel.Player == 0 && Duel.Phase == DuelPhase.Main2;
         }
 
+        private bool ShouldDropletSet()
+        {
+            return Duel.Player == 0;
+        }
+
         private bool ShouldCalledBySet()
+        {
+            return Duel.Player == 0;
+        }
+
+        private bool ShouldCrossoutSet()
         {
             return Duel.Player == 0;
         }
@@ -712,14 +972,26 @@ namespace WindBot.Game.AI.Decks
             // Hint 500: Release / Tribute
             if (hint == 500)
             {
-                var sorted = cards.OrderByDescending(c => _plugin.MaterialScorer.ScoreTributeOrCostMaterial(c)).ToList();
+                var nonBoss = cards.Where(c => !_plugin.OrcustMat.IsProtectedBoss(c)).ToList();
+                if (!nonBoss.Any())
+                {
+                    if (cancelable) return new List<ClientCard>();
+                    nonBoss = cards.ToList();
+                }
+                var sorted = nonBoss.OrderByDescending(c => _plugin.OrcustMat.ScoreTributeOrCostMaterial(c)).ToList();
                 return sorted.Take(min).ToList();
             }
 
             // Hint 501: Discard
             if (hint == 501)
             {
-                var sorted = cards.OrderByDescending(c => _plugin.MaterialScorer.ScoreDiscardMaterial(c)).ToList();
+                var nonBoss = cards.Where(c => !_plugin.OrcustMat.IsProtectedBoss(c)).ToList();
+                if (!nonBoss.Any())
+                {
+                    if (cancelable) return new List<ClientCard>();
+                    nonBoss = cards.ToList();
+                }
+                var sorted = nonBoss.OrderByDescending(c => _plugin.OrcustMat.ScoreDiscardMaterial(c)).ToList();
                 return sorted.Take(min).ToList();
             }
 
@@ -729,7 +1001,7 @@ namespace WindBot.Game.AI.Decks
                 var oppCards = cards.Where(c => c.Controller == 1).ToList();
                 if (oppCards.Any())
                 {
-                    var sorted = oppCards.OrderByDescending(c => _plugin.ThreatEvaluator.EvaluateTargetPriority(c)).ToList();
+                    var sorted = oppCards.OrderByDescending(c => _plugin.OrcustThreat.EvaluateTargetPriority(c)).ToList();
                     return sorted.Take(Math.Min(max, sorted.Count)).ToList();
                 }
                 if (cancelable)
@@ -744,7 +1016,7 @@ namespace WindBot.Game.AI.Decks
                 var oppCards = cards.Where(c => c.Controller == 1).ToList();
                 if (oppCards.Any())
                 {
-                    var sorted = oppCards.OrderByDescending(c => _plugin.ThreatEvaluator.EvaluateTargetPriority(c)).ToList();
+                    var sorted = oppCards.OrderByDescending(c => _plugin.OrcustThreat.EvaluateTargetPriority(c)).ToList();
                     return sorted.Take(Math.Min(max, sorted.Count)).ToList();
                 }
                 if (cancelable)
@@ -753,42 +1025,76 @@ namespace WindBot.Game.AI.Decks
                 }
             }
 
-            // Hint 504: Send to GY (Dingirsu non-targeting send OR Foolish effect)
+            // Hint 504: Send to GY (Dingirsu non-targeting send OR Foolish / Starter dumping OR Droplet / Cost send)
             if (hint == 504)
             {
                 var oppCards = cards.Where(c => c.Controller == 1).ToList();
                 if (oppCards.Any())
                 {
-                    var sorted = oppCards.OrderByDescending(c => _plugin.ThreatEvaluator.EvaluateTargetPriority(c)).ToList();
+                    var sorted = oppCards.OrderByDescending(c => _plugin.OrcustThreat.EvaluateTargetPriority(c)).ToList();
                     return sorted.Take(min).ToList();
                 }
 
-                // Foolish dumping priority (Deck -> GY)
-                var selected = new List<ClientCard>();
-                var harp = cards.FirstOrDefault(c => c.Id == CardId.OrcustHarpHorror && !_plugin.Strategy.HarpHorrorUsed);
-                if (harp != null) selected.Add(harp);
-
-                var knightmare = cards.FirstOrDefault(c => c.Id == CardId.OrcustKnightmare && !_plugin.Strategy.OrcustKnightmareUsed);
-                if (knightmare != null && !selected.Contains(knightmare)) selected.Add(knightmare);
-
-                var wand = cards.FirstOrDefault(c => c.Id == CardId.WorldWand && !_plugin.Strategy.WorldWandUsed);
-                if (wand != null && !selected.Contains(wand)) selected.Add(wand);
-
-                var cymbal = cards.FirstOrDefault(c => c.Id == CardId.OrcustCymbalSkeleton && !_plugin.Strategy.CymbalSkeletonUsed);
-                if (cymbal != null && !selected.Contains(cymbal)) selected.Add(cymbal);
-
-                var crescendo = cards.FirstOrDefault(c => c.Id == CardId.OrcustCrescendo && !_plugin.Strategy.CrescendoGYUsed);
-                if (crescendo != null && !selected.Contains(crescendo)) selected.Add(crescendo);
-
-                var goat = cards.FirstOrDefault(c => c.Id == CardId.TheBlackGoatLaughs);
-                if (goat != null && !selected.Contains(goat)) selected.Add(goat);
-
-                foreach (var c in cards)
+                // Check if this is Deck dumping (e.g. Foolish Burial, Scrap Recycler, Armageddon Knight, Girsu)
+                bool isDeckDump = cards.Any(c => c.Location == CardLocation.Deck);
+                if (isDeckDump)
                 {
-                    if (selected.Count >= min) break;
-                    if (!selected.Contains(c)) selected.Add(c);
+                    // Starter dumping priority (Deck -> GY)
+                    var selected = new List<ClientCard>();
+                    var harp = cards.FirstOrDefault(c => c.Id == CardId.OrcustHarpHorror && !_plugin.OrcustStrat.HarpHorrorUsed);
+                    if (harp != null) selected.Add(harp);
+
+                    var knightmare = cards.FirstOrDefault(c => c.Id == CardId.OrcustKnightmare && !_plugin.OrcustStrat.OrcustKnightmareUsed);
+                    if (knightmare != null && !selected.Contains(knightmare)) selected.Add(knightmare);
+
+                    var wand = cards.FirstOrDefault(c => c.Id == CardId.WorldWand && !_plugin.OrcustStrat.WorldWandUsed);
+                    if (wand != null && !selected.Contains(wand)) selected.Add(wand);
+
+                    var cymbal = cards.FirstOrDefault(c => c.Id == CardId.OrcustCymbalSkeleton && !_plugin.OrcustStrat.CymbalSkeletonUsed);
+                    if (cymbal != null && !selected.Contains(cymbal)) selected.Add(cymbal);
+
+                    var brass = cards.FirstOrDefault(c => c.Id == CardId.OrcustBrassBombard && !_plugin.OrcustStrat.BrassBombardUsed);
+                    if (brass != null && !selected.Contains(brass)) selected.Add(brass);
+
+                    var girsu = cards.FirstOrDefault(c => c.Id == CardId.Girsu);
+                    if (girsu != null && !selected.Contains(girsu)) selected.Add(girsu);
+
+                    foreach (var c in cards)
+                    {
+                        if (selected.Count >= min) break;
+                        if (!selected.Contains(c)) selected.Add(c);
+                    }
+                    return selected.Take(min).ToList();
                 }
-                return selected.Take(min).ToList();
+
+                // Otherwise, this is sending cards from Field or Hand as COST (e.g. Forbidden Droplet, Orcustrated Return, etc.)
+                // STRICT RULE: NEVER SEND PROTECTED BOSSES (Dingirsu, Galatea, Longirsu, Accesscode, Little Knight, etc.)!
+                var validCostCards = cards.Where(c => !_plugin.OrcustMat.IsProtectedBoss(c)).ToList();
+                if (!validCostCards.Any())
+                {
+                    if (cancelable) return new List<ClientCard>();
+                    validCostCards = cards.ToList();
+                }
+
+                var costSorted = validCostCards.OrderByDescending(c =>
+                {
+                    if (c.Location == CardLocation.Hand)
+                    {
+                        return _plugin.OrcustMat.ScoreDiscardMaterial(c);
+                    }
+                    else if (c.Location == CardLocation.MonsterZone)
+                    {
+                        return _plugin.OrcustMat.ScoreTributeOrCostMaterial(c);
+                    }
+                    else if (c.Location == CardLocation.SpellZone)
+                    {
+                        if (c.Id == CardId.OrcustratedBabel || c.Id == CardId.OrcustCrescendo) return -9999;
+                        return 500;
+                    }
+                    return 100;
+                }).ToList();
+
+                return costSorted.Take(min).ToList();
             }
 
             // Hint 506: Add to Hand / Search
@@ -796,11 +1102,24 @@ namespace WindBot.Game.AI.Decks
             {
                 var selected = new List<ClientCard>();
 
-                // Galatea-i / Crescendo search priority:
-                if (!_plugin.Strategy.HasBabelOnField() && !Bot.HasInHand(CardId.OrcustratedBabel))
+                // RotA search priority: ArmageddonKnight > DarkGrepher
+                var arma = cards.FirstOrDefault(c => c.Id == CardId.ArmageddonKnight && !_plugin.OrcustStrat.ArmageddonKnightUsed && Bot.GetMonsterCount() == 0);
+                if (arma != null) selected.Add(arma);
+
+                var grepher = cards.FirstOrDefault(c => c.Id == CardId.DarkGrepher);
+                if (grepher != null && !selected.Contains(grepher)) selected.Add(grepher);
+
+                // Galatea / Galatea-i search priority:
+                if (!Bot.SpellZone.Any(s => s != null && s.Id == CardId.OrcustCrescendo))
+                {
+                    var crescendo = cards.FirstOrDefault(c => c.Id == CardId.OrcustCrescendo);
+                    if (crescendo != null && !selected.Contains(crescendo)) selected.Add(crescendo);
+                }
+
+                if (!_plugin.OrcustStrat.HasBabelOnField() && !Bot.HasInHand(CardId.OrcustratedBabel))
                 {
                     var babel = cards.FirstOrDefault(c => c.Id == CardId.OrcustratedBabel);
-                    if (babel != null) selected.Add(babel);
+                    if (babel != null && !selected.Contains(babel)) selected.Add(babel);
                 }
 
                 var girsu = cards.FirstOrDefault(c => c.Id == CardId.Girsu);
@@ -825,18 +1144,20 @@ namespace WindBot.Game.AI.Decks
             {
                 var selected = new List<ClientCard>();
 
-                // Galatea-i, World Wand, Harp, Cymbal
-                var galateaI = cards.FirstOrDefault(c => c.Id == CardId.GalateaI);
-                if (galateaI != null) selected.Add(galateaI);
+                var harp = cards.FirstOrDefault(c => c.Id == CardId.OrcustHarpHorror);
+                if (harp != null) selected.Add(harp);
 
                 var wand = cards.FirstOrDefault(c => c.Id == CardId.WorldWand);
                 if (wand != null && !selected.Contains(wand)) selected.Add(wand);
 
-                var harp = cards.FirstOrDefault(c => c.Id == CardId.OrcustHarpHorror);
-                if (harp != null && !selected.Contains(harp)) selected.Add(harp);
+                var brass = cards.FirstOrDefault(c => c.Id == CardId.OrcustBrassBombard);
+                if (brass != null && !selected.Contains(brass)) selected.Add(brass);
 
                 var cymbal = cards.FirstOrDefault(c => c.Id == CardId.OrcustCymbalSkeleton);
                 if (cymbal != null && !selected.Contains(cymbal)) selected.Add(cymbal);
+
+                var galateaI = cards.FirstOrDefault(c => c.Id == CardId.GalateaI);
+                if (galateaI != null && !selected.Contains(galateaI)) selected.Add(galateaI);
 
                 foreach (var c in cards)
                 {
@@ -852,21 +1173,27 @@ namespace WindBot.Game.AI.Decks
                 var selected = new List<ClientCard>();
 
                 // Cymbal Skeleton revive priority: Dingirsu!
-                var dingirsu = cards.FirstOrDefault(c => c.Id == CardId.Dingirsu);
+                var dingirsu = cards.FirstOrDefault(c => c.Id == CardId.Dingirsu || c.Id == CardId.DingirsuAlt);
                 if (dingirsu != null) selected.Add(dingirsu);
 
                 var galatea = cards.FirstOrDefault(c => c.Id == CardId.Galatea);
                 if (galatea != null && !selected.Contains(galatea)) selected.Add(galatea);
 
-                // Harp Horror deck summon priority: Girsu > Cymbal > Knightmare
-                var girsu = cards.FirstOrDefault(c => c.Id == CardId.Girsu);
-                if (girsu != null && !selected.Contains(girsu)) selected.Add(girsu);
+                // Harp Horror deck summon priority:
+                if (Bot.GetMonsterCount() == 0)
+                {
+                    var girsu = cards.FirstOrDefault(c => c.Id == CardId.Girsu);
+                    if (girsu != null && !selected.Contains(girsu)) selected.Add(girsu);
+                }
 
                 var cymbal = cards.FirstOrDefault(c => c.Id == CardId.OrcustCymbalSkeleton);
                 if (cymbal != null && !selected.Contains(cymbal)) selected.Add(cymbal);
 
                 var knightmare = cards.FirstOrDefault(c => c.Id == CardId.OrcustKnightmare);
                 if (knightmare != null && !selected.Contains(knightmare)) selected.Add(knightmare);
+
+                var brass = cards.FirstOrDefault(c => c.Id == CardId.OrcustBrassBombard);
+                if (brass != null && !selected.Contains(brass)) selected.Add(brass);
 
                 foreach (var c in cards)
                 {
@@ -886,6 +1213,9 @@ namespace WindBot.Game.AI.Decks
                 var harp = cards.FirstOrDefault(c => c.Id == CardId.OrcustHarpHorror);
                 if (harp != null && !selected.Contains(harp)) selected.Add(harp);
 
+                var wand = cards.FirstOrDefault(c => c.Id == CardId.WorldWand);
+                if (wand != null && !selected.Contains(wand)) selected.Add(wand);
+
                 foreach (var c in cards)
                 {
                     if (selected.Count >= min) break;
@@ -893,14 +1223,20 @@ namespace WindBot.Game.AI.Decks
                 }
                 if (selected.Any()) return selected.Take(min).ToList();
 
-                var sorted = cards.OrderByDescending(c => _plugin.MaterialScorer.ScoreTributeOrCostMaterial(c)).ToList();
+                var sorted = cards.OrderByDescending(c => _plugin.OrcustMat.ScoreTributeOrCostMaterial(c)).ToList();
                 return sorted.Take(min).ToList();
             }
 
             // Hint 533: Link Material
             if (hint == 533)
             {
-                var sorted = cards.OrderByDescending(c => _plugin.MaterialScorer.ScoreTributeOrCostMaterial(c)).ToList();
+                var nonBoss = cards.Where(c => !_plugin.OrcustMat.IsProtectedBoss(c)).ToList();
+                if (!nonBoss.Any())
+                {
+                    if (cancelable) return new List<ClientCard>();
+                    nonBoss = cards.ToList();
+                }
+                var sorted = nonBoss.OrderByDescending(c => _plugin.OrcustMat.ScoreTributeOrCostMaterial(c)).ToList();
                 return sorted.Take(min).ToList();
             }
 
@@ -919,8 +1255,20 @@ namespace WindBot.Game.AI.Decks
                 hint != 513 && // Xyz material
                 hint != 533)   // Link material
             {
-                var sorted = oppCardsGeneric.OrderByDescending(c => _plugin.ThreatEvaluator.EvaluateTargetPriority(c)).ToList();
+                var sorted = oppCardsGeneric.OrderByDescending(c => _plugin.OrcustThreat.EvaluateTargetPriority(c)).ToList();
                 return sorted.Take(Math.Min(max, sorted.Count)).ToList();
+            }
+
+            // Protect our own boss monsters in any unexpected selection fallback
+            var ourCardsGeneric = cards.Where(c => c.Controller == 0).ToList();
+            if (ourCardsGeneric.Any())
+            {
+                var nonBoss = ourCardsGeneric.Where(c => !_plugin.OrcustMat.IsProtectedBoss(c)).ToList();
+                if (nonBoss.Count >= min)
+                {
+                    var sorted = nonBoss.OrderByDescending(c => _plugin.OrcustMat.ScoreTributeOrCostMaterial(c)).ToList();
+                    return sorted.Take(min).ToList();
+                }
             }
 
             return base.OnSelectCard(cards, min, max, hint, cancelable);
@@ -931,20 +1279,37 @@ namespace WindBot.Game.AI.Decks
             // Dingirsu On-Summon options:
             // Option 0: Send 1 card your opponent controls to the GY
             // Option 1: Attach 1 of your banished Machine monsters to this card as material
-            long opt0 = Util.GetStringId(CardId.Dingirsu, 0);
-            long opt1 = Util.GetStringId(CardId.Dingirsu, 1);
+            long ding0 = Util.GetStringId(CardId.Dingirsu, 0);
+            long ding1 = Util.GetStringId(CardId.Dingirsu, 1);
 
-            if (options.Contains(opt0) && (Enemy.GetMonsterCount() > 0 || Enemy.GetSpellCount() > 0))
+            if (options.Contains(ding0) && (Enemy.GetMonsterCount() > 0 || Enemy.GetSpellCount() > 0))
             {
-                return options.IndexOf(opt0);
+                return options.IndexOf(ding0);
             }
-            if (options.Contains(opt1) && Bot.Banished.Any(c => c != null && (c.Race & (int)CardRace.Machine) != 0))
+            if (options.Contains(ding1) && Bot.Banished.Any(c => c != null && (c.Race & (int)CardRace.Machine) != 0))
             {
-                return options.IndexOf(opt1);
+                return options.IndexOf(ding1);
             }
-            if (options.Contains(opt0))
+            if (options.Contains(ding0))
             {
-                return options.IndexOf(opt0);
+                return options.IndexOf(ding0);
+            }
+
+            // Triple Tactics Talent options:
+            // Option 0: Draw 2 cards
+            // Option 1: Take control of 1 monster opponent controls until End Phase
+            // Option 2: Look at opponent's hand and choose 1 card to shuffle into Deck
+            long ttt0 = Util.GetStringId(CardId.TripleTacticsTalent, 0);
+            long ttt1 = Util.GetStringId(CardId.TripleTacticsTalent, 1);
+            long ttt2 = Util.GetStringId(CardId.TripleTacticsTalent, 2);
+
+            if (options.Contains(ttt1) && Enemy.GetMonsterCount() > 0 && Duel.Player == 0 && Duel.Phase == DuelPhase.Main1)
+            {
+                return options.IndexOf(ttt1); // Take control of opponent's boss!
+            }
+            if (options.Contains(ttt0))
+            {
+                return options.IndexOf(ttt0); // Draw 2 cards!
             }
 
             return base.OnSelectOption(options);
@@ -952,7 +1317,7 @@ namespace WindBot.Game.AI.Decks
 
         public override CardPosition OnSelectPosition(int cardId, IList<CardPosition> positions)
         {
-            if (cardId == CardId.Dingirsu)
+            if (cardId == CardId.Dingirsu || cardId == CardId.DingirsuAlt)
             {
                 if (positions.Contains(CardPosition.FaceUpAttack)) return CardPosition.FaceUpAttack;
             }
