@@ -1,5 +1,44 @@
 # Progress Log: Central Core Architecture & Universal Heuristics Overhaul
 
+## 0.081. Central Core Competitive Heuristics & Universal Handtrap Anti-Bait Engine (2026-10-03)
+
+### 1. Universal Handtrap Anti-Bait Guard & Chain Safety
+- **Anti-Bait Heuristic**:
+  - เมื่อบอทถือ Handtrap เพียง 1 ใบ หรือมีปฏิสัมพันธ์จำกัด **ห้ามยิงใส่การ์ดจั่ว/การ์ดล่อ (Bait)** เช่น `Pot of Prosperity` (84211599), `Pot of Desires` (35261759), `Pot of Extravagance` (49238328/49238329), `Pot of Duality` (98645731), `Upstart Goblin`, `Chicken Game`, `Into the Void`, `Dark World Dealings`, `Hand Destruction`
+  - สงวน Handtrap ไว้ตัดตอน Starter และ Chokepoint สำคัญของคู่แข่งเท่านั้น
+- **Anti-Redundant Negate Check**:
+  - สกัดกั้นการใช้ Negate ซ้ำซ้อนใน Chain เดียวกัน (`Util.ChainContainsCard` และ `Duel.CurrentChain` check)
+- **Preemptive Impermanence**:
+  - ใน Turn 2 (Going Second) ช่วง Main Phase 1 หากบอทยังไม่มีมอนสเตอร์บนสนาม และคู่แข่งมี Floodgate/Boss Negator (เช่น Bagooska, Apollousa, Baronne) ให้ยิง Imperm จากมือก่อนลง Normal Summon
+- **Mulcharmy Integration**:
+  - เพิ่ม `DefaultMulcharmyFuwalos` และ `DefaultMulcharmyPurulia` ทำงานภายใต้เงื่อนไขสนามว่าง
+
+### 2. Modern Meta Chokepoint & Threat Matrix
+- ขยายฐานข้อมูล Chokepoint ใน `ChainTimingAdvisor` ให้ครอบคลุมการ์ดจุดตัดสำคัญของเมต้าปัจจุบัน:
+  - **Ryzeal**: Ice Ryzeal (`8633261`), Ryzeal Duo Drive (`7511613`), Ext Ryzeal (`34022970`), Node Ryzeal (`72238166`), Sword Ryzeal (`35844557`), Palm Ryzeal (`61116514`), Ryzeal Detonator (`34909328`), Ryzeal Cross (`6798031`), Ryzeal Plugin (`60394026`)
+  - **Maliss**: Maliss <P> White Rabbit (`69272449`), Maliss <P> Dormouse (`32061192`), Maliss <P> Chessy Cat (`96676583`), Maliss in Underground (`68337209`/`68337210`), Maliss <Q> Red Ransom (`68059897`), Maliss <Q> Hearts Crypter (`21848500`), Maliss <Q> White Binder (`95454996`)
+  - **Yubel & Fiendsmith**: Fiendsmith Engraver (`60764609`), Nightmare Throne (`93729896`), Phantom of Yubel (`80453041`), Samsara D Lotus (`62318994`)
+  - **Tenpai Dragon**: Tenpai Dragon Paidra (`39931513`), Sangen Kaimen (`66730191`)
+  - **Voiceless Voice**: Lo, the Prayers (`25801745`), Barrier of the Voiceless Voice (`98477480`)
+  - **Centur-Ion**: Centur-Ion Primera (`15005145`), Stand Up Centur-Ion! (`41371602`), Centur-Ion Primera Primus (`8841431`)
+  - **Orcust**: Orcust Harp Horror (`57835716`), Galatea (`30741503`), Girsu (`69811710`), Orcust Crescendo (`703897`)
+
+### 3. Competitive Nibiru Apex Drop Heuristic
+- **Boss Safeguard**: ห้ามทุบล้างสนามตนเองหากเราคุมบอร์ดบอส/Ace ชนะอยู่แล้ว และคู่แข่งไม่มีดาเมจ Lethal
+- **Apex Board Drop**: ทุบเมื่อคู่แข่งสะสมมอนสเตอร์ $\ge 3$ ตัว หรือพลังโจมตีรวม $\ge 3500$
+- **Preemptive Negate Drop**: ทุบตัดหน้าก่อนคู่แข่งจะทำมอนสเตอร์ Omni-Negate สำเร็จ
+- **Phase Transition Catch**: ดักทุบที่จุดจบ Main Phase หรือก่อนเข้า Battle Phase เพื่อตัดกำลังบุกทั้งหมด
+
+### 4. Headless Verification Results (Client_Headless_Fortest)
+- **`2026_Orcust` vs `BlueEyes`**: 2/2 Wins (100.0% Win Rate), 0 Violations, 0 Crash, Avg 18.0s
+- **`2026_Orcust` vs `DarkMagician`**: 2/2 Wins (100.0% Win Rate), 0 Violations, 0 Crash, Avg 12.8s
+- **Accesscode Talker Main 1 Constraint**: จำกัด Accesscode Talker ให้ลงเฉพาะ Main Phase 1 เท่านั้น เพื่อใช้เป็นบอร์ดเบรกเกอร์/ตัวปิดเกม ป้องกัน Timeout ลูปใน Main Phase 2
+
+### 5. Build & Exclusive Deployment
+- ไบนารีชุดใหม่ (`WindBot.dll`, `ExecutorBase.dll`, `core.dll`, `bots.json`, `DashBot.exe`) คอมไพล์และ Deploy ไปยัง `C:\Users\admin\Documents\EdoGame\` ครบถ้วน 100%
+
+---
+
 ## 0.080. OrcustWCQ Strict Self-Harm Prevention & Ace Protection Protocol (2026-10-03)
 
 ### 1. Log Root Cause Analysis & Elimination of Self-Harm

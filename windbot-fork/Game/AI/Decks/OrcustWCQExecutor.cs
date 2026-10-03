@@ -922,17 +922,15 @@ namespace WindBot.Game.AI.Decks
 
         private bool ShouldAccesscodeSpSummon()
         {
+            // Accesscode Talker is an OTK finisher / board breaker — Main Phase 1 ONLY
+            if (Duel.Phase != DuelPhase.Main1) return false;
+
             // Accesscode Talker requires 2+ Effect Monsters
             // NEVER use Dingirsu as material!
-            var link3or2 = Bot.GetMonsters().FirstOrDefault(m => m != null && m.IsFaceup() && m.HasType(CardType.Link) && m.LinkMarker >= 2 && !_plugin.OrcustMat.IsProtectedBoss(m));
-            // If no expendable Link-2/3, allow upgrading Longirsu or Little Knight ONLY if going for game
-            if (link3or2 == null && (Enemy.LifePoints <= 5300 || _plugin.BoardAssessor.HasLethalOnBoard()))
-            {
-                link3or2 = Bot.GetMonsters().FirstOrDefault(m => m != null && m.IsFaceup() && m.HasType(CardType.Link) && m.LinkMarker >= 2 && m.Id != CardId.Dingirsu && m.Id != CardId.DingirsuAlt);
-            }
+            var link3or2 = Bot.GetMonsters().FirstOrDefault(m => m != null && m.IsFaceup() && m.HasType(CardType.Link) && m.LinkMarker >= 2 && m.Id != CardId.Dingirsu && m.Id != CardId.DingirsuAlt && m.Id != CardId.AccesscodeTalker);
             if (link3or2 == null) return false;
 
-            var otherExpendables = Bot.GetMonsters().Where(m => m != null && m.IsFaceup() && m != link3or2 && !_plugin.OrcustMat.IsProtectedBoss(m)).ToList();
+            var otherExpendables = Bot.GetMonsters().Where(m => m != null && m.IsFaceup() && m != link3or2 && m.Id != CardId.Dingirsu && m.Id != CardId.DingirsuAlt && m.Id != CardId.AccesscodeTalker).ToList();
             if (!otherExpendables.Any()) return false;
 
             if (Enemy.GetMonsterCount() > 0 || Enemy.LifePoints <= 5300)
@@ -1230,7 +1228,8 @@ namespace WindBot.Game.AI.Decks
             // Hint 533: Link Material
             if (hint == 533)
             {
-                var nonBoss = cards.Where(c => !_plugin.OrcustMat.IsProtectedBoss(c)).ToList();
+                // Prefer non-boss materials; if none, allow using Link monsters (except Dingirsu and Accesscode)
+                var nonBoss = cards.Where(c => c.Id != CardId.Dingirsu && c.Id != CardId.DingirsuAlt && c.Id != CardId.AccesscodeTalker).ToList();
                 if (!nonBoss.Any())
                 {
                     if (cancelable) return new List<ClientCard>();

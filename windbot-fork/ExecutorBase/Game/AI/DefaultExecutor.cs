@@ -614,53 +614,115 @@ namespace WindBot.Game.AI
             return Duel.LastChainPlayer == 1;
         }
         /// <summary>
-        /// Always disable opponent's effect except some cards like UpstartGoblin
+        /// Universal Smart Ash Blossom: disables opponent search/summon from deck.
+        /// Anti-Bait Guard: Avoids wasting single Ash on low-value baits (Pot cards, Upstart, etc.).
+        /// Prevents duplicate Ash activations in the same chain.
         /// </summary>
-        protected bool DefaultAshBlossomAndJoyousSpring()
+        protected virtual bool DefaultAshBlossomAndJoyousSpring()
         {
+            if (Duel.LastChainPlayer != 1) return false;
+            if (Util.ChainContainsCard(_CardId.AshBlossom)) return false;
+
+            ClientCard lastCard = Util.GetLastChainCard();
+            if (lastCard == null) return false;
+
+            int lastId = lastCard.Id;
+            int altCode = lastCard.GetNonAltartCode();
+
             int[] ignoreList = {
                 _CardId.MacroCosmos,
                 _CardId.UpstartGoblin,
-                _CardId.CyberEmergency
+                _CardId.CyberEmergency,
+                _CardId.ChickenGame,
+                _CardId.PotOfExtravagance,
+                49238329, // Pot of Extravagance alt
+                84211599, // Pot of Prosperity
+                35261759, // Pot of Desires
+                98645731, // Pot of Duality
+                93946239, // Into the Void
+                74117290, // Dark World Dealings
+                74519184  // Hand Destruction
             };
-            if (Util.GetLastChainCard().IsCode(ignoreList))
+
+            if (lastCard.IsCode(ignoreList) || ignoreList.Contains(altCode))
+            {
+                // Strict Competitive Heuristic: If we only have 1 Ash Blossom or 1 interaction in hand,
+                // NEVER waste it on Pot of Extravagance / Desires / Prosperity / Upstart!
+                int handtrapCount = Bot.Hand.Count(c => c != null && CardIntelligence.IsHandtrap(c.Id));
+                if (handtrapCount <= 1)
+                    return false;
+            }
+
+            if (lastCard.HasSetcode(0x11e) && lastCard.Location == CardLocation.Hand) // Danger! archetype hand effect
                 return false;
-            if (Util.GetLastChainCard().HasSetcode(0x11e) && Util.GetLastChainCard().Location == CardLocation.Hand) // Danger! archtype hand effect
-                return false;
-            return Duel.LastChainPlayer == 1;
+
+            return true;
         }
         /// <summary>
-        /// Always activate unless the activating card is disabled
+        /// Always activate unless the activating card is disabled or duplicate in chain
         /// </summary>
-        protected bool DefaultGhostOgreAndSnowRabbit()
+        protected virtual bool DefaultGhostOgreAndSnowRabbit()
         {
-            if (Util.GetLastChainCard() != null && Util.GetLastChainCard().IsDisabled())
+            if (Util.ChainContainsCard(_CardId.GhostOgreAndSnowRabbit))
+                return false;
+            ClientCard lastCard = Util.GetLastChainCard();
+            if (lastCard != null && (lastCard.IsDisabled() || lastCard.IsShouldNotBeTarget()))
                 return false;
             return DefaultTrap();
         }
         /// <summary>
-        /// Always disable opponent's effect
+        /// Always disable opponent's GY effect, preventing duplicate in chain
         /// </summary>
-        protected bool DefaultGhostBelleAndHauntedMansion()
+        protected virtual bool DefaultGhostBelleAndHauntedMansion()
         {
+            if (Util.ChainContainsCard(_CardId.GhostBelle))
+                return false;
             return DefaultTrap();
         }
         /// <summary>
-        /// Same as DefaultBreakthroughSkill
+        /// Universal Effect Veiler: Target face-up opponent monster, check disabled & target-immune
         /// </summary>
-        protected bool DefaultEffectVeiler()
+        protected virtual bool DefaultEffectVeiler()
         {
             if (Util.GetLastChainCard() != null && Util.GetLastChainCard().IsCode(_CardId.GalaxySoldier) && Enemy.Hand.Count >= 3) return false;
             if (Util.ChainContainsCard(_CardId.EffectVeiler))
                 return false;
+            ClientCard lastCard = Util.GetLastChainCard();
+            if (lastCard != null && (lastCard.IsDisabled() || lastCard.IsShouldNotBeTarget() || lastCard.IsShouldNotBeMonsterTarget()))
+                return false;
             return DefaultBreakthroughSkill();
+        }
+        /// <summary>
+        /// Default Mulcharmy Fuwalos effect:
+        /// Can only activate if we control NO cards. Triggers on opponent SS from Deck/Extra Deck.
+        /// </summary>
+        protected virtual bool DefaultMulcharmyFuwalos()
+        {
+            if (Duel.Player != 1) return false;
+            if (Bot.GetMonsterCount() > 0 || Bot.GetSpellCount() > 0) return false;
+            if (resolvedEffectIdList.Contains(_CardId.MulcharmyFuwalos)) return false;
+            if (Util.ChainContainsCard(_CardId.MulcharmyFuwalos)) return false;
+            return Duel.LastChainPlayer == 1;
+        }
+        /// <summary>
+        /// Default Mulcharmy Purulia effect:
+        /// Can only activate if we control NO cards. Triggers on opponent Normal/Special summon from hand.
+        /// </summary>
+        protected virtual bool DefaultMulcharmyPurulia()
+        {
+            if (Duel.Player != 1) return false;
+            if (Bot.GetMonsterCount() > 0 || Bot.GetSpellCount() > 0) return false;
+            if (resolvedEffectIdList.Contains(_CardId.MulcharmyPurulia)) return false;
+            if (Util.ChainContainsCard(_CardId.MulcharmyPurulia)) return false;
+            return Duel.LastChainPlayer == 1;
         }
         /// <summary>
         /// Chain common hand traps and GY monsters
         /// </summary>
-        protected bool DefaultCalledByTheGrave()
+        protected virtual bool DefaultCalledByTheGrave()
         {
             if (Duel.LastChainPlayer != 1) return false;
+            if (Util.ChainContainsCard(_CardId.CalledByTheGrave)) return false;
             ClientCard lastCard = Util.GetLastChainCard();
             if (lastCard == null) return false;
 
@@ -684,9 +746,10 @@ namespace WindBot.Game.AI
         /// Default Crossout Designator effect:
         /// Declares the last chain card if it is in our remaining deck to negate it.
         /// </summary>
-        protected bool DefaultCrossoutDesignator()
+        protected virtual bool DefaultCrossoutDesignator()
         {
             if (Duel.LastChainPlayer != 1) return false;
+            if (Util.ChainContainsCard(_CardId.CrossoutDesignator)) return false;
             ClientCard lastCard = Util.GetLastChainCard();
             if (lastCard == null) return false;
 
@@ -702,9 +765,9 @@ namespace WindBot.Game.AI
         /// <summary>
         /// Default InfiniteImpermanence effect
         /// </summary>
-        protected bool DefaultInfiniteImpermanence()
+        protected virtual bool DefaultInfiniteImpermanence()
         {
-            // TODO: disable s & t
+            if (Util.ChainContainsCard(_CardId.InfiniteImpermanence)) return false;
             if (!DefaultUniqueTrap())
                 return false;
             return DefaultDisableMonster();

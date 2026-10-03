@@ -98,12 +98,52 @@ namespace WindBot.Game.AI
                 10045474,          // Infinite Impermanence
                 42141493,          // Mulcharmy Fuwalos
                 84192580,          // Mulcharmy Purulia
+                27204311, 27204313,// Nibiru, the Primal Being
                 24224830,          // Called by the Grave
                 65681983,          // Crossout Designator
             });
 
             // Built-in Universal Meta & Legacy Chokepoints (Starters & Searchers)
             _comboStarters.UnionWith(new[] {
+                // Ryzeal (Meta 2024-2026)
+                8633261,  // Ice Ryzeal
+                7511613,  // Ryzeal Duo Drive
+                34022970, // Ext Ryzeal
+                72238166, // Node Ryzeal
+                35844557, // Sword Ryzeal
+                61116514, // Palm Ryzeal
+                34909328, // Ryzeal Detonator
+                6798031,  // Ryzeal Cross
+                60394026, // Ryzeal Plugin
+                // Maliss (Meta 2024-2026)
+                69272449, // Maliss <P> White Rabbit
+                32061192, // Maliss <P> Dormouse
+                96676583, // Maliss <P> Chessy Cat
+                68337209, 68337210, // Maliss in Underground
+                68059897, // Maliss <Q> Red Ransom
+                21848500, // Maliss <Q> Hearts Crypter
+                95454996, // Maliss <Q> White Binder
+                // Yubel & Fiendsmith
+                60764609, // Fiendsmith Engraver
+                93729896, // Nightmare Throne
+                80453041, // Phantom of Yubel
+                62318994, // Samsara D Lotus
+                // Tenpai Dragon
+                39931513, // Tenpai Dragon Paidra
+                71983925, // Tenpai Dragon Chundra
+                66730191, // Sangen Kaimen
+                // Voiceless Voice
+                25801745, // Lo, the Prayers of the Voiceless Voice
+                98477480, // Barrier of the Voiceless Voice
+                // Centur-Ion
+                15005145, // Centur-Ion Primera
+                41371602, // Stand Up Centur-Ion!
+                8841431,  // Centur-Ion Primera Primus
+                // Orcust
+                57835716, // Orcust Harp Horror
+                30741503, // Galatea, the Orcust Automaton
+                69811710, // Girsu, the Orcust Mekk-Knight
+                703897,   // Orcust Crescendo
                 // Branded / Despia
                 44362883, // Branded Fusion
                 62962630, // Aluber the Jester of Despia
@@ -115,10 +155,6 @@ namespace WindBot.Game.AI
                 68468459, // WANTED: Seeker of Sinful Spoils
                 49868263, // Original Sinful Spoils - Snake-Eye
                 368382,   // Legendary Fire King Ponix
-                // Tenpai Dragon
-                45533023, // Tenpai Dragon Paidra
-                71983925, // Tenpai Dragon Chundra
-                84749824, // Sangen Kaimen
                 // ABC
                 66399653, // Union Hangar
                 77411244, // B-Buster Drake
@@ -188,6 +224,7 @@ namespace WindBot.Game.AI
                 35261759, // Pot of Desires
                 72426662, // Pot of Extravagance
                 49238328, // Pot of Extravagance (alt)
+                49238329, // Pot of Extravagance (alt 2)
                 98645731, // Pot of Duality
                 55144522, // Pot of Greed
             });
@@ -478,6 +515,22 @@ namespace WindBot.Game.AI
         public bool IsHandTrap(int cardId)
         {
             return _handTrapIds.Contains(cardId);
+        }
+
+        /// <summary>
+        /// Check if a card ID is a known bait or low-value card (e.g. Pot cards, Upstart).
+        /// </summary>
+        public bool IsBaitOrLowValue(int cardId)
+        {
+            return _potAndBaitCards.Contains(cardId) || _lowValueTargets.Contains(cardId) || _deckSpecificLowValue.Contains(cardId);
+        }
+
+        /// <summary>
+        /// Check if a card ID is a known critical combo starter or searcher.
+        /// </summary>
+        public bool IsComboStarter(int cardId)
+        {
+            return _comboStarters.Contains(cardId) || _deckSpecificHighValue.Contains(cardId);
         }
     }
 }

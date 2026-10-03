@@ -396,24 +396,25 @@ namespace WindBot.Game.AI
         }
 
         /// <summary>
-        /// Smart Ash Blossom — uses negate intelligence instead of blind negation.
-        /// Hides DefaultExecutor.DefaultAshBlossomAndJoyousSpring for 2026+ decks.
+        /// Smart Ash Blossom — uses SmartHandTrapChain and Anti-Bait Guard.
         /// </summary>
-        protected new bool DefaultAshBlossomAndJoyousSpring()
+        protected override bool DefaultAshBlossomAndJoyousSpring()
         {
             if (Duel.LastChainPlayer != 1) return false;
+            if (Util.ChainContainsCard(_CardId.AshBlossom)) return false;
             if (!SmartHandTrapChain()) return false;
-            ClientCard ash = Bot.Hand.FirstOrDefault(c => c.Id == 14558127 || c.Id == 14558128);
+            ClientCard ash = Bot.Hand.FirstOrDefault(c => c != null && (c.Id == 14558127 || c.Id == 14558128));
             if (ash == null) return false;
             return AIContext == null || AIContext.ShouldActivate(ash, Util.GetLastChainCard(), "AshBlossom");
         }
 
         /// <summary>
-        /// Smart Effect Veiler — won't waste Veiler on Galaxy Soldier when opponent has 3+ cards.
+        /// Smart Effect Veiler — won't waste Veiler on Galaxy Soldier or non-threats, checks target immunity.
         /// </summary>
-        protected new bool DefaultEffectVeiler()
+        protected override bool DefaultEffectVeiler()
         {
             if (Duel.LastChainPlayer != 1) return false;
+            if (Util.ChainContainsCard(_CardId.EffectVeiler)) return false;
             if (Duel.CurrentChain != null && Duel.CurrentChain.Any(c => c != null && c.Controller == 0 && (c.IsCode(10045474) || c.IsCode(97268402) || c.IsCode(24224830) || CardIntelligence.IsKnownNegator(c.Id))))
                 return false;
 
@@ -421,9 +422,57 @@ namespace WindBot.Game.AI
             if (lastChain == null || lastChain.Controller != 1 || lastChain.Location != CardLocation.MonsterZone) return false;
             if (lastChain.IsDisabled() || lastChain.IsShouldNotBeTarget() || lastChain.IsShouldNotBeMonsterTarget()) return false;
 
+            if (!SmartHandTrapChain()) return false;
+
             ClientCard veiler = Bot.Hand.FirstOrDefault(c => c != null && (c.Id == 97268402 || c.Id == 63845230));
             if (veiler == null) return false;
-            return AIContext != null && AIContext.ShouldActivate(veiler, lastChain, "EffectVeiler");
+            return AIContext == null || AIContext.ShouldActivate(veiler, lastChain, "EffectVeiler");
+        }
+
+        /// <summary>
+        /// Smart Infinite Impermanence for ModernExecutor:
+        /// 1. Going Second Preemptive: Negates Floodgates/Boss Negators (Bagooska, Apollousa, Baronne) in MP1 before normal summoning.
+        /// 2. Response on Chain: Uses SmartHandTrapChain to target chokepoints and avoid duplicate negations.
+        /// </summary>
+        protected override bool DefaultInfiniteImpermanence()
+        {
+            if (Util.ChainContainsCard(_CardId.InfiniteImpermanence)) return false;
+
+            // 1. Preemptive Turn 2 Going Second usage
+            if (Duel.Player == 0 && Duel.Phase == DuelPhase.Main1 && Bot.GetMonsterCount() == 0 && Card != null && Card.Location == CardLocation.Hand)
+            {
+                if (DefaultPreemptiveImpermanence())
+                    return true;
+            }
+
+            // 2. Chain Response
+            if (Duel.LastChainPlayer != 1) return false;
+            if (!SmartHandTrapChain()) return false;
+
+            return base.DefaultInfiniteImpermanence();
+        }
+
+        /// <summary>
+        /// Smart Ghost Belle override for ModernExecutor:
+        /// Prevents duplicate activations and uses SmartHandTrapChain.
+        /// </summary>
+        protected override bool DefaultGhostBelleAndHauntedMansion()
+        {
+            if (Duel.LastChainPlayer != 1) return false;
+            if (Util.ChainContainsCard(_CardId.GhostBelle)) return false;
+            if (!SmartHandTrapChain()) return false;
+            return base.DefaultGhostBelleAndHauntedMansion();
+        }
+
+        /// <summary>
+        /// Smart Called by the Grave override for ModernExecutor:
+        /// Chains to opponent handtraps and known threats in GY to protect our combo.
+        /// </summary>
+        protected override bool DefaultCalledByTheGrave()
+        {
+            if (Duel.LastChainPlayer != 1) return false;
+            if (Util.ChainContainsCard(_CardId.CalledByTheGrave)) return false;
+            return base.DefaultCalledByTheGrave();
         }
 
         /// <summary>
@@ -2141,13 +2190,55 @@ namespace WindBot.Game.AI
         }
 
         /// <summary>
-        /// ModernExecutor override of DefaultNibiru: adds SmartHandTrapChain timing awareness.
+        /// ModernExecutor override of DefaultNibiru — Competitive Tournament Heuristics:
+        /// 1. Boss Safeguard: Never wipe our own Ace/Boss field unless opponent has lethal pressure.
+        /// 2. Anti-Negate Preemption: Drop before the opponent can summon an Omni-Negate / Monster Negate.
+        /// 3. Apex Board Timing: Drop when opponent reaches board peak (3+ monsters or total ATK >= 3500).
+        /// 4. Phase Transition Catch: Drop at end of Main Phase or before Battle Phase to deny attacks.
+        /// 5. SmartHandTrapChain integration when responding to a chain.
         /// </summary>
         protected override bool DefaultNibiru()
         {
+            if (Duel.Player != 1 || (Duel.Phase != DuelPhase.Main1 && Duel.Phase != DuelPhase.Main2))
+                return false;
+
+            // Don't chain to our own card
+            if (Duel.CurrentChain.Count > 0 && Duel.LastChainPlayer == 0)
+                return false;
+
             if (Duel.CurrentChain.Count > 0 && !SmartHandTrapChain())
                 return false;
-            return base.DefaultNibiru();
+
+            // Boss safeguard: Don't destroy our winning board
+            int ourBossCount = Bot.GetMonsters().Count(m => m != null && m.IsFaceup() && (IsAceCard(m) || m.Attack >= 2500));
+            int enemyTotalAtk = Enemy.GetMonsters().Where(m => m != null && m.IsFaceup()).Sum(m => m.Attack);
+
+            if (ourBossCount > 0 && enemyTotalAtk < Bot.LifePoints && Enemy.GetMonsterCount() <= 2)
+            {
+                return false;
+            }
+
+            int enemyMonsterCount = Enemy.GetMonsterCount();
+
+            // 1. Apex Board: 3+ monsters or total ATK >= 3500 -> High value wipe!
+            if (enemyMonsterCount >= 3 || enemyTotalAtk >= 3500)
+            {
+                return true;
+            }
+
+            // 2. High-threat chokepoint or opponent controls a known negator
+            if (Enemy.GetMonsters().Any(m => m != null && m.IsFaceup() && (CardIntelligence.IsKnownNegator(m.Id) || CardIntelligence.IsHighThreatChokepoint(m.Id))))
+            {
+                return true;
+            }
+
+            // 3. Approaching Main Phase End / Battle Phase with 2+ committed monsters
+            if (Duel.Phase == DuelPhase.Main2 || enemyMonsterCount >= 2)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>

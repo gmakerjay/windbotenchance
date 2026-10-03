@@ -51,8 +51,9 @@ namespace WindBot.Game.AI
         {
             84211599, // Pot of Prosperity
             49238328, // Pot of Extravagance
+            49238329, // Pot of Extravagance (alt)
             98645731, // Pot of Duality
-            55144522, // Pot of Desires
+            35261759, // Pot of Desires
             70368879, // Upstart Goblin
             73628505, // Terraforming
             43422537, // Preparation of Rites
@@ -61,6 +62,11 @@ namespace WindBot.Game.AI
             24299458, // Forbidden Droplet
             48130397, // Super Polymerization
             14087893, // Book of Moon
+            18144506, // Harpie's Feather Duster
+            12580477, // Raigeki
+            53129443, // Dark Hole
+            25311006, // Triple Tactics Talent
+            35269904, // Triple Tactics Thrust
         };
 
         public BaitPlanner()
