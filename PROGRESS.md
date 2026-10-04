@@ -1,5 +1,28 @@
 # Progress Log: Central Core Architecture & Universal Heuristics Overhaul
 
+## 0.095. Luna & Hecahand Decoupled Domain Refactor & Headless Simulation Benchmark (2026-10-04)
+
+- **Decoupled Domain Plugin Architecture (`LunaPlugin.cs` & `HecahandPlugin.cs`)**:
+  - สืบทอดจาก `DeckPluginBase` พร้อม implement `IDeckStrategy`, `IDeckMaterialEvaluator`, `IDeckThreatEvaluator` แยก Domain Logic ออกจาก Router 100%
+  - ถอดรหัสชื่อเด็คให้สะอาดบริสุทธิ์ตาม Rule #9 Clean Naming: ลบ prefix `2026_` ออกทั้งหมด (`[Deck("Luna", "Luna")]`, `[Deck("Hecahand", "Hecahand")]`)
+- **Luna (Lunalight) Heuristic Overhaul & Bug Fixes**:
+  - **ปลดล็อก Dominus Impulse Anti-Synergy**: ถอด `Dominus Impulse` ออกจากเด็คลิสต์ `Luna.ydk` แทนที่ด้วย `Infinite Impermanence` x3 ปลดล็อกเงื่อนไขแบนธาตุ LIGHT ทำให้ `Tiger`, `Wolf`, `Gold Leo`, `Silver Hound` ใช้งานได้อย่างสมบูรณ์แบบ
+  - **Silver Hound Dual-Effect Separation**: แก้ไขบั๊กการสับสนระหว่าง Effect 0 (SS จากเด็คเมื่อตกสุสาน) และ Effect 1 (Quick Negate สเปรย์/กับดัก) ด้วยการตรวจ `ActivateDescription` ป้องกันไม่ให้บอทสั่งแบน Panther Dancer มารีโมฟ/ปฏิเสธเอฟเฟกต์การ์ดชุบชีวิตของตัวเอง
+  - **Pendulum Zone Preservation (`OnSelectPlace`)**: บังคับให้การ์ดเวทมนตร์ต่อเนื่องและกับดัก (`Tenki`, `Masquerade`) ลงในโซนกลาง (`0x4`, `0x2`, `0x8`) เท่านั้น เพื่อรักษาช่องซ้ายสุด (`0x1`) และขวาสุด (`0x10`) ไว้สำหรับ Pendulum Scale ของ `Tiger` และ `Wolf` เสมอ
+  - **Proactive Negation of Opponent Spell Negators**: เพิ่ม `InfiniteImpermanenceEffect` สั่งเล็งยิงปิดการทำงานของบอสมอนสเตอร์ฝ่ายตรงข้ามที่มีเอฟเฟกต์ปฏิเสธการ์ดเวทมนตร์ (`Number 38: Hope Harbinger`, `Blue-Eyes Spirit Dragon`, `Baronne`, `Apollousa`) ใน Main Phase 1 ก่อนเริ่มร่าย Fusion Spells
+  - **Forbidden Droplet Safeguards**: ป้องกันไม่ให้ Droplet เชนตัดการทำงานของการ์ดฝั่งเราเอง และห้ามนำการ์ดฟิวชั่นหลักหรือสเกลเพนดูลัมไปทิ้งเป็น Cost
+  - **Headless Duel Simulation**: ชนะ **60.0% vs BlueEyes** (6W / 4L) ในเซสชัน `25691004_070502` พร้อมปิดเกม Turn 2 และ Turn 4 OTK ด้วย `Leo Dancer` (3500 ATK) และ `Liger Dancer` (3800 ATK)
+- **Hecahand Heuristic Overhaul & Stability Verification**:
+  - **Stolen Monster Link-off Engine**: นำมอนสเตอร์ศัตรูที่ถูกขโมย (`Change of Heart`, `Bot Herder`) ไปแปลงเป็นวัตถุดิบ Link `S:P Little Knight` หรือ Xyz ก่อนจบเทิร์น เพื่อไม่ให้ศัตรูได้ตัวเก่งคืน
+  - **Headless Duel Simulation**: ชนะ **60.0% vs BlueEyes** (3W / 2L) ในเซสชัน `25691004_070741` และ (6W / 4L) ในเซสชัน `25691004_063331` รวม 0 Violations / 0 Warnings / 0 Crashes
+- **Universal Rule Compliance**:
+  - Rule #8: ไบนารี่ชุดใหม่ทั้งหมดได้รับการ Deploy สู่ `C:\Users\admin\Documents\EdoGame\` เท่านั้น
+  - Rule #12: Bagooska อัญเชิญในสภาพ `FaceUpDefence` 100%
+  - Rule #1: การทำลาย/รีมูฟ (hint 502/503) กำหนดเป้าหมายเฉพาะมอนสเตอร์ศัตรูเท่านั้น
+- **Documentation & Asset Sync**:
+  - จัดทำรายงาน Playbook ฉบับสมบูรณ์ใน `Docs/LUNA_AUDIT_AND_PLAYBOOK.md` และ `Docs/HECAHAND_AUDIT_AND_PLAYBOOK.md`
+  - รัน `SYNC_AGENT_ASSETS.ps1` ซิงค์ข้อมูลระหว่าง workspace root และ git repository
+
 ## 0.094. Central Core Pro Refactor — Board Re-read, Preselect Honouring, Activation Threat & ComboRouter Continuity (2026-10-04)
 
 - **Checkpoint**: push `6c16d31` ก่อน refactor · Build 0 Errors · Deploy `C:\Users\admin\Documents\EdoGame\` · ยังไม่รัน Text Duel (รอคำสั่ง)

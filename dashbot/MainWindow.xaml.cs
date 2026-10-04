@@ -356,7 +356,8 @@ namespace dashbot
             "FiendsmithSacred", "Fiendsmith Sacred",
             "OrcustWCQ", "Orcust WCQ", "Orcust",
             "Watenpai", "Darklord 2", "Darklord2",
-            "Raioh", "RaiOh", "BarrierStun"
+            "Raioh", "RaiOh", "BarrierStun",
+            "Hecahand", "Luna", "Lunalight"
         };
 
         private static DeckItem ParseDeckItem(string originalName)

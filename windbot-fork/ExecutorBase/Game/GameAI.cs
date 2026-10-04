@@ -749,14 +749,16 @@ namespace WindBot.Game
         /// <returns>Index of the selected option.</returns>
         public int OnSelectOption(IList<long> options)
         {
-            if (m_option != -1 && m_option < options.Count)
+            if (options == null || options.Count == 0) return 0;
+
+            if (m_option >= 0 && m_option < options.Count)
                 return m_option;
 
             int result = Executor.OnSelectOption(options);
-            if (result != -1)
+            if (result >= 0 && result < options.Count)
                 return result;
 
-            return 0; // Always select the first option.
+            return 0; // Always select the first option safely.
         }
 
         public int OnSelectPlace(long cardId, int player, CardLocation location, int available)

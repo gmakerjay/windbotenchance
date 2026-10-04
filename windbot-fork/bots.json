@@ -1457,21 +1457,15 @@
     ]
   },
   {
-    "name": "2026_Hecahand",
-    "deck": "2026_Hecahand",
+    "name": "Hecahand",
+    "deck": "Hecahand",
     "difficulty": 3,
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ],
     "masterRules": [
-      3,
-      4,
-      5
-    ]
-  },
-  {
-    "name": "Expert_2026_Hecahand",
-    "deck": "2026_Hecahand",
-    "difficulty": 3,
-    "masterRules": [
-      3,
       4,
       5
     ]
@@ -1887,21 +1881,29 @@
     ]
   },
   {
-    "name": "2026_Luna",
-    "deck": "2026_Luna",
+    "name": "Luna",
+    "deck": "Luna",
     "difficulty": 3,
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ],
     "masterRules": [
-      3,
       4,
       5
     ]
   },
   {
-    "name": "Expert_2026_Luna",
-    "deck": "2026_Luna",
+    "name": "Lunalight",
+    "deck": "Luna",
     "difficulty": 3,
+    "dialog": "default",
+    "flags": [
+      "OCG",
+      "TCG"
+    ],
     "masterRules": [
-      3,
       4,
       5
     ]

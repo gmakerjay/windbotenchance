@@ -1,18 +1,46 @@
-using YGOSharp.OCGWrapper.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using YGOSharp.OCGWrapper.Enums;
 using WindBot;
 using WindBot.Game;
 using WindBot.Game.AI;
+using WindBot.Game.AI.Plugins;
 
 namespace WindBot.Game.AI.Decks
 {
-    // ==========================================
-    // 2026_Luna (Lunalight)
-    // ==========================================
-    [Deck("2026_Luna", "2026_Luna")]
-    public class _2026_LunaExecutor : ModernExecutor
+    // ============================================================
+    // CARD AUDIT — Luna (Lunalight Fusion Turbo & OTK)
+    // ============================================================
+    // | Card Name           | Type       | OPT? | Effect Summary                                                   |
+    // |---------------------|------------|------|------------------------------------------------------------------|
+    // | Lunalight Gold Leo  | Monster    | Yes  | On NS/SS search Lunalight & discard 1; GY: add back sent Lunalight|
+    // | Lunalight Silver Hnd| Monster    | Yes  | Sent to GY by effect -> SS Lunalight from Deck; GY: Quick negate S/T|
+    // | Lunalight KaleidoChk| Monster    | Yes  | Dump Lunalight from Deck/Extra to copy name; GY: add Poly from GY|
+    // | Lunalight Yellow Mrt| Monster    | Yes  | Bounce Tiger/Lunalight on field to SS from hand/GY; GY: search S/T|
+    // | Lunalight EmeraldBrd| Monster    | Yes  | On NS/SS discard Lunalight to draw 1; GY: SS Lv4 or lower from GY |
+    // | Lunalight BlackSheep| Monster    | Yes  | Discard to search Poly or recycle GY; Fusion mat: add from GY/Extra|
+    // | Lunalight Tiger     | Pendulum   | Soft | Scale 5: Revive 1 Lunalight from GY (Bounce with Marten to reuse!)|
+    // | Lunalight Wolf      | Pendulum   | Soft | Scale 1: Miracle Fusion from field and GY!                      |
+    // | Tri-Brigade Fraktall| Monster    | Yes  | Discard to dump Silver Hound -> triggers SS from Deck!           |
+    // | Luna Light Perfume  | Spell      | Yes  | Monster Reborn for Lunalight; GY: banish & discard to search mon |
+    // | Fire Formation Tenki| Spell      | Yes  | Search Level 4 or lower Beast-Warrior (Gold Leo, Tiger, Chick)   |
+    // | Apex Polymerization | Spell      | Oath | Pay 2000 LP: send Lv3/4 Lunalight -> SS Fusion boss from Extra!  |
+    // | Polymerization      | Spell      | No   | Standard fusion from hand and field                              |
+    // | Lunalight Fusion    | Spell      | Yes  | Fusion summon; if opp has Extra Deck mon, dump from Deck/Extra   |
+    // | Lunalight Masquerade| Continuous | Yes  | Dump Lunalight from Deck to GY; recycle Poly from GY             |
+    // | Forbidden Droplet   | QuickSpell | No   | Send cards from field/hand to negate enemy monsters              |
+    // | Lunalight Perfume D | Fusion Lv6 | Yes  | 2 Lunalights: on summon search Perfume; bounce Tiger to SS mon   |
+    // | Lunalight Panther D | Fusion Lv8 | Yes  | Double attack each monster; fodder for Leo Dancer                |
+    // | Lunalight Leo Dancer| Fusion Lv10| Yes  | 3500 ATK, untargetable, indestructible, double attack, SS wipe   |
+    // | Lunalight Liger D   | Fusion Lv11| Yes  | 3800 ATK, immune, double attack, Quick SS board wipe             |
+    // | Lunalight Sabre D   | Fusion Lv9 | Yes  | 3000+ ATK, untargetable, gains ATK, GY: +3000 ATK boost          |
+    // | Number 41: Bagooska | Xyz Rank 4 | Yes  | Turn 1 floodgate (MUST ALWAYS BE FACE-UP DEFENSE)                |
+    // ============================================================
+
+    [Deck("Luna", "Luna")]
+    [Deck("Lunalight", "Luna")]
+    public class LunaExecutor : ModernExecutor
     {
         public class CardId
         {
@@ -47,6 +75,7 @@ namespace WindBot.Game.AI.Decks
             public const int FoolishBurial = 81439174;
             public const int CalledByTheGrave = 24224830;
             public const int DominusImpulse = 40366667;
+            public const int InfiniteImpermanence = 10045474;
 
             // Extra Deck
             public const int LigerDancer = 54701958;
@@ -61,157 +90,197 @@ namespace WindBot.Game.AI.Decks
             public const int Almiraj = 60303245;
             public const int SpLittleKnight = 29301450;
             public const int GravityController = 23656668;
-
-            // Side/Other
-            public const int ArtifactLancea = 34267821;
-            public const int HarpiesFeatherDuster = 18144507;
-            public const int HarpiesFeatherDusterAlt = 18144506;
-            public const int LightningStorm = 14532163;
-            public const int HeavyPolymerization = 58570206;
-            public const int DarkRulerNoMore = 54693926;
-            public const int TripleTacticsThrust = 35269904;
-            public const int FoolishBurialGoods = 35726888;
-            public const int MaskOfRestrict = 29549364;
-            public const int SerenadeDance = 13935001;
         }
 
-        private static readonly int[] AceCardIds = {
+        public static readonly int[] AceCardIds = {
             CardId.LigerDancer,
             CardId.LeoDancer,
+            CardId.PerfumeDancer,
             CardId.SabreDancer,
             CardId.PantherDancer
         };
 
         // Once per turn state flags
         private bool _goldLeoSummonUsed;
+        private bool _goldLeoGyRetrievalUsed;
+        private bool _perfumeDancerSearchUsed;
         private bool _perfumeDancerBounceUsed;
         private bool _perfumeDancerGyUsed;
         private bool _martenGyUsed;
         private bool _martenBounceUsed;
-        private bool _chickGraveUsed;
         private bool _chickSendUsed;
+        private bool _chickGraveUsed;
         private bool _emeraldSummonUsed;
         private bool _emeraldGraveUsed;
         private bool _perfumeSearchUsed;
         private bool _apexPolyUsed;
-        private bool _heavyPolyUsed;
         private bool _fraktallUsed;
+        private bool _silverHoundSummonUsed;
+        private bool _silverHoundGyUsed;
+        private bool _masqueradeUsed;
 
-        public _2026_LunaExecutor(GameAI ai, Duel duel) : base(ai, duel)
+        public bool HasNormalSummonedThisTurn { get; private set; }
+        public bool CanDealLethalCheck() => CanDealLethal();
+
+        public override bool IsAceCard(ClientCard card)
         {
-            // Register Ace Cards to protect them from being used suboptimally
-            ResourcePlan.RegisterAceCards(AceCardIds);
+            if (card == null) return false;
+            return AceCardIds.Contains(card.Id);
+        }
 
-            // โ”€โ”€ Combo Router: Sequencing โ”€โ”€
+        public bool IsLunalightCard(int id)
+        {
+            return id == CardId.GoldLeo || id == CardId.SilverHound || id == CardId.BlackSheep ||
+                   id == CardId.KaleidoChick || id == CardId.YellowMarten || id == CardId.EmeraldBird ||
+                   id == CardId.Wolf || id == CardId.Tiger || id == CardId.LunalightFusion ||
+                   id == CardId.LunalightMasquerade || id == CardId.LunaLightPerfume ||
+                   id == CardId.LigerDancer || id == CardId.LeoDancer || id == CardId.PerfumeDancer ||
+                   id == CardId.PantherDancer || id == CardId.SabreDancer;
+        }
+
+        public LunaExecutor(GameAI ai, Duel duel) : base(ai, duel)
+        {
+            // Connect Decoupled Domain Plugin
+            DeckPlugin = new LunaPlugin(this);
+
+            // Register Ace Cards in Core modules
+            ResourcePlan.RegisterAceCards(AceCardIds);
+            HeuristicGuard.RegisterAceCards(AceCardIds);
+
+            // Combo Router: Authentic Lunalight Sequencing
             ComboRouter.RegisterLine(new ComboRouter.ComboLine {
-                Name = "Standard-Setup",
-                RequiredCards = new List<int> { CardId.GoldLeo, CardId.BlackSheep },
-                FallbackLineName = "Luna-Tenki-Fallback",
+                Name = "GoldLeo-Starter",
+                RequiredCards = new List<int> { CardId.GoldLeo },
                 Steps = new List<ComboRouter.ComboStep> {
-                    new() { CardId = CardId.GoldLeo, ActionType = ExecutorType.Activate, Description = "Play CardId.GoldLeo" },
-                    new() { CardId = CardId.BlackSheep, ActionType = ExecutorType.Activate, Description = "Extend with CardId.BlackSheep" }
+                    new() { CardId = CardId.GoldLeo, ActionType = ExecutorType.Summon, Description = "Normal Summon Gold Leo" },
+                    new() { CardId = CardId.GoldLeo, ActionType = ExecutorType.Activate, Description = "Gold Leo search Tiger & discard" }
                 },
-                EndBoardScore = 80
+                EndBoardScore = 85,
+                Condition = () => Bot.Hand.Any(c => c != null && c.Id == CardId.GoldLeo) && !HasNormalSummonedThisTurn
             });
 
             ComboRouter.RegisterLine(new ComboRouter.ComboLine {
-                Name = "Luna-Tenki-Fallback",
+                Name = "Tenki-Starter",
                 RequiredCards = new List<int> { CardId.Tenki },
                 Steps = new List<ComboRouter.ComboStep> {
-                    new() { CardId = CardId.Tenki, ActionType = ExecutorType.Activate, Description = "Activate Tenki to search Tiger" }
+                    new() { CardId = CardId.Tenki, ActionType = ExecutorType.Activate, Description = "Activate Tenki to search Gold Leo / Tiger" }
                 },
-                EndBoardScore = 60,
+                EndBoardScore = 80,
                 Condition = () => Bot.Hand.Any(c => c != null && c.Id == CardId.Tenki)
             });
 
-            // โ”€โ”€ Bait Planner โ”€โ”€
-            BaitPlanner.RegisterComboStarters(CardId.GoldLeo, CardId.SilverHound);
-            BaitPlanner.RegisterBaitCards(CardId.SilverHound);
+            ComboRouter.RegisterLine(new ComboRouter.ComboLine {
+                Name = "Fraktall-Starter",
+                RequiredCards = new List<int> { CardId.TriBrigadeFraktall },
+                Steps = new List<ComboRouter.ComboStep> {
+                    new() { CardId = CardId.TriBrigadeFraktall, ActionType = ExecutorType.Activate, Description = "Discard Fraktall to dump Silver Hound" }
+                },
+                EndBoardScore = 75,
+                Condition = () => Bot.Hand.Any(c => c != null && c.Id == CardId.TriBrigadeFraktall)
+            });
 
-            // โ”€โ”€ Chain Advisor โ”€โ”€
-            ChainAdvisor.RegisterHighValueTargets(CardId.GoldLeo, CardId.SilverHound, CardId.SpLittleKnight);
+            // Bait Planner
+            BaitPlanner.RegisterComboStarters(CardId.GoldLeo, CardId.Tenki, CardId.KaleidoChick, CardId.TriBrigadeFraktall);
+            BaitPlanner.RegisterBaitCards(CardId.Tenki, CardId.FoolishBurial, CardId.TripleTacticsTalent);
 
-            // โ•โ•โ• TIER 1: Hand Traps & Chain Negations โ•โ•โ•
-            AddExecutor(ExecutorType.Activate, CardId.MulcharmyFuwalos, MulcharmyEffect);
-            AddExecutor(ExecutorType.Activate, CardId.MulcharmyPurulia, MulcharmyEffect);
+            // Chain Advisor
+            ChainAdvisor.RegisterHighValueTargets(CardId.GoldLeo, CardId.KaleidoChick, CardId.Tiger, CardId.Wolf, CardId.PerfumeDancer);
+
+            // Register Optional Field Removal Cards
+            RegisterOptionalFieldRemovalCards(CardId.LigerDancer, CardId.SpLittleKnight);
+
+            // ============================================================
+            // TIER 1: Hand Traps & Fast Chains
+            // ============================================================
+            AddExecutor(ExecutorType.Activate, CardId.MulcharmyFuwalos, MulcharmyFuwalosEffect);
+            AddExecutor(ExecutorType.Activate, CardId.MulcharmyPurulia, MulcharmyPuruliaEffect);
             AddExecutor(ExecutorType.Activate, CardId.AshBlossom, AshBlossomEffect);
             AddExecutor(ExecutorType.Activate, CardId.AshBlossomAlt, AshBlossomEffect);
             AddExecutor(ExecutorType.Activate, CardId.DrollAndLockBird, DrollAndLockBirdEffect);
             AddExecutor(ExecutorType.Activate, CardId.CalledByTheGrave, CalledByTheGraveEffect);
             AddExecutor(ExecutorType.Activate, CardId.CrossoutDesignator, CrossoutDesignatorEffect);
             AddExecutor(ExecutorType.Activate, CardId.DominusImpulse, DominusImpulseEffect);
+            AddExecutor(ExecutorType.Activate, CardId.InfiniteImpermanence, InfiniteImpermanenceEffect);
+            AddExecutor(ExecutorType.SpellSet, CardId.InfiniteImpermanence, () => false);
             AddExecutor(ExecutorType.Activate, CardId.ForbiddenDroplet, ForbiddenDropletEffect);
 
-            // โ•โ•โ• TIER 2: Board Breakers โ•โ•โ•
-            AddExecutor(ExecutorType.Activate, CardId.HarpiesFeatherDuster, DefaultHarpiesFeatherDusterFirst);
-            AddExecutor(ExecutorType.Activate, CardId.HarpiesFeatherDusterAlt, DefaultHarpiesFeatherDusterFirst);
-            AddExecutor(ExecutorType.Activate, CardId.LightningStorm);
-            AddExecutor(ExecutorType.Activate, CardId.DarkRulerNoMore);
+            // ============================================================
+            // TIER 2: Board Breakers
+            // ============================================================
             AddExecutor(ExecutorType.Activate, CardId.TripleTacticsTalent, TripleTacticsTalentEffect);
 
-            // โ•โ•โ• TIER 3: Searchers & Setup Spells โ•โ•โ•
+            // ============================================================
+            // TIER 3: Searchers & Setup Spells (Activate Before Normal Summon)
+            // ============================================================
             AddExecutor(ExecutorType.Activate, CardId.Tenki, TenkiEffect);
             AddExecutor(ExecutorType.Activate, CardId.FoolishBurial, FoolishBurialEffect);
-            AddExecutor(ExecutorType.Activate, CardId.FoolishBurialGoods, FoolishBurialGoodsEffect);
-            AddExecutor(ExecutorType.Activate, CardId.LunaLightPerfume, LunaLightPerfumeEffect);
-
-            // โ•โ•โ• TIER 4: Main Archetype Engines โ•โ•โ•
             AddExecutor(ExecutorType.Activate, CardId.TriBrigadeFraktall, TriBrigadeFraktallEffect);
             AddExecutor(ExecutorType.Activate, CardId.BlackSheep, BlackSheepEffect);
             AddExecutor(ExecutorType.Activate, CardId.LunalightMasquerade, LunalightMasqueradeEffect);
+
+            // ============================================================
+            // TIER 4: Normal & Special Summons
+            // ============================================================
+            AddExecutor(ExecutorType.SpSummon, CardId.GoldLeo, GoldLeoSpSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.SilverHound, SilverHoundSpSummon);
+            AddExecutor(ExecutorType.Summon, CardId.KaleidoChick, KaleidoChickSummon);
+            AddExecutor(ExecutorType.Summon, CardId.GoldLeo, GoldLeoSummon);
+            AddExecutor(ExecutorType.Summon, CardId.EmeraldBird, EmeraldBirdSummon);
+            AddExecutor(ExecutorType.Summon, CardId.BlackSheep, BlackSheepSummon);
+            AddExecutor(ExecutorType.Summon, CardId.SilverHound, SilverHoundSummon);
+
+            // ============================================================
+            // TIER 5: Pendulum Scales & Monster Ignition / Revives
+            // ============================================================
             AddExecutor(ExecutorType.Activate, CardId.Tiger, TigerPendulumEffect);
+            AddExecutor(ExecutorType.Activate, CardId.GoldLeo, GoldLeoEffect);
+            AddExecutor(ExecutorType.Activate, CardId.SilverHound, SilverHoundEffect);
+            AddExecutor(ExecutorType.Activate, CardId.KaleidoChick, KaleidoChickEffect);
+            AddExecutor(ExecutorType.Activate, CardId.YellowMarten, YellowMartenEffect);
+            AddExecutor(ExecutorType.SpSummon, CardId.YellowMarten, YellowMartenSpSummon);
+            AddExecutor(ExecutorType.Activate, CardId.EmeraldBird, EmeraldBirdEffect);
+            AddExecutor(ExecutorType.Activate, CardId.PerfumeDancer, PerfumeDancerEffect);
+            AddExecutor(ExecutorType.Activate, CardId.LunaLightPerfume, LunaLightPerfumeEffect);
+
+            // ============================================================
+            // TIER 7: Fusion Spells (Apex Poly, Lunalight Fusion, Polymerization, Wolf)
+            // ============================================================
+            AddExecutor(ExecutorType.Activate, CardId.ApexPolymerization, ApexPolymerizationEffect);
+            AddExecutor(ExecutorType.Activate, CardId.LunalightFusion, LunalightFusionEffect);
+            AddExecutor(ExecutorType.Activate, CardId.Polymerization, PolymerizationEffect);
             AddExecutor(ExecutorType.Activate, CardId.Wolf, WolfPendulumEffect);
 
-            // โ•โ•โ• TIER 5: Main Deck Monster Summons & Effects โ•โ•โ•
-            AddExecutor(ExecutorType.Activate, CardId.GoldLeo, GoldLeoEffect);
-
-            AddExecutor(ExecutorType.Activate, CardId.SilverHound, SilverHoundEffect);
-
-            AddExecutor(ExecutorType.Activate, CardId.KaleidoChick, KaleidoChickEffect);
-
-            AddExecutor(ExecutorType.SpSummon, CardId.YellowMarten, YellowMartenSpSummon);
-            AddExecutor(ExecutorType.Activate, CardId.YellowMarten, YellowMartenEffect);
-
-            AddExecutor(ExecutorType.Activate, CardId.EmeraldBird, EmeraldBirdEffect);
-
-            // โ•โ•โ• TIER 6: Polymerization & Fusion Summons โ•โ•โ•
-            AddExecutor(ExecutorType.Activate, CardId.ApexPolymerization, ApexPolymerizationEffect);
-            AddExecutor(ExecutorType.Activate, CardId.HeavyPolymerization, HeavyPolymerizationEffect);
-            AddExecutor(ExecutorType.Activate, CardId.LunalightFusion, LunalightFusionEffect);
-            AddExecutor(ExecutorType.Activate, CardId.Polymerization, LunalightFusionEffect);
-
-            // โ•โ•โ• TIER 7: Extra Deck Summons & Trigger Effects โ•โ•โ•
+            // ============================================================
+            // TIER 8: Extra Deck Summons
+            // ============================================================
+            AddExecutor(ExecutorType.SpSummon, CardId.PerfumeDancer, PerfumeDancerSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.LeoDancer, LeoDancerSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.LigerDancer, LigerDancerSummon);
             AddExecutor(ExecutorType.Activate, CardId.LigerDancer, LigerDancerEffect);
-
-            AddExecutor(ExecutorType.SpSummon, CardId.LeoDancer, LeoDancerSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.PantherDancer, PantherDancerSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.SabreDancer, SabreDancerSummon);
+            AddExecutor(ExecutorType.SpSummon, CardId.PantherDancer, PantherDancerSummon);
 
-            AddExecutor(ExecutorType.SpSummon, CardId.PerfumeDancer, PerfumeDancerSummon);
-            AddExecutor(ExecutorType.Activate, CardId.PerfumeDancer, PerfumeDancerEffect);
-
-            AddExecutor(ExecutorType.SpSummon, CardId.Dugares, DugaresSummon);
-            AddExecutor(ExecutorType.Activate, CardId.Dugares, DugaresEffect);
-
+            // Rank 4 & Links
             AddExecutor(ExecutorType.SpSummon, CardId.TigerKing, TigerKingSummon);
             AddExecutor(ExecutorType.Activate, CardId.TigerKing, TigerKingEffect);
-
+            AddExecutor(ExecutorType.SpSummon, CardId.Dugares, DugaresSummon);
+            AddExecutor(ExecutorType.Activate, CardId.Dugares, DugaresEffect);
             AddExecutor(ExecutorType.SpSummon, CardId.Bagooska, BagooskaSummon);
-            AddExecutor(ExecutorType.SpSummon, CardId.Almiraj, AlmirajSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.SpLittleKnight, SpLittleKnightSummon);
             AddExecutor(ExecutorType.Activate, CardId.SpLittleKnight);
             AddExecutor(ExecutorType.SpSummon, CardId.GravityController, GravityControllerSummon);
 
-            // โ•โ•โ• TIER 8: Fallback Summons & Sets โ•โ•โ•
-            AddExecutor(ExecutorType.Summon, FallbackNormalSummon);
+            // ============================================================
+            // TIER 9: Fallbacks & Sets
+            // ============================================================
             AddExecutor(ExecutorType.SpellSet, SetTrapCondition);
             AddExecutor(ExecutorType.Repos, MonsterRepos);
+            AddExecutor(ExecutorType.Summon, FallbackNormalSummon);
         }
 
         public override bool OnSelectHand()
         {
-            // Lunalight is an OTK deck โ€” prefer going second
+            // Lunalight is an aggressive OTK deck — prefer going second
             return false;
         }
 
@@ -220,92 +289,55 @@ namespace WindBot.Game.AI.Decks
             base.OnNewTurn();
             _isGoingSecond = (Duel.Turn > 1);
             _goldLeoSummonUsed = false;
+            _goldLeoGyRetrievalUsed = false;
+            _perfumeDancerSearchUsed = false;
             _perfumeDancerBounceUsed = false;
             _perfumeDancerGyUsed = false;
             _martenGyUsed = false;
             _martenBounceUsed = false;
-            _chickGraveUsed = false;
             _chickSendUsed = false;
+            _chickGraveUsed = false;
             _emeraldSummonUsed = false;
             _emeraldGraveUsed = false;
             _perfumeSearchUsed = false;
             _apexPolyUsed = false;
-            
-            if (ShouldGoBreakBoard)
-            {
-                // Going second Lunalight: prioritize Panther Dancer OTK
-                _apexPolyUsed = false;
-                _heavyPolyUsed = false;
-            }
+            _fraktallUsed = false;
+            _silverHoundSummonUsed = false;
+            _silverHoundGyUsed = false;
+            _masqueradeUsed = false;
+            HasNormalSummonedThisTurn = false;
         }
 
         protected override bool IsBoardStrongEnough()
         {
             int count = 0;
             if (Bot.HasInMonstersZone(CardId.LigerDancer)) count += 3;
-            if (Bot.HasInMonstersZone(CardId.LeoDancer)) count += 2;
-            if (Bot.HasInMonstersZone(CardId.SpLittleKnight)) count++;
+            if (Bot.HasInMonstersZone(CardId.LeoDancer)) count += 3;
+            if (Bot.HasInMonstersZone(CardId.SabreDancer)) count += 2;
             if (Bot.HasInMonstersZone(CardId.Bagooska)) count += 2;
-            if (Bot.GetSpells().Any(c => c != null && c.IsFacedown() && c.IsCode(CardId.DominusImpulse))) count++;
-            if (Bot.HasInHand(CardId.AshBlossom) || Bot.HasInHand(CardId.AshBlossomAlt)) count++;
+            if (Bot.HasInMonstersZone(CardId.SpLittleKnight)) count += 1;
+            if (Bot.HasInHand(CardId.AshBlossom) || Bot.HasInHand(CardId.AshBlossomAlt)) count += 1;
+            if (Bot.HasInHand(CardId.InfiniteImpermanence)) count += 1;
             return count >= 3;
         }
 
         protected override bool ShouldStopExtending()
         {
-            if (IsBoardStrongEnough())
-                return base.ShouldStopExtending();
+            if (CanDealLethal()) return true;
+            if (IsBoardStrongEnough() && Duel.Turn == 1) return true;
             return false;
         }
 
-        public override bool ShouldAllowSpSummon(ClientCard card)
+        // ============================================================
+        // HAND TRAPS
+        // ============================================================
+        private bool MulcharmyFuwalosEffect()
         {
-            if (!base.ShouldAllowSpSummon(card)) return false;
-            if (card == null) return true;
-
-            if (card.HasType(CardType.Link | CardType.Xyz))
-            {
-                var activeAces = Bot.GetMonsters().Where(c => c != null && c.IsFaceup() && IsAceCard(c)).ToList();
-                if (activeAces.Count > 0)
-                {
-                    bool allowed = false;
-                    foreach (var mat in activeAces)
-                    {
-                        var res = ResourcePlan.EvaluateAceUsage(
-                            card: mat,
-                            hasLethalIfUsed: CanDealLethal(),
-                            isOnlyAnswerToThreat: OpponentHasActiveNegator(),
-                            haveAlternateWinCon: false
-                        );
-                        if (res.allowed)
-                        {
-                            allowed = true;
-                            break;
-                        }
-                    }
-                    if (!allowed)
-                    {
-                        DecisionTracer.TraceSkip("ShouldAllowSpSummon", $"Summoning {card.Name} is not safe (would consume Ace card(s))");
-                        return false;
-                    }
-                }
-            }
-            return true;
+            if (!SmartHandTrapChain()) return false;
+            return Duel.Player == 1 && Bot.GetFieldCount() == 0;
         }
 
-        private bool IsLunalightCard(int id)
-        {
-            return id == CardId.GoldLeo || id == CardId.SilverHound || id == CardId.BlackSheep ||
-                   id == CardId.KaleidoChick || id == CardId.YellowMarten || id == CardId.EmeraldBird ||
-                   id == CardId.Wolf || id == CardId.Tiger || id == CardId.LunalightFusion ||
-                   id == CardId.LunalightMasquerade || id == CardId.LunaLightPerfume ||
-                   id == CardId.LigerDancer || id == CardId.LeoDancer || id == CardId.PerfumeDancer ||
-                   id == CardId.PantherDancer || id == CardId.SabreDancer || id == CardId.SerenadeDance;
-        }
-
-        // โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•โ• TIER 1 & 2: Disruptions & Staples โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•
-
-        private bool MulcharmyEffect()
+        private bool MulcharmyPuruliaEffect()
         {
             if (!SmartHandTrapChain()) return false;
             return Duel.Player == 1 && Bot.GetFieldCount() == 0;
@@ -314,7 +346,7 @@ namespace WindBot.Game.AI.Decks
         private bool DrollAndLockBirdEffect()
         {
             if (!SmartHandTrapChain()) return false;
-            return Duel.Player == 1 && Duel.LastChainPlayer == 1;
+            return Duel.Player == 1;
         }
 
         private bool AshBlossomEffect()
@@ -332,27 +364,21 @@ namespace WindBot.Game.AI.Decks
 
         private bool DominusImpulseEffect()
         {
-            if (Card.Location == CardLocation.Hand) return false;
+            if (!SmartHandTrapChain()) return false;
             if (LastChainCard == null || LastChainCard.Controller != 1) return false;
             return true;
         }
 
         private bool CrossoutDesignatorEffect()
         {
-            // NEVER chain to own cards โ€” Crossout crashes engine when mis-timed
             if (!SmartHandTrapChain()) return false;
             if (LastChainCard == null || LastChainCard.Controller != 1) return false;
 
-            // Resolve alias (alt-art handling) โ€” critical for engine compatibility
             int code = LastChainCard.Id;
             int alias = LastChainCard.Alias;
             if (alias != 0 && alias - code < 10) code = alias;
             if (code == 0) return false;
 
-            // Only negate monster effects (Crossout can't negate S/T effects practically)
-            if (!LastChainCard.IsMonster()) return false;
-
-            // Verify card is still in deck to avoid engine crash on resolve
             if (GetRemainingCount(code) > 0)
             {
                 AI.SelectAnnounceID(code);
@@ -361,25 +387,57 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
-        private bool ForbiddenDropletEffect()
+        private bool InfiniteImpermanenceEffect()
         {
-            if (Duel.Player == 0 && Duel.Phase == DuelPhase.Main1)
+            if (Util.ChainContainsCard(CardId.InfiniteImpermanence)) return false;
+
+            // Proactively negate continuous negators/floodgates on our turn before casting Fusion spells
+            if (Duel.Player == 0 && (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Battle))
             {
-                var targets = Enemy.GetMonsters().Where(c => c != null && c.IsFaceup() && !c.IsDisabled() && c.HasType(CardType.Effect)).ToList();
-                if (targets.Count > 0)
+                var priorityTarget = Enemy.MonsterZone.GetMonsters().FirstOrDefault(c =>
+                    c != null && c.IsFaceup() && !c.IsDisabled() &&
+                    (c.IsCode(63767246, 59822133, 84013237, 21044178, 27548199, 90590304) ||
+                     c.IsFloodgate() || CardIntelligence.IsKnownNegator(c.Id)));
+
+                if (priorityTarget != null)
                 {
+                    AI.SelectCard(priorityTarget);
                     return true;
                 }
             }
 
-            if (LastChainCard != null && LastChainCard.Controller == 1)
+            return DefaultInfiniteImpermanence();
+        }
+
+        private bool ForbiddenDropletEffect()
+        {
+            // STRICT RULE: Never chain to our own card's activation!
+            if (Duel.CurrentChain.Count > 0 && Duel.LastChainPlayer == 0) return false;
+
+            var targets = Enemy.GetMonsters().Where(c => c != null && c.IsFaceup() && !c.IsDisabled() && c.HasType(CardType.Effect)).ToList();
+            if (targets.Count == 0) return false;
+
+            // 1. Response to enemy monster effect
+            if (Duel.LastChainPlayer == 1 && LastChainCard != null && LastChainCard.Location == CardLocation.MonsterZone && !LastChainCard.IsDisabled())
             {
-                var targets = Enemy.GetMonsters().Where(c => c != null && c.IsFaceup() && !c.IsDisabled()).ToList();
-                if (targets.Count > 0)
-                {
-                    return true;
-                }
+                return true;
             }
+
+            // 2. Open board break in MP1 before starting combos (no chain active)
+            if (Duel.Player == 0 && Duel.Phase == DuelPhase.Main1 && Duel.CurrentChain.Count == 0)
+            {
+                // Only activate if we have safe fodder (Tenki, Masquerade, or surplus cards, NOT only fusion spell/scales!)
+                bool hasSafeFodder = Bot.GetSpells().Any(c => c != null && c.IsFaceup() && c.IsCode(CardId.Tenki, CardId.LunalightMasquerade)) ||
+                                     Bot.Hand.Count(c => c != null && c.Id != CardId.ForbiddenDroplet && !c.IsCode(CardId.Polymerization, CardId.LunalightFusion, CardId.Tiger, CardId.Wolf, CardId.KaleidoChick)) >= 1;
+                return hasSafeFodder;
+            }
+
+            // 3. Battle Phase
+            if (Duel.Player == 0 && Duel.Phase == DuelPhase.Battle && Duel.CurrentChain.Count == 0)
+            {
+                return true;
+            }
+
             return false;
         }
 
@@ -387,70 +445,35 @@ namespace WindBot.Game.AI.Decks
         {
             if (Enemy.GetMonsterCount() > 0 && _isGoingSecond)
             {
-                AI.SelectOption(1);
+                AI.SelectOption(1); // Steal monster for fusion / lethal
             }
             else
             {
-                AI.SelectOption(0);
+                AI.SelectOption(0); // Draw 2
             }
             return true;
         }
 
-        // โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•โ• TIER 3 & 4: Search & Setup Spells โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•
-
+        // ============================================================
+        // SEARCHERS & SETUP SPELLS
+        // ============================================================
         private bool TenkiEffect()
         {
             if (ShouldSkipCombo()) return false;
-            bool hasTiger = Bot.Hand.Any(c => c != null && c.IsCode(CardId.Tiger)) || Bot.HasInSpellZone(CardId.Tiger);
-            if (!hasTiger)
-            {
-                AI.SelectCard(CardId.Tiger, CardId.KaleidoChick, CardId.GoldLeo, CardId.YellowMarten);
-            }
-            else
-            {
-                AI.SelectCard(CardId.KaleidoChick, CardId.GoldLeo, CardId.YellowMarten, CardId.SilverHound);
-            }
             return true;
         }
 
         private bool FoolishBurialEffect()
         {
+            if (ShouldSkipCombo()) return false;
             AI.SelectCard(CardId.SilverHound, CardId.YellowMarten, CardId.EmeraldBird);
             return true;
-        }
-
-        private bool FoolishBurialGoodsEffect()
-        {
-            AI.SelectCard(CardId.SerenadeDance, CardId.LunaLightPerfume);
-            return true;
-        }
-
-        private bool LunaLightPerfumeEffect()
-        {
-            if (ShouldSkipCombo()) return false;
-            if (Card.Location == CardLocation.Hand)
-            {
-                var target = Bot.Graveyard.FirstOrDefault(c => c != null && c.IsCanRevive() && IsLunalightCard(c.Id));
-                if (target != null)
-                {
-                    return true;
-                }
-            }
-            else if (Card.Location == CardLocation.Grave && !_perfumeSearchUsed)
-            {
-                if (Bot.Hand.Count > 0)
-                {
-                    _perfumeSearchUsed = true;
-                    return true;
-                }
-            }
-            return false;
         }
 
         private bool TriBrigadeFraktallEffect()
         {
             if (_fraktallUsed) return false;
-            AI.SelectCard(CardId.Tiger, CardId.BlackSheep);
+            if (ShouldSkipCombo()) return false;
             _fraktallUsed = true;
             return true;
         }
@@ -459,8 +482,8 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location == CardLocation.Hand)
             {
-                bool hasPoly = Bot.Hand.Any(c => c != null && c.IsCode(CardId.Polymerization, CardId.LunalightFusion, CardId.HeavyPolymerization));
-                if (!hasPoly)
+                bool hasPoly = Bot.Hand.Any(c => c != null && c.IsCode(CardId.Polymerization, CardId.LunalightFusion, CardId.ApexPolymerization));
+                if (!hasPoly && Bot.GetRemainingCount(CardId.Polymerization, 1) > 0)
                 {
                     AI.SelectOption(0); // Search Polymerization from Deck
                 }
@@ -468,6 +491,11 @@ namespace WindBot.Game.AI.Decks
                 {
                     AI.SelectOption(1); // Add Lunalight from GY
                 }
+                return true;
+            }
+            if (Card.Location == CardLocation.Grave)
+            {
+                // Trigger when sent to GY as fusion material -> recycle Lunalight!
                 return true;
             }
             return false;
@@ -479,69 +507,118 @@ namespace WindBot.Game.AI.Decks
             {
                 return true;
             }
-            if (Card.Location == CardLocation.SpellZone && Card.IsFaceup())
+            if (Card.Location == CardLocation.SpellZone && Card.IsFaceup() && !_masqueradeUsed)
             {
-                // Can activate ignition effect to dump if activated this turn
-                return StartingDeck.Cards.Any(id => { var c = YGOSharp.OCGWrapper.NamedCard.Get(id); return c != null && IsLunalightCard(id) && c.HasType(CardType.Monster) && GetRemainingCount(id) > 0; });
+                _masqueradeUsed = true;
+                return true;
             }
             return false;
         }
 
-        private bool TigerPendulumEffect()
+        // ============================================================
+        // NORMAL SUMMONS
+        // ============================================================
+        private bool GoldLeoSummon()
         {
-            if (Card.Location == CardLocation.Hand)
+            if (HasNormalSummonedThisTurn) return false;
+            HasNormalSummonedThisTurn = true;
+            return true;
+        }
+        private bool KaleidoChickSummon()
+        {
+            if (HasNormalSummonedThisTurn) return false;
+            HasNormalSummonedThisTurn = true;
+            return true;
+        }
+        private bool EmeraldBirdSummon()
+        {
+            if (HasNormalSummonedThisTurn) return false;
+            HasNormalSummonedThisTurn = true;
+            return true;
+        }
+        private bool BlackSheepSummon()
+        {
+            if (HasNormalSummonedThisTurn) return false;
+            if (!Bot.Hand.Any(c => c != null && c.IsCode(CardId.Polymerization, CardId.LunalightFusion))) return false;
+            HasNormalSummonedThisTurn = true;
+            return true;
+        }
+        private bool SilverHoundSummon()
+        {
+            if (HasNormalSummonedThisTurn) return false;
+            HasNormalSummonedThisTurn = true;
+            return true;
+        }
+
+        private bool GoldLeoSpSummon()
+        {
+            if (IsSpecialSummonBlocked()) return false;
+            return Bot.MonsterZone.GetMonsters().Any(c => c != null && c.IsFaceup() && IsLunalightCard(c.Id));
+        }
+
+        private bool SilverHoundSpSummon()
+        {
+            if (IsSpecialSummonBlocked()) return false;
+            return Bot.MonsterZone.GetMonsters().Any(c => c != null && c.IsFaceup() && IsLunalightCard(c.Id));
+        }
+
+        // ============================================================
+        // MONSTER EFFECTS
+        // ============================================================
+        private bool GoldLeoEffect()
+        {
+            if (Card.Location == CardLocation.MonsterZone)
             {
-                // Always place Tiger in scale if we don't have it scaled
-                return !Bot.HasInSpellZone(CardId.Tiger);
-            }
-            if (Card.Location == CardLocation.SpellZone)
-            {
-                var target = Bot.Graveyard.FirstOrDefault(c => c != null && c.IsCanRevive() && IsLunalightCard(c.Id));
-                if (target != null)
+                if (!_goldLeoSummonUsed)
                 {
-                    AI.SelectCard(target.Id);
+                    _goldLeoSummonUsed = true;
+                    return true;
+                }
+                if (!_goldLeoGyRetrievalUsed)
+                {
+                    _goldLeoGyRetrievalUsed = true;
                     return true;
                 }
             }
             return false;
         }
 
-        // โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•โ• TIER 5: Main Deck Monsters โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•
-
-        private bool GoldLeoEffect()
-        {
-            if (_goldLeoSummonUsed) return false;
-            
-            // Search-and-discard triggers on summon
-            if (Card.Location == CardLocation.MonsterZone)
-            {
-                AI.SelectCard(CardId.Tiger, CardId.KaleidoChick, CardId.YellowMarten, CardId.Wolf);
-                _goldLeoSummonUsed = true;
-                return true;
-            }
-            return false;
-        }
-
         private bool SilverHoundEffect()
         {
-            // Negate Spell/Trap activation (Quick Effect in GY)
-            if (Card.Location == CardLocation.Grave && LastChainCard != null && LastChainCard.Controller == 1)
+            if (Card.Location != CardLocation.Grave) return false;
+
+            // Effect 0: Sent to GY by effect -> Special Summon 1 Lunalight from Deck!
+            // Stringid 0 = Deck Special Summon
+            if (ActivateDescription == Util.GetStringId(CardId.SilverHound, 0) || 
+                (ActivateDescription == -1 && !_silverHoundGyUsed))
             {
-                if (LastChainCard.IsSpell() || LastChainCard.IsTrap())
+                if (!_silverHoundGyUsed && !IsSpecialSummonBlocked() && Bot.GetMonsterCount() < 5)
                 {
-                    bool hasFusionInGy = Bot.Graveyard.Any(c => c != null && c.HasType(CardType.Fusion) && IsLunalightCard(c.Id));
-                    if (hasFusionInGy)
-                    {
-                        return true;
-                    }
+                    _silverHoundGyUsed = true;
+                    return true;
                 }
+                return false;
             }
 
-            // Special Summon 1 Lunalight from Deck (Trigger in GY when sent there by card effect)
-            if (Card.Location == CardLocation.Grave)
+            // Effect 1: Quick Negate of on-field Spell/Trap by banishing Silver Hound + 1 Fusion
+            // Stringid 1 = Spell/Trap Negate
+            if (ActivateDescription == Util.GetStringId(CardId.SilverHound, 1))
             {
-                AI.SelectCard(CardId.KaleidoChick, CardId.GoldLeo, CardId.YellowMarten, CardId.EmeraldBird, CardId.BlackSheep);
-                return true;
+                // STRICT RULE: NEVER negate our own cards! Opponent ONLY!
+                if (Duel.LastChainPlayer != 1) return false;
+                ClientCard currentChainCard = Duel.GetCurrentChainCard();
+                if (currentChainCard == null || currentChainCard.Controller != 1) return false;
+                if (!currentChainCard.IsSpell() && !currentChainCard.IsTrap()) return false;
+
+                // Check that we have a Lunalight Fusion in GY that is NOT our only Panther Dancer (if needed for Leo)
+                bool hasFodderFusion = Bot.Graveyard.Any(c => c != null && c.HasType(CardType.Fusion) && IsLunalightCard(c.Id) && c.Id != CardId.PantherDancer);
+                if (hasFodderFusion) return true;
+
+                // If Panther Dancer is the only one, only negate if the enemy spell is a heavy board wipe / dangerous card
+                if (currentChainCard.IsFloodgate() || currentChainCard.IsCode(18144506, 27551, 12580477, 99745551))
+                {
+                    return Bot.Graveyard.Any(c => c != null && c.HasType(CardType.Fusion) && IsLunalightCard(c.Id));
+                }
             }
 
             return false;
@@ -550,24 +627,13 @@ namespace WindBot.Game.AI.Decks
         private bool KaleidoChickEffect()
         {
             if (ShouldSkipCombo()) return false;
-            if (Card.Location == CardLocation.MonsterZone)
+            if (Card.Location == CardLocation.MonsterZone && !_chickSendUsed)
             {
-                if (_chickSendUsed) return false;
-                bool hasMaterialsForLeo = Bot.MonsterZone.Count(c => c != null && c.IsFaceup() && IsLunalightCard(c.Id)) >= 2;
-                if (hasMaterialsForLeo && GetRemainingCount(CardId.LeoDancer) > 0)
-                {
-                    AI.SelectCard(CardId.PantherDancer);
-                }
-                else
-                {
-                    AI.SelectCard(CardId.YellowMarten, CardId.SerenadeDance, CardId.BlackSheep);
-                }
                 _chickSendUsed = true;
                 return true;
             }
-            if (Card.Location == CardLocation.Grave)
+            if (Card.Location == CardLocation.Grave && !_chickGraveUsed)
             {
-                if (_chickGraveUsed) return false;
                 _chickGraveUsed = true;
                 return true;
             }
@@ -578,13 +644,20 @@ namespace WindBot.Game.AI.Decks
         {
             if (IsSpecialSummonBlocked()) return false;
             if (_martenBounceUsed) return false;
-            
+
+            // 1. Bounce Tiger in SpellZone so it can be re-scaled and used again!
             ClientCard target = Bot.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(CardId.Tiger));
             if (target == null)
             {
-                target = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && IsLunalightCard(c.Id) && !IsAceCard(c));
+                // 2. Bounce Lunalight Masquerade (Continuous Spell) - only Lunalight cards are valid!
+                target = Bot.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(CardId.LunalightMasquerade));
             }
-            
+            if (target == null && Bot.GetMonsterCount() >= 2)
+            {
+                // 3. Bounce a non-ace Lunalight monster ONLY if we have at least 2 monsters on field!
+                target = Bot.MonsterZone.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && IsLunalightCard(c.Id) && !c.IsCode(CardId.YellowMarten) && !IsAceCard(c));
+            }
+
             if (target != null)
             {
                 AI.SelectCard(target.Id);
@@ -598,7 +671,6 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location == CardLocation.Grave && !_martenGyUsed)
             {
-                AI.SelectCard(CardId.LunaLightPerfume, CardId.LunalightFusion, CardId.SerenadeDance);
                 _martenGyUsed = true;
                 return true;
             }
@@ -611,118 +683,52 @@ namespace WindBot.Game.AI.Decks
             {
                 if (Bot.Hand.Count > 0)
                 {
-                    AI.SelectCard(CardId.YellowMarten, CardId.SerenadeDance, CardId.BlackSheep);
                     _emeraldSummonUsed = true;
                     return true;
                 }
             }
             if (Card.Location == CardLocation.Grave && !_emeraldGraveUsed)
             {
-                var target = Bot.Graveyard.FirstOrDefault(c => c != null && c.IsCanRevive() && IsLunalightCard(c.Id) && c.Level <= 4);
-                if (target != null)
+                _emeraldGraveUsed = true;
+                return true;
+            }
+            return false;
+        }
+
+        private bool LunaLightPerfumeEffect()
+        {
+            if (ShouldSkipCombo()) return false;
+            if (Card.Location == CardLocation.Hand)
+            {
+                return Bot.Graveyard.Any(c => c != null && c.IsCanRevive() && IsLunalightCard(c.Id));
+            }
+            else if (Card.Location == CardLocation.Grave && !_perfumeSearchUsed)
+            {
+                if (Bot.Hand.Count > 0)
                 {
-                    AI.SelectCard(target.Id);
-                    _emeraldGraveUsed = true;
+                    _perfumeSearchUsed = true;
                     return true;
                 }
             }
             return false;
         }
 
-        // โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•โ• TIER 6: Fusion Spells โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•
-
-        private bool ApexPolymerizationEffect()
+        // ============================================================
+        // PENDULUM EFFECTS
+        // ============================================================
+        private bool TigerPendulumEffect()
         {
-            if (IsSpecialSummonBlocked()) return false;
-            if (Bot.LifePoints <= 2000) return false;
-            if (_apexPolyUsed) return false;
-
-            var target = Bot.MonsterZone.GetMonsters().FirstOrDefault(c => 
-                c != null && c.IsFaceup() && c.IsCode(CardId.KaleidoChick, CardId.GoldLeo, CardId.SilverHound, CardId.YellowMarten, CardId.EmeraldBird));
-            
-            if (target != null)
+            // Place in scale if in hand and we don't have Tiger scaled
+            if (Card.Location == CardLocation.Hand)
             {
-                AI.SelectCard(target.Id);
-                AI.SelectOption(1); // Always send to GY to set up Graveyard Fusions
-                _apexPolyUsed = true;
-                return true;
-            }
-            return false;
-        }
-
-        private bool HeavyPolymerizationEffect()
-        {
-            if (IsSpecialSummonBlocked()) return false;
-            if (Bot.LifePoints <= 3000) return false; // Avoid suicide
-            if (_heavyPolyUsed) return false;
-            
-            if (Enemy.GetMonsterCount() > 0)
-            {
-                _heavyPolyUsed = true;
-                return true;
-            }
-            return false;
-        }
-
-        private bool CanFusionSummonSafely(int targetId, bool isLunalightFusion, bool isWolf)
-        {
-            var locations = new List<ClientCard>();
-            
-            if (isWolf)
-            {
-                locations.AddRange(Bot.MonsterZone.GetMonsters().Where(c => c != null && IsLunalightCard(c.Id)));
-                locations.AddRange(Bot.Graveyard.Where(c => c != null && IsLunalightCard(c.Id)));
-            }
-            else
-            {
-                locations.AddRange(Bot.Hand.Where(c => c != null && IsLunalightCard(c.Id)));
-                locations.AddRange(Bot.MonsterZone.GetMonsters().Where(c => c != null && IsLunalightCard(c.Id)));
+                return !Bot.HasInSpellZone(CardId.Tiger);
             }
 
-            bool canUseDeckExtra = isLunalightFusion && Enemy.MonsterZone.Any(c => c != null && c.IsFaceup() && c.IsSpecialSummoned && (c.HasType(CardType.Fusion) || c.HasType(CardType.Xyz) || c.HasType(CardType.Synchro) || c.HasType(CardType.Link)));
-            
-            var safeMats = locations.Where(c => {
-                if (c == null) return false;
-                if (IsAceCard(c))
-                {
-                    if (targetId == CardId.LeoDancer && c.IsCode(CardId.PantherDancer)) return true;
-                    if (targetId == CardId.LigerDancer && c.IsCode(CardId.LeoDancer)) return true;
-                    if (targetId == CardId.PantherDancer && c.IsCode(CardId.PerfumeDancer)) return true;
-                    return false;
-                }
-                // Avoid using hand traps as fusion materials unless desperate
-                if (c.Id == CardId.AshBlossom || c.Id == CardId.AshBlossomAlt || c.Id == CardId.DrollAndLockBird || c.Id == CardId.MulcharmyFuwalos || c.Id == CardId.MulcharmyPurulia)
-                    return false;
-                return true;
-            }).ToList();
-
-            int count = safeMats.Count;
-            if (canUseDeckExtra) count += 1;
-
-            if (targetId == CardId.LeoDancer)
+            // In SpellZone: Revive a Lunalight from GY!
+            if (Card.Location == CardLocation.SpellZone)
             {
-                bool hasPanther = safeMats.Any(c => c.IsCode(CardId.PantherDancer)) || (canUseDeckExtra && GetRemainingCount(CardId.PantherDancer) > 0);
-                return hasPanther && count >= 3;
+                return Bot.Graveyard.Any(c => c != null && c.IsCanRevive() && IsLunalightCard(c.Id));
             }
-            if (targetId == CardId.LigerDancer)
-            {
-                bool hasLeo = safeMats.Any(c => c.IsCode(CardId.LeoDancer)) || (canUseDeckExtra && GetRemainingCount(CardId.LeoDancer) > 0);
-                return hasLeo && count >= 4;
-            }
-            if (targetId == CardId.PantherDancer)
-            {
-                bool hasPerfume = safeMats.Any(c => c.IsCode(CardId.PerfumeDancer)) || (canUseDeckExtra && GetRemainingCount(CardId.PerfumeDancer) > 0);
-                return hasPerfume && count >= 2;
-            }
-            if (targetId == CardId.SabreDancer)
-            {
-                return count >= 3;
-            }
-            if (targetId == CardId.PerfumeDancer)
-            {
-                return count >= 2;
-            }
-
             return false;
         }
 
@@ -730,88 +736,150 @@ namespace WindBot.Game.AI.Decks
         {
             if (IsSpecialSummonBlocked()) return false;
 
+            // Place Wolf in scale if in hand and we are ready for Miracle Fusion
             if (Card.Location == CardLocation.Hand)
             {
                 if (Bot.HasInSpellZone(CardId.Wolf)) return false;
-                if (CanFusionSummonSafely(CardId.LigerDancer, false, true) ||
-                    CanFusionSummonSafely(CardId.LeoDancer, false, true) ||
-                    CanFusionSummonSafely(CardId.PantherDancer, false, true) ||
-                    CanFusionSummonSafely(CardId.SabreDancer, false, true) ||
-                    CanFusionSummonSafely(CardId.PerfumeDancer, false, true))
-                {
-                    return true;
-                }
-                return false;
+                int totalMats = Bot.MonsterZone.GetMonsters().Count(c => c != null && IsLunalightCard(c.Id)) +
+                                Bot.Graveyard.Count(c => c != null && IsLunalightCard(c.Id));
+                return totalMats >= 2;
             }
-            
+
+            // In SpellZone: Miracle Fusion activation
             if (Card.Location == CardLocation.SpellZone)
             {
-                if (CanFusionSummonSafely(CardId.LigerDancer, false, true) && GetRemainingCount(CardId.LigerDancer) > 0)
+                int totalMats = Bot.MonsterZone.GetMonsters().Count(c => c != null && IsLunalightCard(c.Id)) +
+                                Bot.Graveyard.Count(c => c != null && IsLunalightCard(c.Id));
+                return totalMats >= 2;
+            }
+            return false;
+        }
+
+        private bool PerfumeDancerEffect()
+        {
+            if (Card.Location == CardLocation.MonsterZone)
+            {
+                // 1. Fusion Summon Trigger: Search Luna Light Perfume from Deck!
+                if ((ActivateDescription == Util.GetStringId(CardId.PerfumeDancer, 0) || ActivateDescription == -1) &&
+                    !_perfumeDancerSearchUsed && Bot.GetRemainingCount(CardId.LunaLightPerfume, 1) > 0)
                 {
-                    AI.SelectCard(CardId.LigerDancer);
+                    _perfumeDancerSearchUsed = true;
                     return true;
                 }
-                if (CanFusionSummonSafely(CardId.LeoDancer, false, true) && GetRemainingCount(CardId.LeoDancer) > 0)
+
+                // 2. Field Ignition: Bounce Tiger/Lunalight on field to SS Lunalight from hand
+                if ((ActivateDescription == Util.GetStringId(CardId.PerfumeDancer, 1) || ActivateDescription == -1) &&
+                    !_perfumeDancerBounceUsed)
                 {
-                    AI.SelectCard(CardId.LeoDancer);
-                    return true;
+                    ClientCard target = Bot.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(CardId.Tiger));
+                    if (target == null)
+                    {
+                        target = Bot.MonsterZone.GetMonsters().FirstOrDefault(c => c != null && c != Card && IsLunalightCard(c.Id) && !IsAceCard(c));
+                    }
+
+                    if (target != null && Bot.Hand.Any(c => c != null && IsLunalightCard(c.Id)))
+                    {
+                        AI.SelectCard(target.Id);
+                        _perfumeDancerBounceUsed = true;
+                        return true;
+                    }
                 }
-                if (CanFusionSummonSafely(CardId.PantherDancer, false, true) && GetRemainingCount(CardId.PantherDancer) > 0)
+            }
+            else if (Card.Location == CardLocation.Grave)
+            {
+                // 3. GY Ignition: Banish self to debuff all opponent monsters ATK by their DEF
+                if ((ActivateDescription == Util.GetStringId(CardId.PerfumeDancer, 2) || ActivateDescription == -1) &&
+                    !_perfumeDancerGyUsed && Duel.Player == 0 && (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Main2) && Enemy.GetMonsterCount() > 0)
                 {
-                    AI.SelectCard(CardId.PantherDancer);
-                    return true;
-                }
-                if (CanFusionSummonSafely(CardId.SabreDancer, false, true) && GetRemainingCount(CardId.SabreDancer) > 0)
-                {
-                    AI.SelectCard(CardId.SabreDancer);
-                    return true;
-                }
-                if (CanFusionSummonSafely(CardId.PerfumeDancer, false, true) && GetRemainingCount(CardId.PerfumeDancer) > 0)
-                {
-                    AI.SelectCard(CardId.PerfumeDancer);
+                    _perfumeDancerGyUsed = true;
                     return true;
                 }
             }
-            
+            return false;
+        }
+
+        // ============================================================
+        // FUSION SPELLS
+        // ============================================================
+        private bool ApexPolymerizationEffect()
+        {
+            if (IsSpecialSummonBlocked()) return false;
+            // LP Safety check: costs 2000 LP
+            if (Bot.LifePoints <= 2000) return false;
+            if (_apexPolyUsed) return false;
+
+            // Target Lv3 or Lv4 Lunalight on field -> Special Summons Lv6/8/9/10/11 Fusion!
+            var target = Bot.MonsterZone.GetMonsters().FirstOrDefault(c =>
+                c != null && c.IsFaceup() && !c.HasType(CardType.Xyz | CardType.Link) && (c.Level == 3 || c.Level == 4) && IsLunalightCard(c.Id));
+
+            if (target != null)
+            {
+                AI.SelectCard(target);
+                _apexPolyUsed = true;
+                return true;
+            }
             return false;
         }
 
         private bool LunalightFusionEffect()
         {
             if (IsSpecialSummonBlocked()) return false;
-            
-            bool isLunalightFusion = Card.IsCode(CardId.LunalightFusion);
-            
-            if (CanFusionSummonSafely(CardId.LigerDancer, isLunalightFusion, false) && GetRemainingCount(CardId.LigerDancer) > 0)
+            bool oppHasExtra = Enemy.MonsterZone.Any(c => c != null && c.IsFaceup() && (c.HasType(CardType.Fusion | CardType.Xyz | CardType.Synchro | CardType.Link)));
+            if (oppHasExtra)
             {
-                AI.SelectCard(CardId.LigerDancer);
                 return true;
             }
-            if (CanFusionSummonSafely(CardId.LeoDancer, isLunalightFusion, false) && GetRemainingCount(CardId.LeoDancer) > 0)
+            int availableNonAceMats = Bot.Hand.Count(c => c != null && IsLunalightCard(c.Id)) +
+                                      Bot.MonsterZone.GetMonsters().Count(c => c != null && IsLunalightCard(c.Id) && !IsAceCard(c));
+            return availableNonAceMats >= 2;
+        }
+
+        private bool PolymerizationEffect()
+        {
+            if (IsSpecialSummonBlocked()) return false;
+
+            int availableNonAceMats = Bot.Hand.Count(c => c != null && IsLunalightCard(c.Id)) +
+                                      Bot.MonsterZone.GetMonsters().Count(c => c != null && IsLunalightCard(c.Id) && !IsAceCard(c));
+
+            // If we don't have Perfume Dancer on field, 2 non-ace materials make Perfume Dancer
+            if (!Bot.HasInMonstersZone(CardId.PerfumeDancer))
             {
-                AI.SelectCard(CardId.LeoDancer);
-                return true;
+                return availableNonAceMats >= 2;
             }
-            if (CanFusionSummonSafely(CardId.PantherDancer, isLunalightFusion, false) && GetRemainingCount(CardId.PantherDancer) > 0)
+
+            // If Perfume Dancer is already on field, only activate Poly if we can make a higher Boss:
+            bool hasPantherInGyOrField = Bot.Graveyard.Any(c => c != null && c.Id == CardId.PantherDancer) ||
+                                          Bot.MonsterZone.GetMonsters().Any(c => c != null && c.Id == CardId.PantherDancer);
+            bool hasChickOnField = Bot.MonsterZone.GetMonsters().Any(c => c != null && c.Id == CardId.KaleidoChick);
+
+            // Leo Dancer requires Panther (or Chick copying it) + 2 Lunalights
+            if (hasPantherInGyOrField || hasChickOnField)
             {
-                AI.SelectCard(CardId.PantherDancer);
-                return true;
+                return availableNonAceMats >= 2;
             }
-            if (CanFusionSummonSafely(CardId.SabreDancer, isLunalightFusion, false) && GetRemainingCount(CardId.SabreDancer) > 0)
-            {
-                AI.SelectCard(CardId.SabreDancer);
-                return true;
-            }
-            if (CanFusionSummonSafely(CardId.PerfumeDancer, isLunalightFusion, false) && GetRemainingCount(CardId.PerfumeDancer) > 0)
-            {
-                AI.SelectCard(CardId.PerfumeDancer);
-                return true;
-            }
-            
+
+            // Sabre Dancer requires 3 Lunalights
+            if (availableNonAceMats >= 3) return true;
+
             return false;
         }
 
-        // โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•โ• TIER 7: Extra Deck Monsters โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•
+        // ============================================================
+        // EXTRA DECK SUMMONS
+        // ============================================================
+        private bool PerfumeDancerSummon()
+        {
+            if (IsSpecialSummonBlocked()) return false;
+            // Never summon Perfume Dancer if we already have one on field!
+            if (Bot.HasInMonstersZone(CardId.PerfumeDancer)) return false;
+            return true;
+        }
+
+        private bool LeoDancerSummon()
+        {
+            if (IsSpecialSummonBlocked()) return false;
+            return true;
+        }
 
         private bool LigerDancerSummon()
         {
@@ -821,18 +889,8 @@ namespace WindBot.Game.AI.Decks
 
         private bool LigerDancerEffect()
         {
-            if (Enemy.GetMonsters().Any(c => c != null && c.IsSpecialSummoned))
-            {
-                AI.SelectCard(CardId.SabreDancer, CardId.PerfumeDancer, CardId.PantherDancer);
-                return true;
-            }
-            return false;
-        }
-
-        private bool LeoDancerSummon()
-        {
-            if (IsSpecialSummonBlocked()) return false;
-            return true;
+            // Wipe all opponent's Special Summoned monsters!
+            return Enemy.GetMonsters().Any(c => c != null && c.IsSpecialSummoned);
         }
 
         private bool PantherDancerSummon()
@@ -847,50 +905,11 @@ namespace WindBot.Game.AI.Decks
             return true;
         }
 
-        private bool PerfumeDancerSummon()
-        {
-            if (IsSpecialSummonBlocked()) return false;
-            return true;
-        }
-
-        private bool PerfumeDancerEffect()
-        {
-            if (Card.Location == CardLocation.MonsterZone)
-            {
-                if (_perfumeDancerBounceUsed) return false;
-                
-                ClientCard target = Bot.GetSpells().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(CardId.Tiger));
-                if (target == null)
-                {
-                    target = Bot.MonsterZone.GetMonsters().FirstOrDefault(c => c != null && c != Card && IsLunalightCard(c.Id) && !IsAceCard(c));
-                }
-
-                if (target != null && Bot.Hand.Any(c => c != null && IsLunalightCard(c.Id)))
-                {
-                    AI.SelectCard(target.Id);
-                    var summon = Bot.Hand.FirstOrDefault(c => c != null && IsLunalightCard(c.Id));
-                    if (summon != null)
-                    {
-                        AI.SelectNextCard(summon.Id);
-                    }
-                    _perfumeDancerBounceUsed = true;
-                    return true;
-                }
-            }
-            else if (Card.Location == CardLocation.Grave)
-            {
-                if (_perfumeDancerGyUsed) return false;
-                if (Duel.Player == 0 && (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Main2) && Enemy.GetMonsterCount() > 0)
-                {
-                    _perfumeDancerGyUsed = true;
-                    return true;
-                }
-            }
-            return false;
-        }
-
         private bool TigerKingSummon()
         {
+            if (IsSpecialSummonBlocked()) return false;
+            int lvl4BeastWarriors = Bot.MonsterZone.GetMonsters().Count(c => c != null && c.IsFaceup() && c.Level == 4 && c.HasRace(CardRace.BestWarrior) && !IsAceCard(c));
+            if (lvl4BeastWarriors < 2) return false;
             return !Bot.HasInSpellZone(CardId.Tenki) && Bot.GetRemainingCount(CardId.Tenki, 1) > 0;
         }
 
@@ -902,24 +921,23 @@ namespace WindBot.Game.AI.Decks
         private bool DugaresSummon()
         {
             if (IsSpecialSummonBlocked()) return false;
+            int lvl4s = Bot.MonsterZone.GetMonsters().Count(c => c != null && c.IsFaceup() && c.Level == 4 && !IsAceCard(c));
+            if (lvl4s < 2) return false;
             return Bot.Graveyard.Any(c => c != null && c.IsCanRevive() && IsLunalightCard(c.Id));
         }
 
         private bool DugaresEffect()
         {
-            var target = Bot.Graveyard.FirstOrDefault(c => c != null && c.IsCanRevive() && IsLunalightCard(c.Id));
-            if (target != null)
-            {
-                AI.SelectOption(0); // Option 1 (index 0) Special Summon from GY
-                AI.SelectCard(target.Id);
-                return true;
-            }
-            return false;
+            AI.SelectOption(0); // Option 0: Special Summon from GY
+            return true;
         }
 
         private bool BagooskaSummon()
         {
             if (IsSpecialSummonBlocked()) return false;
+            int lvl4s = Bot.MonsterZone.GetMonsters().Count(c => c != null && c.IsFaceup() && c.Level == 4 && !IsAceCard(c));
+            if (lvl4s < 2) return false;
+            // RULE #12: Bagooska MUST ALWAYS BE DEFENSE!
             if ((Duel.Turn == 1 || Duel.Phase == DuelPhase.Main2) && Duel.Player == 0)
             {
                 AI.SelectPosition(CardPosition.FaceUpDefence);
@@ -928,35 +946,12 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
-        private bool AlmirajSummon()
-        {
-            if (IsSpecialSummonBlocked()) return false;
-            
-            // Only summon Almiraj if we have a way to revive the material (Tiger or Perfume)
-            bool hasRevival = Bot.Hand.Any(c => c != null && c.IsCode(CardId.LunaLightPerfume, CardId.Tiger)) ||
-                              Bot.HasInSpellZone(CardId.Tiger);
-            if (!hasRevival) return false;
-
-            var mat = Bot.GetMonsters().FirstOrDefault(c => c != null && c.IsFaceup() && c.IsCode(CardId.BlackSheep, CardId.KaleidoChick));
-            if (mat != null)
-            {
-                AI.SelectCard(mat.Id);
-                return true;
-            }
-            return false;
-        }
-
         private bool SpLittleKnightSummon()
         {
             if (IsSpecialSummonBlocked()) return false;
-            
-            // Only summon if we have at least 2 non-Ace monsters to use as materials
-            int nonAceCount = Bot.MonsterZone.GetMonsters().Count(c => c != null && c.IsFaceup() && !IsAceCard(c));
-            if (nonAceCount < 2) return false;
-            
-            // Do not link away our monsters in Main Phase 1 of our turn (prefer fusions)
-            if (Duel.Player == 0 && Duel.Phase == DuelPhase.Main1) return false;
-            
+            int fodderCount = Bot.MonsterZone.GetMonsters().Count(c => c != null && c.IsFaceup() && (!IsAceCard(c) || c.Owner == 1));
+            if (fodderCount < 2) return false;
+            if (Duel.Player == 0 && Duel.Phase == DuelPhase.Main1 && !_isGoingSecond) return false;
             return Enemy.GetMonsterCount() > 0 || Enemy.GetSpellCount() > 0;
         }
 
@@ -972,388 +967,323 @@ namespace WindBot.Game.AI.Decks
             return false;
         }
 
-        // โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•โ• Fallbacks & Helpers โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•โ•
-
         private bool SetTrapCondition() => Util.IsTurn1OrMain2();
 
         private bool FallbackNormalSummon()
         {
-            if (Card != null && (Card.Id == CardId.AshBlossom || Card.Id == CardId.AshBlossomAlt || 
-                                 Card.Id == CardId.DrollAndLockBird || Card.Id == CardId.MulcharmyFuwalos || 
-                                 Card.Id == CardId.MulcharmyPurulia))
-                return false;
-            return true;
-        }
-
-        private bool IsSafeToAttack(ClientCard attacker)
-        {
-            foreach (ClientCard enemy in Enemy.MonsterZone)
+            if (HasNormalSummonedThisTurn) return false;
+            var nonHandtrap = Bot.Hand.FirstOrDefault(c => c != null && c.IsMonster() && c.Level <= 4 &&
+                !c.IsCode(CardId.AshBlossom, CardId.AshBlossomAlt, CardId.DrollAndLockBird, CardId.MulcharmyFuwalos, CardId.MulcharmyPurulia, CardId.Tiger, CardId.Wolf));
+            if (nonHandtrap != null)
             {
-                if (enemy == null || !enemy.IsFaceup()) continue;
-                if (enemy.IsAttack() && enemy.Attack >= attacker.Attack) return false;
-                if (enemy.IsDefense() && attacker.Attack <= enemy.Defense) return false;
+                HasNormalSummonedThisTurn = true;
+                AI.SelectCard(nonHandtrap);
+                return true;
             }
-            return true;
-        }
-
-        private bool IsSafeToDefend(ClientCard monster)
-        {
-            foreach (ClientCard enemy in Enemy.MonsterZone)
-            {
-                if (enemy == null || !enemy.IsFaceup()) continue;
-                if (enemy.Attack > monster.Defense) return false;
-            }
-            return true;
+            return false;
         }
 
         private bool MonsterRepos()
         {
             if (Card == null) return false;
+            // CRITICAL RULE #12: Never switch Bagooska to Attack!
+            if (Card.IsCode(CardId.Bagooska)) return false;
+
             if (IsAceCard(Card))
             {
-                if (Card.IsDefense()) return true; // Switch to ATK
+                if (Card.IsDefense()) return true; // Switch to Attack
                 return false;
             }
-            
+
             bool enemyEmpty = Enemy.GetMonsterCount() == 0;
-            
-            // Luna main deck monsters have very low ATK (100-1400) โ€” keep in DEF
-            if (Card.Attack <= 1400 && Card.IsAttack())
-                return true; // Switch to DEF
-            
-            if (Card.IsAttack())
-            {
-                if (!enemyEmpty && !IsSafeToAttack(Card) && IsSafeToDefend(Card))
-                    return true;
-            }
-            else
-            {
-                if (enemyEmpty && Card.Attack >= 1500)
-                    return true;
-            }
+            if (Card.Attack <= 1400 && Card.IsAttack()) return true; // Switch to DEF
+
+            if (Card.IsDefense() && enemyEmpty && Card.Attack >= 1500)
+                return true;
+
             return false;
         }
 
+        // ============================================================
+        // ON SELECT POSITION — STRICT RULE #12 COMPLIANCE
+        // ============================================================
         public override CardPosition OnSelectPosition(int cardId, IList<CardPosition> positions)
         {
-            // Ace boss monsters go to ATK (Liger, Leo, Sabre, Panther Dancers)
-            if ((cardId == CardId.LigerDancer || cardId == CardId.LeoDancer 
+            // CRITICAL USER RULE #12: Bagooska MUST ALWAYS BE FaceUpDefence!
+            if (cardId == CardId.Bagooska)
+            {
+                if (positions.Contains(CardPosition.FaceUpDefence))
+                    return CardPosition.FaceUpDefence;
+            }
+
+            // Boss attackers go to FaceUpAttack
+            if ((cardId == CardId.LigerDancer || cardId == CardId.LeoDancer
                 || cardId == CardId.SabreDancer || cardId == CardId.PantherDancer
                 || cardId == CardId.PerfumeDancer || cardId == CardId.TigerKing
-                || cardId == CardId.Dugares || cardId == CardId.Bagooska
-                || cardId == CardId.SpLittleKnight || cardId == CardId.Nyarla)
+                || cardId == CardId.Dugares || cardId == CardId.SpLittleKnight)
                 && positions.Contains(CardPosition.FaceUpAttack))
+            {
                 return CardPosition.FaceUpAttack;
-            
-            // Low ATK main deck monsters โ€” stay in DEF for safety
+            }
+
+            // Main deck low-ATK monsters stay in DEF for safety
             if (positions.Contains(CardPosition.FaceUpDefence))
                 return CardPosition.FaceUpDefence;
-            
+
             return base.OnSelectPosition(cardId, positions);
         }
 
-        public override int GetMaterialPriority(ClientCard c)
+        public override int OnSelectPlace(long cardId, int player, CardLocation location, int available)
         {
-            if (c == null) return 999;
-            if (IsAceCard(c)) return 900;
-            if (c.Id == CardId.AshBlossom || c.Id == CardId.AshBlossomAlt || c.Id == CardId.DrollAndLockBird || c.Id == CardId.MulcharmyFuwalos || c.Id == CardId.MulcharmyPurulia) return 800;
-            if (c.Id == CardId.Wolf || c.Id == CardId.Tiger) return 150;
-            if (c.Id == CardId.BlackSheep) return 100;
-            return 50;
-        }
-
-        public override IList<ClientCard> OnSelectFusionMaterial(IList<ClientCard> cards, int min, int max)
-        {
-            var sorted = cards.OrderBy(GetFusionMaterialScore).ToList();
-            DecisionTracer.Trace("OnSelectFusionMaterial", $"min: {min}, max: {max}, selected: {string.Join(", ", sorted.Take(max).Select(c => c.Name ?? c.Id.ToString()))}");
-            return sorted.Take(max).ToList();
-        }
-
-        public override IList<ClientCard> OnSelectXyzMaterial(IList<ClientCard> cards, int min, int max)
-        {
-            var sorted = cards.OrderBy(c => {
-                if (c == null) return 999;
-                if (IsAceCard(c)) return 900;
-                if (c.Id == CardId.AshBlossom || c.Id == CardId.AshBlossomAlt || c.Id == CardId.DrollAndLockBird || c.Id == CardId.MulcharmyFuwalos || c.Id == CardId.MulcharmyPurulia) return 800;
-                if (c.Id == CardId.YellowMarten) return 10;
-                if (c.Id == CardId.EmeraldBird) return 20;
-                if (c.Id == CardId.KaleidoChick) return 30;
-                return 100;
-            }).ToList();
-            DecisionTracer.Trace("OnSelectXyzMaterial", $"min: {min}, max: {max}, selected: {string.Join(", ", sorted.Take(max).Select(c => c.Name ?? c.Id.ToString()))}");
-            return sorted.Take(max).ToList();
-        }
-
-        private int GetFusionMaterialScore(ClientCard c)
-        {
-            if (c == null) return 999;
-            if (c.Controller == 1) return 10; // Super Poly / Lunalight Fusion from opponent's field/deck
-            
-            if (c.Id == CardId.AshBlossom || c.Id == CardId.AshBlossomAlt || c.Id == CardId.DrollAndLockBird || c.Id == CardId.MulcharmyFuwalos || c.Id == CardId.MulcharmyPurulia)
-                return 800;
-
-            if (c.Location == CardLocation.Grave)
+            if (player == 0 && location == CardLocation.SpellZone)
             {
-                if (c.Id == CardId.YellowMarten) return 20;
-                if (c.Id == CardId.EmeraldBird) return 21;
-                if (c.Id == CardId.KaleidoChick) return 22;
-                if (c.Id == CardId.BlackSheep) return 23;
-                return 30;
+                // In Lunalight, we need Pendulum Zones (z0=0x1 and z4=0x10) for Tiger and Wolf!
+                // So normal Spells/Traps/Continuous cards MUST prioritize middle zones (z2=0x4, z1=0x2, z3=0x8) first!
+                int middleAvailable = available & (0x4 | 0x2 | 0x8);
+                if (middleAvailable > 0)
+                {
+                    if ((middleAvailable & 0x4) > 0) return 0x4; // center
+                    if ((middleAvailable & 0x2) > 0) return 0x2; // left center
+                    if ((middleAvailable & 0x8) > 0) return 0x8; // right center
+                }
             }
-
-            if (c.Location == CardLocation.Hand)
-            {
-                if (c.Id == CardId.BlackSheep) return 40;
-                if (c.Id == CardId.GoldLeo || c.Id == CardId.SilverHound) return 45;
-                if (c.Id == CardId.EmeraldBird) return 50;
-                if (c.Id == CardId.YellowMarten) return 55;
-                if (c.Id == CardId.KaleidoChick) return 60;
-                return 70;
-            }
-
-            if (c.Location == CardLocation.MonsterZone)
-            {
-                if (IsAceCard(c)) return 500;
-                if (c.Id == CardId.BlackSheep) return 100;
-                if (c.Id == CardId.EmeraldBird) return 110;
-                if (c.Id == CardId.KaleidoChick) return 120;
-                if (c.Id == CardId.YellowMarten) return 130;
-                return 150;
-            }
-
-            return 200;
+            return base.OnSelectPlace(cardId, player, location, available);
         }
 
+        // ============================================================
+        // ON SELECT CARD — DELEGATE TO PLUGIN & STRICT ENEMY DESTROY
+        // ============================================================
         public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
         {
-            DecisionTracer.Trace("OnSelectCard", $"hint: {hint}, min: {min}, max: {max}");
+            if (cards == null || cards.Count == 0)
+                return base.OnSelectCard(cards, min, max, hint, cancelable);
 
-            if (hint == 533) // Link material
+            // Wolf Miracle Fusion Materials (from our field/GY)
+            if (Card != null && Card.Id == CardId.Wolf && (hint == 503 || hint == 511))
             {
-                var sorted = cards.OrderBy(c => GetMaterialPriority(c)).ToList();
-                return sorted.Take(max).ToList();
+                var sorted = DeckPlugin?.MaterialEvaluator?.SortMaterials(cards, min);
+                if (sorted != null && sorted.Count >= min)
+                {
+                    return sorted.Take(max).ToList();
+                }
             }
-            if (hint == 511) // Fusion material
+
+            // Mandatory Rule #1 & Skill 3.3: Removal / Destruction must target ENEMY ONLY!
+            if (hint == 502 || hint == 503)
             {
-                var sorted = cards.OrderBy(GetFusionMaterialScore).ToList();
-                return sorted.Take(max).ToList();
-            }
-            if (hint == 513) // Xyz material
-            {
-                var sorted = cards.OrderBy(c => {
-                    if (c == null) return 999;
-                    if (IsAceCard(c)) return 900;
-                    if (c.Id == CardId.AshBlossom || c.Id == CardId.AshBlossomAlt || c.Id == CardId.DrollAndLockBird || c.Id == CardId.MulcharmyFuwalos || c.Id == CardId.MulcharmyPurulia) return 800;
-                    if (c.Id == CardId.YellowMarten) return 10;
-                    if (c.Id == CardId.EmeraldBird) return 20;
-                    if (c.Id == CardId.KaleidoChick) return 30;
-                    return 100;
-                }).ToList();
-                return sorted.Take(max).ToList();
-            }
-            if (hint == 509) // Special Summon / Revival
-            {
-                var sorted = cards.OrderBy(c => {
-                    if (c == null) return 999;
-                    int controllerScore = (c.Controller == 0) ? 0 : 1000;
-                    int cardScore = 100;
-                    if (c.IsCode(CardId.LeoDancer)) cardScore = 1;
-                    else if (c.IsCode(CardId.PantherDancer)) cardScore = 2;
-                    else if (c.IsCode(CardId.SabreDancer)) cardScore = 3;
-                    else if (c.IsCode(CardId.LigerDancer)) cardScore = 4;
-                    else if (c.IsCode(CardId.PerfumeDancer)) cardScore = 5;
-                    else if (c.IsCode(CardId.TigerKing)) cardScore = 6;
-                    else if (c.IsCode(CardId.KaleidoChick)) cardScore = 7;
-                    else if (c.IsCode(CardId.Tiger)) cardScore = 8;
-                    else if (c.IsCode(CardId.YellowMarten)) cardScore = 9;
-                    else if (c.IsCode(CardId.EmeraldBird)) cardScore = 10;
-                    return controllerScore + cardScore;
-                }).ToList();
-                return sorted.Take(max).ToList();
-            }
-            if (hint == 502) // Destroy
-            {
-                var sorted = cards.OrderByDescending(c => {
-                    if (c == null) return -999;
-                    int score = (c.Controller == 1) ? 10000 : 0;
-                    if (c.IsMonster())
-                    {
-                        if (c.IsFaceup() && !c.IsDisabled())
-                        {
-                            if (c.Attack >= 2500 && c.HasType(CardType.Effect)) return score + 5000;
-                        }
-                        return score + c.Attack;
-                    }
-                    else if (c.IsSpell() || c.IsTrap())
-                    {
+                var enemyTargets = cards.Where(c => c != null && c.Controller == 1)
+                    .OrderByDescending(c => {
+                        int score = c.Attack;
                         if (c.IsFaceup())
                         {
-                            if (c.HasType(CardType.Continuous) || c.HasType(CardType.Field)) return score + 2000;
-                            return score + 500;
+                            if (c.IsFloodgate()) score += 10000;
+                            if (c.IsExtraCard()) score += 5000;
                         }
-                        return score + 100;
-                    }
-                    return score;
-                }).ToList();
-                return sorted.Take(max).ToList();
-            }
-            if (hint == 506) // Search
-            {
-                return SelectPreferred(cards, min, max, CardId.Tiger, CardId.KaleidoChick, CardId.YellowMarten, CardId.GoldLeo, CardId.SilverHound, CardId.LunalightFusion);
+                        return score;
+                    }).ToList();
+
+                if (enemyTargets.Count >= min)
+                    return enemyTargets.Take(max).ToList();
             }
 
-            if (Card == null) return base.OnSelectCard(cards, min, max, hint, cancelable);
-
-            // Card-specific overrides
-            if (Card.Id == CardId.LunaLightPerfume)
+            // Forbidden Droplet targets & costs
+            if (Card != null && Card.IsCode(CardId.ForbiddenDroplet))
             {
-                if (cards.Any(c => c != null && c.Location == CardLocation.Hand && c.Controller == 0))
+                if (cards.Any(c => c != null && c.Controller == 0))
                 {
-                    return SelectPreferred(cards, min, max, CardId.SerenadeDance, CardId.YellowMarten, CardId.EmeraldBird, CardId.BlackSheep, CardId.SilverHound, CardId.GoldLeo);
-                }
-                if (cards.Any(c => c != null && c.Location == CardLocation.Grave && c.Controller == 0))
-                {
-                    return SelectPreferred(cards, min, max, CardId.KaleidoChick, CardId.YellowMarten, CardId.EmeraldBird, CardId.Tiger, CardId.GoldLeo, CardId.SilverHound, CardId.BlackSheep);
-                }
-                if (cards.Any(c => c != null && c.Location == CardLocation.Deck && c.Controller == 0))
-                {
-                    return SelectPreferred(cards, min, max, CardId.Tiger, CardId.KaleidoChick, CardId.YellowMarten, CardId.GoldLeo, CardId.SilverHound, CardId.Wolf);
-                }
-            }
+                    // Selecting cost from our field / hand:
+                    // 1. Tenki on field (already searched)
+                    var tenki = cards.FirstOrDefault(c => c != null && c.Location == CardLocation.SpellZone && c.IsCode(CardId.Tenki));
+                    if (tenki != null) return new List<ClientCard> { tenki };
 
-            if (Card.Id == CardId.BlackSheep)
-            {
-                if (cards.Any(c => c != null && c.IsCode(CardId.BlackSheep) && c.Location == CardLocation.Hand))
-                {
-                    return cards.Where(c => c != null && c.IsCode(CardId.BlackSheep)).Take(max).ToList();
-                }
-                if (cards.Any(c => c != null && c.Location == CardLocation.Grave && c.Controller == 0))
-                {
-                    return SelectPreferred(cards, min, max, CardId.Tiger, CardId.KaleidoChick, CardId.YellowMarten, CardId.EmeraldBird, CardId.GoldLeo, CardId.SilverHound);
-                }
-            }
+                    // 2. Lunalight Masquerade on field
+                    var masquerade = cards.FirstOrDefault(c => c != null && c.Location == CardLocation.SpellZone && c.IsCode(CardId.LunalightMasquerade));
+                    if (masquerade != null) return new List<ClientCard> { masquerade };
 
-            if (Card.Id == CardId.LunalightMasquerade)
-            {
-                if (cards.Any(c => c != null && c.Location == CardLocation.Deck && c.Controller == 0))
-                {
-                    return SelectPreferred(cards, min, max, CardId.SilverHound, CardId.YellowMarten, CardId.SerenadeDance, CardId.EmeraldBird, CardId.BlackSheep, CardId.KaleidoChick);
-                }
-            }
+                    // 3. Silver Hound in Hand (triggers SS from deck!)
+                    var hound = cards.FirstOrDefault(c => c != null && c.Location == CardLocation.Hand && c.IsCode(CardId.SilverHound));
+                    if (hound != null) return new List<ClientCard> { hound };
 
-            if (Card.Id == CardId.YellowMarten)
-            {
-                if (cards.Any(c => c != null && (c.Location == CardLocation.MonsterZone || c.Location == CardLocation.SpellZone)))
+                    // 4. Yellow Marten in Hand (triggers S/T search!)
+                    var marten = cards.FirstOrDefault(c => c != null && c.Location == CardLocation.Hand && c.IsCode(CardId.YellowMarten));
+                    if (marten != null) return new List<ClientCard> { marten };
+
+                    // 5. Emerald Bird in Hand
+                    var bird = cards.FirstOrDefault(c => c != null && c.Location == CardLocation.Hand && c.IsCode(CardId.EmeraldBird));
+                    if (bird != null) return new List<ClientCard> { bird };
+
+                    // Fallback safe fodder (exclude core fusion spells and scales!)
+                    var safeFodder = cards.Where(c => c != null && c.Controller == 0 &&
+                        !c.IsCode(CardId.Polymerization, CardId.LunalightFusion, CardId.Tiger, CardId.Wolf, CardId.KaleidoChick))
+                        .OrderBy(c => c.Location == CardLocation.Hand ? 0 : 1)
+                        .FirstOrDefault();
+                    if (safeFodder != null) return new List<ClientCard> { safeFodder };
+                }
+                else if (cards.Any(c => c != null && c.Controller == 1))
                 {
-                    return SelectPreferred(cards, min, max, CardId.Tiger, CardId.GoldLeo, CardId.SilverHound, CardId.EmeraldBird, CardId.BlackSheep);
+                    // Selecting enemy monster to negate
+                    var target = cards.Where(c => c != null && c.Controller == 1 && c.IsFaceup() && !c.IsDisabled())
+                        .OrderByDescending(c => {
+                            int score = c.Attack;
+                            if (c.IsFloodgate()) score += 10000;
+                            if (c.IsExtraCard()) score += 5000;
+                            return score;
+                        }).FirstOrDefault();
+
+                    if (target != null) return new List<ClientCard> { target };
                 }
             }
 
-            if (Card.Id == CardId.EmeraldBird)
+            // 3. Deck Search (hint 506 = HINTMSG_ATOHAND) or all in Deck
+            if (hint == 506 || (hint == 0 && cards.All(c => c.Location == CardLocation.Deck)))
             {
-                if (cards.Any(c => c != null && c.Location == CardLocation.Hand && c.Controller == 0))
+                var target = DeckPlugin?.Strategy?.PickSearchTarget(cards, Card);
+                if (target != null)
                 {
-                    return SelectPreferred(cards, min, max, CardId.SerenadeDance, CardId.YellowMarten, CardId.BlackSheep, CardId.GoldLeo, CardId.SilverHound);
-                }
-                if (cards.Any(c => c != null && c.Location == CardLocation.Grave && c.Controller == 0))
-                {
-                    return SelectPreferred(cards, min, max, CardId.KaleidoChick, CardId.YellowMarten, CardId.BlackSheep, CardId.GoldLeo, CardId.SilverHound);
+                    var result = new List<ClientCard> { target };
+                    result.AddRange(cards.Where(c => c != target).Take(max - 1));
+                    return result;
                 }
             }
 
-            if (Card.Id == CardId.GoldLeo)
+            // 4. Special Summon (hint 509 = HINTMSG_SPSUMMON)
+            if (hint == 509)
             {
-                if (cards.Any(c => c != null && c.Location == CardLocation.Hand && c.Controller == 0))
+                var target = DeckPlugin?.Strategy?.PickSpecialSummonTarget(cards);
+                if (target != null)
                 {
-                    return SelectPreferred(cards, min, max, CardId.SerenadeDance, CardId.YellowMarten, CardId.SilverHound, CardId.EmeraldBird, CardId.BlackSheep);
-                }
-                if (cards.Any(c => c != null && c.Location == CardLocation.Grave && c.Controller == 0))
-                {
-                    return SelectPreferred(cards, min, max, CardId.Tiger, CardId.KaleidoChick, CardId.BlackSheep, CardId.GoldLeo, CardId.YellowMarten);
+                    var result = new List<ClientCard> { target };
+                    result.AddRange(cards.Where(c => c != target).Take(max - 1));
+                    return result;
                 }
             }
 
-            if (Card.Id == CardId.ForbiddenDroplet)
+            // 5. Send to Grave (hint 504 = HINTMSG_TOGRAVE)
+            if (hint == 504)
             {
-                if (cards.Any(c => c != null && c.Controller == 0 && (c.Location == CardLocation.Hand || c.Location == CardLocation.SpellZone || c.Location == CardLocation.MonsterZone)))
+                var target = DeckPlugin?.Strategy?.PickFoolishGraveTarget(cards, Card);
+                if (target != null)
                 {
-                    return SelectPreferred(cards, min, max, CardId.Tenki, CardId.SerenadeDance, CardId.LunalightMasquerade, CardId.LunaLightPerfume);
-                }
-                if (cards.Any(c => c != null && c.Controller == 1 && c.Location == CardLocation.MonsterZone))
-                {
-                    // Prioritize negators like Blue-Eyes Spirit Dragon (59822133) and Hope Harbinger (63767246)
-                    var preferredTargets = SelectPreferred(cards, min, max, 59822133, 63767246, 40908371);
-                    if (preferredTargets.Count > 0)
-                    {
-                        return preferredTargets;
-                    }
-                    return cards.Where(c => c != null && c.IsFaceup() && !c.IsDisabled()).OrderByDescending(c => c.Attack).Take(max).ToList();
+                    var result = new List<ClientCard> { target };
+                    result.AddRange(cards.Where(c => c != target).Take(max - 1));
+                    return result;
                 }
             }
 
-            if (Card.Id == CardId.ApexPolymerization)
+            // 6. Discard Cost (hint 501 = HINTMSG_DISCARD)
+            if (hint == 501)
             {
-                if (cards.Any(c => c != null && c.Location == CardLocation.MonsterZone && c.Controller == 0))
+                var target = DeckPlugin?.MaterialEvaluator?.PickDiscardTarget(cards, min);
+                if (target != null)
                 {
-                    return SelectPreferred(cards, min, max, CardId.KaleidoChick, CardId.GoldLeo, CardId.SilverHound, CardId.YellowMarten, CardId.EmeraldBird);
-                }
-                if (cards.Any(c => c != null && c.Location == CardLocation.Extra && c.Controller == 0))
-                {
-                    return SelectPreferred(cards, min, max, CardId.LeoDancer, CardId.PantherDancer, CardId.SabreDancer, CardId.PerfumeDancer);
+                    var result = new List<ClientCard> { target };
+                    result.AddRange(cards.Where(c => c != target).Take(max - 1));
+                    return result;
                 }
             }
 
-            if (Card.Id == CardId.LigerDancer)
+            // 7. Fusion / Xyz Materials (hint 511, 513, 533, 570)
+            if (hint == 511 || hint == 513 || hint == 533 || hint == 570)
             {
-                return SelectPreferred(cards, min, max, CardId.SabreDancer, CardId.PerfumeDancer, CardId.PantherDancer);
-            }
-
-            if (Card != null && (Card.Id == CardId.LunalightFusion || Card.Id == CardId.Polymerization || Card.Id == CardId.HeavyPolymerization))
-            {
-                if (cards.Any(c => c != null && c.Location == CardLocation.Extra && c.Controller == 0))
+                var sorted = DeckPlugin?.MaterialEvaluator?.SortMaterials(cards, min);
+                if (sorted != null && sorted.Count >= min)
                 {
-                    return SelectPreferred(cards, min, max, CardId.LigerDancer, CardId.LeoDancer, CardId.PantherDancer, CardId.SabreDancer, CardId.PerfumeDancer);
-                }
-                if (cards.Any(c => c != null && c.Location == CardLocation.Deck && c.Controller == 0))
-                {
-                    return SelectPreferred(cards, min, max, CardId.YellowMarten, CardId.SerenadeDance, CardId.SilverHound, CardId.EmeraldBird, CardId.BlackSheep);
+                    return sorted.Take(max).ToList();
                 }
             }
 
             return base.OnSelectCard(cards, min, max, hint, cancelable);
         }
 
-        private IList<ClientCard> SelectPreferred(IList<ClientCard> cards, int min, int max, params int[] preferredIds)
+        // ============================================================
+        // ON SELECT OPTION & EFFECT YN
+        // ============================================================
+        public override int OnSelectOption(IList<long> options)
         {
-            var result = new List<ClientCard>();
-            foreach (int id in preferredIds)
+            if (options == null || options.Count <= 1)
+                return 0;
+
+            // 1. Apex Polymerization: Option 0 = Fusion Summon; Option 1 = Send to GY
+            if (Card != null && Card.Id == CardId.ApexPolymerization)
             {
-                var matches = cards.Where(c => c != null && c.Id == id && !result.Contains(c)).ToList();
-                foreach (var m in matches)
-                {
-                    result.Add(m);
-                    if (result.Count >= max) break;
-                }
-                if (result.Count >= max) break;
+                return 0; // Always Fusion Summon
             }
-            if (result.Count < min)
+
+            // 2. Black Sheep:
+            // Option 0: Add Polymerization to hand
+            // Option 1: Add Lunalight monster from GY to hand
+            if (Card != null && Card.Id == CardId.BlackSheep)
             {
-                foreach (var card in cards)
-                {
-                    if (card != null && !result.Contains(card))
-                    {
-                        result.Add(card);
-                        if (result.Count >= min) break;
-                    }
-                }
+                bool hasPoly = Bot.Hand.Any(c => c != null && c.IsCode(CardId.Polymerization, CardId.LunalightFusion, CardId.ApexPolymerization));
+                if (!hasPoly && Bot.GetRemainingCount(CardId.Polymerization, 1) > 0)
+                    return 0;
+                return Math.Min(1, options.Count - 1);
             }
-            return result;
+
+            // 3. Triple Tactics Talent:
+            // Option 0: Draw 2 cards
+            // Option 1: Take control of opponent monster until End Phase
+            // Option 2: Look at opponent hand and shuffle 1
+            if (Card != null && Card.Id == CardId.TripleTacticsTalent)
+            {
+                if (Enemy.GetMonsterCount() > 0 && _isGoingSecond && options.Count > 1)
+                {
+                    var stealable = Enemy.GetMonsters().Where(m => m != null && m.IsFaceup() && !m.IsShouldNotBeTarget()).ToList();
+                    if (stealable.Any(m => m.IsFloodgate() || m.Attack >= 2500 || m.IsExtraCard()))
+                        return 1; // Steal high-threat or boss monster
+                }
+                return 0; // Draw 2 cards (safe advantage)
+            }
+
+            // 4. Number 60: Dugares the Timeless:
+            // Option 0: Draw 2, discard 1
+            // Option 1: Special Summon 1 monster from GY in DEF
+            // Option 2: Double ATK
+            if (Card != null && Card.Id == CardId.Dugares)
+            {
+                if (Bot.Graveyard.Any(c => c != null && c.IsCanRevive() && IsLunalightCard(c.Id)) && options.Count > 1)
+                    return 1; // Revive
+                return 0; // Draw 2
+            }
+
+            int baseChoice = base.OnSelectOption(options);
+            if (baseChoice >= 0 && baseChoice < options.Count)
+                return baseChoice;
+
+            return 0;
         }
 
-        public override bool IsAceCard(ClientCard card)
+        public override bool? OnSelectEffectYn(ClientCard card, long desc)
         {
-            if (card == null) return false;
-            return card.IsCode(CardId.LigerDancer, CardId.LeoDancer, CardId.SabreDancer, CardId.PantherDancer);
+            if (card == null) return null;
+
+            // RULE #14: Never accept opponent-initiated optional prompts
+            if (card.Controller == 1) return false;
+
+            // Always accept beneficial Lunalight effects
+            if (IsLunalightCard(card.Id))
+            {
+                return true;
+            }
+
+            return base.OnSelectEffectYn(card, desc);
+        }
+    }
+
+    [Deck("Expert_2026_Luna", "2026_Luna")]
+    public class ExpertLunaExecutor : LunaExecutor
+    {
+        public ExpertLunaExecutor(GameAI ai, Duel duel) : base(ai, duel)
+        {
+        }
+    }
+
+    // Backward-compatibility class
+    [Deck("2026_Luna_Compat", "2026_Luna")]
+    public class _2026_LunaExecutor : LunaExecutor
+    {
+        public _2026_LunaExecutor(GameAI ai, Duel duel) : base(ai, duel)
+        {
         }
     }
 }

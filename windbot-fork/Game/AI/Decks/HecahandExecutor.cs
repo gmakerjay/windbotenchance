@@ -5,11 +5,12 @@ using YGOSharp.OCGWrapper.Enums;
 using WindBot;
 using WindBot.Game;
 using WindBot.Game.AI;
+using WindBot.Game.AI.Plugins;
 
 namespace WindBot.Game.AI.Decks
 {
     // ============================================================
-    // CARD AUDIT — 2026_Hecahand (Illusion Control & Board Steal Engine)
+    // CARD AUDIT — Hecahand (Illusion Control & Board Steal OTK)
     // ============================================================
     // | Card Name           | Type       | OPT? | Effect Summary                                                   |
     // |---------------------|------------|------|------------------------------------------------------------------|
@@ -29,21 +30,18 @@ namespace WindBot.Game.AI.Decks
     // | Change of Heart     | Spell      | Yes  | Target & take control of 1 opponent monster                      |
     // | Triple Tactics Talent| Spell     | Yes  | Draw 2 / Steal monster / Look & shuffle 1 hand card              |
     // | Triple Tactics Thrust| Spell     | Yes  | Search / Set Normal Spell/Trap from Deck                         |
-    // | Bot Herder          | Spell      | Yes  | Target owned monster / facedown def -> 200 burn + steal ALL mons |
+    // | Bot Herder          | Spell      | Yes  | Target owned monster -> 200 burn + steal ALL other opp mons!    |
     // | Illusion Gate       | Spell      | Once | Pay half LP: destroy all opp mons + SS 1 mon from opp GY        |
-    // | The Hidden Hecahand | Spell      | Yes  | Add Hecahands mon + optional send to Set S/T; GY: opp draw/drop  |
+    // | The Hidden Hecahands| Spell      | Yes  | Add Hecahands mon + optional send to Set S/T; GY: opp draw/drop  |
     // | Hecahands Tartaros  | QuickSpell | Yes  | Option 0: Bounce opp S/T; Option 1: Fusion summon from field/GY  |
     // | Hecahands Dandalos  | Fusion Lv7 | Yes  | 2900 ATK; Steal 1 opp monster; Heca Fusions & stolen attack direct!|
     // | Hecahands Jauzah    | Fusion Lv8 | Yes  | 2400 ATK; Contact SS (1 stolen + 1 Illusion); Add Hecahands card |
     // | Hecahands Xeno      | Fusion Lv9 | Yes  | 3400 ATK; Quick SS mon from opp Extra Deck; If destroyed steal all|
     // | Red-Eyes Flare Metal| Xyz Rank 7 | Yes  | 2800 ATK; Indestructible by effects; 500 burn per opp card/effect|
     // ============================================================
-    // ACE CARDS: Primary: Hecahands Dandalos / Hecahands Xeno / Red-Eyes Flare Metal Dragon / Hecahands Jauzah
-    // PRIORITY: Win > Direct Attack OTK > Board Steal > Fusion Setup > Lockdown
-    // ============================================================
 
-    [Deck("2026_Hecahand", "2026_Hecahand")]
-    public class _2026_HecahandExecutor : ModernExecutor
+    [Deck("Hecahand", "Hecahand")]
+    public class HecahandExecutor : ModernExecutor
     {
         public class CardId
         {
@@ -72,13 +70,9 @@ namespace WindBot.Game.AI.Decks
             public const int HecahandsJauzah = 67021206;
             public const int HecahandsXeno = 94410955;
             public const int RedEyesFlareMetalDragon = 44405066;
-
-            public const int AshBlossom = 14558127;
-            public const int CalledByTheGrave = 24224830;
-            public const int InfiniteImpermanence = 10045474;
         }
 
-        private static readonly int[] AceCardIds = {
+        public static readonly int[] AceCardIds = {
             CardId.HecahandsDandalos,
             CardId.HecahandsXeno,
             CardId.HecahandsJauzah,
@@ -112,26 +106,7 @@ namespace WindBot.Game.AI.Decks
             return AceCardIds.Contains(card.Id);
         }
 
-        public override int GetMaterialPriority(ClientCard c)
-        {
-            if (c == null) return 999;
-            // Highest priority to use as material: stolen opponent monster!
-            if (c.Location == CardLocation.MonsterZone && c.Owner == 1) return 10;
-            if (c.IsCode(CardId.HecahandsIbtel, CardId.HecahandsYadel))
-            {
-                if (c.Location == CardLocation.MonsterZone || c.Location == CardLocation.Hand)
-                    return 50;
-                return 150;
-            }
-            if (c.IsCode(CardId.NightmareApprentice)) return 80;
-            if (c.IsCode(CardId.HecahandsMakibel)) return 90;
-            if (c.IsCode(CardId.HecahandsGaigas, CardId.HecahandsBreus)) return 120;
-            if (IsAceCard(c)) return 900;
-            if (c.IsCode(CardId.AshBlossom, CardId.MaxxC, CardId.DrollAndLockBird)) return 800;
-            return 200;
-        }
-
-        private bool IsHecahandCard(int id)
+        public bool IsHecahandCard(int id)
         {
             return id == CardId.HecahandsIbtel || id == CardId.HecahandsYadel || id == CardId.HecahandsMakibel ||
                    id == CardId.HecahandsGaigas || id == CardId.HecahandsBreus || id == CardId.HecahandsDandalos ||
@@ -139,7 +114,7 @@ namespace WindBot.Game.AI.Decks
                    id == CardId.HecahandsTartaros;
         }
 
-        private bool IsIllusionMonster(ClientCard c)
+        public bool IsIllusionMonster(ClientCard c)
         {
             if (c == null) return false;
             return c.IsCode(CardId.NightmareApprentice, CardId.HecahandsIbtel, CardId.HecahandsYadel,
@@ -147,11 +122,16 @@ namespace WindBot.Game.AI.Decks
                             CardId.HecahandsDandalos, CardId.HecahandsJauzah, CardId.HecahandsXeno);
         }
 
-        public _2026_HecahandExecutor(GameAI ai, Duel duel) : base(ai, duel)
+        public HecahandExecutor(GameAI ai, Duel duel) : base(ai, duel)
         {
+            // Connect Decoupled Domain Plugin
+            DeckPlugin = new HecahandPlugin(this);
+
+            // Register Ace Cards in both Core modules
+            ResourcePlan.RegisterAceCards(AceCardIds);
             HeuristicGuard.RegisterAceCards(AceCardIds);
 
-            // Combo Router: Authentic Hecahands sequencing
+            // Register Combo Lines
             ComboRouter.RegisterLine(new ComboRouter.ComboLine {
                 Name = "Apprentice-Starter",
                 RequiredCards = new List<int> { CardId.NightmareApprentice },
@@ -160,7 +140,8 @@ namespace WindBot.Game.AI.Decks
                     new() { CardId = CardId.NightmareApprentice, ActionType = ExecutorType.Activate, Description = "Search Ibtel" },
                     new() { CardId = CardId.HecahandsIbtel, ActionType = ExecutorType.Activate, Description = "Reveal Ibtel -> SS Gaigas/Breus" }
                 },
-                EndBoardScore = 85
+                EndBoardScore = 85,
+                Condition = () => Bot.Hand.Any(c => c != null && c.Id == CardId.NightmareApprentice) && Bot.Hand.Count > 1
             });
 
             ComboRouter.RegisterLine(new ComboRouter.ComboLine {
@@ -169,7 +150,8 @@ namespace WindBot.Game.AI.Decks
                 Steps = new List<ComboRouter.ComboStep> {
                     new() { CardId = CardId.HecahandsIbtel, ActionType = ExecutorType.Activate, Description = "Reveal Ibtel -> SS Gaigas/Breus" }
                 },
-                EndBoardScore = 80
+                EndBoardScore = 80,
+                Condition = () => Bot.Hand.Any(c => c != null && c.Id == CardId.HecahandsIbtel)
             });
 
             ComboRouter.RegisterLine(new ComboRouter.ComboLine {
@@ -179,7 +161,8 @@ namespace WindBot.Game.AI.Decks
                     new() { CardId = CardId.HecahandsYadel, ActionType = ExecutorType.Activate, Description = "Reveal Yadel -> Search The Hidden Hecahands" },
                     new() { CardId = CardId.TheHiddenHecahands, ActionType = ExecutorType.Activate, Description = "Search Makibel & Set Tartaros" }
                 },
-                EndBoardScore = 85
+                EndBoardScore = 85,
+                Condition = () => Bot.Hand.Any(c => c != null && c.Id == CardId.HecahandsYadel)
             });
 
             // Bait Planner
@@ -189,6 +172,9 @@ namespace WindBot.Game.AI.Decks
             // Chain Advisor
             ChainAdvisor.RegisterHighValueTargets(CardId.TheHiddenHecahands, CardId.HecahandsMakibel, CardId.HecahandsTartaros, CardId.HecahandsDandalos, CardId.HecahandsXeno);
 
+            // Register Optional Field Removal Cards
+            RegisterOptionalFieldRemovalCards(CardId.BotHerder, CardId.ChangeOfHeart, CardId.IllusionGate, CardId.HecahandsDandalos);
+
             // ============================================================
             // TIER 1: Hand Traps (Opponent-Reactive)
             // ============================================================
@@ -196,13 +182,10 @@ namespace WindBot.Game.AI.Decks
             AddExecutor(ExecutorType.Activate, CardId.MulcharmyFuwalos, MulcharmyFuwalosEffect);
             AddExecutor(ExecutorType.Activate, CardId.MulcharmyPurulia, MulcharmyPuruliaEffect);
             AddExecutor(ExecutorType.Activate, CardId.DrollAndLockBird, DrollAndLockBirdEffect);
-            AddExecutor(ExecutorType.Activate, CardId.AshBlossom, AshBlossomEffect);
-            AddExecutor(ExecutorType.Activate, CardId.CalledByTheGrave, CalledByTheGraveEffect);
 
             // ============================================================
-            // TIER 2: Quick Effects & Board Disruption (Opponent Turn / Fast Response)
+            // TIER 2: Quick Effects & Board Disruption
             // ============================================================
-            AddExecutor(ExecutorType.Activate, CardId.InfiniteImpermanence, InfiniteImpermanenceEffect);
             AddExecutor(ExecutorType.Activate, CardId.HecahandsXeno, HecahandsXenoEffect);
             AddExecutor(ExecutorType.Activate, CardId.HecahandsTartaros, HecahandsTartarosEffect);
 
@@ -243,17 +226,15 @@ namespace WindBot.Game.AI.Decks
             // ============================================================
             AddExecutor(ExecutorType.SpSummon, CardId.HecahandsJauzah, HecahandsJauzahSummon);
             AddExecutor(ExecutorType.Activate, CardId.HecahandsJauzah, HecahandsJauzahEffect);
-            AddExecutor(ExecutorType.SpSummon, CardId.HecahandsDandalos);
+            AddExecutor(ExecutorType.SpSummon, CardId.HecahandsDandalos, HecahandsDandalosSummon);
             AddExecutor(ExecutorType.Activate, CardId.HecahandsDandalos, HecahandsDandalosEffect);
-            AddExecutor(ExecutorType.SpSummon, CardId.HecahandsXeno);
+            AddExecutor(ExecutorType.SpSummon, CardId.HecahandsXeno, HecahandsXenoSummon);
             AddExecutor(ExecutorType.SpSummon, CardId.RedEyesFlareMetalDragon, RedEyesFlareMetalDragonSummon);
-            AddExecutor(ExecutorType.Activate, CardId.RedEyesFlareMetalDragon, RedEyesFlareMetalDragonEffect);
 
             // ============================================================
             // TIER 8: Trap Sets & Battle Positioning
             // ============================================================
             AddExecutor(ExecutorType.SpellSet, CardId.HecahandsTartaros, SetTrapCondition);
-            AddExecutor(ExecutorType.SpellSet, CardId.InfiniteImpermanence, SetTrapCondition);
             AddExecutor(ExecutorType.Repos, MonsterRepos);
 
             // ============================================================
@@ -264,7 +245,7 @@ namespace WindBot.Game.AI.Decks
 
         public override bool OnSelectHand()
         {
-            // Hecahand excels going second with Lava Golem / Bot Herder / Dandalos direct OTK
+            // Hecahand excels going second with Lava Golem / Bot Herder / Dandalos direct attack OTK
             return false;
         }
 
@@ -297,20 +278,12 @@ namespace WindBot.Game.AI.Decks
         protected override bool IsBoardStrongEnough()
         {
             int disruptionCount = 0;
-            if (Bot.HasInMonstersZone(CardId.HecahandsDandalos))
-                disruptionCount += 2;
-            if (Bot.HasInMonstersZone(CardId.HecahandsXeno))
-                disruptionCount += 2;
-            if (Bot.HasInMonstersZone(CardId.HecahandsJauzah))
-                disruptionCount += 1;
-            if (Bot.HasInMonstersZone(CardId.RedEyesFlareMetalDragon))
-                disruptionCount += 2;
-            if (Bot.GetSpells().Any(c => c != null && c.IsFacedown() && c.IsCode(CardId.HecahandsTartaros)))
-                disruptionCount += 1;
-            if (Bot.HasInHand(CardId.AshBlossom) || Bot.HasInHand(CardId.InfiniteImpermanence))
-                disruptionCount += 1;
-            if (Bot.HasInHand(CardId.HecahandsGaigas) || Bot.HasInHand(CardId.HecahandsBreus))
-                disruptionCount += 1;
+            if (Bot.HasInMonstersZone(CardId.HecahandsDandalos)) disruptionCount += 2;
+            if (Bot.HasInMonstersZone(CardId.HecahandsXeno)) disruptionCount += 2;
+            if (Bot.HasInMonstersZone(CardId.HecahandsJauzah)) disruptionCount += 1;
+            if (Bot.HasInMonstersZone(CardId.RedEyesFlareMetalDragon)) disruptionCount += 2;
+            if (Bot.GetSpells().Any(c => c != null && c.IsFacedown() && c.IsCode(CardId.HecahandsTartaros))) disruptionCount += 1;
+            if (Bot.HasInHand(CardId.HecahandsGaigas) || Bot.HasInHand(CardId.HecahandsBreus)) disruptionCount += 1;
 
             int stolenCount = Bot.GetMonsters().Count(c => c != null && c.IsFaceup() && c.Owner == 1);
             disruptionCount += stolenCount;
@@ -360,8 +333,7 @@ namespace WindBot.Game.AI.Decks
             if (!CanDealLethal())
             {
                 summonable = summonable.Where(c =>
-                    !c.IsCode(CardId.AshBlossom, CardId.MaxxC, CardId.DrollAndLockBird) &&
-                    !c.IsCode(CardId.MulcharmyFuwalos, CardId.MulcharmyPurulia)
+                    !c.IsCode(CardId.MaxxC, CardId.DrollAndLockBird, CardId.MulcharmyFuwalos, CardId.MulcharmyPurulia)
                 ).ToList();
             }
 
@@ -453,47 +425,7 @@ namespace WindBot.Game.AI.Decks
         private bool DrollAndLockBirdEffect()
         {
             if (!SmartHandTrapChain()) return false;
-            return Duel.Player == 1 && Duel.LastChainPlayer == 1;
-        }
-
-        private bool AshBlossomEffect()
-        {
-            if (!SmartHandTrapChain()) return false;
-            if (LastChainCard == null || LastChainCard.Controller != 1) return false;
-            return DefaultAshBlossomAndJoyousSpring();
-        }
-
-        private bool CalledByTheGraveEffect()
-        {
-            if (LastChainCard != null && LastChainCard.Controller == 0) return false;
-            return DefaultCalledByTheGrave();
-        }
-
-        private ClientCard GetPreemptiveImpermTarget()
-        {
-            return Enemy.MonsterZone.GetMonsters().FirstOrDefault(c =>
-                c != null && c.IsFaceup() && !c.IsDisabled() &&
-                (c.IsFloodgate() ||
-                 AntiFloodgateHelper.NegateMonsterIds.Contains(c.Id) ||
-                 (c.IsExtraCard() && c.Attack >= 2000)) &&
-                !c.IsShouldNotBeTarget() && !c.IsShouldNotBeSpellTrapTarget());
-        }
-
-        private bool InfiniteImpermanenceEffect()
-        {
-            if (!SmartHandTrapChain()) return false;
-            if (LastChainCard != null && LastChainCard.Controller == 0) return false;
-
-            if (Duel.Player == 0 && (Duel.Phase == DuelPhase.Main1 || Duel.Phase == DuelPhase.Main2))
-            {
-                var target = GetPreemptiveImpermTarget();
-                if (target != null)
-                {
-                    AI.SelectCard(target);
-                    return true;
-                }
-            }
-            return DefaultInfiniteImpermanence();
+            return Duel.Player == 1;
         }
 
         // ============================================================
@@ -502,11 +434,23 @@ namespace WindBot.Game.AI.Decks
         private bool LavaGolemSummon()
         {
             if (IsSpecialSummonBlocked()) return false;
-            // Tribute 2 opponent monsters (clears negates without activating effects!)
             if (Enemy.GetMonsterCount() < 2) return false;
 
-            // Always summon if enemy has 2+ monsters on our turn
-            return true;
+            // Only give Lava Golem if:
+            // 1. Enemy has threatening monsters / negators
+            // 2. We have a way to steal it back (Bot Herder, Change of Heart, Dandalos) or deal direct damage
+            bool canStealBack = Bot.HasInHand(CardId.BotHerder) ||
+                                Bot.HasInHand(CardId.ChangeOfHeart) ||
+                                Bot.HasInHand(CardId.TheHiddenHecahands) ||
+                                Bot.HasInMonstersZone(CardId.HecahandsDandalos) ||
+                                Bot.HasInHand(CardId.HecahandsMakibel);
+
+            if (canStealBack || OpponentHasThreateningMonster())
+            {
+                return true;
+            }
+
+            return Enemy.GetMonsterCount() >= 3;
         }
 
         private bool GamecielSummon()
@@ -514,7 +458,6 @@ namespace WindBot.Game.AI.Decks
             if (IsSpecialSummonBlocked()) return false;
             if (Enemy.GetMonsterCount() == 0) return false;
 
-            // Priority: problematic enemy monster
             var target = Util.GetProblematicEnemyMonster(0, canBeTarget: false);
             if (target != null)
             {
@@ -539,20 +482,24 @@ namespace WindBot.Game.AI.Decks
         // ============================================================
         private bool BotHerderEffect()
         {
-            // Target 1 monster opponent controls that we OWN (Lava Golem/Gameciel) OR face-down defense monster
+            // Target 1 monster opponent controls that we OWN (Lava Golem/Gameciel)
+            // It inflicts 200 burn + steals ALL other monsters opponent controls!
             var ownedTarget = Enemy.GetMonsters()
-                .Where(c => c != null && c.Owner == 0 && (c.IsFaceup() || (c.IsFacedown() && c.IsDefense())) && !c.IsShouldNotBeTarget() && !c.IsShouldNotBeSpellTrapTarget())
-                .FirstOrDefault();
+                .FirstOrDefault(c => c != null && c.Owner == 0 && (c.IsFaceup() || (c.IsFacedown() && c.IsDefense())) && !c.IsShouldNotBeTarget() && !c.IsShouldNotBeSpellTrapTarget());
 
             if (ownedTarget != null)
             {
-                AI.SelectCard(ownedTarget);
-                return true;
+                // Must ensure opponent has at least 1 other monster to steal (or we deal lethal burn)
+                int otherMonsters = Enemy.GetMonsters().Count(c => c != null && c != ownedTarget);
+                if (otherMonsters > 0 || Enemy.LifePoints <= 200)
+                {
+                    AI.SelectCard(ownedTarget);
+                    return true;
+                }
             }
 
             var facedownTarget = Enemy.GetMonsters()
-                .Where(c => c != null && c.IsFacedown() && c.IsDefense() && !c.IsShouldNotBeTarget() && !c.IsShouldNotBeSpellTrapTarget())
-                .FirstOrDefault();
+                .FirstOrDefault(c => c != null && c.IsFacedown() && c.IsDefense() && !c.IsShouldNotBeTarget() && !c.IsShouldNotBeSpellTrapTarget());
 
             if (facedownTarget != null && Enemy.GetMonsterCount() >= 2)
             {
@@ -586,9 +533,11 @@ namespace WindBot.Game.AI.Decks
             // Option 0: Draw 2
             // Option 1: Take control of 1 opponent monster
             // Option 2: Look at opponent hand and shuffle 1
-            if (Enemy.GetMonsterCount() > 0 && (OpponentHasThreateningMonster() || !Bot.HasInMonstersZone(CardId.HecahandsJauzah)))
+            bool canSteal = Enemy.GetMonsters().Any(c => c != null && c.IsFaceup() && !c.IsShouldNotBeTarget() && !c.IsShouldNotBeSpellTrapTarget());
+
+            if (canSteal && (OpponentHasThreateningMonster() || !Bot.HasInMonstersZone(CardId.HecahandsJauzah)))
             {
-                AI.SelectOption(1); // Steal monster (can be used for Jauzah contact summon or direct attack!)
+                AI.SelectOption(1); // Steal monster
             }
             else if (Enemy.Hand.Count >= 3)
             {
@@ -605,7 +554,6 @@ namespace WindBot.Game.AI.Decks
         private bool TripleTacticsThrustEffect()
         {
             if (_thrustUsed) return false;
-            // Search priority: Bot Herder (if enemy has owned monster or we have Kaiju) > Change of Heart > The Hidden Hecahands > Illusion Gate
             bool enemyHasOwned = Enemy.GetMonsters().Any(c => c != null && c.Owner == 0);
             bool hasKaijuInHand = Bot.HasInHand(CardId.LavaGolem) || Bot.HasInHand(CardId.Gameciel);
 
@@ -625,7 +573,8 @@ namespace WindBot.Game.AI.Decks
         {
             if (_gateUsed) return false;
             if (IsSpecialSummonBlocked()) return false;
-            if (!CanDealLethal() && (Bot.LifePoints / 2) < 1500) return false;
+            // Flat LP Cost safety: pay half LP
+            if (Bot.LifePoints <= 2000 && !CanDealLethal()) return false;
             if (Enemy.GetMonsterCount() == 0) return false;
 
             if (Enemy.GetMonsterCount() >= 2 || OpponentHasThreateningMonster())
@@ -638,7 +587,6 @@ namespace WindBot.Game.AI.Decks
 
         private bool MonsterRebornEffect()
         {
-            // Priority: Hecahands Fusion boss > Stolen boss > Highest ATK monster
             var target = Bot.Graveyard
                 .Where(c => c != null && c.IsCanRevive() && IsAceCard(c))
                 .OrderByDescending(c => c.Attack)
@@ -673,7 +621,7 @@ namespace WindBot.Game.AI.Decks
         // ============================================================
         private bool TheHiddenHecahandsEffect()
         {
-            // GY Ignition Effect: Banish from GY -> opponent draws 1, discards 1
+            // GY Ignition Effect: Banish from GY -> opponent draws 1, discards 1 (triggers Gaigas / Breus!)
             if (Card.Location == CardLocation.Grave)
             {
                 if (_hiddenHecahandsGyUsed) return false;
@@ -690,38 +638,6 @@ namespace WindBot.Game.AI.Decks
             if (_hiddenHecahandsUsed) return false;
             if (ShouldSkipCombo()) return false;
 
-            int searchId;
-            bool hasIllusionMats = Bot.Hand.Concat(Bot.MonsterZone).Any(c => c != null && (IsHecahandCard(c.Id) || c.Id == CardId.NightmareApprentice));
-            bool hasMakibel = Bot.HasInHand(CardId.HecahandsMakibel);
-            bool hasIbtel = Bot.HasInHand(CardId.HecahandsIbtel);
-            bool hasYadel = Bot.HasInHand(CardId.HecahandsYadel);
-
-            if (hasIllusionMats && !hasMakibel && Bot.GetRemainingCount(CardId.HecahandsMakibel, 1) > 0)
-            {
-                searchId = CardId.HecahandsMakibel;
-            }
-            else if (!hasIbtel && Bot.GetRemainingCount(CardId.HecahandsIbtel, 3) > 0)
-            {
-                searchId = CardId.HecahandsIbtel;
-            }
-            else if (!hasYadel && Bot.GetRemainingCount(CardId.HecahandsYadel, 2) > 0)
-            {
-                searchId = CardId.HecahandsYadel;
-            }
-            else if (!hasMakibel && Bot.GetRemainingCount(CardId.HecahandsMakibel, 1) > 0)
-            {
-                searchId = CardId.HecahandsMakibel;
-            }
-            else if (Bot.GetRemainingCount(CardId.HecahandsGaigas, 1) > 0)
-            {
-                searchId = CardId.HecahandsGaigas;
-            }
-            else
-            {
-                searchId = CardId.HecahandsBreus;
-            }
-
-            AI.SelectCard(searchId);
             _hiddenHecahandsUsed = true;
             return true;
         }
@@ -736,18 +652,6 @@ namespace WindBot.Game.AI.Decks
         private bool NightmareApprenticeEffect()
         {
             if (ShouldSkipCombo()) return false;
-            // Search priority: Ibtel > Makibel > Yadel > Gaigas > Breus
-            int searchId;
-            if (!Bot.HasInHand(CardId.HecahandsIbtel) && Bot.GetRemainingCount(CardId.HecahandsIbtel, 3) > 0)
-                searchId = CardId.HecahandsIbtel;
-            else if (!Bot.HasInHand(CardId.HecahandsMakibel) && Bot.GetRemainingCount(CardId.HecahandsMakibel, 1) > 0)
-                searchId = CardId.HecahandsMakibel;
-            else if (!Bot.HasInHand(CardId.HecahandsYadel) && Bot.GetRemainingCount(CardId.HecahandsYadel, 2) > 0)
-                searchId = CardId.HecahandsYadel;
-            else
-                searchId = CardId.HecahandsGaigas;
-
-            AI.SelectCard(searchId);
             return true;
         }
 
@@ -762,22 +666,12 @@ namespace WindBot.Game.AI.Decks
                 if (ShouldSkipCombo()) return false;
                 if (IsSpecialSummonBlocked()) return false;
 
-                // Reveal & shuffle to SS Hecahands from Deck in DEF
-                // ALWAYS prefer Gaigas (excavates 3 & steals) > Breus (looks at hand & steals) > Yadel
-                if (Bot.GetRemainingCount(CardId.HecahandsGaigas, 1) > 0)
-                    AI.SelectCard(CardId.HecahandsGaigas, CardId.HecahandsBreus, CardId.HecahandsYadel);
-                else if (Bot.GetRemainingCount(CardId.HecahandsBreus, 1) > 0)
-                    AI.SelectCard(CardId.HecahandsBreus, CardId.HecahandsGaigas, CardId.HecahandsYadel);
-                else
-                    AI.SelectCard(CardId.HecahandsYadel, CardId.HecahandsGaigas);
-
                 _ibtelHandUsed = true;
                 return true;
             }
             else if (Card.Location == CardLocation.Grave)
             {
                 if (_ibtelGyUsed) return false;
-                // Target 1 Hecahands in GY except Ibtel -> Special Summon
                 var target = Bot.Graveyard
                     .Where(c => c != null && c.IsCanRevive() && c.Id != CardId.HecahandsIbtel && IsHecahandCard(c.Id))
                     .OrderByDescending(c => IsAceCard(c) ? c.Attack + 10000 : c.Attack)
@@ -800,26 +694,12 @@ namespace WindBot.Game.AI.Decks
                 if (_yadelHandUsed) return false;
                 if (ShouldSkipCombo()) return false;
 
-                // Reveal & shuffle to add Hecahands S/T from Deck
-                bool hasHiddenHeca = Bot.HasInHand(CardId.TheHiddenHecahands);
-                bool hasTartaros = Bot.HasInHand(CardId.HecahandsTartaros) || Bot.HasInSpellZone(CardId.HecahandsTartaros);
-
-                if (!hasHiddenHeca && Bot.GetRemainingCount(CardId.TheHiddenHecahands, 3) > 0)
-                {
-                    AI.SelectCard(CardId.TheHiddenHecahands, CardId.HecahandsTartaros);
-                }
-                else
-                {
-                    AI.SelectCard(CardId.HecahandsTartaros, CardId.TheHiddenHecahands);
-                }
-
                 _yadelHandUsed = true;
                 return true;
             }
             else if (Card.Location == CardLocation.Grave)
             {
                 if (_yadelGyUsed) return false;
-                // Target 1 Hecahands S/T in GY -> Set it
                 var target = Bot.Graveyard
                     .Where(c => c != null && (c.Id == CardId.HecahandsTartaros || c.Id == CardId.TheHiddenHecahands))
                     .OrderByDescending(c => c.Id == CardId.HecahandsTartaros ? 1 : 0)
@@ -843,7 +723,6 @@ namespace WindBot.Game.AI.Decks
                 if (IsSpecialSummonBlocked()) return false;
                 if (Bot.GetMonsterCount() >= 5) return false;
 
-                // Hand trigger: Opponent added card to hand -> SS free 2800 DEF body!
                 _gaigasHandUsed = true;
                 return true;
             }
@@ -853,7 +732,6 @@ namespace WindBot.Game.AI.Decks
                 if (Duel.Player != 0) return false;
                 if (Bot.GetMonsterCount() >= 5) return false;
 
-                // Main Phase: Excavate top 3 of opponent deck and SS 1 monster to our field!
                 _gaigasZoneUsed = true;
                 return true;
             }
@@ -868,7 +746,6 @@ namespace WindBot.Game.AI.Decks
                 if (IsSpecialSummonBlocked()) return false;
                 if (Bot.GetMonsterCount() >= 5) return false;
 
-                // Hand trigger: Opponent added card to hand -> SS free 2800 ATK body!
                 _breusHandUsed = true;
                 return true;
             }
@@ -878,7 +755,6 @@ namespace WindBot.Game.AI.Decks
                 if (Duel.Player != 0) return false;
                 if (Bot.GetMonsterCount() >= 5) return false;
 
-                // Main Phase: Look at 1 random card in opponent hand, if monster SS to our field!
                 _breusZoneUsed = true;
                 return true;
             }
@@ -893,28 +769,10 @@ namespace WindBot.Game.AI.Decks
                 if (ShouldSkipCombo()) return false;
                 if (IsSpecialSummonBlocked()) return false;
 
-                // Count available materials in Hand/Field (excluding Makibel itself)
                 int extraMaterials = Bot.Hand.Concat(Bot.MonsterZone)
                     .Count(c => c != null && c != Card && (IsHecahandCard(c.Id) || c.Id == CardId.NightmareApprentice || (c.Location == CardLocation.MonsterZone && c.Owner == 1)));
 
                 if (extraMaterials < 1) return false;
-
-                // Select Fusion Target:
-                // #1: Dandalos (2900 ATK, steals 1 monster, ALL fusions/stolen attack directly!)
-                // #2: Xeno (if 3 materials & already have Dandalos)
-                // #3: Jauzah
-                if (!Bot.HasInMonstersZone(CardId.HecahandsDandalos))
-                {
-                    AI.SelectCard(CardId.HecahandsDandalos, CardId.HecahandsXeno, CardId.HecahandsJauzah);
-                }
-                else if (extraMaterials >= 2 && !Bot.HasInMonstersZone(CardId.HecahandsXeno))
-                {
-                    AI.SelectCard(CardId.HecahandsXeno, CardId.HecahandsDandalos, CardId.HecahandsJauzah);
-                }
-                else
-                {
-                    AI.SelectCard(CardId.HecahandsJauzah, CardId.HecahandsDandalos, CardId.HecahandsXeno);
-                }
 
                 _makibelHandUsed = true;
                 return true;
@@ -934,17 +792,15 @@ namespace WindBot.Game.AI.Decks
         private bool HecahandsTartarosEffect()
         {
             if (IsSpecialSummonBlocked()) return false;
-
             bool controlsHeca = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && IsHecahandCard(c.Id));
 
-            // On Opponent's Turn:
+            // Opponent Turn:
             if (Duel.Player == 1)
             {
                 if (controlsHeca && !_tartarosBounceUsed)
                 {
                     var stTarget = Enemy.GetSpells()
-                        .Where(c => c != null && c.IsFaceup() && (c.IsFloodgate() || c.Type == (int)CardType.Field || c.Type == (int)CardType.Continuous))
-                        .FirstOrDefault();
+                        .FirstOrDefault(c => c != null && c.IsFaceup() && (c.IsFloodgate() || c.Type == (int)CardType.Field || c.Type == (int)CardType.Continuous));
 
                     if (stTarget != null)
                     {
@@ -964,13 +820,6 @@ namespace WindBot.Game.AI.Decks
                     if (mats.Count >= 2)
                     {
                         AI.SelectOption(1);
-                        if (!Bot.HasInMonstersZone(CardId.HecahandsDandalos))
-                            AI.SelectCard(CardId.HecahandsDandalos, CardId.HecahandsXeno, CardId.HecahandsJauzah);
-                        else if (mats.Count >= 3)
-                            AI.SelectCard(CardId.HecahandsXeno, CardId.HecahandsDandalos, CardId.HecahandsJauzah);
-                        else
-                            AI.SelectCard(CardId.HecahandsDandalos, CardId.HecahandsJauzah, CardId.HecahandsXeno);
-
                         _tartarosFusionUsed = true;
                         return true;
                     }
@@ -978,7 +827,7 @@ namespace WindBot.Game.AI.Decks
                 return false;
             }
 
-            // On Our Turn:
+            // Our Turn:
             if (Duel.Player == 0)
             {
                 if (!_tartarosFusionUsed && !ShouldSkipCombo())
@@ -990,13 +839,6 @@ namespace WindBot.Game.AI.Decks
                     if (mats.Count >= 2)
                     {
                         AI.SelectOption(1);
-                        if (!Bot.HasInMonstersZone(CardId.HecahandsDandalos))
-                            AI.SelectCard(CardId.HecahandsDandalos, CardId.HecahandsXeno, CardId.HecahandsJauzah);
-                        else if (mats.Count >= 3 && !Bot.HasInMonstersZone(CardId.HecahandsXeno))
-                            AI.SelectCard(CardId.HecahandsXeno, CardId.HecahandsDandalos, CardId.HecahandsJauzah);
-                        else
-                            AI.SelectCard(CardId.HecahandsDandalos, CardId.HecahandsJauzah, CardId.HecahandsXeno);
-
                         _tartarosFusionUsed = true;
                         return true;
                     }
@@ -1025,7 +867,6 @@ namespace WindBot.Game.AI.Decks
             if (ShouldSkipCombo()) return false;
             if (IsSpecialSummonBlocked()) return false;
 
-            // Contact Summon: Tribute 1 face-up monster owned by opponent + 1 Illusion monster
             bool hasOpponentMonster = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && c.Owner == 1);
             bool hasIllusionMonster = Bot.GetMonsters().Any(c => c != null && c.IsFaceup() && IsIllusionMonster(c) && !IsAceCard(c));
 
@@ -1037,24 +878,16 @@ namespace WindBot.Game.AI.Decks
             if (_jauzahSearchUsed) return false;
             if (Card.Location == CardLocation.MonsterZone)
             {
-                // Main Phase: Add 1 Hecahands card from Deck or GY to hand
-                bool hasTartaros = Bot.HasInHand(CardId.HecahandsTartaros) || Bot.HasInSpellZone(CardId.HecahandsTartaros);
-                bool hasHiddenHeca = Bot.HasInHand(CardId.TheHiddenHecahands);
-                bool hasMakibel = Bot.HasInHand(CardId.HecahandsMakibel);
-
-                if (!hasMakibel)
-                    AI.SelectCard(CardId.HecahandsMakibel, CardId.HecahandsTartaros, CardId.TheHiddenHecahands, CardId.HecahandsIbtel);
-                else if (!hasTartaros)
-                    AI.SelectCard(CardId.HecahandsTartaros, CardId.TheHiddenHecahands, CardId.HecahandsIbtel, CardId.HecahandsMakibel);
-                else if (!hasHiddenHeca)
-                    AI.SelectCard(CardId.TheHiddenHecahands, CardId.HecahandsIbtel, CardId.HecahandsMakibel, CardId.HecahandsTartaros);
-                else
-                    AI.SelectCard(CardId.HecahandsIbtel, CardId.HecahandsMakibel, CardId.HecahandsTartaros);
-
                 _jauzahSearchUsed = true;
                 return true;
             }
             return false;
+        }
+
+        private bool HecahandsDandalosSummon()
+        {
+            if (IsSpecialSummonBlocked()) return false;
+            return true;
         }
 
         private bool HecahandsDandalosEffect()
@@ -1075,6 +908,12 @@ namespace WindBot.Game.AI.Decks
                 }
             }
             return false;
+        }
+
+        private bool HecahandsXenoSummon()
+        {
+            if (IsSpecialSummonBlocked()) return false;
+            return true;
         }
 
         private bool HecahandsXenoEffect()
@@ -1099,20 +938,15 @@ namespace WindBot.Game.AI.Decks
             var lvl7s = Bot.GetMonsters().Where(c => c != null && c.IsFaceup() && c.Level == 7).ToList();
             if (lvl7s.Count < 2) return false;
 
-            // In Main Phase 1, only make Red-Eyes if we have Gaigas + Breus (or if Dandalos already stole and it's Turn 1)
+            // In Main Phase 1, only make Red-Eyes if we have Gaigas + Breus and not Dandalos ready to direct attack
             if (Bot.HasInMonstersZone(CardId.HecahandsDandalos) && Duel.Phase == DuelPhase.Main1 && Duel.Turn > 1)
                 return false;
 
             return true;
         }
 
-        private bool RedEyesFlareMetalDragonEffect()
-        {
-            return false;
-        }
-
         // ============================================================
-        // ON SELECT CARD — PRECISE HINT HANDLING & MATERIAL SELECTION
+        // ON SELECT CARD — ENHANCED HINT ROUTING & SAFEGUARDING
         // ============================================================
         public override IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, long hint, bool cancelable)
         {
@@ -1130,285 +964,120 @@ namespace WindBot.Game.AI.Decks
                 }
             }
 
-            // The Hidden Hecahands Specific Selection
-            if (Card != null && Card.Id == CardId.TheHiddenHecahands)
+            // The Hidden Hecahands Send Cost: Send other card on field to GY
+            if (Card != null && Card.Id == CardId.TheHiddenHecahands && (hint == 501 || hint == 504 || hint == 500))
             {
-                if (hint == 506) // Search from Deck
+                // Only send if we have Tartaros remaining in Deck to set!
+                if (Bot.GetRemainingCount(CardId.HecahandsTartaros, 1) > 0)
                 {
-                    bool hasIllusionMats = Bot.Hand.Concat(Bot.MonsterZone).Any(c => c != null && (IsHecahandCard(c.Id) || c.Id == CardId.NightmareApprentice));
-                    bool hasMakibel = Bot.HasInHand(CardId.HecahandsMakibel);
-                    bool hasIbtel = Bot.HasInHand(CardId.HecahandsIbtel);
-                    bool hasYadel = Bot.HasInHand(CardId.HecahandsYadel);
-
-                    int targetId;
-                    if (hasIllusionMats && !hasMakibel && Bot.GetRemainingCount(CardId.HecahandsMakibel, 1) > 0)
-                        targetId = CardId.HecahandsMakibel;
-                    else if (!hasIbtel && Bot.GetRemainingCount(CardId.HecahandsIbtel, 3) > 0)
-                        targetId = CardId.HecahandsIbtel;
-                    else if (!hasYadel && Bot.GetRemainingCount(CardId.HecahandsYadel, 2) > 0)
-                        targetId = CardId.HecahandsYadel;
-                    else if (!hasMakibel && Bot.GetRemainingCount(CardId.HecahandsMakibel, 1) > 0)
-                        targetId = CardId.HecahandsMakibel;
-                    else if (Bot.GetRemainingCount(CardId.HecahandsGaigas, 1) > 0)
-                        targetId = CardId.HecahandsGaigas;
-                    else
-                        targetId = CardId.HecahandsBreus;
-
-                    var searchCard = cards.FirstOrDefault(c => c != null && c.Id == targetId);
-                    if (searchCard != null) return new List<ClientCard> { searchCard };
-                }
-                else if (hint == 501 || hint == 504 || hint == 500) // Send other card to GY
-                {
-                    var bestToSend = cards.Where(c => c != null && c.Controller == 0 && c.Location == CardLocation.MonsterZone)
+                    var bestToSend = cards.Where(c => c != null && c.Controller == 0 && c.Location == CardLocation.MonsterZone && !IsAceCard(c))
                         .OrderBy(c => {
                             if (c.Id == CardId.HecahandsIbtel) return 1;
                             if (c.Id == CardId.HecahandsYadel) return 2;
                             if (c.Id == CardId.NightmareApprentice) return 3;
-                            if (c.Id == CardId.HecahandsMakibel) return 4;
-                            if (c.Owner == 1 && !c.IsFloodgate() && !c.IsExtraCard() && c.Attack < 2000) return 5;
-                            if (IsAceCard(c)) return 999;
-                            if (c.Attack >= 2500 || c.IsFloodgate()) return 800;
+                            if (c.Owner == 1 && c.Attack < 2000) return 4;
                             return 50;
                         }).FirstOrDefault();
 
-                    if (bestToSend != null && !IsAceCard(bestToSend) && bestToSend.Attack < 2500)
+                    if (bestToSend != null)
                     {
                         return new List<ClientCard> { bestToSend };
                     }
-                    else if (cancelable)
-                    {
-                        return new List<ClientCard>();
-                    }
                 }
+                if (cancelable) return new List<ClientCard>();
             }
 
-            // Hecahands Ibtel Special Summon from Deck
-            if (Card != null && Card.Id == CardId.HecahandsIbtel && hint == 509)
+            // Control Steal Targets (Change of Heart, Dandalos, Bot Herder) - hint 520
+            if (hint == 520)
             {
-                var summonTarget = cards.FirstOrDefault(c => c != null && c.Id == CardId.HecahandsGaigas)
-                                ?? cards.FirstOrDefault(c => c != null && c.Id == CardId.HecahandsBreus)
-                                ?? cards.FirstOrDefault(c => c != null && c.Id == CardId.HecahandsYadel);
-
-                if (summonTarget != null) return new List<ClientCard> { summonTarget };
-            }
-
-            // Hecahands Ibtel GY Revive
-            if (Card != null && Card.Id == CardId.HecahandsIbtel && (hint == 509 || hint == 500))
-            {
-                var reviveTarget = cards.Where(c => c != null && c.IsCanRevive() && c.Id != CardId.HecahandsIbtel && IsHecahandCard(c.Id))
-                    .OrderByDescending(c => IsAceCard(c) ? c.Attack + 10000 : c.Attack)
-                    .FirstOrDefault();
-
-                if (reviveTarget != null) return new List<ClientCard> { reviveTarget };
-            }
-
-            // Extra Deck Fusion Monster selection: ALWAYS Dandalos first if not on field!
-            if (hint == 509 || hint == 570)
-            {
-                if (!Bot.HasInMonstersZone(CardId.HecahandsDandalos))
-                {
-                    var dandalos = cards.FirstOrDefault(c => c != null && c.Id == CardId.HecahandsDandalos);
-                    if (dandalos != null) return new List<ClientCard> { dandalos };
-                }
-
-                if (!Bot.HasInMonstersZone(CardId.HecahandsXeno))
-                {
-                    var xeno = cards.FirstOrDefault(c => c != null && c.Id == CardId.HecahandsXeno);
-                    if (xeno != null) return new List<ClientCard> { xeno };
-                }
-
-                var jauzah = cards.FirstOrDefault(c => c != null && c.Id == CardId.HecahandsJauzah);
-                if (jauzah != null) return new List<ClientCard> { jauzah };
-            }
-
-            // Fusion Material Selection (Makibel / Tartaros)
-            if (hint == 511 || hint == 578 || hint == 514)
-            {
-                var sortedMaterials = cards.OrderBy(c => {
-                    if (c == null) return 999;
-                    if (c.Id == CardId.HecahandsMakibel) return 1;
-                    if (c.Location == CardLocation.MonsterZone && c.Owner == 1) return 2; // Stolen monster
-                    if (c.Id == CardId.HecahandsIbtel) return 3; // Triggers GY revive
-                    if (c.Id == CardId.HecahandsYadel) return 4; // Triggers GY set S/T
-                    if (c.Id == CardId.NightmareApprentice) return 5;
-                    if (IsAceCard(c)) return 999;
-                    return 50;
-                }).ToList();
-
-                if (sortedMaterials.Count >= min)
-                    return sortedMaterials.Take(max).ToList();
-            }
-
-            // Bot Herder Target Selection
-            if (Card != null && Card.Id == CardId.BotHerder)
-            {
-                var owned = cards.FirstOrDefault(c => c != null && c.Controller == 1 && c.Owner == 0);
-                if (owned != null) return new List<ClientCard> { owned };
-
-                var facedownDef = cards.FirstOrDefault(c => c != null && c.Controller == 1 && c.IsFacedown() && c.IsDefense());
-                if (facedownDef != null) return new List<ClientCard> { facedownDef };
-            }
-
-            // Change of Heart Target Selection
-            if (Card != null && Card.Id == CardId.ChangeOfHeart)
-            {
-                var steal = cards.Where(c => c != null && c.Controller == 1 && !c.IsShouldNotBeTarget() && !c.IsShouldNotBeSpellTrapTarget())
-                    .OrderByDescending(c => c.IsFloodgate() || c.IsExtraCard() ? c.Attack + 10000 : c.Attack)
-                    .FirstOrDefault();
-
-                if (steal != null) return new List<ClientCard> { steal };
-            }
-
-            // Hecahands Dandalos Steal Target Selection
-            if (Card != null && Card.Id == CardId.HecahandsDandalos)
-            {
-                var steal = cards.Where(c => c != null && c.Controller == 1 && !c.IsShouldNotBeTarget())
-                    .OrderByDescending(c => c.IsFloodgate() || c.IsExtraCard() ? c.Attack + 10000 : c.Attack)
-                    .FirstOrDefault();
-
-                if (steal != null) return new List<ClientCard> { steal };
-            }
-
-            // Nightmare Apprentice Cost & Search
-            if (Card != null && Card.Id == CardId.NightmareApprentice)
-            {
-                if (hint == 501 || hint == 504)
-                {
-                    var discard = cards.OrderBy(c => {
-                        if (c == null) return 999;
-                        if (c.Id == CardId.HecahandsIbtel) return 1;
-                        if (c.Id == CardId.HecahandsYadel) return 2;
-                        if (c.Id == CardId.HecahandsMakibel) return 3;
-                        if (c.IsCode(CardId.BotHerder) && Enemy.GetMonsterCount() == 0) return 4;
-                        if (c.IsCode(CardId.LavaGolem) && Enemy.GetMonsterCount() < 2) return 5;
-                        if (!IsAceCard(c) && !c.IsCode(CardId.MaxxC, CardId.AshBlossom)) return 10;
-                        return 100;
+                var enemyTarget = cards.Where(c => c != null && c.Controller == 1 && !c.IsShouldNotBeTarget())
+                    .OrderByDescending(c => {
+                        int score = c.Attack;
+                        if (c.IsFloodgate()) score += 10000;
+                        if (c.IsExtraCard()) score += 5000;
+                        return score;
                     }).FirstOrDefault();
 
-                    if (discard != null) return new List<ClientCard> { discard };
-                }
-                else if (hint == 506)
-                {
-                    int searchId;
-                    bool hasIbtel = Bot.HasInHand(CardId.HecahandsIbtel);
-                    bool hasMakibel = Bot.HasInHand(CardId.HecahandsMakibel);
-                    bool hasYadel = Bot.HasInHand(CardId.HecahandsYadel);
-
-                    if (!hasIbtel && Bot.GetRemainingCount(CardId.HecahandsIbtel, 3) > 0)
-                        searchId = CardId.HecahandsIbtel;
-                    else if (!hasMakibel && Bot.GetRemainingCount(CardId.HecahandsMakibel, 1) > 0)
-                        searchId = CardId.HecahandsMakibel;
-                    else if (!hasYadel && Bot.GetRemainingCount(CardId.HecahandsYadel, 2) > 0)
-                        searchId = CardId.HecahandsYadel;
-                    else
-                        searchId = CardId.HecahandsGaigas;
-
-                    var target = cards.FirstOrDefault(c => c != null && c.Id == searchId);
-                    if (target != null) return new List<ClientCard> { target };
-                }
+                if (enemyTarget != null) return new List<ClientCard> { enemyTarget };
             }
 
-            // Hint 501 / 504: Generic Cost / Discard / Send to GY
-            if (hint == 501 || hint == 504)
+            // Destructions / Removals (502 / 503) — MANDATORY ENEMY ONLY 🔒
+            if (hint == 502 || hint == 503)
             {
-                var sortedDiscards = cards.OrderBy(c => {
-                    if (c == null) return 999;
-                    if (c.Id == CardId.HecahandsIbtel) return 1;
-                    if (c.Id == CardId.HecahandsYadel) return 2;
-                    if (c.Id == CardId.HecahandsMakibel) return 3;
-                    if (c.Id == CardId.NightmareApprentice && c.Location == CardLocation.MonsterZone) return 4;
-                    if (!IsAceCard(c) && !c.IsCode(CardId.MaxxC, CardId.AshBlossom)) return 10;
-                    return 100;
-                }).ToList();
-
-                if (sortedDiscards.Count >= min)
-                    return sortedDiscards.Take(max).ToList();
-            }
-
-            // Hint 506: Generic Search from Deck to Hand
-            if (hint == 506)
-            {
-                var priorityOrder = new[] {
-                    CardId.TheHiddenHecahands,
-                    CardId.HecahandsMakibel,
-                    CardId.HecahandsIbtel,
-                    CardId.HecahandsYadel,
-                    CardId.HecahandsTartaros,
-                    CardId.HecahandsGaigas,
-                    CardId.HecahandsBreus
-                };
-
-                var searchMatches = cards.OrderBy(c => {
-                    int idx = Array.IndexOf(priorityOrder, c.Id);
-                    return idx >= 0 ? idx : 999;
-                }).ToList();
-
-                if (searchMatches.Count >= min)
-                    return searchMatches.Take(max).ToList();
-            }
-
-            // Hint 509: Generic Special Summon from Deck / GY / Extra
-            if (hint == 509)
-            {
-                var priority = cards.Where(c => c != null)
+                var enemyTargets = cards.Where(c => c != null && c.Controller == 1)
                     .OrderByDescending(c => {
-                        if (c.Id == CardId.HecahandsDandalos && !Bot.HasInMonstersZone(CardId.HecahandsDandalos)) return 200000;
-                        if (IsAceCard(c)) return c.Attack + 10000;
-                        if (IsHecahandCard(c.Id)) return c.Attack + 5000;
-                        return c.Attack;
+                        int score = c.Attack;
+                        if (c.IsFaceup())
+                        {
+                            if (c.IsFloodgate()) score += 10000;
+                            if (c.IsExtraCard()) score += 5000;
+                        }
+                        return score;
                     }).ToList();
 
-                if (priority.Count >= min)
-                    return priority.Take(max).ToList();
+                if (enemyTargets.Count >= min)
+                    return enemyTargets.Take(max).ToList();
             }
 
-            // Hint 502 / 533: Generic Release / Tribute / Destroy
-            if (hint == 502 || hint == 533)
+            // 1. Deck Search (hint 506 = HINTMSG_ATOHAND) or all in Deck
+            if (hint == 506 || (hint == 0 && cards.All(c => c.Location == CardLocation.Deck)))
             {
-                var safeTributes = cards.OrderBy(c => GetMaterialPriority(c)).ToList();
-                if (safeTributes.Count >= min)
-                    return safeTributes.Take(max).ToList();
-            }
-
-            // Hint 549: Battle Target Selection
-            if (hint == 549)
-            {
-                bool hasDandalos = Bot.MonsterZone.Any(c => c != null && c.IsFaceup() && c.IsCode(CardId.HecahandsDandalos));
-                if (hasDandalos)
+                var target = DeckPlugin?.Strategy?.PickSearchTarget(cards, Card);
+                if (target != null)
                 {
-                    var directOrWeak = cards.OrderBy(c => c.Attack).ToList();
-                    if (directOrWeak.Count >= min) return directOrWeak.Take(max).ToList();
+                    var result = new List<ClientCard> { target };
+                    result.AddRange(cards.Where(c => c != target).Take(max - 1));
+                    return result;
                 }
-
-                int ourBestAtk = Bot.GetMonsters()
-                    .Where(c => c != null && c.IsFaceup() && c.IsAttack())
-                    .Select(c => c.Attack)
-                    .DefaultIfEmpty(0).Max();
-
-                var beatable = cards.Where(c => c != null && c.IsFaceup() && c.Location == CardLocation.MonsterZone
-                    && (c.IsAttack() ? c.Attack < ourBestAtk : c.Defense < ourBestAtk)).ToList();
-
-                if (beatable.Count >= min)
-                    return beatable.OrderByDescending(c => c.Attack).Take(max).ToList();
             }
 
-            // Protect Ace Cards on our field from accidental selection
-            if (cards.Any(c => c != null && c.Controller == 0 && c.Location == CardLocation.MonsterZone && IsAceCard(c)))
+            // 2. Special Summon (hint 509 = HINTMSG_SPSUMMON)
+            if (hint == 509)
             {
-                var safeCards = cards.Where(c => c == null || c.Controller != 0 || c.Location != CardLocation.MonsterZone || !IsAceCard(c)).ToList();
-                if (safeCards.Count >= min)
-                    return safeCards.Take(max).ToList();
+                var target = DeckPlugin?.Strategy?.PickSpecialSummonTarget(cards);
+                if (target != null)
+                {
+                    var result = new List<ClientCard> { target };
+                    result.AddRange(cards.Where(c => c != target).Take(max - 1));
+                    return result;
+                }
+            }
+
+            // 3. Foolish / Send to Grave (hint 504 = HINTMSG_TOGRAVE)
+            if (hint == 504)
+            {
+                var target = DeckPlugin?.Strategy?.PickFoolishGraveTarget(cards, Card);
+                if (target != null)
+                {
+                    var result = new List<ClientCard> { target };
+                    result.AddRange(cards.Where(c => c != target).Take(max - 1));
+                    return result;
+                }
+            }
+
+            // 4. Discard Cost (hint 501 = HINTMSG_DISCARD)
+            if (hint == 501)
+            {
+                var target = DeckPlugin?.MaterialEvaluator?.PickDiscardTarget(cards, min);
+                if (target != null)
+                {
+                    var result = new List<ClientCard> { target };
+                    result.AddRange(cards.Where(c => c != target).Take(max - 1));
+                    return result;
+                }
+            }
+
+            // 5. Materials (hint 511, 513, 533)
+            if (hint == 511 || hint == 513 || hint == 533)
+            {
+                var sorted = DeckPlugin?.MaterialEvaluator?.SortMaterials(cards, min);
+                if (sorted != null && sorted.Count >= min)
+                {
+                    return sorted.Take(max).ToList();
+                }
             }
 
             return base.OnSelectCard(cards, min, max, hint, cancelable);
-        }
-    }
-
-    [Deck("Expert_2026_Hecahand", "2026_Hecahand")]
-    public class ExpertHecahandExecutor : _2026_HecahandExecutor
-    {
-        public ExpertHecahandExecutor(GameAI ai, Duel duel) : base(ai, duel)
-        {
         }
     }
 }

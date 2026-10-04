@@ -1767,7 +1767,7 @@ namespace WindBot.Game.AI
                 // 2. Ace & High-ATK Boss Downgrade Protection (All Phases):
                 // S:P is a utility Link-2 (1600 ATK). Never sacrifice Boss monsters / Ace cards!
                 var candidateMaterials = Bot.GetMonsters().Where(m => m != null && m.IsFaceup()).ToList();
-                var safeMaterials = candidateMaterials.Where(m => !IsAceCard(m) && m.Attack < 2000).ToList();
+                var safeMaterials = candidateMaterials.Where(m => (!IsAceCard(m) && m.Attack < 2000) || m.Owner == 1).ToList();
 
                 // S:P requires 2 Effect monsters. If we don't have at least 2 safe materials (non-Ace, ATK < 2000),
                 // summoning S:P would consume a boss or high-ATK attacker.
